@@ -17,14 +17,6 @@ pub struct EckdServer {
 }
 
 impl EckdServer {
-    pub fn new(addr: &str, port: u16) -> EckdServer {
-        Self {
-            address: format!("{}:{}", addr, port)
-                .parse()
-                .expect("parsing address"),
-        }
-    }
-
     pub async fn serve(&self) -> Result<(), Box<dyn std::error::Error>> {
         let kv = KV::new();
         Server::builder()
