@@ -1,14 +1,6 @@
-[package]
-name = "eckd-rs"
-version = "0.1.0"
-authors = ["Andrew Jeffery <dev@jeffas.io>"]
-edition = "2018"
-
-[dependencies]
-sled = "0.34.6"
-tonic = "0.4.0"
-prost = "0.7"
-tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread"] }
-
-[build-dependencies]
-tonic-build = "0.4.0"
+[workspace]
+members = [
+  "eckd",
+  "etcd-proto",
+  "gen-etcd-proto",
+]

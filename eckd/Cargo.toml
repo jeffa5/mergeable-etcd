@@ -1,0 +1,15 @@
+[package]
+name = "eckd"
+version = "0.1.0"
+authors = ["Andrew Jeffery <dev@jeffas.io>"]
+edition = "2018"
+
+[dependencies]
+sled = "0.34.6"
+tonic = "0.4.0"
+prost = "0.7"
+tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread"] }
+etcd-proto = { path = "../etcd-proto" }
+
+[build-dependencies]
+tonic-build = "0.4.0"
