@@ -1,12 +1,17 @@
-use etcd_proto::etcdserverpb::kv_server::{Kv, KvServer};
-use etcd_proto::etcdserverpb::{
-    CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse, PutRequest,
-    PutResponse, RangeRequest, RangeResponse, ResponseHeader, TxnRequest, TxnResponse,
-};
-use etcd_proto::mvccpb::KeyValue;
 use std::net::SocketAddr;
+
+use derive_builder::Builder;
+use etcd_proto::{
+    etcdserverpb::{
+        kv_server::{Kv, KvServer},
+        CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse, PutRequest,
+        PutResponse, RangeRequest, RangeResponse, ResponseHeader, TxnRequest, TxnResponse,
+    },
+    mvccpb::KeyValue,
+};
 use tonic::{transport::Server, Request, Response, Status};
 
+#[derive(Debug, Builder)]
 pub struct EckdServer {
     address: SocketAddr,
 }
@@ -49,7 +54,6 @@ impl Kv for KV {
         &self,
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
-
         let inner = request.into_inner();
         let kvs = if let Some(kv) = self.db.get(&inner.key).unwrap() {
             let kv = KeyValue {
@@ -77,7 +81,6 @@ impl Kv for KV {
     }
 
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
-
         let inner = request.into_inner();
         let prev_kv = if let Some(val) = self.db.insert(&inner.key, inner.value).unwrap() {
             Some(KeyValue {
@@ -103,7 +106,6 @@ impl Kv for KV {
         &self,
         _request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
-
         let reply = DeleteRangeResponse {
             header: Some(ResponseHeader::default()),
             deleted: 0,
@@ -113,7 +115,6 @@ impl Kv for KV {
     }
 
     async fn txn(&self, _request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
-
         let reply = TxnResponse {
             header: Some(ResponseHeader::default()),
             responses: vec![],
@@ -126,7 +127,6 @@ impl Kv for KV {
         &self,
         _request: Request<CompactionRequest>,
     ) -> Result<Response<CompactionResponse>, Status> {
-
         let reply = CompactionResponse { header: None };
         Ok(Response::new(reply))
     }

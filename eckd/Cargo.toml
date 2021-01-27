@@ -10,6 +10,7 @@ tonic = "0.4.0"
 prost = "0.7"
 tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread"] }
 etcd-proto = { path = "../etcd-proto" }
+derive_builder = "0.9.0"
 
 [build-dependencies]
 tonic-build = "0.4.0"
