@@ -45,6 +45,7 @@
           defaultPackage = packages.eckd;
 
           apps.eckd = flake-utils.lib.mkApp {
+            name = "eckd";
             drv = packages.eckd;
           };
 
