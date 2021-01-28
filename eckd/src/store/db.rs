@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::tree::Tree;
+use super::kv::Kv;
 
 #[derive(Debug)]
 pub struct Db {
@@ -14,9 +14,7 @@ impl Db {
         })
     }
 
-    pub fn open_tree<V: AsRef<[u8]>>(&self, s: V) -> Result<Tree, Box<dyn std::error::Error>> {
-        Ok(Tree {
-            inner: self.db.open_tree(s)?,
-        })
+    pub fn kv(&self) -> Kv {
+        Kv::new(&self.db)
     }
 }

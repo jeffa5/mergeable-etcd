@@ -1,5 +1,5 @@
 mod db;
-mod tree;
+mod kv;
 
 pub use db::Db;
-pub use tree::Tree;
+pub use kv::Kv;

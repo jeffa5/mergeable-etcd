@@ -10,13 +10,13 @@ use tonic::{Request, Response, Status};
 
 #[derive(Debug)]
 pub struct KV {
-    db: crate::store::Tree,
+    db: crate::store::Kv,
 }
 
 impl KV {
     pub fn new(db: &crate::store::Db) -> KV {
         KV {
-            db: db.open_tree("kv").unwrap(),
+            db: db.kv(),
         }
     }
 }
@@ -55,7 +55,7 @@ impl Kv for KV {
 
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let inner = request.into_inner();
-        let prev_kv = if let Some(val) = self.db.insert(&inner.key, inner.value).unwrap() {
+        let prev_kv = if let Some(val) = self.db.merge(&inner.key, inner.value).unwrap() {
             Some(KeyValue {
                 create_revision: 0,
                 key: inner.key,
