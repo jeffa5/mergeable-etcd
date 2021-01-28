@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::path::PathBuf;
 
 use derive_builder::Builder;
 use etcd_proto::{
@@ -11,18 +11,28 @@ use etcd_proto::{
 };
 use tonic::{transport::Server, Request, Response, Status};
 
+use crate::address::{Address, NamedAddress};
+
 #[derive(Debug, Builder)]
 pub struct EckdServer {
-    address: SocketAddr,
+    name: String,
+    data_dir: PathBuf,
+    listen_peer_urls: Vec<Address>,
+    listen_client_urls: Vec<Address>,
+    initial_advertise_peer_urls: Vec<Address>,
+    initial_cluster: Vec<NamedAddress>,
+    advertise_client_urls: Vec<Address>,
 }
 
 impl EckdServer {
     pub async fn serve(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let kv = KV::new();
-        Server::builder()
-            .add_service(KvServer::new(kv))
-            .serve(self.address)
-            .await?;
+        for client_url in self.listen_client_urls.iter() {
+            let kv = KV::new();
+            Server::builder()
+                .add_service(KvServer::new(kv))
+                .serve(client_url.socket_address())
+                .await?;
+        }
         Ok(())
     }
 }
