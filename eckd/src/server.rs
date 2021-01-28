@@ -17,12 +17,16 @@ pub struct EckdServer {
 
 impl EckdServer {
     pub async fn serve(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let db = sled::open(&self.data_dir)?;
-        let servers = self.listen_client_urls.iter().map(|client_url| {
-            let serving = crate::services::serve(client_url.socket_address(), &db) ;
-            println!("Listening to clients on {}", client_url);
-            serving
-        }).collect::<Vec<_>>();
+        let db = crate::store::Db::new(&self.data_dir)?;
+        let servers = self
+            .listen_client_urls
+            .iter()
+            .map(|client_url| {
+                let serving = crate::services::serve(client_url.socket_address(), &db);
+                println!("Listening to clients on {}", client_url);
+                serving
+            })
+            .collect::<Vec<_>>();
         futures::future::try_join_all(servers).await?;
         Ok(())
     }

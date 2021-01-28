@@ -1,8 +1,8 @@
 use etcd_proto::{
     etcdserverpb::{
-        kv_server::Kv,
-        CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse, PutRequest,
-        PutResponse, RangeRequest, RangeResponse, ResponseHeader, TxnRequest, TxnResponse,
+        kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest,
+        DeleteRangeResponse, PutRequest, PutResponse, RangeRequest, RangeResponse, ResponseHeader,
+        TxnRequest, TxnResponse,
     },
     mvccpb::KeyValue,
 };
@@ -10,11 +10,11 @@ use tonic::{Request, Response, Status};
 
 #[derive(Debug)]
 pub struct KV {
-    db: sled::Tree,
+    db: crate::store::Tree,
 }
 
 impl KV {
-    pub fn new(db:&sled::Db) -> KV {
+    pub fn new(db: &crate::store::Db) -> KV {
         KV {
             db: db.open_tree("kv").unwrap(),
         }

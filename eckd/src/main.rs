@@ -6,6 +6,7 @@ use structopt::StructOpt;
 mod address;
 mod server;
 mod services;
+mod store;
 
 #[derive(Debug, StructOpt)]
 struct Options {
