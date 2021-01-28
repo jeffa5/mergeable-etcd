@@ -1,5 +1,5 @@
-use std::sync::Mutex;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+
 use etcd_proto::{
     etcdserverpb::{
         kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest,
@@ -18,16 +18,35 @@ pub struct KV {
     server: Arc<Mutex<ServerState>>,
 }
 
-#[derive(Debug)]
-pub struct ServerState {
-    revision: i64,
-}
-
 impl KV {
     pub fn new(db: &crate::store::Db) -> KV {
         KV {
             db: db.kv(),
-            server: Arc::new(Mutex::new(ServerState { revision: 0 })),
+            server: Arc::new(Mutex::new(ServerState {
+                cluster_id: 0,
+                member_id: 0,
+                revision: 0,
+                raft_term: 0,
+            })),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ServerState {
+    cluster_id: u64,
+    member_id: u64,
+    revision: i64,
+    raft_term: u64,
+}
+
+impl ServerState {
+    fn header(&self) -> ResponseHeader {
+        ResponseHeader {
+            cluster_id: self.cluster_id,
+            member_id: self.member_id,
+            revision: self.revision,
+            raft_term: self.raft_term,
         }
     }
 }
@@ -56,7 +75,7 @@ impl Kv for KV {
         let count = kvs.len() as i64;
 
         let reply = RangeResponse {
-            header: Some(ResponseHeader::default()),
+            header: Some(self.server.lock().unwrap().header()),
             kvs,
             count,
             more: false,
@@ -90,7 +109,7 @@ impl Kv for KV {
         server.revision = new_revision;
 
         let reply = PutResponse {
-            header: Some(ResponseHeader::default()),
+            header: Some(server.header()),
             prev_kv,
         };
         Ok(Response::new(reply))
@@ -101,7 +120,7 @@ impl Kv for KV {
         _request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
         let reply = DeleteRangeResponse {
-            header: Some(ResponseHeader::default()),
+            header: Some(self.server.lock().unwrap().header()),
             deleted: 0,
             prev_kvs: vec![],
         };
@@ -110,7 +129,7 @@ impl Kv for KV {
 
     async fn txn(&self, _request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
         let reply = TxnResponse {
-            header: Some(ResponseHeader::default()),
+            header: Some(self.server.lock().unwrap().header()),
             responses: vec![],
             succeeded: true,
         };
