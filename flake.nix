@@ -32,10 +32,19 @@
               root = ./.;
             };
 
-            eckd-docker = pkgs.dockerTools.buildImage {
-              name = "eckd-rs";
+            eckd-etcd = pkgs.stdenv.mkDerivation {
+              name = "eckd-etcd";
+              src = packages.eckd;
+              installPhase = ''
+                mkdir -p $out/bin
+                cp $src/bin/eckd $out/bin/etcd
+              '';
+            };
+
+            eckd-docker = pkgs.dockerTools.buildLayeredImage {
+              name = "jeffas/eckd-rs";
               tag = "latest";
-              contents = packages.eckd;
+              contents = packages.eckd-etcd;
 
               config.Cmd = [ "/bin/eckd" ];
             };
