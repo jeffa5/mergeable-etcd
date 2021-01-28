@@ -5,6 +5,7 @@ use structopt::StructOpt;
 
 mod address;
 mod server;
+mod services;
 
 #[derive(Debug, StructOpt)]
 struct Options {
@@ -17,25 +18,25 @@ struct Options {
     data_dir: PathBuf,
 
     /// List of URLs to listen on for peer traffic.
-    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2380")]
+    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2380", use_delimiter=true)]
     listen_peer_urls: Vec<Address>,
 
     /// List of URLs to listen on for client traffic.
-    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2379")]
+    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2379", use_delimiter=true)]
     listen_client_urls: Vec<Address>,
 
     /// List of this member's peer URLs to advertise to the rest of the cluster.
-    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2380")]
+    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2380", use_delimiter=true)]
     initial_advertise_peer_urls: Vec<Address>,
 
     /// Initial cluster configuration for bootstrapping.
-    #[structopt(long, parse(try_from_str = NamedAddress::try_from), default_value = "default=http://localhost:2380")]
+    #[structopt(long, parse(try_from_str = NamedAddress::try_from), default_value = "default=http://localhost:2380", use_delimiter=true)]
     initial_cluster: Vec<NamedAddress>,
 
     /// List of this member's client URLs to advertise to the public.
     ///
     /// The client URLs advertised should be accessible to machines that talk to etcd cluster. etcd client libraries parse these URLs to connect to the cluster.
-    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2379")]
+    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2379", use_delimiter=true)]
     advertise_client_urls: Vec<Address>,
 }
 

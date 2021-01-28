@@ -1,4 +1,8 @@
-use std::{convert::TryFrom, net::SocketAddr};
+use std::{
+    convert::TryFrom,
+    fmt::Display,
+    net::{IpAddr, SocketAddr, ToSocketAddrs},
+};
 
 use thiserror::Error;
 use url::Url;
@@ -6,13 +10,27 @@ use url::Url;
 #[derive(Debug, Clone)]
 pub struct Address {
     scheme: Scheme,
-    host: String,
+    host: url::Host,
     port: u16,
 }
 
 impl Address {
     pub fn socket_address(&self) -> SocketAddr {
-        format!("{}:{}", self.host, self.port).parse().unwrap()
+        match &self.host {
+            url::Host::Ipv4(ip4) => SocketAddr::new(IpAddr::V4(*ip4), self.port),
+            url::Host::Ipv6(ip6) => SocketAddr::new(IpAddr::V6(*ip6), self.port),
+            url::Host::Domain(s) => (s.as_str(), self.port)
+                .to_socket_addrs()
+                .expect("Unable to resolve domain")
+                .next()
+                .expect("No addresses from resolved domain"),
+        }
+    }
+}
+
+impl Display for Address {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}://{}:{}", self.scheme, self.host, self.port)
     }
 }
 
@@ -20,6 +38,19 @@ impl Address {
 pub enum Scheme {
     Http,
     Https,
+}
+
+impl Display for Scheme {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Scheme::Http => "http",
+                Scheme::Https => "https",
+            }
+        )
+    }
 }
 
 #[derive(Debug, Error)]
@@ -44,7 +75,7 @@ impl TryFrom<&str> for Address {
             "https" => Scheme::Https,
             e => return Err(AddressError::UnsupportedScheme(e.to_owned())),
         };
-        let host = match url.host_str() {
+        let host = match url.host() {
             Some(h) => h.to_owned(),
             None => return Err(AddressError::MissingHost),
         };
@@ -78,7 +109,7 @@ impl TryFrom<&str> for NamedAddress {
     type Error = NamedAddressError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let (name, address) = match value.splitn(2, "=").collect::<Vec<_>>()[..] {
+        let (name, address) = match value.splitn(2, '=').collect::<Vec<_>>()[..] {
             [name, address] => (name, address),
             _ => return Err(NamedAddressError::MissingEquals),
         };
