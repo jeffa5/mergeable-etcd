@@ -5,10 +5,9 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
-    naersk.url = "github:nmattia/naersk";
   };
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, naersk }:
+  outputs = { self, nixpkgs, rust-overlay, flake-utils }:
     flake-utils.lib.eachDefaultSystem
       (system:
         let
@@ -18,19 +17,12 @@
               system = system;
             };
           rust = pkgs.rust-bin.nightly.latest.rust;
-          naersk-lib = naersk.lib."${system}".override {
-            cargo = rust;
-            rustc = rust;
-          };
+          cargoNix = pkgs.callPackage ./Cargo.nix { };
         in
         rec
         {
           packages = {
-            eckd = naersk-lib.buildPackage {
-              doCheck = true;
-              pname = "eckd";
-              root = ./.;
-            };
+            eckd = cargoNix.workspaceMembers.eckd.build;
 
             eckd-etcd = pkgs.stdenv.mkDerivation {
               name = "eckd-etcd";
@@ -66,6 +58,7 @@
               cargo-edit
               cargo-watch
               protobuf
+              crate2nix
 
               etcd
 
