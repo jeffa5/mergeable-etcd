@@ -1,4 +1,5 @@
 /target
 .direnv
 result
+result-lib
 default.eckd
