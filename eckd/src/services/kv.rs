@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+use std::sync::Arc;
 use etcd_proto::{
     etcdserverpb::{
         kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest,
@@ -8,15 +10,24 @@ use etcd_proto::{
 };
 use tonic::{Request, Response, Status};
 
+use crate::store::kv::Value;
+
 #[derive(Debug)]
 pub struct KV {
     db: crate::store::Kv,
+    server: Arc<Mutex<ServerState>>,
+}
+
+#[derive(Debug)]
+pub struct ServerState {
+    revision: i64,
 }
 
 impl KV {
     pub fn new(db: &crate::store::Db) -> KV {
         KV {
             db: db.kv(),
+            server: Arc::new(Mutex::new(ServerState { revision: 0 })),
         }
     }
 }
@@ -30,12 +41,12 @@ impl Kv for KV {
         let inner = request.into_inner();
         let kvs = if let Some(kv) = self.db.get(&inner.key).unwrap() {
             let kv = KeyValue {
-                create_revision: 0,
+                create_revision: kv.create_revision,
                 key: inner.key,
                 lease: 0,
-                mod_revision: 0,
-                value: kv.to_vec(),
-                version: 0,
+                mod_revision: kv.mod_revision,
+                value: kv.value,
+                version: kv.version,
             };
             vec![kv]
         } else {
@@ -55,18 +66,28 @@ impl Kv for KV {
 
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let inner = request.into_inner();
-        let prev_kv = if let Some(val) = self.db.merge(&inner.key, inner.value).unwrap() {
+        let mut server = self.server.lock().unwrap();
+        let new_revision = server.revision + 1;
+        let val = Value {
+            create_revision: new_revision,
+            mod_revision: new_revision,
+            version: 1,
+            value: inner.value,
+        };
+        let prev_kv = if let Some(val) = self.db.merge(&inner.key, val).unwrap() {
             Some(KeyValue {
-                create_revision: 0,
+                create_revision: val.create_revision,
                 key: inner.key,
                 lease: 0,
-                mod_revision: 0,
-                value: val.to_vec(),
-                version: 0,
+                mod_revision: val.mod_revision,
+                value: val.value,
+                version: val.version,
             })
         } else {
             None
         };
+
+        server.revision = new_revision;
 
         let reply = PutResponse {
             header: Some(ResponseHeader::default()),

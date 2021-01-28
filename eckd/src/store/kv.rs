@@ -1,10 +1,40 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug)]
 pub struct Kv {
     tree: sled::Tree,
 }
 
-fn merge_kv(key: &[u8], old_value: Option<&[u8]>, merged_bytes: &[u8]) -> Option<Vec<u8>> {
-    Some(merged_bytes.to_vec())
+#[allow(clippy::unnecessary_wraps)]
+fn merge_kv(_key: &[u8], old_value: Option<&[u8]>, merged_bytes: &[u8]) -> Option<Vec<u8>> {
+    match old_value {
+        None => Some(merged_bytes.to_vec()),
+        Some(old) => {
+            let old = Value::deserialize(old);
+            let mut merged = Value::deserialize(merged_bytes);
+            merged.create_revision = old.create_revision;
+            merged.version = old.version + 1;
+            Some(merged.serialize())
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Value {
+    pub create_revision: i64,
+    pub mod_revision: i64,
+    pub version: i64,
+    pub value: Vec<u8>,
+}
+
+impl Value {
+    pub fn serialize(&self) -> Vec<u8> {
+        bincode::serialize(self).expect("Serialize value")
+    }
+
+    pub fn deserialize(bytes: &[u8]) -> Self {
+        bincode::deserialize(bytes).expect("Deserialize value")
+    }
 }
 
 impl Kv {
@@ -14,15 +44,16 @@ impl Kv {
         Kv { tree }
     }
 
-    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> sled::Result<Option<sled::IVec>> {
-        self.tree.get(key)
+    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> sled::Result<Option<Value>> {
+        let val = self.tree.get(key)?;
+        Ok(val.map(|v| Value::deserialize(&v)))
     }
 
-    pub fn merge<K, V>(&self, key: K, value: V) -> sled::Result<Option<sled::IVec>>
+    pub fn merge<K>(&self, key: K, value: Value) -> sled::Result<Option<Value>>
     where
         K: AsRef<[u8]>,
-        V: AsRef<[u8]>,
     {
-        self.tree.merge(key, value)
+        let val = value.serialize();
+        Ok(self.tree.merge(key, val)?.map(|v| Value::deserialize(&v)))
     }
 }
