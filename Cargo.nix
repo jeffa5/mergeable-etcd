@@ -238,6 +238,30 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
+      "bincode" = rec {
+        crateName = "bincode";
+        version = "1.3.1";
+        edition = "2015";
+        sha256 = "0vc9pjh6hfp9vfq752sa88rxwg93ydhm0dvvy58rcvx2p8wkl3gk";
+        authors = [
+          "Ty Overby <ty@pre-alpha.com>"
+          "Francesco Mazzoli <f@mazzo.li>"
+          "David Tolnay <dtolnay@gmail.com>"
+          "Zoey Riordan <zoey@dos.cafe>"
+        ];
+        dependencies = [
+          {
+            name = "byteorder";
+            packageId = "byteorder";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+          }
+        ];
+        features = {
+        };
+      };
       "bitflags" = rec {
         crateName = "bitflags";
         version = "1.2.1";
@@ -641,6 +665,10 @@ rec {
         ];
         dependencies = [
           {
+            name = "bincode";
+            packageId = "bincode";
+          }
+          {
             name = "derive_builder";
             packageId = "derive_builder";
           }
@@ -655,6 +683,11 @@ rec {
           {
             name = "prost";
             packageId = "prost";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
           }
           {
             name = "sled";
@@ -2517,6 +2550,62 @@ rec {
         features = {
           "default" = [ "use_std" ];
         };
+      };
+      "serde" = rec {
+        crateName = "serde";
+        version = "1.0.123";
+        edition = "2015";
+        sha256 = "1bk9733mgiv5sg8yb19y8mc85fb2aaqp1k02v10alavj688idmcj";
+        authors = [
+          "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
+          "David Tolnay <dtolnay@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "serde_derive";
+            packageId = "serde_derive";
+            optional = true;
+          }
+        ];
+        devDependencies = [
+          {
+            name = "serde_derive";
+            packageId = "serde_derive";
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "derive" = [ "serde_derive" ];
+        };
+        resolvedDefaultFeatures = [ "default" "derive" "serde_derive" "std" ];
+      };
+      "serde_derive" = rec {
+        crateName = "serde_derive";
+        version = "1.0.123";
+        edition = "2015";
+        sha256 = "0ccg4m7ww6mfs5vjdbdifri2kf1wyd4difjnqnraph2gssaw54ck";
+        procMacro = true;
+        authors = [
+          "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
+          "David Tolnay <dtolnay@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn";
+          }
+        ];
+        features = {
+        };
+        resolvedDefaultFeatures = [ "default" ];
       };
       "slab" = rec {
         crateName = "slab";
