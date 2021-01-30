@@ -58,6 +58,7 @@ impl Kv for KV {
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
         let inner = request.into_inner();
+        println!("range: {:?}", inner);
         let kvs = if let Some(kv) = self.db.get(&inner.key).unwrap() {
             let kv = KeyValue {
                 create_revision: kv.create_revision,
@@ -85,6 +86,7 @@ impl Kv for KV {
 
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let inner = request.into_inner();
+        println!("put: {:?}", inner);
         let mut server = self.server.lock().unwrap();
         let new_revision = server.revision + 1;
         let val = Value {
@@ -117,8 +119,10 @@ impl Kv for KV {
 
     async fn delete_range(
         &self,
-        _request: Request<DeleteRangeRequest>,
+        request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
+        let inner = request.into_inner();
+        println!("delete_range: {:?}", inner);
         let reply = DeleteRangeResponse {
             header: Some(self.server.lock().unwrap().header()),
             deleted: 0,
@@ -127,7 +131,9 @@ impl Kv for KV {
         Ok(Response::new(reply))
     }
 
-    async fn txn(&self, _request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
+    async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
+        let inner = request.into_inner();
+        println!("txn: {:?}", inner);
         let reply = TxnResponse {
             header: Some(self.server.lock().unwrap().header()),
             responses: vec![],
@@ -138,8 +144,10 @@ impl Kv for KV {
 
     async fn compact(
         &self,
-        _request: Request<CompactionRequest>,
+        request: Request<CompactionRequest>,
     ) -> Result<Response<CompactionResponse>, Status> {
+        let inner = request.into_inner();
+        println!("compact: {:?}", inner);
         let reply = CompactionResponse { header: None };
         Ok(Response::new(reply))
     }
