@@ -50,11 +50,11 @@ struct Options {
 
     /// Path to the client server TLS key file.
     #[structopt(long)]
-    key_file : PathBuf,
+    key_file: PathBuf,
 
     /// Path to the client server TLS trusted CA cert file.
     #[structopt(long)]
-    trusted_ca_file:PathBuf,
+    trusted_ca_file: PathBuf,
 
     /// Enable client cert authentication.
     #[structopt(long)]
@@ -78,7 +78,7 @@ struct Options {
 
     /// Number of committed transactions to trigger a snapshot to disk.
     #[structopt(long)]
-    snapshot_count:usize,
+    snapshot_count: usize,
 }
 
 #[tokio::main]
@@ -94,7 +94,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .listen_client_urls(options.listen_client_urls)
         .initial_advertise_peer_urls(options.initial_advertise_peer_urls)
         .initial_cluster(options.initial_cluster)
-        .advertise_client_urls(options.advertise_client_urls);
+        .advertise_client_urls(options.advertise_client_urls)
+        .cert_file(options.cert_file)
+        .key_file(options.key_file);
     let server = server_builder.build()?;
     server.serve().await?;
 

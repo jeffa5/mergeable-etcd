@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
 use derive_builder::Builder;
+use tonic::transport::Identity;
 
-use crate::address::{Address, NamedAddress};
+use crate::address::{Address, NamedAddress, Scheme};
 
 #[derive(Debug, Builder)]
 pub struct EckdServer {
@@ -13,6 +14,8 @@ pub struct EckdServer {
     initial_advertise_peer_urls: Vec<Address>,
     initial_cluster: Vec<NamedAddress>,
     advertise_client_urls: Vec<Address>,
+    cert_file: PathBuf,
+    key_file: PathBuf,
 }
 
 impl EckdServer {
@@ -22,7 +25,14 @@ impl EckdServer {
             .listen_client_urls
             .iter()
             .map(|client_url| {
-                let serving = crate::services::serve(client_url.socket_address(), &db);
+                let identity = if let Scheme::Https = client_url.scheme {
+                    let cert = std::fs::read(&self.cert_file).expect("reading server cert");
+                    let key = std::fs::read(&self.key_file).expect("reading server key");
+                    Some(Identity::from_pem(cert, key))
+                } else {
+                    None
+                };
+                let serving = crate::services::serve(client_url.socket_address(), identity, &db);
                 println!("Listening to clients on {}", client_url);
                 serving
             })

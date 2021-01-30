@@ -9,7 +9,7 @@ use url::Url;
 
 #[derive(Debug, Clone)]
 pub struct Address {
-    scheme: Scheme,
+    pub scheme: Scheme,
     host: url::Host,
     port: u16,
 }

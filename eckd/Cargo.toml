@@ -6,9 +6,9 @@ edition = "2018"
 
 [dependencies]
 sled = "0.34.6"
-tonic = "0.4.0"
+tonic = { version = "0.4.0", features = ["transport", "tls"] }
 prost = "0.7"
-tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread"] }
+tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread", "fs"] }
 etcd-proto = { path = "../etcd-proto" }
 derive_builder = "0.9.0"
 structopt = "0.3.21"
