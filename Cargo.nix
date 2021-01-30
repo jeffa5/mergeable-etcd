@@ -706,6 +706,10 @@ rec {
             packageId = "futures";
           }
           {
+            name = "hyper";
+            packageId = "hyper";
+          }
+          {
             name = "prost";
             packageId = "prost";
           }
@@ -735,6 +739,10 @@ rec {
             name = "tonic";
             packageId = "tonic";
             features = [ "transport" "tls" ];
+          }
+          {
+            name = "tower";
+            packageId = "tower";
           }
           {
             name = "url";
