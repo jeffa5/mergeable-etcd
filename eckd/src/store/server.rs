@@ -27,8 +27,8 @@ impl Server {
         }
     }
 
-    pub fn revision(&self) -> i64 {
-        self.revision
+    pub fn member_id(&self) -> u64 {
+        self.member_id
     }
 
     pub fn increment_revision(&mut self) -> i64 {

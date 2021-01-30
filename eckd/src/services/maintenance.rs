@@ -1,8 +1,15 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    pin::Pin,
+    sync::{Arc, Mutex},
+};
 
-use etcd_proto::etcdserverpb::maintenance_server::Maintenance as MaintenanceTrait;
-use futures_core::Stream;
-use tokio::sync::mpsc;
+use etcd_proto::etcdserverpb::{
+    maintenance_server::Maintenance as MaintenanceTrait, AlarmRequest, AlarmResponse,
+    DefragmentRequest, DefragmentResponse, HashKvRequest, HashKvResponse, HashRequest,
+    HashResponse, MoveLeaderRequest, MoveLeaderResponse, SnapshotRequest, SnapshotResponse,
+    StatusRequest, StatusResponse,
+};
+use futures::Stream;
 use tonic::{Request, Response, Status};
 
 use crate::store::Server;
@@ -22,53 +29,64 @@ impl Maintenance {
 impl MaintenanceTrait for Maintenance {
     async fn alarm(
         &self,
-        request: Request<etcd_proto::etcdserverpb::AlarmRequest>,
-    ) -> Result<Response<etcd_proto::etcdserverpb::AlarmResponse>, Status> {
+        _request: Request<AlarmRequest>,
+    ) -> Result<Response<AlarmResponse>, Status> {
         todo!()
     }
 
     async fn status(
         &self,
-        request: Request<etcd_proto::etcdserverpb::StatusRequest>,
-    ) -> Result<Response<etcd_proto::etcdserverpb::StatusResponse>, Status> {
-        todo!()
+        _request: Request<StatusRequest>,
+    ) -> Result<Response<StatusResponse>, Status> {
+        println!("status request");
+        let server = self.server.lock().unwrap();
+        let reply = StatusResponse {
+            header: Some(server.header()),
+            version: r#"{"etcdserver":"3.4.13","etcdcluster":"3.4.0"}"#.to_owned(),
+            db_size: 0,
+            leader: server.member_id(),
+            raft_index: 0,
+            raft_term: 0,
+            raft_applied_index: 0,
+            errors: vec![],
+            db_size_in_use: 0,
+            is_learner: false,
+        };
+        Ok(Response::new(reply))
     }
 
     async fn defragment(
         &self,
-        request: Request<etcd_proto::etcdserverpb::DefragmentRequest>,
-    ) -> Result<Response<etcd_proto::etcdserverpb::DefragmentResponse>, Status> {
+        _request: Request<DefragmentRequest>,
+    ) -> Result<Response<DefragmentResponse>, Status> {
         todo!()
     }
 
-    async fn hash(
-        &self,
-        request: Request<etcd_proto::etcdserverpb::HashRequest>,
-    ) -> Result<Response<etcd_proto::etcdserverpb::HashResponse>, Status> {
+    async fn hash(&self, _request: Request<HashRequest>) -> Result<Response<HashResponse>, Status> {
         todo!()
     }
 
     async fn hash_kv(
         &self,
-        request: Request<etcd_proto::etcdserverpb::HashKvRequest>,
-    ) -> Result<Response<etcd_proto::etcdserverpb::HashKvResponse>, Status> {
+        _request: Request<HashKvRequest>,
+    ) -> Result<Response<HashKvResponse>, Status> {
         todo!()
     }
 
     type SnapshotStream =
-        mpsc::Receiver<Result<etcd_proto::etcdserverpb::SnapshotResponse, Status>>;
+        Pin<Box<dyn Stream<Item = Result<SnapshotResponse, Status>> + Send + Sync + 'static>>;
 
     async fn snapshot(
         &self,
-        request: Request<etcd_proto::etcdserverpb::SnapshotRequest>,
+        _request: Request<SnapshotRequest>,
     ) -> Result<Response<Self::SnapshotStream>, Status> {
         todo!()
     }
 
     async fn move_leader(
         &self,
-        request: Request<etcd_proto::etcdserverpb::MoveLeaderRequest>,
-    ) -> Result<Response<etcd_proto::etcdserverpb::MoveLeaderResponse>, Status> {
+        _request: Request<MoveLeaderRequest>,
+    ) -> Result<Response<MoveLeaderResponse>, Status> {
         todo!()
     }
 }
