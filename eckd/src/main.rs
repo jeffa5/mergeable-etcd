@@ -1,7 +1,7 @@
 use std::{convert::TryFrom, path::PathBuf};
 
 use address::{Address, NamedAddress};
-use log::info;
+use log::{debug, info};
 use structopt::StructOpt;
 
 mod address;
@@ -80,12 +80,26 @@ struct Options {
     /// Number of committed transactions to trigger a snapshot to disk.
     #[structopt(long)]
     snapshot_count: usize,
+
+    /// enable debug-level logging for etcd.
+    #[structopt(long)]
+    debug: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = Options::from_args();
-    println!("{:#?}", options);
+
+    simple_logger::SimpleLogger::new()
+        .with_level(if options.debug {
+            log::LevelFilter::Debug
+        } else {
+            log::LevelFilter::Info
+        })
+        .init()
+        .unwrap();
+
+    debug!("{:#?}", options);
 
     let mut server_builder = server::EckdServerBuilder::default();
     server_builder

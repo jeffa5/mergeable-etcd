@@ -10,6 +10,7 @@ use etcd_proto::etcdserverpb::{
     StatusRequest, StatusResponse,
 };
 use futures::Stream;
+use log::info;
 use tonic::{Request, Response, Status};
 
 use crate::store::Server;
@@ -38,7 +39,7 @@ impl MaintenanceTrait for Maintenance {
         &self,
         _request: Request<StatusRequest>,
     ) -> Result<Response<StatusResponse>, Status> {
-        println!("status request");
+        info!("status request");
         let server = self.server.lock().unwrap();
         let reply = StatusResponse {
             header: Some(server.header()),

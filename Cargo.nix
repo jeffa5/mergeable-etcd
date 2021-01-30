@@ -338,6 +338,53 @@ rec {
           "rustc-dep-of-std" = [ "core" "compiler_builtins" ];
         };
       };
+      "chrono" = rec {
+        crateName = "chrono";
+        version = "0.4.19";
+        edition = "2015";
+        sha256 = "0wyfl6c00vhfl562spnfcna3zkw8jqvcp652m9iskhl8j26dc2k7";
+        authors = [
+          "Kang Seonghoon <public+rust@mearie.org>"
+          "Brandon W Maister <quodlibetor@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+            optional = true;
+          }
+          {
+            name = "num-integer";
+            packageId = "num-integer";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "num-traits";
+            packageId = "num-traits";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "time";
+            packageId = "time";
+            optional = true;
+          }
+          {
+            name = "winapi";
+            packageId = "winapi";
+            optional = true;
+            target = { target, features }: target."windows";
+            features = [ "std" "minwinbase" "minwindef" "timezoneapi" ];
+          }
+        ];
+        features = {
+          "clock" = [ "libc" "std" "winapi" ];
+          "default" = [ "clock" "std" "oldtime" ];
+          "oldtime" = [ "time" ];
+          "unstable-locales" = [ "pure-rust-locales" "alloc" ];
+          "wasmbind" = [ "wasm-bindgen" "js-sys" ];
+        };
+        resolvedDefaultFeatures = [ "clock" "default" "libc" "oldtime" "std" "time" "winapi" ];
+      };
       "clap" = rec {
         crateName = "clap";
         version = "2.33.3";
@@ -391,6 +438,34 @@ rec {
           "yaml" = [ "yaml-rust" ];
         };
         resolvedDefaultFeatures = [ "ansi_term" "atty" "color" "default" "strsim" "suggestions" "vec_map" ];
+      };
+      "colored" = rec {
+        crateName = "colored";
+        version = "1.9.3";
+        edition = "2015";
+        sha256 = "0nbc1czs512h1k696y7glv1kjrb2b914zpxraic6q5fgv80wizzl";
+        authors = [
+          "Thomas Wickham <mackwic@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "atty";
+            packageId = "atty";
+          }
+          {
+            name = "lazy_static";
+            packageId = "lazy_static";
+          }
+          {
+            name = "winapi";
+            packageId = "winapi";
+            usesDefaultFeatures = false;
+            target = { target, features }: target."windows";
+            features = [ "consoleapi" "processenv" "winbase" ];
+          }
+        ];
+        features = {
+        };
       };
       "const_fn" = rec {
         crateName = "const_fn";
@@ -694,6 +769,10 @@ rec {
             packageId = "futures";
           }
           {
+            name = "futures-core";
+            packageId = "futures-core";
+          }
+          {
             name = "hyper";
             packageId = "hyper";
           }
@@ -711,6 +790,10 @@ rec {
             features = [ "derive" ];
           }
           {
+            name = "simple_logger";
+            packageId = "simple_logger";
+          }
+          {
             name = "sled";
             packageId = "sled";
           }
@@ -725,7 +808,7 @@ rec {
           {
             name = "tokio";
             packageId = "tokio";
-            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" ];
+            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
           }
           {
             name = "tonic";
@@ -1732,6 +1815,7 @@ rec {
           "kv_unstable_std" = [ "std" "kv_unstable" "value-bag/error" ];
           "kv_unstable_sval" = [ "kv_unstable" "value-bag/sval" "sval" ];
         };
+        resolvedDefaultFeatures = [ "std" ];
       };
       "matches" = rec {
         crateName = "matches";
@@ -1878,6 +1962,51 @@ rec {
           "impl-default" = [ "winapi/impl-default" ];
         };
         resolvedDefaultFeatures = [ "default" "user" ];
+      };
+      "num-integer" = rec {
+        crateName = "num-integer";
+        version = "0.1.44";
+        edition = "2015";
+        sha256 = "1nq152y3304as1iai95hqz8prqnc94lks1s7q05sfjdmcf56kk6j";
+        authors = [
+          "The Rust Project Developers"
+        ];
+        dependencies = [
+          {
+            name = "num-traits";
+            packageId = "num-traits";
+            usesDefaultFeatures = false;
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "autocfg";
+            packageId = "autocfg";
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "i128" = [ "num-traits/i128" ];
+          "std" = [ "num-traits/std" ];
+        };
+      };
+      "num-traits" = rec {
+        crateName = "num-traits";
+        version = "0.2.14";
+        edition = "2015";
+        sha256 = "144j176s2p76azy2ngk2vkdzgwdc0bc8c93jhki8c9fsbknb2r4s";
+        authors = [
+          "The Rust Project Developers"
+        ];
+        buildDependencies = [
+          {
+            name = "autocfg";
+            packageId = "autocfg";
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+        };
       };
       "num_cpus" = rec {
         crateName = "num_cpus";
@@ -2808,6 +2937,47 @@ rec {
         ];
         
       };
+      "simple_logger" = rec {
+        crateName = "simple_logger";
+        version = "1.11.0";
+        edition = "2018";
+        sha256 = "166iy6lxkf23am37aiyn104j8wfxmz59mp4r2i51vb9y15yg2myd";
+        authors = [
+          "Sam Clements <sam@borntyping.co.uk>"
+        ];
+        dependencies = [
+          {
+            name = "atty";
+            packageId = "atty";
+            target = { target, features }: target."windows";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+            optional = true;
+          }
+          {
+            name = "colored";
+            packageId = "colored";
+            optional = true;
+          }
+          {
+            name = "log";
+            packageId = "log";
+            features = [ "std" ];
+          }
+          {
+            name = "winapi";
+            packageId = "winapi";
+            target = { target, features }: target."windows";
+            features = [ "handleapi" "winbase" ];
+          }
+        ];
+        features = {
+          "default" = [ "colored" "chrono" ];
+        };
+        resolvedDefaultFeatures = [ "chrono" "colored" "default" ];
+      };
       "slab" = rec {
         crateName = "slab";
         version = "0.4.2";
@@ -3151,6 +3321,35 @@ rec {
           {
             name = "syn";
             packageId = "syn";
+          }
+        ];
+        
+      };
+      "time" = rec {
+        crateName = "time";
+        version = "0.1.43";
+        edition = "2015";
+        sha256 = "0f14wrgxj7ya2v4msg5mni7046bsm2angm7cn3pd3yv04gpm12na";
+        authors = [
+          "The Rust Project Developers"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+          {
+            name = "winapi";
+            packageId = "winapi";
+            target = { target, features }: target."windows";
+            features = [ "std" "minwinbase" "minwindef" "ntdef" "profileapi" "sysinfoapi" "timezoneapi" ];
+          }
+        ];
+        devDependencies = [
+          {
+            name = "winapi";
+            packageId = "winapi";
+            features = [ "std" "processthreadsapi" "winbase" ];
           }
         ];
         
@@ -4703,7 +4902,7 @@ rec {
         features = {
           "debug" = [ "impl-debug" ];
         };
-        resolvedDefaultFeatures = [ "cfg" "consoleapi" "errhandlingapi" "evntrace" "fileapi" "handleapi" "in6addr" "inaddr" "ioapiset" "minwinbase" "minwindef" "mswsock" "namedpipeapi" "ntdef" "ntsecapi" "ntstatus" "processenv" "processthreadsapi" "std" "synchapi" "winbase" "windef" "winerror" "winioctl" "winnt" "winsock2" "ws2def" "ws2ipdef" "ws2tcpip" "wtypesbase" ];
+        resolvedDefaultFeatures = [ "cfg" "consoleapi" "errhandlingapi" "evntrace" "fileapi" "handleapi" "in6addr" "inaddr" "ioapiset" "minwinbase" "minwindef" "mswsock" "namedpipeapi" "ntdef" "ntsecapi" "ntstatus" "processenv" "processthreadsapi" "profileapi" "std" "synchapi" "sysinfoapi" "timezoneapi" "winbase" "windef" "winerror" "winioctl" "winnt" "winsock2" "ws2def" "ws2ipdef" "ws2tcpip" "wtypesbase" ];
       };
       "winapi-i686-pc-windows-gnu" = rec {
         crateName = "winapi-i686-pc-windows-gnu";

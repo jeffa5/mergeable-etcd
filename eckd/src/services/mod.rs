@@ -9,7 +9,7 @@ use std::{
 
 use etcd_proto::etcdserverpb::{kv_server::KvServer, maintenance_server::MaintenanceServer};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
-use log::info;
+use log::{info, warn};
 use tonic::{
     body::BoxBody,
     transport::{Identity, NamedService, Server, ServerTlsConfig},
@@ -56,7 +56,7 @@ impl Service<HyperRequest<Body>> for CatchAllService {
 
     fn call(&mut self, req: HyperRequest<Body>) -> Self::Future {
         Box::pin(async move {
-            println!("Missed request: {:?} {:?}", req.method(), req.uri());
+            warn!("Missed request: {:?} {:?}", req.method(), req.uri());
             HyperResponse::builder().status(404).body(BoxBody::empty())
         })
     }

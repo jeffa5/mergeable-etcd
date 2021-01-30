@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use derive_builder::Builder;
+use log::info;
 use tonic::transport::Identity;
 
 use crate::address::{Address, NamedAddress, Scheme};
@@ -41,7 +42,7 @@ impl EckdServer {
                     shutdown.clone(),
                     &db,
                 );
-                println!("Listening to clients on {}", client_url);
+                info!("Listening to clients on {}", client_url);
                 serving
             })
             .collect::<Vec<_>>();
