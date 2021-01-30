@@ -34,7 +34,7 @@
             };
 
             eckd-docker = pkgs.dockerTools.buildLayeredImage {
-              name = "jeffas/eckd-rs";
+              name = "jeffas/etcd";
               tag = "latest";
               contents = packages.eckd-etcd;
 
