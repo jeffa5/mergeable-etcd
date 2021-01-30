@@ -1,10 +1,13 @@
 mod kv;
+mod maintenance;
+
 use std::{
     net::SocketAddr,
+    sync::{Arc, Mutex},
     task::{Context, Poll},
 };
 
-use etcd_proto::etcdserverpb::kv_server::KvServer;
+use etcd_proto::etcdserverpb::{kv_server::KvServer, maintenance_server::MaintenanceServer};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use log::info;
 use tonic::{
@@ -19,8 +22,10 @@ pub async fn serve(
     mut shutdown: tokio::sync::watch::Receiver<()>,
     db: &crate::store::Db,
 ) -> Result<(), tonic::transport::Error> {
-    let kv = kv::KV::new(db);
+    let server = Arc::new(Mutex::new(crate::store::Server::new()));
+    let kv = kv::KV::new(db, server.clone());
     let kv_service = KvServer::new(kv);
+    let maintenance_service = MaintenanceServer::new(maintenance::Maintenance::new(server.clone()));
     let mut server = Server::builder();
     if let Some(identity) = identity {
         server = server.tls_config(ServerTlsConfig::new().identity(identity))?;
@@ -29,6 +34,7 @@ pub async fn serve(
     server
         .add_service(CatchAllService {})
         .add_service(kv_service)
+        .add_service(maintenance_service)
         .serve_with_shutdown(address, async {
             shutdown.changed().await.unwrap();
             info!("Gracefully shutting down client server")

@@ -3,50 +3,26 @@ use std::sync::{Arc, Mutex};
 use etcd_proto::{
     etcdserverpb::{
         kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest,
-        DeleteRangeResponse, PutRequest, PutResponse, RangeRequest, RangeResponse, ResponseHeader,
-        TxnRequest, TxnResponse,
+        DeleteRangeResponse, PutRequest, PutResponse, RangeRequest, RangeResponse, TxnRequest,
+        TxnResponse,
     },
     mvccpb::KeyValue,
 };
 use tonic::{Request, Response, Status};
 
-use crate::store::kv::Value;
+use crate::store::{kv::Value, Server};
 
 #[derive(Debug)]
 pub struct KV {
     db: crate::store::Kv,
-    server: Arc<Mutex<ServerState>>,
+    server: Arc<Mutex<Server>>,
 }
 
 impl KV {
-    pub fn new(db: &crate::store::Db) -> KV {
+    pub fn new(db: &crate::store::Db, server: Arc<Mutex<Server>>) -> KV {
         KV {
             db: db.kv(),
-            server: Arc::new(Mutex::new(ServerState {
-                cluster_id: 0,
-                member_id: 0,
-                revision: 0,
-                raft_term: 0,
-            })),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ServerState {
-    cluster_id: u64,
-    member_id: u64,
-    revision: i64,
-    raft_term: u64,
-}
-
-impl ServerState {
-    fn header(&self) -> ResponseHeader {
-        ResponseHeader {
-            cluster_id: self.cluster_id,
-            member_id: self.member_id,
-            revision: self.revision,
-            raft_term: self.raft_term,
+            server,
         }
     }
 }
@@ -88,7 +64,7 @@ impl Kv for KV {
         let inner = request.into_inner();
         println!("put: {:?}", inner);
         let mut server = self.server.lock().unwrap();
-        let new_revision = server.revision + 1;
+        let new_revision = server.increment_revision();
         let val = Value {
             create_revision: new_revision,
             mod_revision: new_revision,
@@ -107,8 +83,6 @@ impl Kv for KV {
         } else {
             None
         };
-
-        server.revision = new_revision;
 
         let reply = PutResponse {
             header: Some(server.header()),

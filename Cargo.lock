@@ -239,6 +239,7 @@ dependencies = [
  "derive_builder",
  "etcd-proto",
  "futures",
+ "futures-core",
  "hyper",
  "log",
  "prost",
