@@ -25,8 +25,8 @@ pub async fn serve(
     }
 
     server
-        .add_service(kv_service)
         .add_service(CatchAllService {})
+        .add_service(kv_service)
         .serve(address)
         .await
 }
