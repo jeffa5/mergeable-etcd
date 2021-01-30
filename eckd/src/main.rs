@@ -47,15 +47,15 @@ struct Options {
 
     /// Path to the client server TLS cert file.
     #[structopt(long)]
-    cert_file: PathBuf,
+    cert_file: Option<PathBuf>,
 
     /// Path to the client server TLS key file.
     #[structopt(long)]
-    key_file: PathBuf,
+    key_file: Option<PathBuf>,
 
     /// Path to the client server TLS trusted CA cert file.
     #[structopt(long)]
-    trusted_ca_file: PathBuf,
+    trusted_ca_file: Option<PathBuf>,
 
     /// Enable client cert authentication.
     #[structopt(long)]
@@ -63,11 +63,11 @@ struct Options {
 
     /// Path to the peer server TLS cert file.
     #[structopt(long)]
-    peer_cert_file: PathBuf,
+    peer_cert_file: Option<PathBuf>,
 
     /// Path to the peer server TLS key file.
     #[structopt(long)]
-    peer_key_file: PathBuf,
+    peer_key_file: Option<PathBuf>,
 
     /// Enable peer client cert authentication.
     #[structopt(long)]
@@ -75,10 +75,10 @@ struct Options {
 
     /// Path to the peer server TLS trusted CA file.
     #[structopt(long)]
-    peer_trusted_ca_file: PathBuf,
+    peer_trusted_ca_file: Option<PathBuf>,
 
     /// Number of committed transactions to trigger a snapshot to disk.
-    #[structopt(long)]
+    #[structopt(long, default_value = "100000")]
     snapshot_count: usize,
 
     /// enable debug-level logging for etcd.

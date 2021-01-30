@@ -15,8 +15,8 @@ pub struct EckdServer {
     initial_advertise_peer_urls: Vec<Address>,
     initial_cluster: Vec<NamedAddress>,
     advertise_client_urls: Vec<Address>,
-    cert_file: PathBuf,
-    key_file: PathBuf,
+    cert_file: Option<PathBuf>,
+    key_file: Option<PathBuf>,
 }
 
 impl EckdServer {
@@ -30,9 +30,16 @@ impl EckdServer {
             .iter()
             .map(|client_url| {
                 let identity = if let Scheme::Https = client_url.scheme {
-                    let cert = std::fs::read(&self.cert_file).expect("reading server cert");
-                    let key = std::fs::read(&self.key_file).expect("reading server key");
-                    Some(Identity::from_pem(cert, key))
+                    match (self.cert_file.as_ref(), self.key_file.as_ref()) {
+                        (Some(cert_file), Some(key_file)) => {
+                            let cert = std::fs::read(&cert_file).expect("reading server cert");
+                            let key = std::fs::read(&key_file).expect("reading server key");
+                            Some(Identity::from_pem(cert, key))
+                        }
+                        (Some(_), None) => panic!("Requested client_url '{}', but missing --cert-file", client_url),
+                        (None, Some(_)) => panic!("Requested client url '{}', but missing --key-file", client_url),
+                        (None, None) => panic!("Requested client url '{}', but missing both --cert-file and --key-file", client_url),
+                    }
                 } else {
                     None
                 };
