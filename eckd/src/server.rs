@@ -19,7 +19,10 @@ pub struct EckdServer {
 }
 
 impl EckdServer {
-    pub async fn serve(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn serve(
+        &self,
+        shutdown: tokio::sync::watch::Receiver<()>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let db = crate::store::Db::new(&self.data_dir)?;
         let servers = self
             .listen_client_urls
@@ -32,7 +35,12 @@ impl EckdServer {
                 } else {
                     None
                 };
-                let serving = crate::services::serve(client_url.socket_address(), identity, &db);
+                let serving = crate::services::serve(
+                    client_url.socket_address(),
+                    identity,
+                    shutdown.clone(),
+                    &db,
+                );
                 println!("Listening to clients on {}", client_url);
                 serving
             })

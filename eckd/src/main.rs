@@ -1,6 +1,7 @@
 use std::{convert::TryFrom, path::PathBuf};
 
 use address::{Address, NamedAddress};
+use log::info;
 use structopt::StructOpt;
 
 mod address;
@@ -98,7 +99,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .cert_file(options.cert_file)
         .key_file(options.key_file);
     let server = server_builder.build()?;
-    server.serve().await?;
+
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(());
+
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.unwrap();
+        info!("SIGINT received: shutting down");
+        shutdown_tx.send(()).unwrap();
+    });
+
+    server.serve(shutdown_rx).await?;
 
     Ok(())
 }

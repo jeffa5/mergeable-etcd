@@ -6,6 +6,7 @@ use std::{
 
 use etcd_proto::etcdserverpb::kv_server::KvServer;
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
+use log::info;
 use tonic::{
     body::BoxBody,
     transport::{Identity, NamedService, Server, ServerTlsConfig},
@@ -15,6 +16,7 @@ use tower::Service;
 pub async fn serve(
     address: SocketAddr,
     identity: Option<Identity>,
+    mut shutdown: tokio::sync::watch::Receiver<()>,
     db: &crate::store::Db,
 ) -> Result<(), tonic::transport::Error> {
     let kv = kv::KV::new(db);
@@ -27,7 +29,10 @@ pub async fn serve(
     server
         .add_service(CatchAllService {})
         .add_service(kv_service)
-        .serve(address)
+        .serve_with_shutdown(address, async {
+            shutdown.changed().await.unwrap();
+            info!("Gracefully shutting down client server")
+        })
         .await
 }
 
