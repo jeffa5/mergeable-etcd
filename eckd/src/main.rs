@@ -5,6 +5,7 @@ use log::{debug, info};
 use structopt::StructOpt;
 
 mod address;
+mod health;
 mod server;
 mod services;
 mod store;
@@ -121,6 +122,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("SIGINT received: shutting down");
         shutdown_tx.send(()).unwrap();
     });
+
+    let metrics_urls = options.listen_metrics_urls.clone();
+    tokio::spawn(async move { health::serve(metrics_urls).await.unwrap() });
 
     server.serve(shutdown_rx).await?;
 
