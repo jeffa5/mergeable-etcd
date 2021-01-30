@@ -58,7 +58,7 @@ impl Kv for KV {
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
         let inner = request.into_inner();
-        println!("range: {:?}", inner);
+        println!("range: {:?}", String::from_utf8(inner.key.clone()));
         let kvs = if let Some(kv) = self.db.get(&inner.key).unwrap() {
             let kv = KeyValue {
                 create_revision: kv.create_revision,
