@@ -245,6 +245,7 @@ dependencies = [
  "derive_builder",
  "etcd-proto",
  "futures",
+ "hyper",
  "prost",
  "serde",
  "sled",
@@ -253,6 +254,7 @@ dependencies = [
  "tokio",
  "tonic",
  "tonic-build",
+ "tower",
  "url",
 ]
 
