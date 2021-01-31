@@ -11,10 +11,10 @@ pub struct Server {
 impl Server {
     pub fn new() -> Server {
         Server {
-            cluster_id: 0,
-            member_id: 0,
-            revision: 0,
-            raft_term: 0,
+            cluster_id: 2345,
+            member_id: 1234,
+            revision: 1,
+            raft_term: 1,
         }
     }
 
