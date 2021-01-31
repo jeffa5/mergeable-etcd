@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use derive_builder::Builder;
 use log::info;
@@ -25,6 +28,7 @@ impl EckdServer {
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let db = crate::store::Db::new(&self.data_dir)?;
+        let server = Arc::new(Mutex::new(crate::store::Server::new()));
         let servers = self
             .listen_client_urls
             .iter()
@@ -47,6 +51,7 @@ impl EckdServer {
                     client_url.socket_address(),
                     identity,
                     shutdown.clone(),
+                    server.clone(),
                     &db,
                 );
                 info!("Listening to clients on {}", client_url);

@@ -20,9 +20,9 @@ pub async fn serve(
     address: SocketAddr,
     identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
+    server: Arc<Mutex<crate::store::Server>>,
     db: &crate::store::Db,
 ) -> Result<(), tonic::transport::Error> {
-    let server = Arc::new(Mutex::new(crate::store::Server::new()));
     let kv = kv::KV::new(db, server.clone());
     let kv_service = KvServer::new(kv);
     let maintenance_service = MaintenanceServer::new(maintenance::Maintenance::new(server.clone()));
