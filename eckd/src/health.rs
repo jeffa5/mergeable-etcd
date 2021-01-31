@@ -9,6 +9,7 @@ use log::info;
 use crate::address::Address;
 
 async fn health(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+    info!("http request: {} {}", req.method(), req.uri());
     if req.method() == Method::GET && req.uri().path() == "/health" {
         Ok(Response::new(Body::empty()))
     } else {
@@ -21,7 +22,6 @@ async fn health(req: Request<Body>) -> Result<Response<Body>, Infallible> {
 pub async fn serve(
     listen_addrs: Vec<Address>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    println!("health");
     let servers = listen_addrs
         .iter()
         .map(|metrics_url| {
