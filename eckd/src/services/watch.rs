@@ -83,11 +83,12 @@ impl WatchTrait for Watch {
             debug!("Waiting to send responses");
 
             while let Some((watch_id, create_request)) = rx_watchers.recv().await {
+                debug!("Creating a new watch with id {:?}", watch_id);
                 let server_clone = server_clone1.clone();
-                let mut sub = server_clone.kv_tree.watch_prefix(create_request.key);
                 let tx_response_clone = tx_response.clone();
 
                 tokio::spawn(async move {
+                    let mut sub = server_clone.kv_tree.watch_prefix(create_request.key);
                     while let Some(event) = (&mut sub).await {
                         debug!("Got a watch event {:?}", event);
                         let event = match event {
@@ -114,7 +115,7 @@ impl WatchTrait for Watch {
                             header: Some(server_clone.server_state.lock().unwrap().header()),
                             watch_id,
                             created: false,
-                            compact_revision: 1,
+                            compact_revision: 0,
                             cancel_reason: String::new(),
                             fragment: false,
                             events: vec![event],
