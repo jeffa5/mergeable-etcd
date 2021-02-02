@@ -212,9 +212,18 @@ impl Store {
                             response: Some(Response::ResponseRange(response)),
                         }
                     }
-                    Some(Request::RequestPut(request)) => ResponseOp {
-                        response: Some(Response::ResponsePut(todo!())),
-                    },
+                    Some(Request::RequestPut(request)) => {
+                        let val = Value::new(request.value.clone());
+                        let (_, prev_kv) = self.merge(request.key.clone(), val).unwrap();
+                        let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(request.key.clone()));
+                        let reply = etcd_proto::etcdserverpb::PutResponse {
+                            header: Some(server.header()),
+                            prev_kv,
+                        };
+                        ResponseOp {
+                            response: Some(Response::ResponsePut(reply)),
+                        }
+                    }
                     Some(Request::RequestDeleteRange(request)) => ResponseOp {
                         response: Some(Response::ResponseDeleteRange(todo!())),
                     },
