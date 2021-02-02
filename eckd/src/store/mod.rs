@@ -1,5 +1,9 @@
 use std::path::Path;
 
+use etcd_proto::etcdserverpb::{
+    compare::TargetUnion, request_op::Request, response_op::Response, ResponseOp, TxnRequest,
+    TxnResponse,
+};
 use sled::Transactional;
 use thiserror::Error;
 
@@ -71,13 +75,146 @@ impl Store {
         Ok(result)
     }
 
-    pub fn txn<F, A, E>(&self, f: F) -> sled::transaction::TransactionResult<A, E>
-    where
-        F: Fn(
-            &sled::transaction::TransactionalTree,
-        ) -> sled::transaction::ConflictableTransactionResult<A, E>,
-    {
-        self.kv.transaction(f)
+    pub fn txn(&self, request: TxnRequest) -> Result<(Server, bool, Vec<ResponseOp>), StoreError> {
+        let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
+            // determine success of comparison
+            let server = self.current_server();
+            let success = request.compare.iter().all(|compare| {
+                let (_server, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
+                match (
+                    compare.target,
+                    compare.target_union.as_ref(),
+                    compare.result,
+                    value,
+                ) {
+                    (
+                        0, /* version */
+                        Some(TargetUnion::Version(version)),
+                        0, /* equal */
+                        Some(value),
+                    ) => &value.version == version,
+                    (
+                        0, /* version */
+                        Some(TargetUnion::Version(version)),
+                        1, /* greater */
+                        Some(value),
+                    ) => &value.version > version,
+                    (
+                        0, /* version */
+                        Some(TargetUnion::Version(version)),
+                        2, /* less */
+                        Some(value),
+                    ) => &value.version < version,
+                    (
+                        0, /* version */
+                        Some(TargetUnion::Version(version)),
+                        3, /* not equal */
+                        Some(value),
+                    ) => &value.version != version,
+                    (
+                        1, /* create */
+                        Some(TargetUnion::CreateRevision(revision)),
+                        0, /* equal */
+                        Some(value),
+                    ) => &value.create_revision == revision,
+                    (
+                        1, /* create */
+                        Some(TargetUnion::CreateRevision(revision)),
+                        1, /* greater */
+                        Some(value),
+                    ) => &value.create_revision > revision,
+                    (
+                        1, /* create */
+                        Some(TargetUnion::CreateRevision(revision)),
+                        2, /* less */
+                        Some(value),
+                    ) => &value.create_revision < revision,
+                    (
+                        1, /* create */
+                        Some(TargetUnion::CreateRevision(revision)),
+                        3, /* not equal */
+                        Some(value),
+                    ) => &value.create_revision != revision,
+                    (
+                        2, /* mod */
+                        Some(TargetUnion::ModRevision(revision)),
+                        0, /* equal */
+                        Some(value),
+                    ) => &value.mod_revision == revision,
+                    (
+                        2, /* mod */
+                        Some(TargetUnion::ModRevision(revision)),
+                        1, /* greater */
+                        Some(value),
+                    ) => &value.mod_revision > revision,
+                    (
+                        2, /* mod */
+                        Some(TargetUnion::ModRevision(revision)),
+                        2, /* less */
+                        Some(value),
+                    ) => &value.mod_revision < revision,
+                    (
+                        2, /* mod */
+                        Some(TargetUnion::ModRevision(revision)),
+                        3, /* not equal */
+                        Some(value),
+                    ) => &value.mod_revision != revision,
+                    (
+                        3, /* value */
+                        Some(TargetUnion::Value(test_value)),
+                        0, /* equal */
+                        Some(value),
+                    ) => &value.value == test_value,
+                    (
+                        3, /* value */
+                        Some(TargetUnion::Value(test_value)),
+                        1, /* greater */
+                        Some(value),
+                    ) => &value.value > test_value,
+                    (
+                        3, /* value */
+                        Some(TargetUnion::Value(test_value)),
+                        2, /* less */
+                        Some(value),
+                    ) => &value.value < test_value,
+                    (
+                        3, /* value */
+                        Some(TargetUnion::Value(test_value)),
+                        3, /* not equal */
+                        Some(value),
+                    ) => &value.value != test_value,
+                    _ => unimplemented!(),
+                }
+            });
+
+            // perform success/failure actions
+            let ops = if success {
+                request.success.iter()
+            } else {
+                request.failure.iter()
+            };
+            Ok((
+                server,
+                success,
+                ops.map(|op| match &op.request {
+                    Some(Request::RequestRange(request)) => ResponseOp {
+                        response: Some(Response::ResponseRange(todo!())),
+                    },
+                    Some(Request::RequestPut(request)) => ResponseOp {
+                        response: Some(Response::ResponsePut(todo!())),
+                    },
+                    Some(Request::RequestDeleteRange(request)) => ResponseOp {
+                        response: Some(Response::ResponseDeleteRange(todo!())),
+                    },
+                    Some(Request::RequestTxn(request)) => ResponseOp {
+                        response: Some(Response::ResponseTxn(todo!())),
+                    },
+                    None => unimplemented!(),
+                })
+                .collect::<Vec<_>>(),
+            ))
+        })?;
+        Ok(result)
     }
 
     pub async fn watch_prefix<P: AsRef<[u8]>>(
