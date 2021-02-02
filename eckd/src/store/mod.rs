@@ -76,13 +76,14 @@ impl Store {
     }
 
     pub fn txn(&self, request: TxnRequest) -> Result<(Server, bool, Vec<ResponseOp>), StoreError> {
+        info!("txn ");
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             // determine success of comparison
             let mut server = self.current_server();
             info!("txn transaction");
             let success = request.compare.iter().all(|compare| {
                 let (_server, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
-            info!("performing comparisons");
+                info!("performing comparisons");
                 match (
                     compare.target,
                     compare.target_union.as_ref(),
@@ -280,7 +281,15 @@ impl Store {
                 .collect::<Vec<_>>();
             info!("finishing txn");
             Ok((server, success, results))
-        })?;
+        });
+        let result = match result {
+            Ok(v) => v,
+            Err(e) => {
+                info!("err {:?}", e);
+                Err(e)?
+            }
+        };
+        info!("after txn");
         Ok(result)
     }
 
