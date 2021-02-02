@@ -193,13 +193,25 @@ impl Store {
             } else {
                 request.failure.iter()
             };
-            Ok((
-                server,
-                success,
-                ops.map(|op| match &op.request {
-                    Some(Request::RequestRange(request)) => ResponseOp {
-                        response: Some(Response::ResponseRange(todo!())),
-                    },
+            let results = ops
+                .map(|op| match &op.request {
+                    Some(Request::RequestRange(request)) => {
+                        let (_, kv) = self.get(&request.key).unwrap();
+                        let kvs = kv
+                            .map(|kv| vec![kv.key_value(request.key.clone())])
+                            .unwrap_or_default();
+                        let count = kvs.len() as i64;
+
+                        let response = etcd_proto::etcdserverpb::RangeResponse {
+                            header: Some(server.header()),
+                            kvs,
+                            count,
+                            more: false,
+                        };
+                        ResponseOp {
+                            response: Some(Response::ResponseRange(response)),
+                        }
+                    }
                     Some(Request::RequestPut(request)) => ResponseOp {
                         response: Some(Response::ResponsePut(todo!())),
                     },
@@ -211,8 +223,8 @@ impl Store {
                     },
                     None => unimplemented!(),
                 })
-                .collect::<Vec<_>>(),
-            ))
+                .collect::<Vec<_>>();
+            Ok((server, success, results))
         })?;
         Ok(result)
     }
