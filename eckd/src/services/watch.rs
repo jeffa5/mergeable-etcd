@@ -48,15 +48,19 @@ impl WatchTrait for Watch {
             while let Some(request) = in_stream.next().await {
                 debug!("Got request from client: {:?}", request);
                 match request {
-                    (Ok(request)) => match request.request_union {
+                    Ok(request) => match request.request_union {
                         Some(RequestUnion::CreateRequest(create)) => {
                             tx_watchers
                                 .send((server_clone.new_watcher(), create))
                                 .await
                                 .unwrap();
                         }
-                        Some(RequestUnion::CancelRequest(cancel)) => {}
-                        Some(RequestUnion::ProgressRequest(progress)) => {}
+                        Some(RequestUnion::CancelRequest(cancel)) => {
+                            warn!("got an unhandled cancel request: {:?}", cancel)
+                        }
+                        Some(RequestUnion::ProgressRequest(progress)) => {
+                            warn!("got an unhandled progress request: {:?}", progress)
+                        }
                         None => {
                             warn!("Got an empty watch request");
                             tx_response_clone
@@ -66,9 +70,8 @@ impl WatchTrait for Watch {
                             break;
                         }
                     },
-                    (Err(e)) => {
+                    Err(e) => {
                         warn!("watch error: {}", e);
-                        tx_response_clone.send(Err(e)).await.unwrap();
                         break;
                     }
                 }
@@ -111,14 +114,20 @@ impl WatchTrait for Watch {
                             canceled: false,
                             header: Some(server_clone.server_state.lock().unwrap().header()),
                             watch_id,
-                            created: true,
+                            created: false,
                             compact_revision: 1,
                             cancel_reason: String::new(),
                             fragment: false,
                             events: vec![event],
                         };
                         debug!("Sending watch response: {:?}", resp);
-                        tx_response_clone.send(Ok(resp)).await.unwrap();
+                        match tx_response_clone.send(Ok(resp)).await {
+                            Ok(()) => {}
+                            Err(e) => {
+                                warn!("Got an error while sending watch response: {:?}", e);
+                                break;
+                            }
+                        };
                     }
                 });
 
