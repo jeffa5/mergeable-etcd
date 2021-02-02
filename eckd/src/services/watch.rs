@@ -2,8 +2,7 @@ use std::pin::Pin;
 
 use etcd_proto::{
     etcdserverpb::{
-        watch_request::RequestUnion, watch_server::Watch as WatchTrait, WatchCreateRequest,
-        WatchRequest, WatchResponse,
+        watch_request::RequestUnion, watch_server::Watch as WatchTrait, WatchRequest, WatchResponse,
     },
     mvccpb,
 };
