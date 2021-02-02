@@ -79,13 +79,13 @@ impl Kv for KV {
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
         let inner = request.into_inner();
         info!("txn: {:?}", inner);
-        // let reply = TxnResponse {
-        //     header: Some(self.server.server_state.lock().unwrap().header()),
-        //     responses: vec![],
-        //     succeeded: true,
-        // };
-        // Ok(Response::new(reply))
-        todo!();
+        let (server, success, results) = self.server.store.txn(inner).unwrap();
+        let reply = TxnResponse {
+            header: Some(server.header()),
+            responses: results,
+            succeeded: success,
+        };
+        Ok(Response::new(reply))
     }
 
     async fn compact(
