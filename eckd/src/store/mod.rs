@@ -12,6 +12,8 @@ mod server;
 pub use kv::Value;
 pub use server::Server;
 
+const SERVER_KEY: &str = "server";
+
 #[derive(Debug, Clone)]
 pub struct Store {
     db: sled::Db,
@@ -24,7 +26,7 @@ impl Store {
         let db = sled::open(path).unwrap();
         let kv = db.open_tree("kv").unwrap();
         kv.set_merge_operator(kv::merge_kv);
-        let server = db.open_tree("server").unwrap();
+        let server = db.open_tree(SERVER_KEY).unwrap();
         Self { db, kv, server }
     }
 
@@ -42,11 +44,11 @@ impl Store {
         let key = key.as_ref();
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
-                .get("server")?
+                .get(SERVER_KEY)?
                 .map(|server| Server::deserialize(&server))
                 .unwrap_or_default();
             server.increment_revision();
-            server_tree.insert("server", server.serialize())?;
+            server_tree.insert(SERVER_KEY, server.serialize())?;
 
             let value = value.clone();
             insert_inner(key, value, server, kv_tree)
@@ -61,11 +63,11 @@ impl Store {
         let key = key.as_ref();
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
-                .get("server")?
+                .get(SERVER_KEY)?
                 .map(|server| Server::deserialize(&server))
                 .unwrap_or_default();
             server.increment_revision();
-            server_tree.insert("server", server.serialize())?;
+            server_tree.insert(SERVER_KEY, server.serialize())?;
 
             remove_inner(key, server, kv_tree)
         })?;
@@ -193,7 +195,7 @@ impl Store {
                     | Some(Request::RequestTxn(_)) => true,
                 }) {
                     server.increment_revision();
-                    server_tree.insert("server", server.serialize())?;
+                    server_tree.insert(SERVER_KEY, server.serialize())?;
                 }
                 request.success.iter()
             } else {
@@ -204,7 +206,7 @@ impl Store {
                     | Some(Request::RequestTxn(_)) => true,
                 }) {
                     server.increment_revision();
-                    server_tree.insert("server", server.serialize())?;
+                    server_tree.insert(SERVER_KEY, server.serialize())?;
                 }
                 request.failure.iter()
             };
@@ -276,7 +278,7 @@ impl Store {
         while let Some(event) = (&mut sub).await {
             let server = self
                 .server
-                .get("server")
+                .get(SERVER_KEY)
                 .unwrap()
                 .map(|server| Server::deserialize(&server))
                 .unwrap_or_default();
@@ -286,7 +288,7 @@ impl Store {
 
     pub fn current_server(&self) -> Server {
         self.server
-            .get("server")
+            .get(SERVER_KEY)
             .unwrap()
             .map(|server| Server::deserialize(&server))
             .unwrap_or_default()
@@ -299,7 +301,7 @@ fn get_inner<K: AsRef<[u8]>>(
     server_tree: &sled::transaction::TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
     let server = server_tree
-        .get("server")?
+        .get(SERVER_KEY)?
         .map(|server| Server::deserialize(&server))
         .unwrap_or_default();
     let val = kv_tree.get(key)?.map(|v| Value::deserialize(&v));
