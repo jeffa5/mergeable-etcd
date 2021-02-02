@@ -1,7 +1,4 @@
-use std::{
-    pin::Pin,
-    sync::{Arc, Mutex},
-};
+use std::pin::Pin;
 
 use etcd_proto::etcdserverpb::{
     maintenance_server::Maintenance as MaintenanceTrait, AlarmRequest, AlarmResponse,
@@ -13,15 +10,13 @@ use futures::Stream;
 use log::info;
 use tonic::{Request, Response, Status};
 
-use crate::store::Server;
-
 #[derive(Debug)]
 pub struct Maintenance {
-    server: Arc<Mutex<Server>>,
+    server: crate::server::Server,
 }
 
 impl Maintenance {
-    pub fn new(server: Arc<Mutex<Server>>) -> Maintenance {
+    pub fn new(server: crate::server::Server) -> Maintenance {
         Maintenance { server }
     }
 }
@@ -40,7 +35,7 @@ impl MaintenanceTrait for Maintenance {
         _request: Request<StatusRequest>,
     ) -> Result<Response<StatusResponse>, Status> {
         info!("status request");
-        let server = self.server.lock().unwrap();
+        let server = self.server.server_state.lock().unwrap();
         let reply = StatusResponse {
             header: Some(server.header()),
             version: r#"{"etcdserver":"3.4.13","etcdcluster":"3.4.0"}"#.to_owned(),

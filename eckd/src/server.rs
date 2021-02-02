@@ -4,7 +4,7 @@ use std::{
 };
 
 use derive_builder::Builder;
-use log::info;
+use log::{debug, info};
 use tonic::transport::Identity;
 
 use crate::address::{Address, NamedAddress, Scheme};
@@ -22,13 +22,35 @@ pub struct EckdServer {
     key_file: Option<PathBuf>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Server {
+    pub kv_tree: crate::store::Kv,
+    pub server_state: Arc<Mutex<crate::store::Server>>,
+    max_watcher_id: Arc<Mutex<i64>>,
+}
+
+impl Server {
+    pub fn new_watcher(&self) -> i64 {
+        debug!("new_watcher");
+        let mut max = self.max_watcher_id.lock().unwrap();
+        let old_max = *max;
+        *max += 1;
+        old_max
+    }
+}
+
 impl EckdServer {
     pub async fn serve(
         &self,
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let db = crate::store::Db::new(&self.data_dir)?;
+        let db = crate::store::Db::new(&self.data_dir)?.kv();
         let server = Arc::new(Mutex::new(crate::store::Server::new()));
+        let server = Server {
+            kv_tree: db,
+            server_state: server,
+            max_watcher_id: Arc::new(Mutex::new(1)),
+        };
         let servers = self
             .listen_client_urls
             .iter()
@@ -52,7 +74,6 @@ impl EckdServer {
                     identity,
                     shutdown.clone(),
                     server.clone(),
-                    &db,
                 );
                 info!("Listening to clients on {}", client_url);
                 serving

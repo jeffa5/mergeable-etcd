@@ -1,6 +1,7 @@
+use etcd_proto::mvccpb::KeyValue;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Kv {
     tree: sled::Tree,
 }
@@ -35,6 +36,17 @@ impl Value {
     pub fn deserialize(bytes: &[u8]) -> Self {
         bincode::deserialize(bytes).expect("Deserialize value")
     }
+
+    pub fn key_value(self, key: Vec<u8>) -> KeyValue {
+        KeyValue {
+            create_revision: self.create_revision,
+            key,
+            lease: 0,
+            mod_revision: self.mod_revision,
+            value: self.value,
+            version: self.version,
+        }
+    }
 }
 
 impl Kv {
@@ -55,5 +67,9 @@ impl Kv {
     {
         let val = value.serialize();
         Ok(self.tree.merge(key, val)?.map(|v| Value::deserialize(&v)))
+    }
+
+    pub fn watch_prefix<P: AsRef<[u8]>>(&self, prefix: P) -> sled::Subscriber {
+        self.tree.watch_prefix(prefix)
     }
 }

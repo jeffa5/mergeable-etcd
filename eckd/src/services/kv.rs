@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use etcd_proto::{
     etcdserverpb::{
         kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest,
@@ -11,20 +9,16 @@ use etcd_proto::{
 use log::{debug, info};
 use tonic::{Request, Response, Status};
 
-use crate::store::{kv::Value, Server};
+use crate::store::kv::Value;
 
 #[derive(Debug)]
 pub struct KV {
-    db: crate::store::Kv,
-    server: Arc<Mutex<Server>>,
+    server: crate::server::Server,
 }
 
 impl KV {
-    pub fn new(db: &crate::store::Db, server: Arc<Mutex<Server>>) -> KV {
-        KV {
-            db: db.kv(),
-            server,
-        }
+    pub fn new(server: crate::server::Server) -> KV {
+        KV { server }
     }
 }
 
@@ -36,15 +30,8 @@ impl Kv for KV {
     ) -> Result<Response<RangeResponse>, Status> {
         let inner = request.into_inner();
         debug!("range: {:?}", String::from_utf8(inner.key.clone()));
-        let kvs = if let Some(kv) = self.db.get(&inner.key).unwrap() {
-            let kv = KeyValue {
-                create_revision: kv.create_revision,
-                key: inner.key,
-                lease: 0,
-                mod_revision: kv.mod_revision,
-                value: kv.value,
-                version: kv.version,
-            };
+        let kvs = if let Some(kv) = self.server.kv_tree.get(&inner.key).unwrap() {
+            let kv = kv.key_value(inner.key);
             vec![kv]
         } else {
             vec![]
@@ -53,7 +40,7 @@ impl Kv for KV {
         let count = kvs.len() as i64;
 
         let reply = RangeResponse {
-            header: Some(self.server.lock().unwrap().header()),
+            header: Some(self.server.server_state.lock().unwrap().header()),
             kvs,
             count,
             more: false,
@@ -64,7 +51,7 @@ impl Kv for KV {
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let inner = request.into_inner();
         info!("put: {:?}", inner);
-        let mut server = self.server.lock().unwrap();
+        let mut server = self.server.server_state.lock().unwrap();
         let new_revision = server.increment_revision();
         let val = Value {
             create_revision: new_revision,
@@ -72,7 +59,7 @@ impl Kv for KV {
             version: 1,
             value: inner.value,
         };
-        let prev_kv = if let Some(val) = self.db.merge(&inner.key, val).unwrap() {
+        let prev_kv = if let Some(val) = self.server.kv_tree.merge(&inner.key, val).unwrap() {
             Some(KeyValue {
                 create_revision: val.create_revision,
                 key: inner.key,
@@ -99,7 +86,7 @@ impl Kv for KV {
         let inner = request.into_inner();
         info!("delete_range: {:?}", inner);
         let reply = DeleteRangeResponse {
-            header: Some(self.server.lock().unwrap().header()),
+            header: Some(self.server.server_state.lock().unwrap().header()),
             deleted: 0,
             prev_kvs: vec![],
         };
@@ -110,7 +97,7 @@ impl Kv for KV {
         let inner = request.into_inner();
         info!("txn: {:?}", inner);
         let reply = TxnResponse {
-            header: Some(self.server.lock().unwrap().header()),
+            header: Some(self.server.server_state.lock().unwrap().header()),
             responses: vec![],
             succeeded: true,
         };
