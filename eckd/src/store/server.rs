@@ -1,7 +1,7 @@
 use etcd_proto::etcdserverpb::ResponseHeader;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Server {
     cluster_id: u64,
     member_id: u64,

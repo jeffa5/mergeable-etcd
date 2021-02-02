@@ -196,7 +196,7 @@ impl Store {
             let results = ops
                 .map(|op| match &op.request {
                     Some(Request::RequestRange(request)) => {
-                        let (_, kv) = self.get(&request.key).unwrap();
+                        let (_, kv) = get_inner(&request.key,kv_tree,server_tree).unwrap();
                         let kvs = kv
                             .map(|kv| vec![kv.key_value(request.key.clone())])
                             .unwrap_or_default();
@@ -214,7 +214,7 @@ impl Store {
                     }
                     Some(Request::RequestPut(request)) => {
                         let val = Value::new(request.value.clone());
-                        let (_, prev_kv) = self.merge(request.key.clone(), val).unwrap();
+                        let (_, prev_kv) = insert_inner(request.key.clone(), val,server.clone(),kv_tree).unwrap();
                         let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(request.key.clone()));
                         let reply = etcd_proto::etcdserverpb::PutResponse {
                             header: Some(server.header()),
