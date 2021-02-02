@@ -61,16 +61,14 @@ impl Store {
     ) -> Result<(Server, Option<Value>), StoreError> {
         let key = key.as_ref();
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
-            // update server revision
-            let server = server_tree
+            let mut server = server_tree
                 .get("server")?
                 .map(|server| Server::deserialize(&server))
                 .unwrap_or_default();
+            server.increment_revision();
+            server_tree.insert("server", server.serialize())?;
 
-            // insert value with updated mod_revision and version
-            let prev_kv = kv_tree.remove(key)?.map(|v| Value::deserialize(&v));
-
-            Ok((server, prev_kv))
+            remove_inner(key, server, kv_tree)
         })?;
         Ok(result)
     }
@@ -289,6 +287,16 @@ fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     value.version += 1;
     let val = value.serialize();
     let prev_kv = kv_tree.insert(key, val)?.map(|v| Value::deserialize(&v));
+    Ok((server, prev_kv))
+}
+
+fn remove_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
+    key: K,
+    server: Server,
+    kv_tree: &sled::transaction::TransactionalTree,
+) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
+    let prev_kv = kv_tree.remove(key)?.map(|v| Value::deserialize(&v));
+
     Ok((server, prev_kv))
 }
 
