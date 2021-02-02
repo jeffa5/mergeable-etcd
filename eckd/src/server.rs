@@ -24,8 +24,7 @@ pub struct EckdServer {
 
 #[derive(Debug, Clone)]
 pub struct Server {
-    pub kv_tree: crate::store::Kv,
-    pub server_state: Arc<Mutex<crate::store::Server>>,
+    pub store: crate::store::Store,
     max_watcher_id: Arc<Mutex<i64>>,
 }
 
@@ -44,11 +43,9 @@ impl EckdServer {
         &self,
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let db = crate::store::Db::new(&self.data_dir)?.kv();
-        let server = Arc::new(Mutex::new(crate::store::Server::new()));
+        let store = crate::store::Store::new(&self.data_dir);
         let server = Server {
-            kv_tree: db,
-            server_state: server,
+            store,
             max_watcher_id: Arc::new(Mutex::new(1)),
         };
         let servers = self

@@ -1,6 +1,7 @@
 use etcd_proto::etcdserverpb::ResponseHeader;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Server {
     cluster_id: u64,
     member_id: u64,
@@ -8,8 +9,14 @@ pub struct Server {
     raft_term: u64,
 }
 
+impl Default for Server {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Server {
-    pub fn new() -> Server {
+    pub(super) fn new() -> Server {
         Server {
             cluster_id: 2345,
             member_id: 1234,
@@ -31,8 +38,16 @@ impl Server {
         self.member_id
     }
 
-    pub fn increment_revision(&mut self) -> i64 {
+    pub(super) fn increment_revision(&mut self) -> i64 {
         self.revision += 1;
         self.revision
+    }
+
+    pub(super) fn serialize(&self) -> Vec<u8> {
+        bincode::serialize(self).expect("Serialize server")
+    }
+
+    pub(super) fn deserialize(bytes: &[u8]) -> Self {
+        bincode::deserialize(bytes).expect("Deserialize server")
     }
 }

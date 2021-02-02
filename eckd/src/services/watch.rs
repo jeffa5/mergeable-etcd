@@ -10,7 +10,7 @@ use futures::{Stream, StreamExt};
 use log::{debug, warn};
 use tonic::{Request, Response, Status};
 
-use crate::store::kv::Value;
+use crate::store::Value;
 
 #[derive(Debug)]
 pub struct Watch {
@@ -88,8 +88,16 @@ impl WatchTrait for Watch {
                 let tx_response_clone = tx_response.clone();
 
                 tokio::spawn(async move {
-                    let mut sub = server_clone.kv_tree.watch_prefix(create_request.key);
-                    while let Some(event) = (&mut sub).await {
+                    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+
+                    tokio::spawn(async move {
+                        server_clone
+                            .store
+                            .watch_prefix(create_request.key, tx)
+                            .await;
+                    });
+
+                    while let Some((server, event)) = rx.recv().await {
                         debug!("Got a watch event {:?}", event);
                         let event = match event {
                             sled::Event::Insert { key, value } => mvccpb::Event {
@@ -112,7 +120,7 @@ impl WatchTrait for Watch {
                         };
                         let resp = WatchResponse {
                             canceled: false,
-                            header: Some(server_clone.server_state.lock().unwrap().header()),
+                            header: Some(server.header()),
                             watch_id,
                             created: false,
                             compact_revision: 0,
@@ -133,7 +141,7 @@ impl WatchTrait for Watch {
 
                 // respond saying we've created the watch
                 let resp = WatchResponse {
-                    header: Some(server_clone2.server_state.lock().unwrap().header()),
+                    header: Some(server_clone2.store.current_server().header()),
                     watch_id,
                     created: true,
                     canceled: false,

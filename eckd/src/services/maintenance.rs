@@ -35,7 +35,7 @@ impl MaintenanceTrait for Maintenance {
         _request: Request<StatusRequest>,
     ) -> Result<Response<StatusResponse>, Status> {
         info!("status request");
-        let server = self.server.server_state.lock().unwrap();
+        let server = self.server.store.current_server();
         let reply = StatusResponse {
             header: Some(server.header()),
             version: r#"{"etcdserver":"3.4.13","etcdcluster":"3.4.0"}"#.to_owned(),
