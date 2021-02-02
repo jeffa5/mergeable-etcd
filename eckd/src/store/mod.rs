@@ -27,14 +27,8 @@ impl Store {
 
     pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<(Server, Option<Value>), StoreError> {
         let key = key.as_ref();
-        let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
-            let server = server_tree
-                .get("server")?
-                .map(|server| Server::deserialize(&server))
-                .unwrap_or_default();
-            let val = kv_tree.get(key)?.map(|v| Value::deserialize(&v));
-            Ok((server, val))
-        })?;
+        let result = (&self.kv, &self.server)
+            .transaction(|(kv_tree, server_tree)| get_inner(key, kv_tree, server_tree))?;
         Ok(result)
     }
 
@@ -116,6 +110,19 @@ impl Store {
             .map(|server| Server::deserialize(&server))
             .unwrap_or_default()
     }
+}
+
+fn get_inner<K: AsRef<[u8]>>(
+    key: K,
+    kv_tree: &sled::transaction::TransactionalTree,
+    server_tree: &sled::transaction::TransactionalTree,
+) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
+    let server = server_tree
+        .get("server")?
+        .map(|server| Server::deserialize(&server))
+        .unwrap_or_default();
+    let val = kv_tree.get(key)?.map(|v| Value::deserialize(&v));
+    Ok((server, val))
 }
 
 #[derive(Debug, Error)]
