@@ -811,6 +811,10 @@ rec {
             features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
           }
           {
+            name = "tokio-stream";
+            packageId = "tokio-stream";
+          }
+          {
             name = "tonic";
             packageId = "tonic";
             features = [ "transport" "tls" ];
