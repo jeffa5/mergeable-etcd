@@ -85,10 +85,15 @@ impl Kv for KV {
     ) -> Result<Response<DeleteRangeResponse>, Status> {
         let inner = request.into_inner();
         info!("delete_range: {:?}", inner);
+        let prev_kvs = if let Some(old_value) = self.server.kv_tree.remove(&inner.key).unwrap() {
+            vec![old_value.key_value(inner.key.to_vec())]
+        } else {
+            vec![]
+        };
         let reply = DeleteRangeResponse {
             header: Some(self.server.server_state.lock().unwrap().header()),
-            deleted: 0,
-            prev_kvs: vec![],
+            deleted: prev_kvs.len() as i64,
+            prev_kvs,
         };
         Ok(Response::new(reply))
     }

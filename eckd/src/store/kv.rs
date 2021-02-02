@@ -69,6 +69,11 @@ impl Kv {
         Ok(self.tree.merge(key, val)?.map(|v| Value::deserialize(&v)))
     }
 
+    pub fn remove<K: AsRef<[u8]>>(&self, key: K) -> sled::Result<Option<Value>> {
+        let old_val = self.tree.remove(key)?;
+        Ok(old_val.map(|v| Value::deserialize(&v)))
+    }
+
     pub fn watch_prefix<P: AsRef<[u8]>>(&self, prefix: P) -> sled::Subscriber {
         self.tree.watch_prefix(prefix)
     }
