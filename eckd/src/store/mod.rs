@@ -2,7 +2,6 @@ use std::path::Path;
 
 use etcd_proto::etcdserverpb::{
     compare::TargetUnion, request_op::Request, response_op::Response, ResponseOp, TxnRequest,
-    TxnResponse,
 };
 use sled::Transactional;
 use thiserror::Error;
@@ -224,9 +223,21 @@ impl Store {
                             response: Some(Response::ResponsePut(reply)),
                         }
                     }
-                    Some(Request::RequestDeleteRange(request)) => ResponseOp {
-                        response: Some(Response::ResponseDeleteRange(todo!())),
-                    },
+                    Some(Request::RequestDeleteRange(request)) => {
+                        let (_, prev_kv) =
+                            remove_inner(request.key.clone(), server.clone(), kv_tree).unwrap();
+                        let prev_kv = prev_kv
+                            .map(|prev_kv| prev_kv.key_value(request.key.clone()))
+                            .unwrap();
+                        let reply = etcd_proto::etcdserverpb::DeleteRangeResponse {
+                            header: Some(server.header()),
+                            deleted: 1,
+                            prev_kvs: vec![prev_kv],
+                        };
+                        ResponseOp {
+                            response: Some(Response::ResponseDeleteRange(reply)),
+                        }
+                    }
                     Some(Request::RequestTxn(request)) => ResponseOp {
                         response: Some(Response::ResponseTxn(todo!())),
                     },
