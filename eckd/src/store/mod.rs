@@ -75,7 +75,7 @@ impl Store {
     pub fn txn(&self, request: TxnRequest) -> Result<(Server, bool, Vec<ResponseOp>), StoreError> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             // determine success of comparison
-            let server = self.current_server();
+            let mut server = self.current_server();
             let success = request.compare.iter().all(|compare| {
                 let (_server, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
                 match (
@@ -186,8 +186,26 @@ impl Store {
 
             // perform success/failure actions
             let ops = if success {
+                if request.success.iter().any(|op| match &op.request {
+                    None | Some(Request::RequestRange(_)) => false,
+                    Some(Request::RequestPut(_))
+                    | Some(Request::RequestDeleteRange(_))
+                    | Some(Request::RequestTxn(_)) => true,
+                }) {
+                    server.increment_revision();
+                    server_tree.insert("server", server.serialize())?;
+                }
                 request.success.iter()
             } else {
+                if request.failure.iter().any(|op| match &op.request {
+                    None | Some(Request::RequestRange(_)) => false,
+                    Some(Request::RequestPut(_))
+                    | Some(Request::RequestDeleteRange(_))
+                    | Some(Request::RequestTxn(_)) => true,
+                }) {
+                    server.increment_revision();
+                    server_tree.insert("server", server.serialize())?;
+                }
                 request.failure.iter()
             };
             let results = ops
