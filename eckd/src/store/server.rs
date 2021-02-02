@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct Server {
     cluster_id: u64,
     member_id: u64,
-    revision: i64,
+    pub revision: i64,
     raft_term: u64,
 }
 

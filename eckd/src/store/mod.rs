@@ -38,21 +38,15 @@ impl Store {
     {
         let key = key.as_ref();
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
-            // update server revision
-            let mut value = value.clone();
             let mut server = server_tree
                 .get("server")?
                 .map(|server| Server::deserialize(&server))
                 .unwrap_or_default();
-            let new_revision = server.increment_revision();
+            server.increment_revision();
             server_tree.insert("server", server.serialize())?;
 
-            // insert value with updated mod_revision and version
-            value.mod_revision = new_revision;
-            value.version += 1;
-            let val = value.serialize();
-            let prev_kv = kv_tree.insert(key, val)?.map(|v| Value::deserialize(&v));
-            Ok((server, prev_kv))
+            let value = value.clone();
+            insert_inner(key, value, server, kv_tree)
         })?;
         Ok(result)
     }
@@ -123,6 +117,19 @@ fn get_inner<K: AsRef<[u8]>>(
         .unwrap_or_default();
     let val = kv_tree.get(key)?.map(|v| Value::deserialize(&v));
     Ok((server, val))
+}
+
+fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
+    key: K,
+    mut value: Value,
+    server: Server,
+    kv_tree: &sled::transaction::TransactionalTree,
+) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
+    value.mod_revision = server.revision;
+    value.version += 1;
+    let val = value.serialize();
+    let prev_kv = kv_tree.insert(key, val)?.map(|v| Value::deserialize(&v));
+    Ok((server, prev_kv))
 }
 
 #[derive(Debug, Error)]
