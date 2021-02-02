@@ -1,4 +1,5 @@
 use std::path::Path;
+use log::info;
 
 use etcd_proto::etcdserverpb::{
     compare::TargetUnion, request_op::Request, response_op::Response, ResponseOp, TxnRequest,
@@ -78,8 +79,10 @@ impl Store {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             // determine success of comparison
             let mut server = self.current_server();
+            info!("txn transaction");
             let success = request.compare.iter().all(|compare| {
                 let (_server, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
+            info!("performing comparisons");
                 match (
                     compare.target,
                     compare.target_union.as_ref(),
@@ -186,6 +189,8 @@ impl Store {
                 }
             });
 
+            info!("comparisons had success: {}", success);
+
             // perform success/failure actions
             let ops = if success {
                 if request.success.iter().any(|op| match &op.request {
@@ -194,6 +199,7 @@ impl Store {
                     | Some(Request::RequestDeleteRange(_))
                     | Some(Request::RequestTxn(_)) => true,
                 }) {
+                    info!("incrementing server, success");
                     server.increment_revision();
                     server_tree.insert(SERVER_KEY, server.serialize())?;
                 }
@@ -205,14 +211,17 @@ impl Store {
                     | Some(Request::RequestDeleteRange(_))
                     | Some(Request::RequestTxn(_)) => true,
                 }) {
+                    info!("incrementing server, failure");
                     server.increment_revision();
                     server_tree.insert(SERVER_KEY, server.serialize())?;
                 }
                 request.failure.iter()
             };
+            info!("collecting results");
             let results = ops
                 .map(|op| match &op.request {
                     Some(Request::RequestRange(request)) => {
+                        info!("operating range");
                         let (_, kv) = get_inner(&request.key, kv_tree, server_tree).unwrap();
                         let kvs = kv
                             .map(|kv| vec![kv.key_value(request.key.clone())])
@@ -225,11 +234,13 @@ impl Store {
                             count,
                             more: false,
                         };
+                        info!("ending range");
                         ResponseOp {
                             response: Some(Response::ResponseRange(response)),
                         }
                     }
                     Some(Request::RequestPut(request)) => {
+                        info!("operating put");
                         let val = Value::new(request.value.clone());
                         let (_, prev_kv) =
                             insert_inner(request.key.clone(), val, server.clone(), kv_tree)
@@ -239,11 +250,13 @@ impl Store {
                             header: Some(server.header()),
                             prev_kv,
                         };
+                        info!("ending put");
                         ResponseOp {
                             response: Some(Response::ResponsePut(reply)),
                         }
                     }
                     Some(Request::RequestDeleteRange(request)) => {
+                        info!("operating delete");
                         let (_, prev_kv) =
                             remove_inner(request.key.clone(), server.clone(), kv_tree).unwrap();
                         let prev_kv = prev_kv
@@ -254,6 +267,7 @@ impl Store {
                             deleted: 1,
                             prev_kvs: vec![prev_kv],
                         };
+                        info!("ending delete");
                         ResponseOp {
                             response: Some(Response::ResponseDeleteRange(reply)),
                         }
@@ -264,6 +278,7 @@ impl Store {
                     None => unimplemented!(),
                 })
                 .collect::<Vec<_>>();
+            info!("finishing txn");
             Ok((server, success, results))
         })?;
         Ok(result)
