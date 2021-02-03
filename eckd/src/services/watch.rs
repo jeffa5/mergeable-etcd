@@ -131,8 +131,9 @@ impl WatchTrait for Watch {
                         debug!("Sending watch response: {:?}", resp);
                         match tx_response_clone.send(Ok(resp)).await {
                             Ok(()) => {}
-                            Err(e) => {
-                                warn!("Got an error while sending watch response: {:?}", e);
+                            Err(_) => {
+                                // receiver has closed
+                                warn!("Got an error while sending watch response");
                                 break;
                             }
                         };
