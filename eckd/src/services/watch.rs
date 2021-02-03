@@ -1,6 +1,5 @@
 use std::pin::Pin;
 
-use log::info;
 use etcd_proto::{
     etcdserverpb::{
         watch_request::RequestUnion, watch_server::Watch as WatchTrait, WatchRequest, WatchResponse,
@@ -8,7 +7,7 @@ use etcd_proto::{
     mvccpb,
 };
 use futures::{Stream, StreamExt};
-use log::{debug, warn};
+use log::{debug, info, warn};
 use tonic::{Request, Response, Status};
 
 use crate::store::Value;
