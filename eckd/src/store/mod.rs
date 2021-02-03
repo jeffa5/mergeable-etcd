@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{convert::TryInto, path::Path};
 
 use etcd_proto::etcdserverpb::{
     compare::TargetUnion, request_op::Request, response_op::Response, ResponseOp, TxnRequest,
@@ -20,6 +20,7 @@ pub struct Store {
     db: sled::Db,
     kv: sled::Tree,
     server: sled::Tree,
+    lease: sled::Tree,
 }
 
 impl Store {
@@ -27,8 +28,14 @@ impl Store {
         let db = sled::open(path).unwrap();
         let kv = db.open_tree("kv").unwrap();
         kv.set_merge_operator(kv::merge);
-        let server = db.open_tree(SERVER_KEY).unwrap();
-        Self { db, kv, server }
+        let server = db.open_tree("server").unwrap();
+        let lease = db.open_tree("lease").unwrap();
+        Self {
+            db,
+            kv,
+            server,
+            lease,
+        }
     }
 
     pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<(Server, Option<Value>), Error> {
@@ -114,6 +121,50 @@ impl Store {
             .unwrap()
             .map(|server| Server::deserialize(&server))
             .unwrap_or_default()
+    }
+
+    pub fn create_lease(&self, id: Option<i64>, ttl: i64) -> Result<(Server, i64, i64), Error> {
+        let result = (&self.server, &self.lease).transaction(|(server_tree, lease_tree)| {
+            let server = server_tree
+                .get(SERVER_KEY)?
+                .map(|server| Server::deserialize(&server))
+                .unwrap_or_default();
+            let id = id.map_or_else(|| lease_tree.generate_id().unwrap() as i64, |id| id);
+            lease_tree.insert(id.to_be_bytes().to_vec(), ttl.to_be_bytes().to_vec())?;
+            Ok((server, id, ttl))
+        })?;
+        Ok(result)
+    }
+
+    pub fn refresh_lease(&self, id: i64) -> Result<(Server, i64), Error> {
+        let result = (&self.server, &self.lease).transaction(|(server_tree, lease_tree)| {
+            let server = server_tree
+                .get(SERVER_KEY)?
+                .map(|server| Server::deserialize(&server))
+                .unwrap_or_default();
+            let ttl = i64::from_be_bytes(
+                (&lease_tree.get(id.to_be_bytes().to_vec())?.unwrap().to_vec()[..])
+                    .try_into()
+                    .unwrap(),
+            );
+            Ok((server, ttl))
+        })?;
+        Ok(result)
+    }
+
+    pub fn revoke_lease(&self, id: i64) -> Result<Server, Error> {
+        let result = (&self.kv, &self.server, &self.lease).transaction(
+            |(kv_tree, server_tree, lease_tree)| {
+                let server = server_tree
+                    .get(SERVER_KEY)?
+                    .map(|server| Server::deserialize(&server))
+                    .unwrap_or_default();
+                lease_tree.remove(id.to_be_bytes().to_vec())?;
+                // TODO: delete the keys with the associated lease
+                Ok(server)
+            },
+        )?;
+        Ok(result)
     }
 }
 

@@ -11,6 +11,7 @@ use tonic::{transport::Identity, Status};
 
 use crate::address::{Address, NamedAddress, Scheme};
 
+mod lease;
 mod watcher;
 
 #[derive(Debug, Builder)]
@@ -31,6 +32,7 @@ pub struct Server {
     pub store: crate::store::Store,
     max_watcher_id: Arc<AtomicI64>,
     watchers: Arc<Mutex<HashMap<i64, watcher::Watcher>>>,
+    leases: Arc<Mutex<HashMap<i64, lease::Lease>>>,
 }
 
 impl Server {
@@ -39,6 +41,7 @@ impl Server {
             store,
             max_watcher_id: Arc::new(AtomicI64::new(1)),
             watchers: Arc::new(Mutex::new(HashMap::new())),
+            leases: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -64,6 +67,36 @@ impl Server {
         if let Some(watcher) = self.watchers.lock().unwrap().remove(&id) {
             watcher.cancel()
         }
+    }
+
+    pub fn create_lease(&self, id: Option<i64>, ttl: i64) -> (crate::store::Server, i64, i64) {
+        let (server, id, ttl) = self.store.create_lease(id, ttl).unwrap();
+        // spawn task to handle timeouts stuff
+        let (tx_timeout, rx_timeout) = tokio::sync::oneshot::channel();
+        let self_clone = self.clone();
+        tokio::spawn(async move {
+            if let Ok(()) = rx_timeout.await{
+                self_clone.revoke_lease(id);
+            }
+        });
+        let lease_watcher = lease::Lease::new(id, ttl, tx_timeout);
+        self.leases.lock().unwrap().insert(id, lease_watcher);
+        (server, id, ttl)
+    }
+
+    pub fn refresh_lease(&self, id: i64) -> (crate::store::Server, i64) {
+        let (store, ttl) = self.store.refresh_lease(id).unwrap();
+        if let Some(lease) = self.leases.lock().unwrap().get(&id) {
+            lease.refresh(ttl)
+        }
+        (store, ttl)
+    }
+
+    pub fn revoke_lease(&self, id: i64) -> crate::store::Server {
+        if let Some(lease) = self.leases.lock().unwrap().remove(&id) {
+            lease.revoke()
+        }
+        self.store.revoke_lease(id).unwrap()
     }
 }
 

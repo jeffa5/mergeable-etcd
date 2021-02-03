@@ -1,9 +1,13 @@
 use std::pin::Pin;
 
-use etcd_proto::etcdserverpb::{lease_server::Lease as LeaseTrait, LeaseKeepAliveResponse};
-use futures::Stream;
+use etcd_proto::etcdserverpb::{
+    lease_server::Lease as LeaseTrait, LeaseGrantRequest, LeaseGrantResponse,
+    LeaseKeepAliveRequest, LeaseKeepAliveResponse, LeaseLeasesRequest, LeaseLeasesResponse,
+    LeaseRevokeRequest, LeaseRevokeResponse, LeaseTimeToLiveRequest, LeaseTimeToLiveResponse,
+};
+use futures::{Stream, StreamExt};
 use log::info;
-use tonic::Status;
+use tonic::{Request, Response, Status, Streaming};
 
 #[derive(Debug)]
 pub struct Lease {
@@ -20,20 +24,32 @@ impl Lease {
 impl LeaseTrait for Lease {
     async fn lease_grant(
         &self,
-        request: tonic::Request<etcd_proto::etcdserverpb::LeaseGrantRequest>,
-    ) -> Result<tonic::Response<etcd_proto::etcdserverpb::LeaseGrantResponse>, tonic::Status> {
+        request: Request<LeaseGrantRequest>,
+    ) -> Result<Response<LeaseGrantResponse>, Status> {
         let request = request.into_inner();
-        info!("Unimplemented lease_grant request: {:?}", request);
-        todo!()
+        let id = if request.id == 0 {
+            None
+        } else {
+            Some(request.id)
+        };
+        let (server, id, ttl) = self.server.create_lease(id, request.ttl);
+        Ok(Response::new(LeaseGrantResponse {
+            header: Some(server.header()),
+            id,
+            ttl,
+            error: String::new(),
+        }))
     }
 
     async fn lease_revoke(
         &self,
-        request: tonic::Request<etcd_proto::etcdserverpb::LeaseRevokeRequest>,
-    ) -> Result<tonic::Response<etcd_proto::etcdserverpb::LeaseRevokeResponse>, tonic::Status> {
+        request: Request<LeaseRevokeRequest>,
+    ) -> Result<Response<LeaseRevokeResponse>, Status> {
         let request = request.into_inner();
-        info!("Unimplemented lease_revoke request: {:?}", request);
-        todo!()
+        let server = self.server.revoke_lease(request.id);
+        Ok(Response::new(LeaseRevokeResponse {
+            header: Some(server.header()),
+        }))
     }
 
     type LeaseKeepAliveStream =
@@ -41,18 +57,34 @@ impl LeaseTrait for Lease {
 
     async fn lease_keep_alive(
         &self,
-        request: tonic::Request<tonic::Streaming<etcd_proto::etcdserverpb::LeaseKeepAliveRequest>>,
-    ) -> Result<tonic::Response<Self::LeaseKeepAliveStream>, tonic::Status> {
-        let request = request.into_inner();
-        info!("Unimplemented lease_keep_alive request: {:?}", request);
-        todo!()
+        request: Request<Streaming<LeaseKeepAliveRequest>>,
+    ) -> Result<Response<Self::LeaseKeepAliveStream>, Status> {
+        let (tx, rx) = tokio::sync::mpsc::channel(1);
+
+        let server = self.server.clone();
+        tokio::spawn(async move {
+            let mut request = request.into_inner();
+            while let Some(Ok(request)) = request.next().await {
+                let (server, ttl) = server.refresh_lease(request.id);
+                let _ = tx
+                    .send(Ok(LeaseKeepAliveResponse {
+                        header: Some(server.header()),
+                        id: request.id,
+                        ttl,
+                    }))
+                    .await;
+            }
+        });
+
+        Ok(Response::new(Box::pin(
+            tokio_stream::wrappers::ReceiverStream::new(rx),
+        )))
     }
 
     async fn lease_time_to_live(
         &self,
-        request: tonic::Request<etcd_proto::etcdserverpb::LeaseTimeToLiveRequest>,
-    ) -> Result<tonic::Response<etcd_proto::etcdserverpb::LeaseTimeToLiveResponse>, tonic::Status>
-    {
+        request: Request<LeaseTimeToLiveRequest>,
+    ) -> Result<Response<LeaseTimeToLiveResponse>, Status> {
         let request = request.into_inner();
         info!("Unimplemented lease_time_to_live request: {:?}", request);
         todo!()
@@ -60,8 +92,8 @@ impl LeaseTrait for Lease {
 
     async fn lease_leases(
         &self,
-        request: tonic::Request<etcd_proto::etcdserverpb::LeaseLeasesRequest>,
-    ) -> Result<tonic::Response<etcd_proto::etcdserverpb::LeaseLeasesResponse>, tonic::Status> {
+        request: Request<LeaseLeasesRequest>,
+    ) -> Result<Response<LeaseLeasesResponse>, Status> {
         let request = request.into_inner();
         info!("Unimplemented lease_leases request: {:?}", request);
         todo!()
