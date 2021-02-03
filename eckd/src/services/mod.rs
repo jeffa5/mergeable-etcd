@@ -1,4 +1,5 @@
 mod kv;
+mod lease;
 mod maintenance;
 mod watch;
 
@@ -8,7 +9,8 @@ use std::{
 };
 
 use etcd_proto::etcdserverpb::{
-    kv_server::KvServer, maintenance_server::MaintenanceServer, watch_server::WatchServer,
+    kv_server::KvServer, lease_server::LeaseServer, maintenance_server::MaintenanceServer,
+    watch_server::WatchServer,
 };
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use log::{info, warn};
@@ -28,6 +30,7 @@ pub async fn serve(
     let kv_service = KvServer::new(kv);
     let maintenance_service = MaintenanceServer::new(maintenance::Maintenance::new(server.clone()));
     let watch_service = WatchServer::new(watch::Watch::new(server.clone()));
+    let lease_service = LeaseServer::new(lease::Lease::new(server.clone()));
     let mut server = Server::builder();
     if let Some(identity) = identity {
         server = server.tls_config(ServerTlsConfig::new().identity(identity))?;
@@ -38,6 +41,7 @@ pub async fn serve(
         .add_service(kv_service)
         .add_service(maintenance_service)
         .add_service(watch_service)
+        .add_service(lease_service)
         .serve_with_shutdown(address, async {
             shutdown.changed().await.unwrap();
             info!("Gracefully shutting down client server")
