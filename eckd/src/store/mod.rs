@@ -1,9 +1,9 @@
 use std::path::Path;
-use log::info;
 
 use etcd_proto::etcdserverpb::{
     compare::TargetUnion, request_op::Request, response_op::Response, ResponseOp, TxnRequest,
 };
+use log::info;
 use sled::Transactional;
 use thiserror::Error;
 
@@ -79,114 +79,50 @@ impl Store {
         info!("txn ");
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             // determine success of comparison
-            let mut server = self.current_server();
             info!("txn transaction");
+            let mut server = server_tree
+                .get(SERVER_KEY)
+                .unwrap()
+                .map(|server| Server::deserialize(&server))
+                .unwrap_or_default();
+            info!("txn server: {:?}", server);
             let success = request.compare.iter().all(|compare| {
                 let (_server, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
                 info!("performing comparisons");
-                match (
-                    compare.target,
-                    compare.target_union.as_ref(),
-                    compare.result,
-                    value,
-                ) {
-                    (
-                        0, /* version */
-                        Some(TargetUnion::Version(version)),
-                        0, /* equal */
-                        Some(value),
-                    ) => &value.version == version,
-                    (
-                        0, /* version */
-                        Some(TargetUnion::Version(version)),
-                        1, /* greater */
-                        Some(value),
-                    ) => &value.version > version,
-                    (
-                        0, /* version */
-                        Some(TargetUnion::Version(version)),
-                        2, /* less */
-                        Some(value),
-                    ) => &value.version < version,
-                    (
-                        0, /* version */
-                        Some(TargetUnion::Version(version)),
-                        3, /* not equal */
-                        Some(value),
-                    ) => &value.version != version,
-                    (
-                        1, /* create */
-                        Some(TargetUnion::CreateRevision(revision)),
-                        0, /* equal */
-                        Some(value),
-                    ) => &value.create_revision == revision,
-                    (
-                        1, /* create */
-                        Some(TargetUnion::CreateRevision(revision)),
-                        1, /* greater */
-                        Some(value),
-                    ) => &value.create_revision > revision,
-                    (
-                        1, /* create */
-                        Some(TargetUnion::CreateRevision(revision)),
-                        2, /* less */
-                        Some(value),
-                    ) => &value.create_revision < revision,
-                    (
-                        1, /* create */
-                        Some(TargetUnion::CreateRevision(revision)),
-                        3, /* not equal */
-                        Some(value),
-                    ) => &value.create_revision != revision,
-                    (
-                        2, /* mod */
-                        Some(TargetUnion::ModRevision(revision)),
-                        0, /* equal */
-                        Some(value),
-                    ) => &value.mod_revision == revision,
-                    (
-                        2, /* mod */
-                        Some(TargetUnion::ModRevision(revision)),
-                        1, /* greater */
-                        Some(value),
-                    ) => &value.mod_revision > revision,
-                    (
-                        2, /* mod */
-                        Some(TargetUnion::ModRevision(revision)),
-                        2, /* less */
-                        Some(value),
-                    ) => &value.mod_revision < revision,
-                    (
-                        2, /* mod */
-                        Some(TargetUnion::ModRevision(revision)),
-                        3, /* not equal */
-                        Some(value),
-                    ) => &value.mod_revision != revision,
-                    (
-                        3, /* value */
-                        Some(TargetUnion::Value(test_value)),
-                        0, /* equal */
-                        Some(value),
-                    ) => &value.value == test_value,
-                    (
-                        3, /* value */
-                        Some(TargetUnion::Value(test_value)),
-                        1, /* greater */
-                        Some(value),
-                    ) => &value.value > test_value,
-                    (
-                        3, /* value */
-                        Some(TargetUnion::Value(test_value)),
-                        2, /* less */
-                        Some(value),
-                    ) => &value.value < test_value,
-                    (
-                        3, /* value */
-                        Some(TargetUnion::Value(test_value)),
-                        3, /* not equal */
-                        Some(value),
-                    ) => &value.value != test_value,
-                    _ => unimplemented!(),
+                fn comp<T: PartialEq + PartialOrd>(op: i32, a: T, b: T) -> bool {
+                    match op {
+                    0 /* equal */ => a == b,
+                    1 /* greater */ => a > b,
+                    2 /* less */ => a < b,
+                    3 /* not equal */ => a != b,
+                    _ => unreachable!()
+ }
+                }
+                match (compare.target, compare.target_union.as_ref()) {
+                    (0 /* version */, Some(TargetUnion::Version(version))) => comp(
+                        compare.result,
+                        &value.map(|v| v.version).unwrap_or(0),
+                        version,
+                    ),
+                    (1 /* create */, Some(TargetUnion::CreateRevision(revision))) => comp(
+                        compare.result,
+                        &value.map(|v| v.create_revision).unwrap_or(0),
+                        revision,
+                    ),
+                    (2 /* mod */, Some(TargetUnion::ModRevision(revision))) => comp(
+                        compare.result,
+                        &value.map(|v| v.mod_revision).unwrap_or(0),
+                        revision,
+                    ),
+                    (3 /* value */, Some(TargetUnion::Value(test_value))) => comp(
+                        compare.result,
+                        &value.map(|v| v.value).unwrap_or_default(),
+                        test_value,
+                    ),
+                    (target, target_union) => panic!(
+                        "unexpected comparison: {:?}, {:?}, {:?}, {:?}",
+                        target, target_union, compare.result, value
+                    ),
                 }
             });
 
