@@ -151,7 +151,14 @@ impl WatchTrait for Watch {
                     fragment: false,
                     events: Vec::new(),
                 };
-                tx_response.send(Ok(resp)).await.unwrap()
+                match tx_response.send(Ok(resp)).await {
+                    Ok(()) => {}
+                    Err(_) => {
+                        // receiver has closed
+                        warn!("Got an error while sending watch response");
+                        break;
+                    }
+                }
             }
         });
 
