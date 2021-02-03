@@ -1,13 +1,17 @@
 use std::{
+    collections::HashMap,
     path::PathBuf,
-    sync::{atomic::AtomicI64, Arc},
+    sync::{atomic::AtomicI64, Arc, Mutex},
 };
 
 use derive_builder::Builder;
+use etcd_proto::etcdserverpb::WatchResponse;
 use log::info;
-use tonic::transport::Identity;
+use tonic::{transport::Identity, Status};
 
 use crate::address::{Address, NamedAddress, Scheme};
+
+mod watcher;
 
 #[derive(Debug, Builder)]
 pub struct EckdServer {
@@ -26,12 +30,40 @@ pub struct EckdServer {
 pub struct Server {
     pub store: crate::store::Store,
     max_watcher_id: Arc<AtomicI64>,
+    watchers: Arc<Mutex<HashMap<i64, watcher::Watcher>>>,
 }
 
 impl Server {
-    pub fn new_watcher(&self) -> i64 {
-        self.max_watcher_id
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    fn new(store: crate::store::Store) -> Self {
+        Self {
+            store,
+            max_watcher_id: Arc::new(AtomicI64::new(1)),
+            watchers: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    pub async fn create_watcher(
+        &self,
+        key: Vec<u8>,
+        tx_results: tokio::sync::mpsc::Sender<Result<WatchResponse, Status>>,
+    ) -> i64 {
+        // TODO: have a more robust cancel mechanism
+        let id = self
+            .max_watcher_id
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let (tx_events, rx_events) = tokio::sync::mpsc::channel(1);
+        let store_clone = self.store.clone();
+        tokio::spawn(async move { store_clone.watch_prefix(key, tx_events).await });
+        let watcher = watcher::Watcher::new(id, rx_events, tx_results).await;
+        self.watchers.lock().unwrap().insert(id, watcher);
+        id
+    }
+
+    pub fn cancel_watcher(&self, id: i64) {
+        // TODO: robust cancellation
+        if let Some(watcher) = self.watchers.lock().unwrap().remove(&id) {
+            watcher.cancel()
+        }
     }
 }
 
@@ -41,10 +73,7 @@ impl EckdServer {
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let store = crate::store::Store::new(&self.data_dir);
-        let server = Server {
-            store,
-            max_watcher_id: Arc::new(AtomicI64::new(1)),
-        };
+        let server = Server::new(store);
         let servers = self
             .listen_client_urls
             .iter()

@@ -33,13 +33,10 @@ impl WatchTrait for Watch {
         request: Request<tonic::Streaming<WatchRequest>>,
     ) -> Result<Response<Self::WatchStream>, Status> {
         info!("Watch");
-        let (tx_watchers, mut rx_watchers) = tokio::sync::mpsc::channel(1);
 
         let server_clone = self.server.clone();
 
         let (tx_response, rx_response) = tokio::sync::mpsc::channel(16);
-
-        let tx_response_clone = tx_response.clone();
 
         tokio::spawn(async move {
             debug!("Waiting on watch requests");
@@ -49,25 +46,51 @@ impl WatchTrait for Watch {
                 match request {
                     Ok(request) => match request.request_union {
                         Some(RequestUnion::CreateRequest(create)) => {
-                            if tx_watchers
-                                .send((server_clone.new_watcher(), create))
+                            let id = server_clone
+                                .create_watcher(create.key, tx_response.clone())
+                                .await;
+                            if tx_response
+                                .send(Ok(WatchResponse {
+                                    header: Some(server_clone.store.current_server().header()),
+                                    watch_id: id,
+                                    created: true,
+                                    canceled: false,
+                                    compact_revision: 1,
+                                    cancel_reason: String::new(),
+                                    fragment: false,
+                                    events: vec![],
+                                }))
                                 .await
                                 .is_err()
                             {
-                                // receiver has closed
-                                warn!("Got an error while sending watch create request");
-                                break;
+                                warn!("error sending watch creation response")
                             }
                         }
                         Some(RequestUnion::CancelRequest(cancel)) => {
-                            warn!("got an unhandled cancel request: {:?}", cancel)
+                            server_clone.cancel_watcher(cancel.watch_id);
+                            if tx_response
+                                .send(Ok(WatchResponse {
+                                    header: Some(server_clone.store.current_server().header()),
+                                    watch_id: cancel.watch_id,
+                                    created: false,
+                                    canceled: true,
+                                    compact_revision: 1,
+                                    cancel_reason: String::new(),
+                                    fragment: false,
+                                    events: vec![],
+                                }))
+                                .await
+                                .is_err()
+                            {
+                                warn!("error sending watch cancelation response")
+                            };
                         }
                         Some(RequestUnion::ProgressRequest(progress)) => {
                             warn!("got an unhandled progress request: {:?}", progress)
                         }
                         None => {
                             warn!("Got an empty watch request");
-                            if tx_response_clone
+                            if tx_response
                                 .send(Err(Status::invalid_argument("empty message")))
                                 .await
                                 .is_err()
@@ -82,85 +105,6 @@ impl WatchTrait for Watch {
                         warn!("watch error: {}", e);
                         break;
                     }
-                }
-            }
-        });
-
-        let server_clone1 = self.server.clone();
-        let server_clone2 = self.server.clone();
-        tokio::spawn(async move {
-            debug!("Waiting to send responses");
-
-            while let Some((watch_id, create_request)) = rx_watchers.recv().await {
-                debug!("Creating a new watch with id {:?}", watch_id);
-                let server_clone = server_clone1.clone();
-                let tx_response_clone = tx_response.clone();
-
-                tokio::spawn(async move {
-                    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
-
-                    tokio::spawn(async move {
-                        server_clone
-                            .store
-                            .watch_prefix(create_request.key, tx)
-                            .await;
-                    });
-
-                    while let Some((server, event)) = rx.recv().await {
-                        debug!("Got a watch event {:?}", event);
-                        let event = match event {
-                            sled::Event::Insert { key, value } => mvccpb::Event {
-                                kv: Some(Value::deserialize(&value).key_value(key.to_vec())),
-                                prev_kv: None,
-                                r#type: 0, // mvccpb::event::EventType::Put
-                            },
-                            sled::Event::Remove { key } => mvccpb::Event {
-                                kv: Some(mvccpb::KeyValue {
-                                    key: key.to_vec(),
-                                    create_revision: -1,
-                                    mod_revision: -1,
-                                    version: -1,
-                                    value: Vec::new(),
-                                    lease: 0,
-                                }),
-                                prev_kv: None,
-                                r#type: 1, // mvccpb::event::EventType::Delete
-                            },
-                        };
-                        let resp = WatchResponse {
-                            canceled: false,
-                            header: Some(server.header()),
-                            watch_id,
-                            created: false,
-                            compact_revision: 0,
-                            cancel_reason: String::new(),
-                            fragment: false,
-                            events: vec![event],
-                        };
-                        debug!("Sending watch response: {:?}", resp);
-                        if tx_response_clone.send(Ok(resp)).await.is_err() {
-                            // receiver has closed
-                            warn!("Got an error while sending watch response");
-                            break;
-                        };
-                    }
-                });
-
-                // respond saying we've created the watch
-                let resp = WatchResponse {
-                    header: Some(server_clone2.store.current_server().header()),
-                    watch_id,
-                    created: true,
-                    canceled: false,
-                    compact_revision: 1,
-                    cancel_reason: String::new(),
-                    fragment: false,
-                    events: Vec::new(),
-                };
-                if tx_response.send(Ok(resp)).await.is_err() {
-                    // receiver has closed
-                    warn!("Got an error while sending watch response");
-                    break;
                 }
             }
         });
