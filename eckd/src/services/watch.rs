@@ -18,8 +18,8 @@ pub struct Watch {
 }
 
 impl Watch {
-    pub fn new(server: crate::server::Server) -> Watch {
-        Watch { server }
+    pub const fn new(server: crate::server::Server) -> Self {
+        Self { server }
     }
 }
 
@@ -129,13 +129,10 @@ impl WatchTrait for Watch {
                             events: vec![event],
                         };
                         debug!("Sending watch response: {:?}", resp);
-                        match tx_response_clone.send(Ok(resp)).await {
-                            Ok(()) => {}
-                            Err(_) => {
-                                // receiver has closed
-                                warn!("Got an error while sending watch response");
-                                break;
-                            }
+                        if tx_response_clone.send(Ok(resp)).await.is_err() {
+                            // receiver has closed
+                            warn!("Got an error while sending watch response");
+                            break;
                         };
                     }
                 });
@@ -151,13 +148,10 @@ impl WatchTrait for Watch {
                     fragment: false,
                     events: Vec::new(),
                 };
-                match tx_response.send(Ok(resp)).await {
-                    Ok(()) => {}
-                    Err(_) => {
-                        // receiver has closed
-                        warn!("Got an error while sending watch response");
-                        break;
-                    }
+                if tx_response.send(Ok(resp)).await.is_err() {
+                    // receiver has closed
+                    warn!("Got an error while sending watch response");
+                    break;
                 }
             }
         });

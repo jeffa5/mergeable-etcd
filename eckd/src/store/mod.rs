@@ -25,19 +25,19 @@ impl Store {
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         let db = sled::open(path).unwrap();
         let kv = db.open_tree("kv").unwrap();
-        kv.set_merge_operator(kv::merge_kv);
+        kv.set_merge_operator(kv::merge);
         let server = db.open_tree(SERVER_KEY).unwrap();
         Self { db, kv, server }
     }
 
-    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<(Server, Option<Value>), StoreError> {
+    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<(Server, Option<Value>), Error> {
         let key = key.as_ref();
         let result = (&self.kv, &self.server)
             .transaction(|(kv_tree, server_tree)| get_inner(key, kv_tree, server_tree))?;
         Ok(result)
     }
 
-    pub fn merge<K>(&self, key: K, value: Value) -> Result<(Server, Option<Value>), StoreError>
+    pub fn merge<K>(&self, key: &K, value: &Value) -> Result<(Server, Option<Value>), Error>
     where
         K: AsRef<[u8]> + Into<sled::IVec>,
     {
@@ -58,8 +58,8 @@ impl Store {
 
     pub fn remove<K: AsRef<[u8]> + Into<sled::IVec>>(
         &self,
-        key: K,
-    ) -> Result<(Server, Option<Value>), StoreError> {
+        key: &K,
+    ) -> Result<(Server, Option<Value>), Error> {
         let key = key.as_ref();
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
@@ -74,14 +74,14 @@ impl Store {
         Ok(result)
     }
 
-    pub fn txn(&self, request: TxnRequest) -> Result<(Server, bool, Vec<ResponseOp>), StoreError> {
+    pub fn txn(&self, request: &TxnRequest) -> Result<(Server, bool, Vec<ResponseOp>), Error> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let server = server_tree
                 .get(SERVER_KEY)
                 .unwrap()
                 .map(|server| Server::deserialize(&server))
                 .unwrap_or_default();
-            transaction_inner(&request, server, kv_tree, server_tree)
+            transaction_inner(request, server, kv_tree, server_tree)
         })?;
         Ok(result)
     }
@@ -132,15 +132,12 @@ fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     kv_tree: &sled::transaction::TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
     let existing = kv_tree.get(&key)?.map(|v| Value::deserialize(&v));
-    match existing {
-        Some(existing) => {
-            value.create_revision = existing.create_revision;
-            value.version = existing.version + 1;
-        }
-        None => {
-            value.create_revision = server.revision;
-            value.version = 1;
-        }
+    if let Some(existing) = existing {
+        value.create_revision = existing.create_revision;
+        value.version = existing.version + 1;
+    } else {
+        value.create_revision = server.revision;
+        value.version = 1;
     }
     value.mod_revision = server.revision;
     let val = value.serialize();
@@ -158,38 +155,36 @@ fn remove_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     Ok((server, prev_kv))
 }
 
-fn transaction_inner(
-    request: &TxnRequest,
-    mut server: Server,
-    kv_tree: &sled::transaction::TransactionalTree,
-    server_tree: &sled::transaction::TransactionalTree,
-) -> Result<(Server, bool, Vec<ResponseOp>), sled::transaction::ConflictableTransactionError> {
-    // determine success of comparison
-    let success = request.compare.iter().all(|compare| {
-        let (_server, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
-        fn comp<T: PartialEq + PartialOrd>(op: i32, a: T, b: T) -> bool {
-            match op {
+fn comp<T: PartialEq + PartialOrd>(op: i32, a: &T, b: &T) -> bool {
+    match op {
                     0 /* equal */ => a == b,
                     1 /* greater */ => a > b,
                     2 /* less */ => a < b,
                     3 /* not equal */ => a != b,
                     _ => unreachable!()
  }
-        }
+}
+
+fn transaction_inner(
+    request: &TxnRequest,
+    mut server: Server,
+    kv_tree: &sled::transaction::TransactionalTree,
+    server_tree: &sled::transaction::TransactionalTree,
+) -> Result<(Server, bool, Vec<ResponseOp>), sled::transaction::ConflictableTransactionError> {
+    let success = request.compare.iter().all(|compare| {
+        let (_, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
         match (compare.target, compare.target_union.as_ref()) {
-            (0 /* version */, Some(TargetUnion::Version(version))) => comp(
-                compare.result,
-                &value.map(|v| v.version).unwrap_or(0),
-                version,
-            ),
+            (0 /* version */, Some(TargetUnion::Version(version))) => {
+                comp(compare.result, &value.map_or(0, |v| v.version), version)
+            }
             (1 /* create */, Some(TargetUnion::CreateRevision(revision))) => comp(
                 compare.result,
-                &value.map(|v| v.create_revision).unwrap_or(0),
+                &value.map_or(0, |v| v.create_revision),
                 revision,
             ),
             (2 /* mod */, Some(TargetUnion::ModRevision(revision))) => comp(
                 compare.result,
-                &value.map(|v| v.mod_revision).unwrap_or(0),
+                &value.map_or(0, |v| v.mod_revision),
                 revision,
             ),
             (3 /* value */, Some(TargetUnion::Value(test_value))) => comp(
@@ -204,7 +199,6 @@ fn transaction_inner(
         }
     });
 
-    // perform success/failure actions
     let ops = if success {
         if request.success.iter().any(|op| match &op.request {
             None | Some(Request::RequestRange(_)) => false,
@@ -285,7 +279,7 @@ fn transaction_inner(
 }
 
 #[derive(Debug, Error)]
-pub enum StoreError {
+pub enum Error {
     #[error("sled error {0}")]
     SledError(#[from] sled::Error),
     #[error("sled transaction error {0}")]

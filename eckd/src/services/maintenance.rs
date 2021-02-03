@@ -16,8 +16,8 @@ pub struct Maintenance {
 }
 
 impl Maintenance {
-    pub fn new(server: crate::server::Server) -> Maintenance {
-        Maintenance { server }
+    pub const fn new(server: crate::server::Server) -> Self {
+        Self { server }
     }
 }
 

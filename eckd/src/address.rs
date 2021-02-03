@@ -46,8 +46,8 @@ impl Display for Scheme {
             f,
             "{}",
             match self {
-                Scheme::Http => "http",
-                Scheme::Https => "https",
+                Self::Http => "http",
+                Self::Https => "https",
             }
         )
     }

@@ -16,8 +16,8 @@ impl Default for Server {
 }
 
 impl Server {
-    pub(super) fn new() -> Server {
-        Server {
+    pub(super) const fn new() -> Self {
+        Self {
             cluster_id: 2345,
             member_id: 1234,
             revision: 1,
@@ -25,7 +25,7 @@ impl Server {
         }
     }
 
-    pub fn header(&self) -> ResponseHeader {
+    pub const fn header(&self) -> ResponseHeader {
         ResponseHeader {
             cluster_id: self.cluster_id,
             member_id: self.member_id,
@@ -34,7 +34,7 @@ impl Server {
         }
     }
 
-    pub fn member_id(&self) -> u64 {
+    pub const fn member_id(&self) -> u64 {
         self.member_id
     }
 

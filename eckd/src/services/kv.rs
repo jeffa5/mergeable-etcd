@@ -13,8 +13,8 @@ pub struct KV {
 }
 
 impl KV {
-    pub fn new(server: crate::server::Server) -> KV {
-        KV { server }
+    pub const fn new(server: crate::server::Server) -> Self {
+        Self { server }
     }
 }
 
@@ -49,7 +49,7 @@ impl Kv for KV {
         let inner = request.into_inner();
         debug!("put: {:?}", inner);
         let val = Value::new(inner.value.clone());
-        let (server, prev_kv) = self.server.store.merge(inner.key.clone(), val).unwrap();
+        let (server, prev_kv) = self.server.store.merge(&inner.key, &val).unwrap();
         let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(inner.key));
 
         let reply = PutResponse {
@@ -66,7 +66,7 @@ impl Kv for KV {
         info!("DeleteRange");
         let inner = request.into_inner();
         debug!("delete_range: {:?}", inner);
-        let (server, prev_kv) = self.server.store.remove(inner.key.clone()).unwrap();
+        let (server, prev_kv) = self.server.store.remove(&inner.key).unwrap();
         let prev_kvs = prev_kv
             .map(|prev_kv| vec![prev_kv.key_value(inner.key.to_vec())])
             .unwrap_or_default();
@@ -83,7 +83,7 @@ impl Kv for KV {
         info!("Transaction");
         let inner = request.into_inner();
         debug!("txn: {:?}", inner);
-        let (server, success, results) = self.server.store.txn(inner).unwrap();
+        let (server, success, results) = self.server.store.txn(&inner).unwrap();
         let reply = TxnResponse {
             header: Some(server.header()),
             responses: results,

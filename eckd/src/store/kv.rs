@@ -2,7 +2,7 @@ use etcd_proto::mvccpb::KeyValue;
 use serde::{Deserialize, Serialize};
 
 #[allow(clippy::unnecessary_wraps)]
-pub fn merge_kv(_key: &[u8], old_value: Option<&[u8]>, merged_bytes: &[u8]) -> Option<Vec<u8>> {
+pub fn merge(_key: &[u8], old_value: Option<&[u8]>, merged_bytes: &[u8]) -> Option<Vec<u8>> {
     match old_value {
         None => Some(merged_bytes.to_vec()),
         Some(old) => {
@@ -25,7 +25,7 @@ pub struct Value {
 
 impl Value {
     pub fn new(value: Vec<u8>) -> Self {
-        Value {
+        Self {
             create_revision: 0,
             mod_revision: 0,
             version: 0,
