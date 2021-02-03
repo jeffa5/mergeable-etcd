@@ -76,7 +76,12 @@ impl Store {
 
     pub fn txn(&self, request: TxnRequest) -> Result<(Server, bool, Vec<ResponseOp>), StoreError> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
-            transaction_inner(&request, kv_tree, server_tree)
+            let server = server_tree
+                .get(SERVER_KEY)
+                .unwrap()
+                .map(|server| Server::deserialize(&server))
+                .unwrap_or_default();
+            transaction_inner(&request, server, kv_tree, server_tree)
         })?;
         Ok(result)
     }
@@ -155,15 +160,11 @@ fn remove_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
 
 fn transaction_inner(
     request: &TxnRequest,
+    mut server: Server,
     kv_tree: &sled::transaction::TransactionalTree,
     server_tree: &sled::transaction::TransactionalTree,
 ) -> Result<(Server, bool, Vec<ResponseOp>), sled::transaction::ConflictableTransactionError> {
     // determine success of comparison
-    let mut server = server_tree
-        .get(SERVER_KEY)
-        .unwrap()
-        .map(|server| Server::deserialize(&server))
-        .unwrap_or_default();
     let success = request.compare.iter().all(|compare| {
         let (_server, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
         fn comp<T: PartialEq + PartialOrd>(op: i32, a: T, b: T) -> bool {
