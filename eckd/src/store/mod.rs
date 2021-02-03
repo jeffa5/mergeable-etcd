@@ -3,7 +3,6 @@ use std::path::Path;
 use etcd_proto::etcdserverpb::{
     compare::TargetUnion, request_op::Request, response_op::Response, ResponseOp, TxnRequest,
 };
-use log::info;
 use sled::Transactional;
 use thiserror::Error;
 
@@ -76,156 +75,9 @@ impl Store {
     }
 
     pub fn txn(&self, request: TxnRequest) -> Result<(Server, bool, Vec<ResponseOp>), StoreError> {
-        info!("txn ");
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
-            // determine success of comparison
-            info!("txn transaction");
-            let mut server = server_tree
-                .get(SERVER_KEY)
-                .unwrap()
-                .map(|server| Server::deserialize(&server))
-                .unwrap_or_default();
-            info!("txn server: {:?}", server);
-            let success = request.compare.iter().all(|compare| {
-                let (_server, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
-                info!("performing comparisons");
-                fn comp<T: PartialEq + PartialOrd>(op: i32, a: T, b: T) -> bool {
-                    match op {
-                    0 /* equal */ => a == b,
-                    1 /* greater */ => a > b,
-                    2 /* less */ => a < b,
-                    3 /* not equal */ => a != b,
-                    _ => unreachable!()
- }
-                }
-                match (compare.target, compare.target_union.as_ref()) {
-                    (0 /* version */, Some(TargetUnion::Version(version))) => comp(
-                        compare.result,
-                        &value.map(|v| v.version).unwrap_or(0),
-                        version,
-                    ),
-                    (1 /* create */, Some(TargetUnion::CreateRevision(revision))) => comp(
-                        compare.result,
-                        &value.map(|v| v.create_revision).unwrap_or(0),
-                        revision,
-                    ),
-                    (2 /* mod */, Some(TargetUnion::ModRevision(revision))) => comp(
-                        compare.result,
-                        &value.map(|v| v.mod_revision).unwrap_or(0),
-                        revision,
-                    ),
-                    (3 /* value */, Some(TargetUnion::Value(test_value))) => comp(
-                        compare.result,
-                        &value.map(|v| v.value).unwrap_or_default(),
-                        test_value,
-                    ),
-                    (target, target_union) => panic!(
-                        "unexpected comparison: {:?}, {:?}, {:?}, {:?}",
-                        target, target_union, compare.result, value
-                    ),
-                }
-            });
-
-            info!("comparisons had success: {}", success);
-
-            // perform success/failure actions
-            let ops = if success {
-                if request.success.iter().any(|op| match &op.request {
-                    None | Some(Request::RequestRange(_)) => false,
-                    Some(Request::RequestPut(_))
-                    | Some(Request::RequestDeleteRange(_))
-                    | Some(Request::RequestTxn(_)) => true,
-                }) {
-                    info!("incrementing server, success");
-                    server.increment_revision();
-                    server_tree.insert(SERVER_KEY, server.serialize())?;
-                }
-                request.success.iter()
-            } else {
-                if request.failure.iter().any(|op| match &op.request {
-                    None | Some(Request::RequestRange(_)) => false,
-                    Some(Request::RequestPut(_))
-                    | Some(Request::RequestDeleteRange(_))
-                    | Some(Request::RequestTxn(_)) => true,
-                }) {
-                    info!("incrementing server, failure");
-                    server.increment_revision();
-                    server_tree.insert(SERVER_KEY, server.serialize())?;
-                }
-                request.failure.iter()
-            };
-            info!("collecting results");
-            let results = ops
-                .map(|op| match &op.request {
-                    Some(Request::RequestRange(request)) => {
-                        info!("operating range");
-                        let (_, kv) = get_inner(&request.key, kv_tree, server_tree).unwrap();
-                        let kvs = kv
-                            .map(|kv| vec![kv.key_value(request.key.clone())])
-                            .unwrap_or_default();
-                        let count = kvs.len() as i64;
-
-                        let response = etcd_proto::etcdserverpb::RangeResponse {
-                            header: Some(server.header()),
-                            kvs,
-                            count,
-                            more: false,
-                        };
-                        info!("ending range");
-                        ResponseOp {
-                            response: Some(Response::ResponseRange(response)),
-                        }
-                    }
-                    Some(Request::RequestPut(request)) => {
-                        info!("operating put");
-                        let val = Value::new(request.value.clone());
-                        let (_, prev_kv) =
-                            insert_inner(request.key.clone(), val, server.clone(), kv_tree)
-                                .unwrap();
-                        let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(request.key.clone()));
-                        let reply = etcd_proto::etcdserverpb::PutResponse {
-                            header: Some(server.header()),
-                            prev_kv,
-                        };
-                        info!("ending put");
-                        ResponseOp {
-                            response: Some(Response::ResponsePut(reply)),
-                        }
-                    }
-                    Some(Request::RequestDeleteRange(request)) => {
-                        info!("operating delete");
-                        let (_, prev_kv) =
-                            remove_inner(request.key.clone(), server.clone(), kv_tree).unwrap();
-                        let prev_kv = prev_kv
-                            .map(|prev_kv| prev_kv.key_value(request.key.clone()))
-                            .unwrap();
-                        let reply = etcd_proto::etcdserverpb::DeleteRangeResponse {
-                            header: Some(server.header()),
-                            deleted: 1,
-                            prev_kvs: vec![prev_kv],
-                        };
-                        info!("ending delete");
-                        ResponseOp {
-                            response: Some(Response::ResponseDeleteRange(reply)),
-                        }
-                    }
-                    Some(Request::RequestTxn(request)) => ResponseOp {
-                        response: Some(Response::ResponseTxn(todo!())),
-                    },
-                    None => unimplemented!(),
-                })
-                .collect::<Vec<_>>();
-            info!("finishing txn");
-            Ok((server, success, results))
-        });
-        let result = match result {
-            Ok(v) => v,
-            Err(e) => {
-                info!("err {:?}", e);
-                return Err(e.into());
-            }
-        };
-        info!("after txn");
+            transaction_inner(&request, kv_tree, server_tree)
+        })?;
         Ok(result)
     }
 
@@ -299,6 +151,136 @@ fn remove_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     let prev_kv = kv_tree.remove(key)?.map(|v| Value::deserialize(&v));
 
     Ok((server, prev_kv))
+}
+
+fn transaction_inner(
+    request: &TxnRequest,
+    kv_tree: &sled::transaction::TransactionalTree,
+    server_tree: &sled::transaction::TransactionalTree,
+) -> Result<(Server, bool, Vec<ResponseOp>), sled::transaction::ConflictableTransactionError> {
+    // determine success of comparison
+    let mut server = server_tree
+        .get(SERVER_KEY)
+        .unwrap()
+        .map(|server| Server::deserialize(&server))
+        .unwrap_or_default();
+    let success = request.compare.iter().all(|compare| {
+        let (_server, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
+        fn comp<T: PartialEq + PartialOrd>(op: i32, a: T, b: T) -> bool {
+            match op {
+                    0 /* equal */ => a == b,
+                    1 /* greater */ => a > b,
+                    2 /* less */ => a < b,
+                    3 /* not equal */ => a != b,
+                    _ => unreachable!()
+ }
+        }
+        match (compare.target, compare.target_union.as_ref()) {
+            (0 /* version */, Some(TargetUnion::Version(version))) => comp(
+                compare.result,
+                &value.map(|v| v.version).unwrap_or(0),
+                version,
+            ),
+            (1 /* create */, Some(TargetUnion::CreateRevision(revision))) => comp(
+                compare.result,
+                &value.map(|v| v.create_revision).unwrap_or(0),
+                revision,
+            ),
+            (2 /* mod */, Some(TargetUnion::ModRevision(revision))) => comp(
+                compare.result,
+                &value.map(|v| v.mod_revision).unwrap_or(0),
+                revision,
+            ),
+            (3 /* value */, Some(TargetUnion::Value(test_value))) => comp(
+                compare.result,
+                &value.map(|v| v.value).unwrap_or_default(),
+                test_value,
+            ),
+            (target, target_union) => panic!(
+                "unexpected comparison: {:?}, {:?}, {:?}, {:?}",
+                target, target_union, compare.result, value
+            ),
+        }
+    });
+
+    // perform success/failure actions
+    let ops = if success {
+        if request.success.iter().any(|op| match &op.request {
+            None | Some(Request::RequestRange(_)) => false,
+            Some(Request::RequestPut(_))
+            | Some(Request::RequestDeleteRange(_))
+            | Some(Request::RequestTxn(_)) => true,
+        }) {
+            server.increment_revision();
+            server_tree.insert(SERVER_KEY, server.serialize())?;
+        }
+        request.success.iter()
+    } else {
+        if request.failure.iter().any(|op| match &op.request {
+            None | Some(Request::RequestRange(_)) => false,
+            Some(Request::RequestPut(_))
+            | Some(Request::RequestDeleteRange(_))
+            | Some(Request::RequestTxn(_)) => true,
+        }) {
+            server.increment_revision();
+            server_tree.insert(SERVER_KEY, server.serialize())?;
+        }
+        request.failure.iter()
+    };
+    let results = ops
+        .map(|op| match &op.request {
+            Some(Request::RequestRange(request)) => {
+                let (_, kv) = get_inner(&request.key, kv_tree, server_tree).unwrap();
+                let kvs = kv
+                    .map(|kv| vec![kv.key_value(request.key.clone())])
+                    .unwrap_or_default();
+                let count = kvs.len() as i64;
+
+                let response = etcd_proto::etcdserverpb::RangeResponse {
+                    header: Some(server.header()),
+                    kvs,
+                    count,
+                    more: false,
+                };
+                ResponseOp {
+                    response: Some(Response::ResponseRange(response)),
+                }
+            }
+            Some(Request::RequestPut(request)) => {
+                let val = Value::new(request.value.clone());
+                let (_, prev_kv) =
+                    insert_inner(request.key.clone(), val, server.clone(), kv_tree).unwrap();
+                let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(request.key.clone()));
+                let reply = etcd_proto::etcdserverpb::PutResponse {
+                    header: Some(server.header()),
+                    prev_kv,
+                };
+                ResponseOp {
+                    response: Some(Response::ResponsePut(reply)),
+                }
+            }
+            Some(Request::RequestDeleteRange(request)) => {
+                let (_, prev_kv) =
+                    remove_inner(request.key.clone(), server.clone(), kv_tree).unwrap();
+                let prev_kv = prev_kv
+                    .map(|prev_kv| prev_kv.key_value(request.key.clone()))
+                    .unwrap();
+                let reply = etcd_proto::etcdserverpb::DeleteRangeResponse {
+                    header: Some(server.header()),
+                    deleted: 1,
+                    prev_kvs: vec![prev_kv],
+                };
+                ResponseOp {
+                    response: Some(Response::ResponseDeleteRange(reply)),
+                }
+            }
+            Some(Request::RequestTxn(request)) => ResponseOp {
+                response: Some(Response::ResponseTxn(todo!())),
+            },
+            None => unimplemented!(),
+        })
+        .collect::<Vec<_>>();
+    Ok((server, success, results))
 }
 
 #[derive(Debug, Error)]
