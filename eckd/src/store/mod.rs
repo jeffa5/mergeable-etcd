@@ -274,8 +274,18 @@ fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     server: Server,
     kv_tree: &sled::transaction::TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
+    let existing = kv_tree.get(&key)?.map(|v| Value::deserialize(&v));
+    match existing {
+        Some(existing) => {
+            value.create_revision = existing.create_revision;
+            value.version = existing.version + 1;
+        }
+        None => {
+            value.create_revision = server.revision;
+            value.version = 1;
+        }
+    }
     value.mod_revision = server.revision;
-    value.version += 1;
     let val = value.serialize();
     let prev_kv = kv_tree.insert(key, val)?.map(|v| Value::deserialize(&v));
     Ok((server, prev_kv))
