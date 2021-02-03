@@ -3,6 +3,7 @@ use std::path::Path;
 use etcd_proto::etcdserverpb::{
     compare::TargetUnion, request_op::Request, response_op::Response, ResponseOp, TxnRequest,
 };
+use log::warn;
 use sled::Transactional;
 use thiserror::Error;
 
@@ -99,7 +100,11 @@ impl Store {
                 .unwrap()
                 .map(|server| Server::deserialize(&server))
                 .unwrap_or_default();
-            tx.send((server, event)).await.unwrap();
+            if tx.send((server, event)).await.is_err() {
+                // receiver has closed
+                warn!("Got an error while sending watch event");
+                break;
+            }
         }
     }
 

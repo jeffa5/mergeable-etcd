@@ -49,10 +49,15 @@ impl WatchTrait for Watch {
                 match request {
                     Ok(request) => match request.request_union {
                         Some(RequestUnion::CreateRequest(create)) => {
-                            tx_watchers
+                            if tx_watchers
                                 .send((server_clone.new_watcher(), create))
                                 .await
-                                .unwrap();
+                                .is_err()
+                            {
+                                // receiver has closed
+                                warn!("Got an error while sending watch create request");
+                                break;
+                            }
                         }
                         Some(RequestUnion::CancelRequest(cancel)) => {
                             warn!("got an unhandled cancel request: {:?}", cancel)
@@ -62,11 +67,15 @@ impl WatchTrait for Watch {
                         }
                         None => {
                             warn!("Got an empty watch request");
-                            tx_response_clone
+                            if tx_response_clone
                                 .send(Err(Status::invalid_argument("empty message")))
                                 .await
-                                .unwrap();
-                            break;
+                                .is_err()
+                            {
+                                // receiver has closed
+                                warn!("Got an error while sending watch empty message error");
+                                break;
+                            }
                         }
                     },
                     Err(e) => {
