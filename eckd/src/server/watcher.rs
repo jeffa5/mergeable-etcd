@@ -61,7 +61,7 @@ impl Watcher {
                 },
                 else => break,
                 };
-            };
+            }
         });
         Self { cancel }
     }
