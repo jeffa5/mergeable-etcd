@@ -222,7 +222,7 @@ impl Store {
             Ok(v) => v,
             Err(e) => {
                 info!("err {:?}", e);
-                return Err(e.into())
+                return Err(e.into());
             }
         };
         info!("after txn");
