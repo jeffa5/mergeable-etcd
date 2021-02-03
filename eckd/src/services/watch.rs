@@ -33,7 +33,7 @@ impl WatchTrait for Watch {
 
         let server_clone = self.server.clone();
 
-        let (tx_response, rx_response) = tokio::sync::mpsc::channel(16);
+        let (tx_response, rx_response) = tokio::sync::mpsc::channel(1);
 
         tokio::spawn(async move {
             debug!("Waiting on watch requests");
