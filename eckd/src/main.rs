@@ -1,3 +1,7 @@
+#![warn(clippy::pedantic)]
+#![warn(clippy::nursery)]
+#![warn(clippy::cargo)]
+
 use std::{convert::TryFrom, path::PathBuf};
 
 use address::{Address, NamedAddress};
