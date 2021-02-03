@@ -11,7 +11,7 @@ pub struct Watcher {
 }
 
 impl Watcher {
-    pub(super) async fn new(
+    pub(super) fn new(
         id: i64,
         mut sled_events: Receiver<(Server, sled::Event)>,
         tx: Sender<Result<WatchResponse, Status>>,

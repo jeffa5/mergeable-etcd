@@ -45,7 +45,7 @@ impl Server {
         }
     }
 
-    pub async fn create_watcher(
+    pub fn create_watcher(
         &self,
         key: Vec<u8>,
         tx_results: tokio::sync::mpsc::Sender<Result<WatchResponse, Status>>,
@@ -57,7 +57,7 @@ impl Server {
         let (tx_events, rx_events) = tokio::sync::mpsc::channel(1);
         let store_clone = self.store.clone();
         tokio::spawn(async move { store_clone.watch_prefix(key, tx_events).await });
-        let watcher = watcher::Watcher::new(id, rx_events, tx_results).await;
+        let watcher = watcher::Watcher::new(id, rx_events, tx_results);
         self.watchers.lock().unwrap().insert(id, watcher);
         id
     }

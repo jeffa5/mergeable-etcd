@@ -1,16 +1,13 @@
 use std::pin::Pin;
 
-use etcd_proto::{
-    etcdserverpb::{
+use etcd_proto::etcdserverpb::{
         watch_request::RequestUnion, watch_server::Watch as WatchTrait, WatchRequest, WatchResponse,
-    },
-    mvccpb,
-};
+    };
 use futures::{Stream, StreamExt};
 use log::{debug, info, warn};
 use tonic::{Request, Response, Status};
 
-use crate::store::Value;
+
 
 #[derive(Debug)]
 pub struct Watch {
@@ -48,7 +45,7 @@ impl WatchTrait for Watch {
                         Some(RequestUnion::CreateRequest(create)) => {
                             let id = server_clone
                                 .create_watcher(create.key, tx_response.clone())
-                                .await;
+                                ;
                             if tx_response
                                 .send(Ok(WatchResponse {
                                     header: Some(server_clone.store.current_server().header()),
