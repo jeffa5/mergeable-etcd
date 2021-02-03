@@ -1,10 +1,10 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{atomic::AtomicI64, Arc},
 };
 
 use derive_builder::Builder;
-use log::{debug, info};
+use log::info;
 use tonic::transport::Identity;
 
 use crate::address::{Address, NamedAddress, Scheme};
@@ -25,16 +25,13 @@ pub struct EckdServer {
 #[derive(Debug, Clone)]
 pub struct Server {
     pub store: crate::store::Store,
-    max_watcher_id: Arc<Mutex<i64>>,
+    max_watcher_id: Arc<AtomicI64>,
 }
 
 impl Server {
     pub fn new_watcher(&self) -> i64 {
-        debug!("new_watcher");
-        let mut max = self.max_watcher_id.lock().unwrap();
-        let old_max = *max;
-        *max += 1;
-        old_max
+        self.max_watcher_id
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 }
 
@@ -46,7 +43,7 @@ impl EckdServer {
         let store = crate::store::Store::new(&self.data_dir);
         let server = Server {
             store,
-            max_watcher_id: Arc::new(Mutex::new(1)),
+            max_watcher_id: Arc::new(AtomicI64::new(1)),
         };
         let servers = self
             .listen_client_urls
