@@ -1,5 +1,6 @@
 use std::pin::Pin;
 
+use log::info;
 use etcd_proto::{
     etcdserverpb::{
         watch_request::RequestUnion, watch_server::Watch as WatchTrait, WatchRequest, WatchResponse,
@@ -32,7 +33,7 @@ impl WatchTrait for Watch {
         &self,
         request: Request<tonic::Streaming<WatchRequest>>,
     ) -> Result<Response<Self::WatchStream>, Status> {
-        debug!("Watch!");
+        info!("Watch");
         let (tx_watchers, mut rx_watchers) = tokio::sync::mpsc::channel(1);
 
         let server_clone = self.server.clone();

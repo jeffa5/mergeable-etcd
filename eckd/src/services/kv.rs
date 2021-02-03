@@ -24,6 +24,7 @@ impl Kv for KV {
         &self,
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
+        info!("RangeRequest");
         let inner = request.into_inner();
         debug!("range: {:?}", String::from_utf8(inner.key.clone()));
         let (server, kv) = self.server.store.get(&inner.key).unwrap();
@@ -44,8 +45,9 @@ impl Kv for KV {
     }
 
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
+        info!("Put");
         let inner = request.into_inner();
-        info!("put: {:?}", inner);
+        debug!("put: {:?}", inner);
         let val = Value::new(inner.value.clone());
         let (server, prev_kv) = self.server.store.merge(inner.key.clone(), val).unwrap();
         let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(inner.key));
@@ -61,8 +63,9 @@ impl Kv for KV {
         &self,
         request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
+        info!("DeleteRange");
         let inner = request.into_inner();
-        info!("delete_range: {:?}", inner);
+        debug!("delete_range: {:?}", inner);
         let (server, prev_kv) = self.server.store.remove(inner.key.clone()).unwrap();
         let prev_kvs = prev_kv
             .map(|prev_kv| vec![prev_kv.key_value(inner.key.to_vec())])
@@ -77,8 +80,9 @@ impl Kv for KV {
     }
 
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
+        info!("Transaction");
         let inner = request.into_inner();
-        info!("txn: {:?}", inner);
+        debug!("txn: {:?}", inner);
         let (server, success, results) = self.server.store.txn(inner).unwrap();
         let reply = TxnResponse {
             header: Some(server.header()),
@@ -92,8 +96,9 @@ impl Kv for KV {
         &self,
         request: Request<CompactionRequest>,
     ) -> Result<Response<CompactionResponse>, Status> {
+        info!("Compact");
         let inner = request.into_inner();
-        info!("compact: {:?}", inner);
+        debug!("compact: {:?}", inner);
         let reply = CompactionResponse { header: None };
         Ok(Response::new(reply))
     }
