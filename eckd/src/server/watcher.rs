@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use etcd_proto::{etcdserverpb::WatchResponse, mvccpb};
 use log::{debug, warn};
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -18,28 +20,29 @@ impl Watcher {
     ) -> Self {
         let (cancel, mut should_cancel) = tokio::sync::oneshot::channel();
         tokio::spawn(async move {
+            let mut last_values = HashMap::new();
             loop {
                 tokio::select! {
                     _ = &mut should_cancel => break,
                     Some((server, event)) = sled_events.recv() => {
                         debug!("Got a watch event {:?}", event);
                         let event = match event {
-                            sled::Event::Insert { key, value } => mvccpb::Event {
-                                kv: Some(Value::deserialize(&value).key_value(key.to_vec())),
-                                prev_kv: None,
-                                r#type: 0, // mvccpb::event::EventType::Put
+                            sled::Event::Insert { key, value } => {
+                                let value = Value::deserialize(&value);
+                                let prev = last_values.insert(key.clone(), value.clone()).map(|v| v.key_value(key.clone().to_vec()));
+                                let ty = if value.is_deleted() {
+                                    1 // mvccpb::event::EventType::Delete
+                                } else {
+                                    0 // mvccpb::event::EventType::Put
+                                };
+                                mvccpb::Event {
+                                    kv: Some(value.key_value(key.to_vec())),
+                                    prev_kv: prev,
+                                    r#type: ty,
+                                }
                             },
-                            sled::Event::Remove { key } => mvccpb::Event {
-                                kv: Some(mvccpb::KeyValue {
-                                    key: key.to_vec(),
-                                    create_revision: -1,
-                                    mod_revision: -1,
-                                    version: -1,
-                                    value: Vec::new(),
-                                    lease: 0,
-                                }),
-                                prev_kv: None,
-                                r#type: 1, // mvccpb::event::EventType::Delete
+                            sled::Event::Remove { key: _ } => {
+                                panic!("received a remove event on a watch")
                             },
                         };
                         let resp = WatchResponse {

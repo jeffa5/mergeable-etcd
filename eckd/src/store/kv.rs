@@ -20,7 +20,7 @@ pub struct Value {
     pub(super) create_revision: i64,
     pub(super) mod_revision: i64,
     pub(super) version: i64,
-    pub(super) value: Vec<u8>,
+    pub(super) value: Option<Vec<u8>>,
 }
 
 impl Value {
@@ -29,7 +29,7 @@ impl Value {
             create_revision: 0,
             mod_revision: 0,
             version: 0,
-            value,
+            value: Some(value),
         }
     }
 
@@ -41,13 +41,17 @@ impl Value {
         bincode::deserialize(bytes).expect("Deserialize value")
     }
 
+    pub fn is_deleted(&self) -> bool {
+        self.value.is_none()
+    }
+
     pub fn key_value(self, key: Vec<u8>) -> KeyValue {
         KeyValue {
             create_revision: self.create_revision,
             key,
             lease: 0,
             mod_revision: self.mod_revision,
-            value: self.value,
+            value: self.value.unwrap_or_default(),
             version: self.version,
         }
     }

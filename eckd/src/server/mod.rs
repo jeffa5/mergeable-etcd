@@ -75,7 +75,7 @@ impl Server {
         let (tx_timeout, rx_timeout) = tokio::sync::oneshot::channel();
         let self_clone = self.clone();
         tokio::spawn(async move {
-            if let Ok(()) = rx_timeout.await{
+            if let Ok(()) = rx_timeout.await {
                 self_clone.revoke_lease(id);
             }
         });

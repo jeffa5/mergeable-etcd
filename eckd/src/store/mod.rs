@@ -177,7 +177,13 @@ fn get_inner<K: AsRef<[u8]>>(
         .get(SERVER_KEY)?
         .map(|server| Server::deserialize(&server))
         .unwrap_or_default();
-    let val = kv_tree.get(key)?.map(|v| Value::deserialize(&v));
+    let mut val = kv_tree.get(key)?.map(|v| Value::deserialize(&v));
+    if let Some(ref v) = val {
+        if v.value.is_none() {
+            // value was deleted
+            val = None
+        }
+    }
     Ok((server, val))
 }
 
@@ -187,10 +193,17 @@ fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     server: Server,
     kv_tree: &sled::transaction::TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
+    assert!(value.value.is_some());
     let existing = kv_tree.get(&key)?.map(|v| Value::deserialize(&v));
     if let Some(existing) = existing {
-        value.create_revision = existing.create_revision;
-        value.version = existing.version + 1;
+        if existing.value.is_some() {
+            value.create_revision = existing.create_revision;
+            value.version = existing.version + 1;
+        } else {
+            // value was previously deleted so set more metadata
+            value.create_revision = server.revision;
+            value.version = 1;
+        }
     } else {
         value.create_revision = server.revision;
         value.version = 1;
@@ -206,18 +219,26 @@ fn remove_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     server: Server,
     kv_tree: &sled::transaction::TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
-    let prev_kv = kv_tree.remove(key)?.map(|v| Value::deserialize(&v));
+    // don't actually remove it, just get it and set the value to None (and update meta)
+    let mut prev_kv = kv_tree.get(&key)?.map(|v| Value::deserialize(&v));
+    if let Some(ref mut value) = prev_kv {
+        value.create_revision = 0;
+        value.version = 0;
+        value.mod_revision = server.revision;
+        value.value = None;
+        kv_tree.insert(key, value.serialize())?;
+    }
 
     Ok((server, prev_kv))
 }
 
 fn comp<T: PartialEq + PartialOrd>(op: i32, a: &T, b: &T) -> bool {
     match op {
-                    0 /* equal */ => a == b,
-                    1 /* greater */ => a > b,
-                    2 /* less */ => a < b,
-                    3 /* not equal */ => a != b,
-                    _ => unreachable!()
+        0 /* equal */ => a == b,
+        1 /* greater */ => a > b,
+        2 /* less */ => a < b,
+        3 /* not equal */ => a != b,
+        _ => unreachable!()
  }
 }
 
@@ -245,7 +266,7 @@ fn transaction_inner(
             ),
             (3 /* value */, Some(TargetUnion::Value(test_value))) => comp(
                 compare.result,
-                &value.map(|v| v.value).unwrap_or_default(),
+                &value.map(|v| v.value).unwrap_or_default().unwrap(),
                 test_value,
             ),
             (target, target_union) => panic!(
