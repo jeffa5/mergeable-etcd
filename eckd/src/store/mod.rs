@@ -63,12 +63,17 @@ impl Store {
         Ok((server, values))
     }
 
-    pub fn insert<K>(&self, key: &K, value: &[u8], prev_kv:bool) -> Result<(Server, Option<Value>), Error>
+    pub fn insert<K>(
+        &self,
+        key: &K,
+        value: &[u8],
+        prev_kv: bool,
+    ) -> Result<(Server, Option<Value>), Error>
     where
         K: AsRef<[u8]> + Into<sled::IVec>,
     {
         let key = key.as_ref();
-        let result = (&self.kv, &self.server).transaction( |(kv_tree, server_tree)| {
+        let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
                 .map(|server| Server::deserialize(&server))
@@ -204,7 +209,7 @@ fn get_inner<K: AsRef<[u8]>>(
 fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     key: K,
     value: Vec<u8>,
-    prev_kv:bool,
+    prev_kv: bool,
     server: Server,
     kv_tree: &TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
@@ -212,7 +217,11 @@ fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
         .get(&key)?
         .map(|v| HistoricValue::deserialize(&v))
         .unwrap_or_default();
-    let prev =if prev_kv{ existing.value_at_revision(server.revision)}else{None};
+    let prev = if prev_kv {
+        existing.value_at_revision(server.revision)
+    } else {
+        None
+    };
     existing.insert(server.revision, value);
     kv_tree.insert(key, existing.serialize())?;
     Ok((server, prev))
