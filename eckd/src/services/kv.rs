@@ -28,11 +28,11 @@ impl Kv for KV {
             String::from_utf8(inner.key.clone()),
             String::from_utf8(inner.range_end.clone())
         );
-        assert!(inner.limit == 0);
+        assert_eq!(inner.limit , 0);
         assert!(inner.revision <= 0);
-        assert!(inner.sort_order == 0);
-        assert_eq!(inner.keys_only, false);
-        assert_eq!(inner.count_only, false);
+        assert_eq!(inner.sort_order , 0);
+        assert!(inner.keys_only );
+        assert!(inner.count_only);
         debug!("range: {:?}", String::from_utf8(inner.key.clone()));
         let range_end = if inner.range_end.is_empty() {
             None
@@ -60,7 +60,7 @@ impl Kv for KV {
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let inner = request.into_inner();
         info!("Put {:?}", String::from_utf8(inner.key.clone()));
-        assert!(inner.lease == 0);
+        assert_eq!(inner.lease , 0);
         assert!(!inner.ignore_value);
         assert!(!inner.ignore_lease);
         debug!("put: {:?}", inner);
