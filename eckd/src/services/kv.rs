@@ -29,8 +29,8 @@ impl Kv for KV {
         let request = request.into_inner();
         info!(
             "RangeRequest {:?} {:?}",
-            String::from_utf8(request.key.clone()),
-            String::from_utf8(request.range_end.clone())
+            String::from_utf8(request.key.clone()).unwrap(),
+            String::from_utf8(request.range_end.clone()).unwrap()
         );
         assert!(request.revision <= 0);
         assert_eq!(request.sort_order, 0);
@@ -77,7 +77,7 @@ impl Kv for KV {
 
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let request = request.into_inner();
-        info!("Put {:?}", String::from_utf8(request.key.clone()));
+        info!("Put {:?}", String::from_utf8(request.key.clone()).unwrap());
         assert_eq!(request.lease, 0);
         assert!(!request.ignore_value);
         assert!(!request.ignore_lease);
@@ -103,8 +103,8 @@ impl Kv for KV {
         let request = request.into_inner();
         info!(
             "DeleteRange {:?} {:?}",
-            String::from_utf8(request.key.clone()),
-            String::from_utf8(request.range_end.clone())
+            String::from_utf8(request.key.clone()).unwrap(),
+            String::from_utf8(request.range_end.clone()).unwrap()
         );
         assert!(request.range_end.is_empty());
         assert!(request.prev_kv);
