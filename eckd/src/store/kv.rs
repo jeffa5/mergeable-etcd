@@ -44,11 +44,12 @@ impl HistoricValue {
             .count() as i64
     }
 
-    pub fn value_at_revision(&self, revision: i64) -> Option<Value> {
+    pub fn value_at_revision(&self, revision: i64, key: Vec<u8>) -> Option<Value> {
         if let Some((&revision, value)) = self.revisions.iter().rfind(|(&k, _)| k <= revision) {
             let version = self.version(revision);
             let value = value.as_ref().cloned();
             Some(Value {
+                key,
                 create_revision: self.create_revision(),
                 mod_revision: revision,
                 version,
@@ -59,9 +60,9 @@ impl HistoricValue {
         }
     }
 
-    pub fn latest_value(&self) -> Option<Value> {
+    pub fn latest_value(&self, key: Vec<u8>) -> Option<Value> {
         if let Some(&revision) = self.revisions.keys().last() {
-            self.value_at_revision(revision)
+            self.value_at_revision(revision, key)
         } else {
             None
         }
@@ -86,6 +87,7 @@ impl HistoricValue {
 
 #[derive(Debug)]
 pub struct Value {
+    pub key: Vec<u8>,
     pub create_revision: i64,
     pub mod_revision: i64,
     pub version: i64,
@@ -97,10 +99,10 @@ impl Value {
         self.value.is_none()
     }
 
-    pub fn key_value(self, key: Vec<u8>) -> KeyValue {
+    pub fn key_value(self) -> KeyValue {
         KeyValue {
             create_revision: self.create_revision,
-            key,
+            key: self.key,
             lease: 0,
             mod_revision: self.mod_revision,
             value: self.value.unwrap_or_default(),

@@ -37,25 +37,25 @@ impl Store {
         }
     }
 
-    pub fn get<K: AsRef<[u8]>>(
+    pub fn get(
         &self,
-        key: K,
-        range_end: Option<K>,
+        key: Vec<u8>,
+        range_end: Option<Vec<u8>>,
     ) -> Result<(Server, Vec<Value>), Error> {
         let server = self.current_server();
         let mut values = Vec::new();
         if let Some(range_end) = range_end {
-            for value in self.kv.range(key..range_end).values() {
-                let value = value?;
+            for kv in self.kv.range(key..range_end) {
+                let (key, value) = kv?;
                 if let Some(value) =
-                    HistoricValue::deserialize(&value).value_at_revision(server.revision)
+                    HistoricValue::deserialize(&value).value_at_revision(server.revision, key.to_vec())
                 {
                     values.push(value)
                 }
             }
-        } else if let Some(value) = self.kv.get(key)? {
+        } else if let Some(value) = self.kv.get(&key)? {
             if let Some(value) =
-                HistoricValue::deserialize(&value).value_at_revision(server.revision)
+                HistoricValue::deserialize(&value).value_at_revision(server.revision, key)
             {
                 values.push(value)
             }
@@ -63,16 +63,13 @@ impl Store {
         Ok((server, values))
     }
 
-    pub fn insert<K>(
+    pub fn insert(
         &self,
-        key: &K,
+        key: Vec<u8>,
         value: &[u8],
         prev_kv: bool,
     ) -> Result<(Server, Option<Value>), Error>
-    where
-        K: AsRef<[u8]> + Into<sled::IVec>,
     {
-        let key = key.as_ref();
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
@@ -81,16 +78,15 @@ impl Store {
             server.increment_revision();
             server_tree.insert(SERVER_KEY, server.serialize())?;
 
-            insert_inner(key, value.to_vec(), prev_kv, server, kv_tree)
+            insert_inner(key.clone(), value.to_vec(), prev_kv, server, kv_tree)
         })?;
         Ok(result)
     }
 
-    pub fn remove<K: AsRef<[u8]> + Into<sled::IVec>>(
+    pub fn remove(
         &self,
-        key: &K,
+        key: Vec<u8>,
     ) -> Result<(Server, Option<Value>), Error> {
-        let key = key.as_ref();
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
@@ -99,7 +95,7 @@ impl Store {
             server.increment_revision();
             server_tree.insert(SERVER_KEY, server.serialize())?;
 
-            remove_inner(key, server, kv_tree)
+            remove_inner(key.clone(), server, kv_tree)
         })?;
         Ok(result)
     }
@@ -190,8 +186,8 @@ impl Store {
     }
 }
 
-fn get_inner<K: AsRef<[u8]>>(
-    key: K,
+fn get_inner(
+    key: Vec<u8>,
     kv_tree: &TransactionalTree,
     server_tree: &TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
@@ -200,14 +196,14 @@ fn get_inner<K: AsRef<[u8]>>(
         .map(|server| Server::deserialize(&server))
         .unwrap_or_default();
     let val = kv_tree
-        .get(key)?
+        .get(&key)?
         .map(|v| HistoricValue::deserialize(&v))
-        .and_then(|historic| historic.value_at_revision(server.revision));
+        .and_then(|historic| historic.value_at_revision(server.revision, key));
     Ok((server, val))
 }
 
-fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
-    key: K,
+fn insert_inner(
+    key: Vec<u8>,
     value: Vec<u8>,
     prev_kv: bool,
     server: Server,
@@ -218,7 +214,7 @@ fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
         .map(|v| HistoricValue::deserialize(&v))
         .unwrap_or_default();
     let prev = if prev_kv {
-        existing.value_at_revision(server.revision)
+        existing.value_at_revision(server.revision, key.clone())
     } else {
         None
     };
@@ -227,15 +223,15 @@ fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     Ok((server, prev))
 }
 
-fn remove_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
-    key: K,
+fn remove_inner(
+    key: Vec<u8>,
     server: Server,
     kv_tree: &TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
     // don't actually remove it, just get it and set the value to None (and update meta)
     let historic = kv_tree.get(&key)?.map(|v| HistoricValue::deserialize(&v));
     let prev_kv = if let Some(mut historic) = historic {
-        let prev_kv = historic.value_at_revision(server.revision);
+        let prev_kv = historic.value_at_revision(server.revision,key.clone());
         historic.delete(server.revision);
         kv_tree.insert(key, historic.serialize())?;
         prev_kv
@@ -263,7 +259,7 @@ fn transaction_inner(
     server_tree: &TransactionalTree,
 ) -> Result<(Server, bool, Vec<ResponseOp>), sled::transaction::ConflictableTransactionError> {
     let success = request.compare.iter().all(|compare| {
-        let (_, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
+        let (_, value) = get_inner(compare.key.clone(), kv_tree, server_tree).unwrap();
         match (compare.target, compare.target_union.as_ref()) {
             (0 /* version */, Some(TargetUnion::Version(version))) => {
                 comp(compare.result, &value.map_or(0, |v| v.version), version)
@@ -316,9 +312,9 @@ fn transaction_inner(
     let results = ops
         .map(|op| match &op.request {
             Some(Request::RequestRange(request)) => {
-                let (_, kv) = get_inner(&request.key, kv_tree, server_tree).unwrap();
+                let (_, kv) = get_inner(request.key.clone(), kv_tree, server_tree).unwrap();
                 let kvs = kv
-                    .map(|kv| vec![kv.key_value(request.key.clone())])
+                    .map(|kv| vec![kv.key_value()])
                     .unwrap_or_default();
                 let count = kvs.len() as i64;
 
@@ -341,7 +337,7 @@ fn transaction_inner(
                     kv_tree,
                 )
                 .unwrap();
-                let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(request.key.clone()));
+                let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value());
                 let reply = etcd_proto::etcdserverpb::PutResponse {
                     header: Some(server.header()),
                     prev_kv,
@@ -354,7 +350,7 @@ fn transaction_inner(
                 let (_, prev_kv) =
                     remove_inner(request.key.clone(), server.clone(), kv_tree).unwrap();
                 let prev_kv = prev_kv
-                    .map(|prev_kv| prev_kv.key_value(request.key.clone()))
+                    .map(|prev_kv| prev_kv.key_value())
                     .unwrap();
                 let reply = etcd_proto::etcdserverpb::DeleteRangeResponse {
                     header: Some(server.header()),

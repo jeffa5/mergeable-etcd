@@ -1,4 +1,5 @@
 use std::convert::TryInto;
+use crate::store::Value;
 
 use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
@@ -40,11 +41,11 @@ impl Kv for KV {
         } else {
             Some(&inner.range_end)
         };
-        let (server, kv) = self.server.store.get(&inner.key, range_end).unwrap();
+        let (server, kv) = self.server.store.get(inner.key, range_end.cloned()).unwrap();
 
         let mut kvs = kv
             .into_iter()
-            .map(|kv| kv.key_value(inner.key.clone()))
+            .map(Value::key_value)
             .collect::<Vec<_>>();
 
         let count = kvs.len() as i64;
@@ -78,9 +79,9 @@ impl Kv for KV {
         let (server, prev_kv) = self
             .server
             .store
-            .insert(&inner.key, &inner.value, inner.prev_kv)
+            .insert(inner.key, &inner.value, inner.prev_kv)
             .unwrap();
-        let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(inner.key));
+        let prev_kv = prev_kv.map(Value::key_value);
 
         let reply = PutResponse {
             header: Some(server.header()),
@@ -102,9 +103,9 @@ impl Kv for KV {
         assert!(inner.range_end.is_empty());
         assert!(inner.prev_kv);
         debug!("delete_range: {:?}", inner);
-        let (server, prev_kv) = self.server.store.remove(&inner.key).unwrap();
+        let (server, prev_kv) = self.server.store.remove(inner.key).unwrap();
         let prev_kvs = prev_kv
-            .map(|prev_kv| vec![prev_kv.key_value(inner.key.to_vec())])
+            .map(|prev_kv| vec![prev_kv.key_value()])
             .unwrap_or_default();
 
         let reply = DeleteRangeResponse {
