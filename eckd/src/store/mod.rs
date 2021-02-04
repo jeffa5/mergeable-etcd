@@ -63,12 +63,12 @@ impl Store {
         Ok((server, values))
     }
 
-    pub fn insert<K>(&self, key: &K, value: Vec<u8>, prev_kv:bool) -> Result<(Server, Option<Value>), Error>
+    pub fn insert<K>(&self, key: &K, value: &[u8], prev_kv:bool) -> Result<(Server, Option<Value>), Error>
     where
         K: AsRef<[u8]> + Into<sled::IVec>,
     {
         let key = key.as_ref();
-        let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
+        let result = (&self.kv, &self.server).transaction( |(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
                 .map(|server| Server::deserialize(&server))
@@ -76,8 +76,7 @@ impl Store {
             server.increment_revision();
             server_tree.insert(SERVER_KEY, server.serialize())?;
 
-            let value = value.clone();
-            insert_inner(key, value, prev_kv, server, kv_tree)
+            insert_inner(key, value.to_vec(), prev_kv, server, kv_tree)
         })?;
         Ok(result)
     }

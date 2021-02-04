@@ -67,7 +67,7 @@ impl Kv for KV {
         let (server, prev_kv) = self
             .server
             .store
-            .insert(&inner.key, inner.value.clone(),inner.prev_kv)
+            .insert(&inner.key, &inner.value,inner.prev_kv)
             .unwrap();
         let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(inner.key));
 

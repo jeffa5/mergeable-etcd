@@ -54,7 +54,7 @@ impl Display for Scheme {
 }
 
 #[derive(Debug, Error)]
-pub enum AddressError {
+pub enum Error {
     #[error("failed to parse url")]
     ParseError(#[from] url::ParseError),
     #[error("found an unsupported scheme '{0}'")]
@@ -66,24 +66,24 @@ pub enum AddressError {
 }
 
 impl TryFrom<&str> for Address {
-    type Error = AddressError;
+    type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let url = Url::parse(value)?;
         let scheme = match url.scheme() {
             "http" => Scheme::Http,
             "https" => Scheme::Https,
-            e => return Err(AddressError::UnsupportedScheme(e.to_owned())),
+            e => return Err(Error::UnsupportedScheme(e.to_owned())),
         };
         let host = match url.host() {
             Some(h) => h.to_owned(),
-            None => return Err(AddressError::MissingHost),
+            None => return Err(Error::MissingHost),
         };
         let port = match url.port() {
             Some(p) => p,
-            None => return Err(AddressError::MissingPort),
+            None => return Err(Error::MissingPort),
         };
-        Ok(Address { scheme, host, port })
+        Ok(Self { scheme, host, port })
     }
 }
 
@@ -96,7 +96,7 @@ pub struct NamedAddress {
 #[derive(Debug, Error)]
 pub enum NamedAddressError {
     #[error(transparent)]
-    AddressError(#[from] AddressError),
+    AddressError(#[from] Error),
 
     #[error("Missing an equals separating name and url")]
     MissingEquals,
@@ -121,6 +121,6 @@ impl TryFrom<&str> for NamedAddress {
 
         let address = Address::try_from(address)?;
 
-        Ok(NamedAddress { name, address })
+        Ok(Self { name, address })
     }
 }
