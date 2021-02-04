@@ -109,4 +109,15 @@ impl Value {
             version: self.version,
         }
     }
+
+    pub fn key(self) -> KeyValue {
+        KeyValue {
+            create_revision: self.create_revision,
+            key: self.key,
+            lease: 0,
+            mod_revision: self.mod_revision,
+            value: Vec::new(),
+            version: self.version,
+        }
+    }
 }

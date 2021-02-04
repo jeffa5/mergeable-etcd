@@ -1,5 +1,4 @@
 use std::convert::TryInto;
-use crate::store::Value;
 
 use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
@@ -7,6 +6,8 @@ use etcd_proto::etcdserverpb::{
 };
 use log::{debug, info};
 use tonic::{Request, Response, Status};
+
+use crate::store::Value;
 
 #[derive(Debug)]
 pub struct KV {
@@ -33,7 +34,6 @@ impl Kv for KV {
         );
         assert!(inner.revision <= 0);
         assert_eq!(inner.sort_order, 0);
-        assert!(inner.keys_only);
         assert!(inner.count_only);
         debug!("range: {:?}", String::from_utf8(inner.key.clone()));
         let range_end = if inner.range_end.is_empty() {
@@ -41,12 +41,17 @@ impl Kv for KV {
         } else {
             Some(&inner.range_end)
         };
-        let (server, kv) = self.server.store.get(inner.key, range_end.cloned()).unwrap();
+        let (server, kv) = self
+            .server
+            .store
+            .get(inner.key, range_end.cloned())
+            .unwrap();
 
-        let mut kvs = kv
-            .into_iter()
-            .map(Value::key_value)
-            .collect::<Vec<_>>();
+        let mut kvs = if inner.keys_only {
+            kv.into_iter().map(Value::key).collect::<Vec<_>>()
+        } else {
+            kv.into_iter().map(Value::key_value).collect::<Vec<_>>()
+        };
 
         let count = kvs.len() as i64;
         let total_len = kvs.len();
