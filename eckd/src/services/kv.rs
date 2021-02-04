@@ -34,27 +34,28 @@ impl Kv for KV {
         );
         assert!(inner.revision <= 0);
         assert_eq!(inner.sort_order, 0);
-        assert!(!inner.count_only);
         debug!("range: {:?}", String::from_utf8(inner.key.clone()));
         let range_end = if inner.range_end.is_empty() {
             None
         } else {
             Some(&inner.range_end)
         };
-        let (server, kv) = self
+        let (server, kvs) = self
             .server
             .store
             .get(inner.key, range_end.cloned())
             .unwrap();
 
-        let mut kvs = if inner.keys_only {
-            kv.into_iter().map(Value::key).collect::<Vec<_>>()
-        } else {
-            kv.into_iter().map(Value::key_value).collect::<Vec<_>>()
-        };
-
         let count = kvs.len() as i64;
         let total_len = kvs.len();
+
+        let mut kvs = if inner.count_only {
+            Vec::new()
+        } else if inner.keys_only {
+            kvs.into_iter().map(Value::key).collect::<Vec<_>>()
+        } else {
+            kvs.into_iter().map(Value::key_value).collect::<Vec<_>>()
+        };
 
         if inner.limit > 0 {
             kvs = kvs
