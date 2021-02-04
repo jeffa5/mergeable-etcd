@@ -34,7 +34,7 @@ impl Kv for KV {
         );
         assert!(inner.revision <= 0);
         assert_eq!(inner.sort_order, 0);
-        assert!(inner.count_only);
+        assert!(!inner.count_only);
         debug!("range: {:?}", String::from_utf8(inner.key.clone()));
         let range_end = if inner.range_end.is_empty() {
             None
