@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
     PutRequest, PutResponse, RangeRequest, RangeResponse, TxnRequest, TxnResponse,
@@ -28,10 +30,9 @@ impl Kv for KV {
             String::from_utf8(inner.key.clone()),
             String::from_utf8(inner.range_end.clone())
         );
-        assert_eq!(inner.limit , 0);
         assert!(inner.revision <= 0);
-        assert_eq!(inner.sort_order , 0);
-        assert!(inner.keys_only );
+        assert_eq!(inner.sort_order, 0);
+        assert!(inner.keys_only);
         assert!(inner.count_only);
         debug!("range: {:?}", String::from_utf8(inner.key.clone()));
         let range_end = if inner.range_end.is_empty() {
@@ -41,10 +42,18 @@ impl Kv for KV {
         };
         let (server, kv) = self.server.store.get(&inner.key, range_end).unwrap();
 
-        let kvs = kv
+        let mut kvs = kv
             .into_iter()
             .map(|kv| kv.key_value(inner.key.clone()))
             .collect::<Vec<_>>();
+        let total_len = kvs.len();
+        if inner.limit > 0 {
+            kvs = kvs
+                .into_iter()
+                .take(inner.limit.try_into().unwrap())
+                .collect();
+        }
+        let more = total_len > kvs.len();
 
         let count = kvs.len() as i64;
 
@@ -52,7 +61,7 @@ impl Kv for KV {
             header: Some(server.header()),
             kvs,
             count,
-            more: false,
+            more,
         };
         Ok(Response::new(reply))
     }
@@ -60,14 +69,14 @@ impl Kv for KV {
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let inner = request.into_inner();
         info!("Put {:?}", String::from_utf8(inner.key.clone()));
-        assert_eq!(inner.lease , 0);
+        assert_eq!(inner.lease, 0);
         assert!(!inner.ignore_value);
         assert!(!inner.ignore_lease);
         debug!("put: {:?}", inner);
         let (server, prev_kv) = self
             .server
             .store
-            .insert(&inner.key, &inner.value,inner.prev_kv)
+            .insert(&inner.key, &inner.value, inner.prev_kv)
             .unwrap();
         let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(inner.key));
 
