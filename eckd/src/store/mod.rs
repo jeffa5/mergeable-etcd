@@ -63,7 +63,7 @@ impl Store {
         Ok((server, values))
     }
 
-    pub fn insert<K>(&self, key: &K, value: Vec<u8>) -> Result<(Server, Option<Value>), Error>
+    pub fn insert<K>(&self, key: &K, value: Vec<u8>, prev_kv:bool) -> Result<(Server, Option<Value>), Error>
     where
         K: AsRef<[u8]> + Into<sled::IVec>,
     {
@@ -77,7 +77,7 @@ impl Store {
             server_tree.insert(SERVER_KEY, server.serialize())?;
 
             let value = value.clone();
-            insert_inner(key, value, server, kv_tree)
+            insert_inner(key, value, prev_kv, server, kv_tree)
         })?;
         Ok(result)
     }
@@ -205,6 +205,7 @@ fn get_inner<K: AsRef<[u8]>>(
 fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     key: K,
     value: Vec<u8>,
+    prev_kv:bool,
     server: Server,
     kv_tree: &TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
@@ -212,7 +213,7 @@ fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
         .get(&key)?
         .map(|v| HistoricValue::deserialize(&v))
         .unwrap_or_default();
-    let prev = existing.value_at_revision(server.revision);
+    let prev =if prev_kv{ existing.value_at_revision(server.revision)}else{None};
     existing.insert(server.revision, value);
     kv_tree.insert(key, existing.serialize())?;
     Ok((server, prev))
@@ -327,6 +328,7 @@ fn transaction_inner(
                 let (_, prev_kv) = insert_inner(
                     request.key.clone(),
                     request.value.clone(),
+                    request.prev_kv,
                     server.clone(),
                     kv_tree,
                 )

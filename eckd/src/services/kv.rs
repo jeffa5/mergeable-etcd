@@ -61,14 +61,13 @@ impl Kv for KV {
         let inner = request.into_inner();
         info!("Put {:?}", String::from_utf8(inner.key.clone()));
         assert!(inner.lease == 0);
-        assert!(inner.prev_kv);
         assert!(!inner.ignore_value);
         assert!(!inner.ignore_lease);
         debug!("put: {:?}", inner);
         let (server, prev_kv) = self
             .server
             .store
-            .insert(&inner.key, inner.value.clone())
+            .insert(&inner.key, inner.value.clone(),inner.prev_kv)
             .unwrap();
         let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(inner.key));
 
