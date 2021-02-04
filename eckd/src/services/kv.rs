@@ -26,41 +26,41 @@ impl Kv for KV {
         &self,
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
-        let inner = request.into_inner();
+        let request = request.into_inner();
         info!(
             "RangeRequest {:?} {:?}",
-            String::from_utf8(inner.key.clone()),
-            String::from_utf8(inner.range_end.clone())
+            String::from_utf8(request.key.clone()),
+            String::from_utf8(request.range_end.clone())
         );
-        assert!(inner.revision <= 0);
-        assert_eq!(inner.sort_order, 0);
-        debug!("range: {:?}", String::from_utf8(inner.key.clone()));
-        let range_end = if inner.range_end.is_empty() {
+        assert!(request.revision <= 0);
+        assert_eq!(request.sort_order, 0);
+        debug!("range: {:?}", String::from_utf8(request.key.clone()));
+        let range_end = if request.range_end.is_empty() {
             None
         } else {
-            Some(&inner.range_end)
+            Some(&request.range_end)
         };
         let (server, kvs) = self
             .server
             .store
-            .get(inner.key, range_end.cloned())
+            .get(request.key, range_end.cloned())
             .unwrap();
 
         let count = kvs.len() as i64;
         let total_len = kvs.len();
 
-        let mut kvs = if inner.count_only {
+        let mut kvs = if request.count_only {
             Vec::new()
-        } else if inner.keys_only {
+        } else if request.keys_only {
             kvs.into_iter().map(Value::key).collect::<Vec<_>>()
         } else {
             kvs.into_iter().map(Value::key_value).collect::<Vec<_>>()
         };
 
-        if inner.limit > 0 {
+        if request.limit > 0 {
             kvs = kvs
                 .into_iter()
-                .take(inner.limit.try_into().unwrap())
+                .take(request.limit.try_into().unwrap())
                 .collect();
         }
 
@@ -76,16 +76,16 @@ impl Kv for KV {
     }
 
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
-        let inner = request.into_inner();
-        info!("Put {:?}", String::from_utf8(inner.key.clone()));
-        assert_eq!(inner.lease, 0);
-        assert!(!inner.ignore_value);
-        assert!(!inner.ignore_lease);
-        debug!("put: {:?}", inner);
+        let request = request.into_inner();
+        info!("Put {:?}", String::from_utf8(request.key.clone()));
+        assert_eq!(request.lease, 0);
+        assert!(!request.ignore_value);
+        assert!(!request.ignore_lease);
+        debug!("put: {:?}", request);
         let (server, prev_kv) = self
             .server
             .store
-            .insert(inner.key, &inner.value, inner.prev_kv)
+            .insert(request.key, &request.value, request.prev_kv)
             .unwrap();
         let prev_kv = prev_kv.map(Value::key_value);
 
@@ -100,16 +100,16 @@ impl Kv for KV {
         &self,
         request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
-        let inner = request.into_inner();
+        let request = request.into_inner();
         info!(
             "DeleteRange {:?} {:?}",
-            String::from_utf8(inner.key.clone()),
-            String::from_utf8(inner.range_end.clone())
+            String::from_utf8(request.key.clone()),
+            String::from_utf8(request.range_end.clone())
         );
-        assert!(inner.range_end.is_empty());
-        assert!(inner.prev_kv);
-        debug!("delete_range: {:?}", inner);
-        let (server, prev_kv) = self.server.store.remove(inner.key).unwrap();
+        assert!(request.range_end.is_empty());
+        assert!(request.prev_kv);
+        debug!("delete_range: {:?}", request);
+        let (server, prev_kv) = self.server.store.remove(request.key).unwrap();
         let prev_kvs = prev_kv
             .map(|prev_kv| vec![prev_kv.key_value()])
             .unwrap_or_default();
@@ -124,9 +124,9 @@ impl Kv for KV {
 
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
         info!("Transaction");
-        let inner = request.into_inner();
-        debug!("txn: {:?}", inner);
-        let (server, success, results) = self.server.store.txn(&inner).unwrap();
+        let request = request.into_inner();
+        debug!("txn: {:?}", request);
+        let (server, success, results) = self.server.store.txn(&request).unwrap();
         let reply = TxnResponse {
             header: Some(server.header()),
             responses: results,
@@ -140,8 +140,8 @@ impl Kv for KV {
         request: Request<CompactionRequest>,
     ) -> Result<Response<CompactionResponse>, Status> {
         info!("Compact");
-        let inner = request.into_inner();
-        debug!("compact: {:?}", inner);
+        let request = request.into_inner();
+        debug!("compact: {:?}", request);
         let reply = CompactionResponse { header: None };
         Ok(Response::new(reply))
     }
