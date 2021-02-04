@@ -24,8 +24,14 @@ impl Kv for KV {
         &self,
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
-        info!("RangeRequest");
         let inner = request.into_inner();
+        info!("RangeRequest {:?} {:?}", String::from_utf8(inner.key.clone()), String::from_utf8(inner.range_end.clone()));
+        assert!(inner.range_end.is_empty());
+        assert!(inner.limit==0);
+        assert!(inner.revision <= 0);
+        assert!(inner.sort_order == 0);
+        assert_eq!(inner.keys_only, false);
+        assert_eq!(inner.count_only, false);
         debug!("range: {:?}", String::from_utf8(inner.key.clone()));
         let (server, kv) = self.server.store.get(&inner.key).unwrap();
 
@@ -45,8 +51,12 @@ impl Kv for KV {
     }
 
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
-        info!("Put");
         let inner = request.into_inner();
+        info!("Put {:?}", String::from_utf8(inner.key.clone()));
+        assert!(inner.lease == 0);
+        assert!(inner.prev_kv);
+        assert!(!inner.ignore_value);
+        assert!(!inner.ignore_lease);
         debug!("put: {:?}", inner);
         let val = Value::new(inner.value.clone());
         let (server, prev_kv) = self.server.store.merge(&inner.key, &val).unwrap();
@@ -63,8 +73,10 @@ impl Kv for KV {
         &self,
         request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
-        info!("DeleteRange");
         let inner = request.into_inner();
+        info!("DeleteRange {:?} {:?}", String::from_utf8(inner.key.clone()), String::from_utf8(inner.range_end.clone()));
+        assert!(inner.range_end.is_empty());
+        assert!(inner.prev_kv);
         debug!("delete_range: {:?}", inner);
         let (server, prev_kv) = self.server.store.remove(&inner.key).unwrap();
         let prev_kvs = prev_kv
