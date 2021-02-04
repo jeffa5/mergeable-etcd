@@ -5,8 +5,6 @@ use etcd_proto::etcdserverpb::{
 use log::{debug, info};
 use tonic::{Request, Response, Status};
 
-use crate::store::Value;
-
 #[derive(Debug)]
 pub struct KV {
     server: crate::server::Server,
@@ -25,19 +23,28 @@ impl Kv for KV {
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
         let inner = request.into_inner();
-        info!("RangeRequest {:?} {:?}", String::from_utf8(inner.key.clone()), String::from_utf8(inner.range_end.clone()));
-        assert!(inner.range_end.is_empty());
-        assert!(inner.limit==0);
+        info!(
+            "RangeRequest {:?} {:?}",
+            String::from_utf8(inner.key.clone()),
+            String::from_utf8(inner.range_end.clone())
+        );
+        assert!(inner.limit == 0);
         assert!(inner.revision <= 0);
         assert!(inner.sort_order == 0);
         assert_eq!(inner.keys_only, false);
         assert_eq!(inner.count_only, false);
         debug!("range: {:?}", String::from_utf8(inner.key.clone()));
-        let (server, kv) = self.server.store.get(&inner.key).unwrap();
+        let range_end = if inner.range_end.is_empty() {
+            None
+        } else {
+            Some(&inner.range_end)
+        };
+        let (server, kv) = self.server.store.get(&inner.key, range_end).unwrap();
 
         let kvs = kv
-            .map(|kv| vec![kv.key_value(inner.key)])
-            .unwrap_or_default();
+            .into_iter()
+            .map(|kv| kv.key_value(inner.key.clone()))
+            .collect::<Vec<_>>();
 
         let count = kvs.len() as i64;
 
@@ -58,8 +65,11 @@ impl Kv for KV {
         assert!(!inner.ignore_value);
         assert!(!inner.ignore_lease);
         debug!("put: {:?}", inner);
-        let val = Value::new(inner.value.clone());
-        let (server, prev_kv) = self.server.store.merge(&inner.key, &val).unwrap();
+        let (server, prev_kv) = self
+            .server
+            .store
+            .insert(&inner.key, inner.value.clone())
+            .unwrap();
         let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(inner.key));
 
         let reply = PutResponse {
@@ -74,7 +84,11 @@ impl Kv for KV {
         request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
         let inner = request.into_inner();
-        info!("DeleteRange {:?} {:?}", String::from_utf8(inner.key.clone()), String::from_utf8(inner.range_end.clone()));
+        info!(
+            "DeleteRange {:?} {:?}",
+            String::from_utf8(inner.key.clone()),
+            String::from_utf8(inner.range_end.clone())
+        );
         assert!(inner.range_end.is_empty());
         assert!(inner.prev_kv);
         debug!("delete_range: {:?}", inner);

@@ -5,7 +5,7 @@ use log::{debug, warn};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tonic::Status;
 
-use crate::store::{Server, Value};
+use crate::store::{HistoricValue, Server, Value};
 
 #[derive(Debug)]
 pub struct Watcher {
@@ -20,7 +20,6 @@ impl Watcher {
     ) -> Self {
         let (cancel, mut should_cancel) = tokio::sync::oneshot::channel();
         tokio::spawn(async move {
-            let mut last_values = HashMap::new();
             loop {
                 tokio::select! {
                     _ = &mut should_cancel => break,
@@ -28,16 +27,21 @@ impl Watcher {
                         debug!("Got a watch event {:?}", event);
                         let event = match event {
                             sled::Event::Insert { key, value } => {
-                                let value = Value::deserialize(&value);
-                                let prev = last_values.insert(key.clone(), value.clone()).map(|v| v.key_value(key.clone().to_vec()));
-                                let ty = if value.is_deleted() {
+                                let history = HistoricValue::deserialize(&value);
+                                let latest_value = history.latest_value();
+                                let (prev_kv,ty) = if let Some(ref latest_value) = latest_value{
+                                    (history.value_at_revision(latest_value.mod_revision-1).map(|value|value.key_value(key.to_vec())), if latest_value.is_deleted() {
+
                                     1 // mvccpb::event::EventType::Delete
-                                } else {
+                                    } else {
+
                                     0 // mvccpb::event::EventType::Put
-                                };
+                                    })
+
+                                } else {unreachable!()};
                                 mvccpb::Event {
-                                    kv: Some(value.key_value(key.to_vec())),
-                                    prev_kv: prev,
+                                    kv: latest_value.map(|value|value.key_value(key.to_vec())),
+                                    prev_kv ,
                                     r#type: ty,
                                 }
                             },

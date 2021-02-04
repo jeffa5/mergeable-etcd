@@ -4,13 +4,13 @@ use etcd_proto::etcdserverpb::{
     compare::TargetUnion, request_op::Request, response_op::Response, ResponseOp, TxnRequest,
 };
 use log::warn;
-use sled::Transactional;
+use sled::{transaction::TransactionalTree, Transactional};
 use thiserror::Error;
 
 mod kv;
 mod server;
 
-pub use kv::Value;
+pub use kv::{HistoricValue, Value};
 pub use server::Server;
 
 const SERVER_KEY: &str = "server";
@@ -27,7 +27,6 @@ impl Store {
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         let db = sled::open(path).unwrap();
         let kv = db.open_tree("kv").unwrap();
-        kv.set_merge_operator(kv::merge);
         let server = db.open_tree("server").unwrap();
         let lease = db.open_tree("lease").unwrap();
         Self {
@@ -38,14 +37,33 @@ impl Store {
         }
     }
 
-    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<(Server, Option<Value>), Error> {
-        let key = key.as_ref();
-        let result = (&self.kv, &self.server)
-            .transaction(|(kv_tree, server_tree)| get_inner(key, kv_tree, server_tree))?;
-        Ok(result)
+    pub fn get<K: AsRef<[u8]>>(
+        &self,
+        key: K,
+        range_end: Option<K>,
+    ) -> Result<(Server, Vec<Value>), Error> {
+        let server = self.current_server();
+        let mut values = Vec::new();
+        if let Some(range_end) = range_end {
+            for value in self.kv.range(key..range_end).values() {
+                let value = value?;
+                if let Some(value) =
+                    HistoricValue::deserialize(&value).value_at_revision(server.revision)
+                {
+                    values.push(value)
+                }
+            }
+        } else if let Some(value) = self.kv.get(key)? {
+            if let Some(value) =
+                HistoricValue::deserialize(&value).value_at_revision(server.revision)
+            {
+                values.push(value)
+            }
+        }
+        Ok((server, values))
     }
 
-    pub fn merge<K>(&self, key: &K, value: &Value) -> Result<(Server, Option<Value>), Error>
+    pub fn insert<K>(&self, key: &K, value: Vec<u8>) -> Result<(Server, Option<Value>), Error>
     where
         K: AsRef<[u8]> + Into<sled::IVec>,
     {
@@ -170,64 +188,51 @@ impl Store {
 
 fn get_inner<K: AsRef<[u8]>>(
     key: K,
-    kv_tree: &sled::transaction::TransactionalTree,
-    server_tree: &sled::transaction::TransactionalTree,
+    kv_tree: &TransactionalTree,
+    server_tree: &TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
     let server = server_tree
         .get(SERVER_KEY)?
         .map(|server| Server::deserialize(&server))
         .unwrap_or_default();
-    let mut val = kv_tree.get(key)?.map(|v| Value::deserialize(&v));
-    if let Some(ref v) = val {
-        if v.value.is_none() {
-            // value was deleted
-            val = None
-        }
-    }
+    let val = kv_tree
+        .get(key)?
+        .map(|v| HistoricValue::deserialize(&v))
+        .and_then(|historic| historic.value_at_revision(server.revision));
     Ok((server, val))
 }
 
 fn insert_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     key: K,
-    mut value: Value,
+    value: Vec<u8>,
     server: Server,
-    kv_tree: &sled::transaction::TransactionalTree,
+    kv_tree: &TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
-    assert!(value.value.is_some());
-    let existing = kv_tree.get(&key)?.map(|v| Value::deserialize(&v));
-    if let Some(existing) = existing {
-        if existing.value.is_some() {
-            value.create_revision = existing.create_revision;
-            value.version = existing.version + 1;
-        } else {
-            // value was previously deleted so set more metadata
-            value.create_revision = server.revision;
-            value.version = 1;
-        }
-    } else {
-        value.create_revision = server.revision;
-        value.version = 1;
-    }
-    value.mod_revision = server.revision;
-    let val = value.serialize();
-    let prev_kv = kv_tree.insert(key, val)?.map(|v| Value::deserialize(&v));
-    Ok((server, prev_kv))
+    let mut existing = kv_tree
+        .get(&key)?
+        .map(|v| HistoricValue::deserialize(&v))
+        .unwrap_or_default();
+    let prev = existing.value_at_revision(server.revision);
+    existing.insert(server.revision, value);
+    kv_tree.insert(key, existing.serialize())?;
+    Ok((server, prev))
 }
 
 fn remove_inner<K: AsRef<[u8]> + Into<sled::IVec>>(
     key: K,
     server: Server,
-    kv_tree: &sled::transaction::TransactionalTree,
+    kv_tree: &TransactionalTree,
 ) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
     // don't actually remove it, just get it and set the value to None (and update meta)
-    let mut prev_kv = kv_tree.get(&key)?.map(|v| Value::deserialize(&v));
-    if let Some(ref mut value) = prev_kv {
-        value.create_revision = 0;
-        value.version = 0;
-        value.mod_revision = server.revision;
-        value.value = None;
-        kv_tree.insert(key, value.serialize())?;
-    }
+    let historic = kv_tree.get(&key)?.map(|v| HistoricValue::deserialize(&v));
+    let prev_kv = if let Some(mut historic) = historic {
+        let prev_kv = historic.value_at_revision(server.revision);
+        historic.delete(server.revision);
+        kv_tree.insert(key, historic.serialize())?;
+        prev_kv
+    } else {
+        None
+    };
 
     Ok((server, prev_kv))
 }
@@ -245,8 +250,8 @@ fn comp<T: PartialEq + PartialOrd>(op: i32, a: &T, b: &T) -> bool {
 fn transaction_inner(
     request: &TxnRequest,
     mut server: Server,
-    kv_tree: &sled::transaction::TransactionalTree,
-    server_tree: &sled::transaction::TransactionalTree,
+    kv_tree: &TransactionalTree,
+    server_tree: &TransactionalTree,
 ) -> Result<(Server, bool, Vec<ResponseOp>), sled::transaction::ConflictableTransactionError> {
     let success = request.compare.iter().all(|compare| {
         let (_, value) = get_inner(&compare.key, kv_tree, server_tree).unwrap();
@@ -319,9 +324,13 @@ fn transaction_inner(
                 }
             }
             Some(Request::RequestPut(request)) => {
-                let val = Value::new(request.value.clone());
-                let (_, prev_kv) =
-                    insert_inner(request.key.clone(), val, server.clone(), kv_tree).unwrap();
+                let (_, prev_kv) = insert_inner(
+                    request.key.clone(),
+                    request.value.clone(),
+                    server.clone(),
+                    kv_tree,
+                )
+                .unwrap();
                 let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value(request.key.clone()));
                 let reply = etcd_proto::etcdserverpb::PutResponse {
                     header: Some(server.header()),

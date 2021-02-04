@@ -1,36 +1,78 @@
+use std::collections::BTreeMap;
+
 use etcd_proto::mvccpb::KeyValue;
 use serde::{Deserialize, Serialize};
 
-#[allow(clippy::unnecessary_wraps)]
-pub fn merge(_key: &[u8], old_value: Option<&[u8]>, merged_bytes: &[u8]) -> Option<Vec<u8>> {
-    match old_value {
-        None => Some(merged_bytes.to_vec()),
-        Some(old) => {
-            let old = Value::deserialize(old);
-            let mut merged = Value::deserialize(merged_bytes);
-            merged.create_revision = old.create_revision;
-            merged.version = old.version + 1;
-            Some(merged.serialize())
-        }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct HistoricValue {
+    revisions: BTreeMap<i64, Option<Vec<u8>>>,
+    lease_id: i64,
+}
+
+impl Default for HistoricValue {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Value {
-    pub(super) create_revision: i64,
-    pub(super) mod_revision: i64,
-    pub(super) version: i64,
-    pub(super) value: Option<Vec<u8>>,
-}
-
-impl Value {
-    pub fn new(value: Vec<u8>) -> Self {
+impl HistoricValue {
+    pub fn new() -> Self {
         Self {
-            create_revision: 0,
-            mod_revision: 0,
-            version: 0,
-            value: Some(value),
+            revisions: BTreeMap::new(),
+            lease_id: 0,
         }
+    }
+
+    fn create_revision(&self) -> i64 {
+        // TODO: update to take a target revision to work from
+        *self
+            .revisions
+            .iter()
+            .rev()
+            .take_while(|(_, v)| v.is_some())
+            .map(|(k, _)| k)
+            .last()
+            .unwrap_or(&0)
+    }
+
+    fn version(&self, revision: i64) -> i64 {
+        self.revisions
+            .iter()
+            .filter(|(&k, _)| k <= revision)
+            .rev()
+            .take_while(|(_, v)| v.is_some())
+            .count() as i64
+    }
+
+    pub fn value_at_revision(&self, revision: i64) -> Option<Value> {
+        if let Some((&revision, value)) = self.revisions.iter().rfind(|(&k, _)| k <= revision) {
+            let version = self.version(revision);
+            let value = value.as_ref().cloned();
+            Some(Value {
+                create_revision: self.create_revision(),
+                mod_revision: revision,
+                version,
+                value,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn latest_value(&self) -> Option<Value> {
+        if let Some(&revision) = self.revisions.keys().last() {
+            self.value_at_revision(revision)
+        } else {
+            None
+        }
+    }
+
+    pub fn insert(&mut self, revision: i64, value: Vec<u8>) {
+        self.revisions.insert(revision, Some(value));
+    }
+
+    pub fn delete(&mut self, revision: i64) {
+        self.revisions.insert(revision, None);
     }
 
     pub fn serialize(&self) -> Vec<u8> {
@@ -40,8 +82,18 @@ impl Value {
     pub fn deserialize(bytes: &[u8]) -> Self {
         bincode::deserialize(bytes).expect("Deserialize value")
     }
+}
 
-    pub fn is_deleted(&self) -> bool {
+#[derive(Debug)]
+pub struct Value {
+    pub create_revision: i64,
+    pub mod_revision: i64,
+    pub version: i64,
+    pub value: Option<Vec<u8>>,
+}
+
+impl Value {
+    pub const fn is_deleted(&self) -> bool {
         self.value.is_none()
     }
 
