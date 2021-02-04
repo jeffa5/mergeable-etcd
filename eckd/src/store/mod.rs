@@ -47,8 +47,8 @@ impl Store {
         if let Some(range_end) = range_end {
             for kv in self.kv.range(key..range_end) {
                 let (key, value) = kv?;
-                if let Some(value) =
-                    HistoricValue::deserialize(&value).value_at_revision(server.revision, key.to_vec())
+                if let Some(value) = HistoricValue::deserialize(&value)
+                    .value_at_revision(server.revision, key.to_vec())
                 {
                     values.push(value)
                 }
@@ -68,8 +68,7 @@ impl Store {
         key: Vec<u8>,
         value: &[u8],
         prev_kv: bool,
-    ) -> Result<(Server, Option<Value>), Error>
-    {
+    ) -> Result<(Server, Option<Value>), Error> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
@@ -83,10 +82,7 @@ impl Store {
         Ok(result)
     }
 
-    pub fn remove(
-        &self,
-        key: Vec<u8>,
-    ) -> Result<(Server, Option<Value>), Error> {
+    pub fn remove(&self, key: Vec<u8>) -> Result<(Server, Option<Value>), Error> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
@@ -231,7 +227,7 @@ fn remove_inner(
     // don't actually remove it, just get it and set the value to None (and update meta)
     let historic = kv_tree.get(&key)?.map(|v| HistoricValue::deserialize(&v));
     let prev_kv = if let Some(mut historic) = historic {
-        let prev_kv = historic.value_at_revision(server.revision,key.clone());
+        let prev_kv = historic.value_at_revision(server.revision, key.clone());
         historic.delete(server.revision);
         kv_tree.insert(key, historic.serialize())?;
         prev_kv
@@ -313,9 +309,7 @@ fn transaction_inner(
         .map(|op| match &op.request {
             Some(Request::RequestRange(request)) => {
                 let (_, kv) = get_inner(request.key.clone(), kv_tree, server_tree).unwrap();
-                let kvs = kv
-                    .map(|kv| vec![kv.key_value()])
-                    .unwrap_or_default();
+                let kvs = kv.map(|kv| vec![kv.key_value()]).unwrap_or_default();
                 let count = kvs.len() as i64;
 
                 let response = etcd_proto::etcdserverpb::RangeResponse {
@@ -349,9 +343,7 @@ fn transaction_inner(
             Some(Request::RequestDeleteRange(request)) => {
                 let (_, prev_kv) =
                     remove_inner(request.key.clone(), server.clone(), kv_tree).unwrap();
-                let prev_kv = prev_kv
-                    .map(|prev_kv| prev_kv.key_value())
-                    .unwrap();
+                let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value()).unwrap();
                 let reply = etcd_proto::etcdserverpb::DeleteRangeResponse {
                     header: Some(server.header()),
                     deleted: 1,
