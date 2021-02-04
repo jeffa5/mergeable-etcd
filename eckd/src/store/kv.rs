@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use etcd_proto::mvccpb::KeyValue;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct HistoricValue {
     revisions: BTreeMap<i64, Option<Vec<u8>>>,
     lease_id: i64,
@@ -23,12 +23,12 @@ impl HistoricValue {
         }
     }
 
-    fn create_revision(&self) -> i64 {
-        // TODO: update to take a target revision to work from
+    fn create_revision(&self, revision: i64) -> i64 {
         *self
             .revisions
             .iter()
             .rev()
+            .skip_while(|(&k, _)| k > revision)
             .take_while(|(_, v)| v.is_some())
             .map(|(k, _)| k)
             .last()
@@ -50,7 +50,7 @@ impl HistoricValue {
             let value = value.as_ref().cloned();
             Some(Value {
                 key,
-                create_revision: self.create_revision(),
+                create_revision: self.create_revision(revision),
                 mod_revision: revision,
                 version,
                 value,
@@ -85,7 +85,7 @@ impl HistoricValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Value {
     pub key: Vec<u8>,
     pub create_revision: i64,
@@ -119,5 +119,137 @@ impl Value {
             value: Vec::new(),
             version: self.version,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[allow(clippy::too_many_lines)]
+    #[test]
+    fn historic_value() {
+        let mut v = HistoricValue::default();
+        assert_eq!(
+            HistoricValue {
+                revisions: BTreeMap::new(),
+                lease_id: 0
+            },
+            v
+        );
+        assert_eq!(None, v.value_at_revision(0, Vec::new()));
+        assert_eq!(None, v.value_at_revision(1, Vec::new()));
+
+        v.insert(2, Vec::new());
+        assert_eq!(None, v.value_at_revision(0, Vec::new()));
+        assert_eq!(None, v.value_at_revision(1, Vec::new()));
+        assert_eq!(
+            Some(Value {
+                key: Vec::new(),
+                create_revision: 2,
+                mod_revision: 2,
+                version: 1,
+                value: Some(Vec::new())
+            }),
+            v.value_at_revision(2, Vec::new())
+        );
+
+        v.insert(4, Vec::new());
+        assert_eq!(
+            Some(Value {
+                key: Vec::new(),
+                create_revision: 2,
+                mod_revision: 2,
+                version: 1,
+                value: Some(Vec::new())
+            }),
+            v.value_at_revision(2, Vec::new())
+        );
+        assert_eq!(
+            Some(Value {
+                key: Vec::new(),
+                create_revision: 2,
+                mod_revision: 4,
+                version: 2,
+                value: Some(Vec::new())
+            }),
+            v.value_at_revision(4, Vec::new())
+        );
+        assert_eq!(
+            Some(Value {
+                key: Vec::new(),
+                create_revision: 2,
+                mod_revision: 4,
+                version: 2,
+                value: Some(Vec::new())
+            }),
+            v.value_at_revision(7, Vec::new())
+        );
+
+        v.insert(5, Vec::new());
+        assert_eq!(
+            Some(Value {
+                key: Vec::new(),
+                create_revision: 2,
+                mod_revision: 4,
+                version: 2,
+                value: Some(Vec::new())
+            }),
+            v.value_at_revision(4, Vec::new())
+        );
+        assert_eq!(
+            Some(Value {
+                key: Vec::new(),
+                create_revision: 2,
+                mod_revision: 5,
+                version: 3,
+                value: Some(Vec::new())
+            }),
+            v.value_at_revision(7, Vec::new())
+        );
+        v.delete(7);
+        assert_eq!(
+            Some(Value {
+                key: Vec::new(),
+                create_revision: 2,
+                mod_revision: 4,
+                version: 2,
+                value: Some(Vec::new())
+            }),
+            v.value_at_revision(4, Vec::new())
+        );
+        assert_eq!(
+            Some(Value {
+                key: Vec::new(),
+                create_revision: 0,
+                mod_revision: 7,
+                version: 0,
+                value: None
+            }),
+            v.value_at_revision(7, Vec::new())
+        );
+        assert_eq!(
+            Some(Value {
+                key: Vec::new(),
+                create_revision: 0,
+                mod_revision: 7,
+                version: 0,
+                value: None
+            }),
+            v.value_at_revision(8, Vec::new())
+        );
+
+        v.insert(9, Vec::new());
+        assert_eq!(
+            Some(Value {
+                key: Vec::new(),
+                create_revision: 9,
+                mod_revision: 9,
+                version: 1,
+                value: Some(Vec::new())
+            }),
+            v.latest_value(Vec::new())
+        );
     }
 }
