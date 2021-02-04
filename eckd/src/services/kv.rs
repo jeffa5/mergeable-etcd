@@ -46,16 +46,18 @@ impl Kv for KV {
             .into_iter()
             .map(|kv| kv.key_value(inner.key.clone()))
             .collect::<Vec<_>>();
+
+        let count = kvs.len() as i64;
         let total_len = kvs.len();
+
         if inner.limit > 0 {
             kvs = kvs
                 .into_iter()
                 .take(inner.limit.try_into().unwrap())
                 .collect();
         }
-        let more = total_len > kvs.len();
 
-        let count = kvs.len() as i64;
+        let more = total_len > kvs.len();
 
         let reply = RangeResponse {
             header: Some(server.header()),
