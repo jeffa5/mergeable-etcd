@@ -27,16 +27,15 @@ impl Watcher {
                             sled::Event::Insert { key, value } => {
                                 let history = HistoricValue::deserialize(&value);
                                 let latest_value = history.latest_value(key.to_vec());
-                                let (prev_kv,ty) = if let Some(ref latest_value) = latest_value{
+                                let (prev_kv,ty) = if let Some(ref latest_value) = latest_value {
                                     (history.value_at_revision(latest_value.mod_revision-1,key.to_vec()).map(Value::key_value), if latest_value.is_deleted() {
-
-                                    1 // mvccpb::event::EventType::Delete
+                                        1 // mvccpb::event::EventType::Delete
                                     } else {
-
-                                    0 // mvccpb::event::EventType::Put
+                                        0 // mvccpb::event::EventType::Put
                                     })
-
-                                } else {unreachable!()};
+                                } else {
+                                    unreachable!()
+                                };
                                 mvccpb::Event {
                                     kv: latest_value.map(Value::key_value),
                                     prev_kv ,

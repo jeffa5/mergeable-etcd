@@ -19,7 +19,10 @@ impl Lease {
                 tokio::select! {
                     Some(new_ttl) = rx_new_ttl.recv() => ttl = new_ttl,
                     _ = &mut should_cancel => break,
-                    _ = sleep(Duration::from_secs(ttl as u64)) => {let _ = timeout.send(());break},
+                    _ = sleep(Duration::from_secs(ttl as u64)) => {
+                        let _ = timeout.send(());
+                        break
+                    },
                     else => break,
                 };
             }
