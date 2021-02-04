@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use etcd_proto::{etcdserverpb::WatchResponse, mvccpb};
 use log::{debug, warn};
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -30,7 +28,7 @@ impl Watcher {
                                 let history = HistoricValue::deserialize(&value);
                                 let latest_value = history.latest_value(key.to_vec());
                                 let (prev_kv,ty) = if let Some(ref latest_value) = latest_value{
-                                    (history.value_at_revision(latest_value.mod_revision-1,key.to_vec()).map(|value|value.key_value()), if latest_value.is_deleted() {
+                                    (history.value_at_revision(latest_value.mod_revision-1,key.to_vec()).map(Value::key_value), if latest_value.is_deleted() {
 
                                     1 // mvccpb::event::EventType::Delete
                                     } else {
@@ -40,7 +38,7 @@ impl Watcher {
 
                                 } else {unreachable!()};
                                 mvccpb::Event {
-                                    kv: latest_value.map(|value|value.key_value()),
+                                    kv: latest_value.map(Value::key_value),
                                     prev_kv ,
                                     r#type: ty,
                                 }

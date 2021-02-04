@@ -85,7 +85,7 @@ impl Kv for KV {
         let (server, prev_kv) = self
             .server
             .store
-            .insert(request.key, &request.value, request.prev_kv)
+            .insert(&request.key, &request.value, request.prev_kv)
             .unwrap();
         let prev_kv = prev_kv.map(Value::key_value);
 
@@ -109,7 +109,7 @@ impl Kv for KV {
         assert!(request.range_end.is_empty());
         assert!(request.prev_kv);
         debug!("delete_range: {:?}", request);
-        let (server, prev_kv) = self.server.store.remove(request.key).unwrap();
+        let (server, prev_kv) = self.server.store.remove(&request.key).unwrap();
         let prev_kvs = prev_kv
             .map(|prev_kv| vec![prev_kv.key_value()])
             .unwrap_or_default();

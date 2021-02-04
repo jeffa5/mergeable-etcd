@@ -65,7 +65,7 @@ impl Store {
 
     pub fn insert(
         &self,
-        key: Vec<u8>,
+        key: &[u8],
         value: &[u8],
         prev_kv: bool,
     ) -> Result<(Server, Option<Value>), Error> {
@@ -77,12 +77,12 @@ impl Store {
             server.increment_revision();
             server_tree.insert(SERVER_KEY, server.serialize())?;
 
-            insert_inner(key.clone(), value.to_vec(), prev_kv, server, kv_tree)
+            insert_inner(key.to_vec(), value.to_vec(), prev_kv, server, kv_tree)
         })?;
         Ok(result)
     }
 
-    pub fn remove(&self, key: Vec<u8>) -> Result<(Server, Option<Value>), Error> {
+    pub fn remove(&self, key: &[u8]) -> Result<(Server, Option<Value>), Error> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
@@ -91,7 +91,7 @@ impl Store {
             server.increment_revision();
             server_tree.insert(SERVER_KEY, server.serialize())?;
 
-            remove_inner(key.clone(), server, kv_tree)
+            remove_inner(key.to_vec(), server, kv_tree)
         })?;
         Ok(result)
     }
@@ -108,7 +108,7 @@ impl Store {
         Ok(result)
     }
 
-    pub async fn watch_prefix<P: AsRef<[u8]>>(
+    pub async fn watch_prefix<P: AsRef<[u8]> + Send>(
         &self,
         prefix: P,
         tx: tokio::sync::mpsc::Sender<(Server, sled::Event)>,
@@ -168,7 +168,7 @@ impl Store {
 
     pub fn revoke_lease(&self, id: i64) -> Result<Server, Error> {
         let result = (&self.kv, &self.server, &self.lease).transaction(
-            |(kv_tree, server_tree, lease_tree)| {
+            |(_kv_tree, server_tree, lease_tree)| {
                 let server = server_tree
                     .get(SERVER_KEY)?
                     .map(|server| Server::deserialize(&server))
@@ -331,7 +331,7 @@ fn transaction_inner(
                     kv_tree,
                 )
                 .unwrap();
-                let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value());
+                let prev_kv = prev_kv.map(Value::key_value);
                 let reply = etcd_proto::etcdserverpb::PutResponse {
                     header: Some(server.header()),
                     prev_kv,
@@ -343,7 +343,7 @@ fn transaction_inner(
             Some(Request::RequestDeleteRange(request)) => {
                 let (_, prev_kv) =
                     remove_inner(request.key.clone(), server.clone(), kv_tree).unwrap();
-                let prev_kv = prev_kv.map(|prev_kv| prev_kv.key_value()).unwrap();
+                let prev_kv = prev_kv.map(Value::key_value).unwrap();
                 let reply = etcd_proto::etcdserverpb::DeleteRangeResponse {
                     header: Some(server.header()),
                     deleted: 1,
