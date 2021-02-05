@@ -34,6 +34,11 @@ impl Kv for KV {
         );
         assert_eq!(request.sort_order, 0);
         debug!("range: {:?}", String::from_utf8(request.key.clone()));
+
+        if request.key.is_empty() {
+            return Err(Status::invalid_argument("key is not provided"));
+        }
+
         let range_end = if request.range_end.is_empty() {
             None
         } else {
@@ -49,6 +54,12 @@ impl Kv for KV {
             .store
             .get(request.key, range_end.cloned(), revision)
             .unwrap();
+
+        if request.revision > 0 && server.revision < request.revision {
+            return Err(Status::out_of_range(
+                "requested revision is greater than that of the current server",
+            ));
+        }
 
         let count = kvs.len() as i64;
         let total_len = kvs.len();
