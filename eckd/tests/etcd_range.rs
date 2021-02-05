@@ -103,8 +103,11 @@ fn range_request() {
                 }
             };
 
-            println!("etcd: {:?}", response);
-            println!("eckd: {:?}", kv_res);
+            if response != kv_res {
+                println!("etcd: {:?}", response);
+                println!("eckd: {:?}", kv_res);
+            }
+
             response == kv_res
         })
     }
