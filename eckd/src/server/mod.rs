@@ -36,7 +36,7 @@ pub struct Server {
 }
 
 impl Server {
-    fn new(store: crate::store::Store) -> Self {
+    pub fn new(store: crate::store::Store) -> Self {
         Self {
             store,
             max_watcher_id: Arc::new(AtomicI64::new(1)),

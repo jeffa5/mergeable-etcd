@@ -1,7 +1,7 @@
-mod kv;
-mod lease;
-mod maintenance;
-mod watch;
+pub mod kv;
+pub mod lease;
+pub mod maintenance;
+pub mod watch;
 
 use std::{
     net::SocketAddr,

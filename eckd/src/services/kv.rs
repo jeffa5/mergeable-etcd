@@ -32,7 +32,6 @@ impl Kv for KV {
             String::from_utf8(request.key.clone()).unwrap(),
             String::from_utf8(request.range_end.clone()).unwrap()
         );
-        assert!(request.revision <= 0);
         assert_eq!(request.sort_order, 0);
         debug!("range: {:?}", String::from_utf8(request.key.clone()));
         let range_end = if request.range_end.is_empty() {
@@ -40,10 +39,15 @@ impl Kv for KV {
         } else {
             Some(&request.range_end)
         };
+        let revision = if request.revision <= 0 {
+            None
+        } else {
+            Some(request.revision)
+        };
         let (server, kvs) = self
             .server
             .store
-            .get(request.key, range_end.cloned())
+            .get(request.key, range_end.cloned(), revision)
             .unwrap();
 
         let count = kvs.len() as i64;

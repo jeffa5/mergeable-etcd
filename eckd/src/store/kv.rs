@@ -124,8 +124,9 @@ impl Value {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[allow(clippy::too_many_lines)]
     #[test]

@@ -4,15 +4,9 @@
 
 use std::{convert::TryFrom, path::PathBuf};
 
-use address::{Address, NamedAddress};
+use eckd::address::{Address, NamedAddress};
 use log::{debug, info};
 use structopt::StructOpt;
-
-mod address;
-mod health;
-mod server;
-mod services;
-mod store;
 
 #[derive(Debug, StructOpt)]
 struct Options {
@@ -106,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     debug!("{:#?}", options);
 
-    let mut server_builder = server::EckdServerBuilder::default();
+    let mut server_builder = eckd::server::EckdServerBuilder::default();
     server_builder
         .name(options.name)
         .data_dir(options.data_dir)
@@ -128,7 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let metrics_urls = options.listen_metrics_urls.clone();
-    tokio::spawn(async move { health::serve(metrics_urls).await.unwrap() });
+    tokio::spawn(async move { eckd::health::serve(metrics_urls).await.unwrap() });
 
     server.serve(shutdown_rx).await?;
 

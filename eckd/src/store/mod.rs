@@ -41,21 +41,22 @@ impl Store {
         &self,
         key: Vec<u8>,
         range_end: Option<Vec<u8>>,
+        revision: Option<i64>,
     ) -> Result<(Server, Vec<Value>), Error> {
         let server = self.current_server();
         let mut values = Vec::new();
+        let revision = revision.unwrap_or(server.revision);
         if let Some(range_end) = range_end {
             for kv in self.kv.range(key..range_end) {
                 let (key, value) = kv?;
-                if let Some(value) = HistoricValue::deserialize(&value)
-                    .value_at_revision(server.revision, key.to_vec())
+                if let Some(value) =
+                    HistoricValue::deserialize(&value).value_at_revision(revision, key.to_vec())
                 {
                     values.push(value)
                 }
             }
         } else if let Some(value) = self.kv.get(&key)? {
-            if let Some(value) =
-                HistoricValue::deserialize(&value).value_at_revision(server.revision, key)
+            if let Some(value) = HistoricValue::deserialize(&value).value_at_revision(revision, key)
             {
                 values.push(value)
             }
