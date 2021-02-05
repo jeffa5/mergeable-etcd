@@ -1,41 +1,7 @@
 mod common;
-use std::process::Command;
 
-use etcd_proto::etcdserverpb::kv_server::Kv;
+use common::EtcdContainer;
 use tonic::Request;
-
-struct EtcdContainer;
-
-impl EtcdContainer {
-    fn new() -> Self {
-        Command::new("docker")
-            .args(&[
-                "run",
-                "--name",
-                "etcd",
-                "--network",
-                "host",
-                "--rm",
-                "-d",
-                "quay.io/coreos/etcd:v3.4.13",
-                "etcd",
-            ])
-            .output()
-            .unwrap();
-
-        std::thread::sleep(std::time::Duration::from_secs(1));
-        Self
-    }
-}
-
-impl Drop for EtcdContainer {
-    fn drop(&mut self) {
-        Command::new("docker")
-            .args(&["kill", "etcd"])
-            .output()
-            .unwrap();
-    }
-}
 
 #[derive(Clone, Debug)]
 struct RangeRequest(etcd_proto::etcdserverpb::RangeRequest);
@@ -70,16 +36,16 @@ fn range_request() {
 
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let mut store_dir = std::env::temp_dir();
-            store_dir.push("eckd.db");
-            let store = eckd::store::Store::new(store_dir);
-            let server = eckd::server::Server::new(store);
-            let kv = eckd::services::kv::KV::new(server);
+            let _eckd_server = common::EckdServer::new().await;
+            println!("creating etcd connection");
             let mut etcd_client =
                 etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
                     .await
                     .unwrap();
-            let kv_res = match kv.range(eckd_request).await {
+
+            println!("creating eckd connection");
+            let mut eckd_client = etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379").await.unwrap();
+            let kv_res = match eckd_client.range(eckd_request).await {
                 Ok(r) => {
                     let mut r = r.into_inner();
                     r.header = None;

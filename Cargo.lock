@@ -397,6 +397,7 @@ dependencies = [
  "simple_logger",
  "sled",
  "structopt",
+ "tempfile",
  "thiserror",
  "tokio 1.1.0",
  "tokio-stream",
