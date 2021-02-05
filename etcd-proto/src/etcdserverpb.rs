@@ -1019,6 +1019,919 @@ pub enum AlarmType {
     /// kv store corruption detected
     Corrupt = 2,
 }
+#[doc = r" Generated client implementations."]
+pub mod kv_client {
+    #![allow(unused_variables, dead_code, missing_docs)]
+    use tonic::codegen::*;
+    pub struct KvClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl KvClient<tonic::transport::Channel> {
+        #[doc = r" Attempt to create a new client by connecting to a given endpoint."]
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: std::convert::TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> KvClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T::ResponseBody: Body + HttpBody + Send + 'static,
+        T::Error: Into<StdError>,
+        <T::ResponseBody as HttpBody>::Error: Into<StdError> + Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_interceptor(inner: T, interceptor: impl Into<tonic::Interceptor>) -> Self {
+            let inner = tonic::client::Grpc::with_interceptor(inner, interceptor);
+            Self { inner }
+        }
+        #[doc = " Range gets the keys in the range from the key-value store."]
+        pub async fn range(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RangeRequest>,
+        ) -> Result<tonic::Response<super::RangeResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.KV/Range");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " Put puts the given key into the key-value store."]
+        #[doc = " A put request increments the revision of the key-value store"]
+        #[doc = " and generates one event in the event history."]
+        pub async fn put(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PutRequest>,
+        ) -> Result<tonic::Response<super::PutResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.KV/Put");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " DeleteRange deletes the given range from the key-value store."]
+        #[doc = " A delete request increments the revision of the key-value store"]
+        #[doc = " and generates a delete event in the event history for every deleted key."]
+        pub async fn delete_range(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeleteRangeRequest>,
+        ) -> Result<tonic::Response<super::DeleteRangeResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.KV/DeleteRange");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " Txn processes multiple requests in a single transaction."]
+        #[doc = " A txn request increments the revision of the key-value store"]
+        #[doc = " and generates events with the same revision for every completed request."]
+        #[doc = " It is not allowed to modify the same key several times within one txn."]
+        pub async fn txn(
+            &mut self,
+            request: impl tonic::IntoRequest<super::TxnRequest>,
+        ) -> Result<tonic::Response<super::TxnResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.KV/Txn");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " Compact compacts the event history in the etcd key-value store. The"]
+        #[doc = " key-value store should be periodically compacted or the event history will"]
+        #[doc = " continue to grow indefinitely."]
+        pub async fn compact(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CompactionRequest>,
+        ) -> Result<tonic::Response<super::CompactionResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.KV/Compact");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+    }
+    impl<T: Clone> Clone for KvClient<T> {
+        fn clone(&self) -> Self {
+            Self {
+                inner: self.inner.clone(),
+            }
+        }
+    }
+    impl<T> std::fmt::Debug for KvClient<T> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "KvClient {{ ... }}")
+        }
+    }
+}
+#[doc = r" Generated client implementations."]
+pub mod watch_client {
+    #![allow(unused_variables, dead_code, missing_docs)]
+    use tonic::codegen::*;
+    pub struct WatchClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl WatchClient<tonic::transport::Channel> {
+        #[doc = r" Attempt to create a new client by connecting to a given endpoint."]
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: std::convert::TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> WatchClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T::ResponseBody: Body + HttpBody + Send + 'static,
+        T::Error: Into<StdError>,
+        <T::ResponseBody as HttpBody>::Error: Into<StdError> + Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_interceptor(inner: T, interceptor: impl Into<tonic::Interceptor>) -> Self {
+            let inner = tonic::client::Grpc::with_interceptor(inner, interceptor);
+            Self { inner }
+        }
+        #[doc = " Watch watches for events happening or that have happened. Both input and"]
+        #[doc = " output are streams; the input stream is for creating and canceling watchers"]
+        #[doc = " and the output stream sends events. One watch RPC can watch on multiple key"]
+        #[doc = " ranges, streaming events for several watches at once. The entire event"]
+        #[doc = " history can be watched starting from the last compaction revision."]
+        pub async fn watch(
+            &mut self,
+            request: impl tonic::IntoStreamingRequest<Message = super::WatchRequest>,
+        ) -> Result<tonic::Response<tonic::codec::Streaming<super::WatchResponse>>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Watch/Watch");
+            self.inner
+                .streaming(request.into_streaming_request(), path, codec)
+                .await
+        }
+    }
+    impl<T: Clone> Clone for WatchClient<T> {
+        fn clone(&self) -> Self {
+            Self {
+                inner: self.inner.clone(),
+            }
+        }
+    }
+    impl<T> std::fmt::Debug for WatchClient<T> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "WatchClient {{ ... }}")
+        }
+    }
+}
+#[doc = r" Generated client implementations."]
+pub mod lease_client {
+    #![allow(unused_variables, dead_code, missing_docs)]
+    use tonic::codegen::*;
+    pub struct LeaseClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl LeaseClient<tonic::transport::Channel> {
+        #[doc = r" Attempt to create a new client by connecting to a given endpoint."]
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: std::convert::TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> LeaseClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T::ResponseBody: Body + HttpBody + Send + 'static,
+        T::Error: Into<StdError>,
+        <T::ResponseBody as HttpBody>::Error: Into<StdError> + Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_interceptor(inner: T, interceptor: impl Into<tonic::Interceptor>) -> Self {
+            let inner = tonic::client::Grpc::with_interceptor(inner, interceptor);
+            Self { inner }
+        }
+        #[doc = " LeaseGrant creates a lease which expires if the server does not receive a"]
+        #[doc = " keepAlive within a given time to live period. All keys attached to the"]
+        #[doc = " lease will be expired and deleted if the lease expires. Each expired key"]
+        #[doc = " generates a delete event in the event history."]
+        pub async fn lease_grant(
+            &mut self,
+            request: impl tonic::IntoRequest<super::LeaseGrantRequest>,
+        ) -> Result<tonic::Response<super::LeaseGrantResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Lease/LeaseGrant");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " LeaseRevoke revokes a lease. All keys attached to the lease will expire and"]
+        #[doc = " be deleted."]
+        pub async fn lease_revoke(
+            &mut self,
+            request: impl tonic::IntoRequest<super::LeaseRevokeRequest>,
+        ) -> Result<tonic::Response<super::LeaseRevokeResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Lease/LeaseRevoke");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " LeaseKeepAlive keeps the lease alive by streaming keep alive requests from"]
+        #[doc = " the client to the server and streaming keep alive responses from the server"]
+        #[doc = " to the client."]
+        pub async fn lease_keep_alive(
+            &mut self,
+            request: impl tonic::IntoStreamingRequest<Message = super::LeaseKeepAliveRequest>,
+        ) -> Result<
+            tonic::Response<tonic::codec::Streaming<super::LeaseKeepAliveResponse>>,
+            tonic::Status,
+        > {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Lease/LeaseKeepAlive");
+            self.inner
+                .streaming(request.into_streaming_request(), path, codec)
+                .await
+        }
+        #[doc = " LeaseTimeToLive retrieves lease information."]
+        pub async fn lease_time_to_live(
+            &mut self,
+            request: impl tonic::IntoRequest<super::LeaseTimeToLiveRequest>,
+        ) -> Result<tonic::Response<super::LeaseTimeToLiveResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Lease/LeaseTimeToLive");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " LeaseLeases lists all existing leases."]
+        pub async fn lease_leases(
+            &mut self,
+            request: impl tonic::IntoRequest<super::LeaseLeasesRequest>,
+        ) -> Result<tonic::Response<super::LeaseLeasesResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Lease/LeaseLeases");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+    }
+    impl<T: Clone> Clone for LeaseClient<T> {
+        fn clone(&self) -> Self {
+            Self {
+                inner: self.inner.clone(),
+            }
+        }
+    }
+    impl<T> std::fmt::Debug for LeaseClient<T> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "LeaseClient {{ ... }}")
+        }
+    }
+}
+#[doc = r" Generated client implementations."]
+pub mod cluster_client {
+    #![allow(unused_variables, dead_code, missing_docs)]
+    use tonic::codegen::*;
+    pub struct ClusterClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl ClusterClient<tonic::transport::Channel> {
+        #[doc = r" Attempt to create a new client by connecting to a given endpoint."]
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: std::convert::TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> ClusterClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T::ResponseBody: Body + HttpBody + Send + 'static,
+        T::Error: Into<StdError>,
+        <T::ResponseBody as HttpBody>::Error: Into<StdError> + Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_interceptor(inner: T, interceptor: impl Into<tonic::Interceptor>) -> Self {
+            let inner = tonic::client::Grpc::with_interceptor(inner, interceptor);
+            Self { inner }
+        }
+        #[doc = " MemberAdd adds a member into the cluster."]
+        pub async fn member_add(
+            &mut self,
+            request: impl tonic::IntoRequest<super::MemberAddRequest>,
+        ) -> Result<tonic::Response<super::MemberAddResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Cluster/MemberAdd");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " MemberRemove removes an existing member from the cluster."]
+        pub async fn member_remove(
+            &mut self,
+            request: impl tonic::IntoRequest<super::MemberRemoveRequest>,
+        ) -> Result<tonic::Response<super::MemberRemoveResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Cluster/MemberRemove");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " MemberUpdate updates the member configuration."]
+        pub async fn member_update(
+            &mut self,
+            request: impl tonic::IntoRequest<super::MemberUpdateRequest>,
+        ) -> Result<tonic::Response<super::MemberUpdateResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Cluster/MemberUpdate");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " MemberList lists all the members in the cluster."]
+        pub async fn member_list(
+            &mut self,
+            request: impl tonic::IntoRequest<super::MemberListRequest>,
+        ) -> Result<tonic::Response<super::MemberListResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Cluster/MemberList");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " MemberPromote promotes a member from raft learner (non-voting) to raft"]
+        #[doc = " voting member."]
+        pub async fn member_promote(
+            &mut self,
+            request: impl tonic::IntoRequest<super::MemberPromoteRequest>,
+        ) -> Result<tonic::Response<super::MemberPromoteResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Cluster/MemberPromote");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+    }
+    impl<T: Clone> Clone for ClusterClient<T> {
+        fn clone(&self) -> Self {
+            Self {
+                inner: self.inner.clone(),
+            }
+        }
+    }
+    impl<T> std::fmt::Debug for ClusterClient<T> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "ClusterClient {{ ... }}")
+        }
+    }
+}
+#[doc = r" Generated client implementations."]
+pub mod maintenance_client {
+    #![allow(unused_variables, dead_code, missing_docs)]
+    use tonic::codegen::*;
+    pub struct MaintenanceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl MaintenanceClient<tonic::transport::Channel> {
+        #[doc = r" Attempt to create a new client by connecting to a given endpoint."]
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: std::convert::TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> MaintenanceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T::ResponseBody: Body + HttpBody + Send + 'static,
+        T::Error: Into<StdError>,
+        <T::ResponseBody as HttpBody>::Error: Into<StdError> + Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_interceptor(inner: T, interceptor: impl Into<tonic::Interceptor>) -> Self {
+            let inner = tonic::client::Grpc::with_interceptor(inner, interceptor);
+            Self { inner }
+        }
+        #[doc = " Alarm activates, deactivates, and queries alarms regarding cluster health."]
+        pub async fn alarm(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AlarmRequest>,
+        ) -> Result<tonic::Response<super::AlarmResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Maintenance/Alarm");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " Status gets the status of the member."]
+        pub async fn status(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StatusRequest>,
+        ) -> Result<tonic::Response<super::StatusResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Maintenance/Status");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " Defragment defragments a member's backend database to recover storage"]
+        #[doc = " space."]
+        pub async fn defragment(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DefragmentRequest>,
+        ) -> Result<tonic::Response<super::DefragmentResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Maintenance/Defragment");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " Hash computes the hash of whole backend keyspace,"]
+        #[doc = " including key, lease, and other buckets in storage."]
+        #[doc = " This is designed for testing ONLY!"]
+        #[doc = " Do not rely on this in production with ongoing transactions,"]
+        #[doc = " since Hash operation does not hold MVCC locks."]
+        #[doc = " Use \"HashKV\" API instead for \"key\" bucket consistency checks."]
+        pub async fn hash(
+            &mut self,
+            request: impl tonic::IntoRequest<super::HashRequest>,
+        ) -> Result<tonic::Response<super::HashResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Maintenance/Hash");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " HashKV computes the hash of all MVCC keys up to a given revision."]
+        #[doc = " It only iterates \"key\" bucket in backend storage."]
+        pub async fn hash_kv(
+            &mut self,
+            request: impl tonic::IntoRequest<super::HashKvRequest>,
+        ) -> Result<tonic::Response<super::HashKvResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Maintenance/HashKV");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " Snapshot sends a snapshot of the entire backend from a member over a stream"]
+        #[doc = " to a client."]
+        pub async fn snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SnapshotRequest>,
+        ) -> Result<tonic::Response<tonic::codec::Streaming<super::SnapshotResponse>>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Maintenance/Snapshot");
+            self.inner
+                .server_streaming(request.into_request(), path, codec)
+                .await
+        }
+        #[doc = " MoveLeader requests current leader node to transfer its leadership to"]
+        #[doc = " transferee."]
+        pub async fn move_leader(
+            &mut self,
+            request: impl tonic::IntoRequest<super::MoveLeaderRequest>,
+        ) -> Result<tonic::Response<super::MoveLeaderResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Maintenance/MoveLeader");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+    }
+    impl<T: Clone> Clone for MaintenanceClient<T> {
+        fn clone(&self) -> Self {
+            Self {
+                inner: self.inner.clone(),
+            }
+        }
+    }
+    impl<T> std::fmt::Debug for MaintenanceClient<T> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "MaintenanceClient {{ ... }}")
+        }
+    }
+}
+#[doc = r" Generated client implementations."]
+pub mod auth_client {
+    #![allow(unused_variables, dead_code, missing_docs)]
+    use tonic::codegen::*;
+    pub struct AuthClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl AuthClient<tonic::transport::Channel> {
+        #[doc = r" Attempt to create a new client by connecting to a given endpoint."]
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: std::convert::TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> AuthClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T::ResponseBody: Body + HttpBody + Send + 'static,
+        T::Error: Into<StdError>,
+        <T::ResponseBody as HttpBody>::Error: Into<StdError> + Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_interceptor(inner: T, interceptor: impl Into<tonic::Interceptor>) -> Self {
+            let inner = tonic::client::Grpc::with_interceptor(inner, interceptor);
+            Self { inner }
+        }
+        #[doc = " AuthEnable enables authentication."]
+        pub async fn auth_enable(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthEnableRequest>,
+        ) -> Result<tonic::Response<super::AuthEnableResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/AuthEnable");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " AuthDisable disables authentication."]
+        pub async fn auth_disable(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthDisableRequest>,
+        ) -> Result<tonic::Response<super::AuthDisableResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/AuthDisable");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " Authenticate processes an authenticate request."]
+        pub async fn authenticate(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthenticateRequest>,
+        ) -> Result<tonic::Response<super::AuthenticateResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/Authenticate");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " UserAdd adds a new user. User name cannot be empty."]
+        pub async fn user_add(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthUserAddRequest>,
+        ) -> Result<tonic::Response<super::AuthUserAddResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/UserAdd");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " UserGet gets detailed user information."]
+        pub async fn user_get(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthUserGetRequest>,
+        ) -> Result<tonic::Response<super::AuthUserGetResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/UserGet");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " UserList gets a list of all users."]
+        pub async fn user_list(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthUserListRequest>,
+        ) -> Result<tonic::Response<super::AuthUserListResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/UserList");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " UserDelete deletes a specified user."]
+        pub async fn user_delete(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthUserDeleteRequest>,
+        ) -> Result<tonic::Response<super::AuthUserDeleteResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/UserDelete");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " UserChangePassword changes the password of a specified user."]
+        pub async fn user_change_password(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthUserChangePasswordRequest>,
+        ) -> Result<tonic::Response<super::AuthUserChangePasswordResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path =
+                http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/UserChangePassword");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " UserGrant grants a role to a specified user."]
+        pub async fn user_grant_role(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthUserGrantRoleRequest>,
+        ) -> Result<tonic::Response<super::AuthUserGrantRoleResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/UserGrantRole");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " UserRevokeRole revokes a role of specified user."]
+        pub async fn user_revoke_role(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthUserRevokeRoleRequest>,
+        ) -> Result<tonic::Response<super::AuthUserRevokeRoleResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/UserRevokeRole");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " RoleAdd adds a new role. Role name cannot be empty."]
+        pub async fn role_add(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthRoleAddRequest>,
+        ) -> Result<tonic::Response<super::AuthRoleAddResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/RoleAdd");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " RoleGet gets detailed role information."]
+        pub async fn role_get(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthRoleGetRequest>,
+        ) -> Result<tonic::Response<super::AuthRoleGetResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/RoleGet");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " RoleList gets lists of all roles."]
+        pub async fn role_list(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthRoleListRequest>,
+        ) -> Result<tonic::Response<super::AuthRoleListResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/RoleList");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " RoleDelete deletes a specified role."]
+        pub async fn role_delete(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthRoleDeleteRequest>,
+        ) -> Result<tonic::Response<super::AuthRoleDeleteResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/RoleDelete");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " RoleGrantPermission grants a permission of a specified key or range to a"]
+        #[doc = " specified role."]
+        pub async fn role_grant_permission(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthRoleGrantPermissionRequest>,
+        ) -> Result<tonic::Response<super::AuthRoleGrantPermissionResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path =
+                http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/RoleGrantPermission");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        #[doc = " RoleRevokePermission revokes a key or range permission of a specified role."]
+        pub async fn role_revoke_permission(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AuthRoleRevokePermissionRequest>,
+        ) -> Result<tonic::Response<super::AuthRoleRevokePermissionResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path =
+                http::uri::PathAndQuery::from_static("/etcdserverpb.Auth/RoleRevokePermission");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+    }
+    impl<T: Clone> Clone for AuthClient<T> {
+        fn clone(&self) -> Self {
+            Self {
+                inner: self.inner.clone(),
+            }
+        }
+    }
+    impl<T> std::fmt::Debug for AuthClient<T> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "AuthClient {{ ... }}")
+        }
+    }
+}
 #[doc = r" Generated server implementations."]
 pub mod kv_server {
     #![allow(unused_variables, dead_code, missing_docs)]
