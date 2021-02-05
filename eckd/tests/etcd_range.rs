@@ -44,7 +44,10 @@ fn range_request() {
                     .unwrap();
 
             println!("creating eckd connection");
-            let mut eckd_client = etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379").await.unwrap();
+            let mut eckd_client =
+                etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
+                    .await
+                    .unwrap();
             let kv_res = match eckd_client.range(eckd_request).await {
                 Ok(r) => {
                     let mut r = r.into_inner();

@@ -52,16 +52,15 @@ impl EckdServer {
                 "http://127.0.0.1:2389",
             )
             .unwrap()])
-                .listen_peer_urls(vec![])
-                .initial_advertise_peer_urls(vec![])
-                .initial_cluster(vec![])
-                .advertise_client_urls(vec![])
-                .cert_file(None)
-                .key_file(None)
-            ;
+            .listen_peer_urls(vec![])
+            .initial_advertise_peer_urls(vec![])
+            .initial_cluster(vec![])
+            .advertise_client_urls(vec![])
+            .cert_file(None)
+            .key_file(None);
         let server = server_builder.build().unwrap();
         let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(());
-        tokio::spawn(async move {server.serve(shutdown_rx).await.unwrap()});
+        tokio::spawn(async move { server.serve(shutdown_rx).await.unwrap() });
         EckdServer {
             store_dir,
             shutdown_tx,
