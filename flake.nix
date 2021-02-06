@@ -49,7 +49,7 @@
               tag = "latest";
               contents = packages.eckd-etcd;
 
-              config.Cmd = [ "/bin/eckd" ];
+              config.Cmd = [ "/bin/etcd" ];
             };
           };
 
