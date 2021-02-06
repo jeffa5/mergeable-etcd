@@ -1109,13 +1109,13 @@ rec {
             packageId = "prost";
           }
           {
-            name = "ron";
-            packageId = "ron";
-          }
-          {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
           }
           {
             name = "simple_logger";
@@ -3864,33 +3864,6 @@ rec {
         };
         resolvedDefaultFeatures = [ "alloc" "default" "dev_urandom_fallback" "once_cell" ];
       };
-      "ron" = rec {
-        crateName = "ron";
-        version = "0.6.4";
-        edition = "2018";
-        sha256 = "07vzhbrnimz1lij0f280y624j4yzipn2404jmygs24mp7xhshkh6";
-        authors = [
-          "Christopher Durham <cad97@cad97.com>"
-          "Dzmitry Malyshau <kvarkus@gmail.com>"
-          "Thomas Schaller <torkleyy@gmail.com>"
-        ];
-        dependencies = [
-          {
-            name = "base64";
-            packageId = "base64 0.13.0";
-          }
-          {
-            name = "bitflags";
-            packageId = "bitflags";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "serde_derive" ];
-          }
-        ];
-        
-      };
       "rustls" = rec {
         crateName = "rustls";
         version = "0.19.0";
@@ -4035,9 +4008,9 @@ rec {
       };
       "serde_json" = rec {
         crateName = "serde_json";
-        version = "1.0.61";
+        version = "1.0.62";
         edition = "2018";
-        sha256 = "0nijvxvgcncvd1wbn73zx7q14bdxah0gf2789qd8kdjpa1cv5kjg";
+        sha256 = "11hlwc4glh244sk6ncnvj3n01pi538iv2qygyxyfllj5g59n277a";
         authors = [
           "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
           "David Tolnay <dtolnay@gmail.com>"
