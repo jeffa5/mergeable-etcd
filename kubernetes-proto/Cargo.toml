@@ -1,0 +1,12 @@
+[package]
+name = "kubernetes-proto"
+version = "0.1.0"
+authors = ["Andrew Jeffery <dev@jeffas.io>"]
+edition = "2018"
+
+[dependencies]
+tonic = "0.4.0"
+prost = "0.7.0"
+
+[build-dependencies]
+tonic-build = "0.4.0"

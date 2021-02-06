@@ -1,0 +1,4 @@
+[submodule "kubernetes-proto/kubernetes"]
+	path = kubernetes-proto/kubernetes
+	url = git@github.com:kubernetes/kubernetes.git
+	branch = release-1.19
