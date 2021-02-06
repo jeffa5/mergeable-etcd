@@ -69,6 +69,7 @@
               })
               cargo-edit
               cargo-watch
+              cargo-udeps
               protobuf
               crate2nix
 
