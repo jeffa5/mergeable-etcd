@@ -5,6 +5,12 @@ pub mod k8s {
                 tonic::include_proto!("k8s.io.api.core.v1");
             }
         }
+
+        pub mod coordination {
+            pub mod v1 {
+                tonic::include_proto!("k8s.io.api.coordination.v1");
+            }
+        }
     }
 
     pub mod apimachinery {

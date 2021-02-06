@@ -1,5 +1,11 @@
 fn main() {
     tonic_build::configure()
-        .compile(&["proto/k8s.io/api/core/v1/generated.proto"], &["proto"])
+        .compile(
+            &[
+                "proto/k8s.io/api/core/v1/generated.proto",
+                "proto/k8s.io/api/coordination/v1/generated.proto",
+            ],
+            &["proto"],
+        )
         .expect("failed to compile protos");
 }
