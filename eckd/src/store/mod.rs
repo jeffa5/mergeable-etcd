@@ -1,7 +1,10 @@
 use std::{convert::TryInto, path::Path};
 
 use etcd_proto::etcdserverpb::{
-    compare::TargetUnion, request_op::Request, response_op::Response, ResponseOp, TxnRequest,
+    compare::{CompareResult, CompareTarget, TargetUnion},
+    request_op::Request,
+    response_op::Response,
+    ResponseOp, TxnRequest,
 };
 use log::warn;
 use sled::{transaction::TransactionalTree, Transactional};
@@ -239,14 +242,13 @@ fn remove_inner(
     Ok((server, prev_kv))
 }
 
-fn comp<T: PartialEq + PartialOrd>(op: i32, a: &T, b: &T) -> bool {
+fn comp<T: PartialEq + PartialOrd>(op: CompareResult, a: &T, b: &T) -> bool {
     match op {
-        0 /* equal */ => a == b,
-        1 /* greater */ => a > b,
-        2 /* less */ => a < b,
-        3 /* not equal */ => a != b,
-        _ => unreachable!()
- }
+        CompareResult::Equal => a == b,
+        CompareResult::Greater => a > b,
+        CompareResult::Less => a < b,
+        CompareResult::NotEqual => a != b,
+    }
 }
 
 fn transaction_inner(
@@ -257,22 +259,22 @@ fn transaction_inner(
 ) -> Result<(Server, bool, Vec<ResponseOp>), sled::transaction::ConflictableTransactionError> {
     let success = request.compare.iter().all(|compare| {
         let (_, value) = get_inner(compare.key.clone(), kv_tree, server_tree).unwrap();
-        match (compare.target, compare.target_union.as_ref()) {
-            (0 /* version */, Some(TargetUnion::Version(version))) => {
-                comp(compare.result, &value.map_or(0, |v| v.version), version)
+        match (compare.target(), compare.target_union.as_ref()) {
+            (CompareTarget::Version, Some(TargetUnion::Version(version))) => {
+                comp(compare.result(), &value.map_or(0, |v| v.version), version)
             }
-            (1 /* create */, Some(TargetUnion::CreateRevision(revision))) => comp(
-                compare.result,
+            (CompareTarget::Create, Some(TargetUnion::CreateRevision(revision))) => comp(
+                compare.result(),
                 &value.map_or(0, |v| v.create_revision),
                 revision,
             ),
-            (2 /* mod */, Some(TargetUnion::ModRevision(revision))) => comp(
-                compare.result,
+            (CompareTarget::Mod, Some(TargetUnion::ModRevision(revision))) => comp(
+                compare.result(),
                 &value.map_or(0, |v| v.mod_revision),
                 revision,
             ),
-            (3 /* value */, Some(TargetUnion::Value(test_value))) => comp(
-                compare.result,
+            (CompareTarget::Value, Some(TargetUnion::Value(test_value))) => comp(
+                compare.result(),
                 &value.map(|v| v.value).unwrap_or_default().unwrap(),
                 test_value,
             ),

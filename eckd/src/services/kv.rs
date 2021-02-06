@@ -32,7 +32,10 @@ impl Kv for KV {
             String::from_utf8(request.key.clone()).unwrap(),
             String::from_utf8(request.range_end.clone()).unwrap()
         );
-        assert_eq!(request.sort_order(), etcd_proto::etcdserverpb::range_request::SortOrder::None);
+        assert_eq!(
+            request.sort_order(),
+            etcd_proto::etcdserverpb::range_request::SortOrder::None
+        );
         debug!("range: {:?}", String::from_utf8(request.key.clone()));
 
         if request.key.is_empty() {

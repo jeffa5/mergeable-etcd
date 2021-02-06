@@ -41,6 +41,7 @@ impl WatchTrait for Watch {
                 match request {
                     Ok(request) => match request.request_union {
                         Some(RequestUnion::CreateRequest(create)) => {
+                            // TODO: implement filters
                             let id = server_clone.create_watcher(create.key, tx_response.clone());
                             if tx_response
                                 .send(Ok(WatchResponse {
