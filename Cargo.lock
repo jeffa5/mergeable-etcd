@@ -389,6 +389,7 @@ dependencies = [
  "futures",
  "futures-core",
  "hyper 0.14.2",
+ "kubernetes-proto",
  "log",
  "pretty_assertions",
  "prost",

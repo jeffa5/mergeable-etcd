@@ -115,7 +115,10 @@ impl Kv for KV {
         request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
         let request = request.into_inner();
-        info!("tracing delete_range: {:?}", serde_json::to_string(&request));
+        info!(
+            "tracing delete_range: {:?}",
+            serde_json::to_string(&request)
+        );
         assert!(request.range_end.is_empty());
         assert!(request.prev_kv);
         debug!("delete_range: {:?}", request);

@@ -47,7 +47,10 @@ impl LeaseTrait for Lease {
         request: Request<LeaseRevokeRequest>,
     ) -> Result<Response<LeaseRevokeResponse>, Status> {
         let request = request.into_inner();
-        info!("tracing lease_revoke: {:?}", serde_json::to_string(&request));
+        info!(
+            "tracing lease_revoke: {:?}",
+            serde_json::to_string(&request)
+        );
         let server = self.server.revoke_lease(request.id);
         Ok(Response::new(LeaseRevokeResponse {
             header: Some(server.header()),

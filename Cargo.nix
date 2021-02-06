@@ -1101,6 +1101,10 @@ rec {
             packageId = "hyper 0.14.2";
           }
           {
+            name = "kubernetes-proto";
+            packageId = "kubernetes-proto";
+          }
+          {
             name = "log";
             packageId = "log";
           }

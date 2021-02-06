@@ -82,7 +82,10 @@ impl WatchTrait for Watch {
                             };
                         }
                         Some(RequestUnion::ProgressRequest(progress)) => {
-                            info!("tracing watch_progress: {:?}", serde_json::to_string(&progress));
+                            info!(
+                                "tracing watch_progress: {:?}",
+                                serde_json::to_string(&progress)
+                            );
                             warn!("got an unhandled progress request: {:?}", progress)
                         }
                         None => {
