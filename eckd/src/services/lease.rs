@@ -27,6 +27,7 @@ impl LeaseTrait for Lease {
         request: Request<LeaseGrantRequest>,
     ) -> Result<Response<LeaseGrantResponse>, Status> {
         let request = request.into_inner();
+        info!("tracing lease_grant: {:?}", request);
         let id = if request.id == 0 {
             None
         } else {
@@ -46,6 +47,7 @@ impl LeaseTrait for Lease {
         request: Request<LeaseRevokeRequest>,
     ) -> Result<Response<LeaseRevokeResponse>, Status> {
         let request = request.into_inner();
+        info!("tracing lease_revoke: {:?}", request);
         let server = self.server.revoke_lease(request.id);
         Ok(Response::new(LeaseRevokeResponse {
             header: Some(server.header()),
@@ -59,6 +61,7 @@ impl LeaseTrait for Lease {
         &self,
         request: Request<Streaming<LeaseKeepAliveRequest>>,
     ) -> Result<Response<Self::LeaseKeepAliveStream>, Status> {
+        info!("tracing lease_keepalive");
         let (tx, rx) = tokio::sync::mpsc::channel(1);
 
         let server = self.server.clone();
