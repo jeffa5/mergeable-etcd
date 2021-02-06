@@ -17,7 +17,18 @@
               system = system;
             };
           rust = pkgs.rust-bin.nightly.latest.rust;
-          cargoNix = pkgs.callPackage ./Cargo.nix { };
+          cargoNix = pkgs.callPackage ./Cargo.nix {
+            defaultCrateOverrides = pkgs.defaultCrateOverrides // {
+              etcd-proto = attrs: {
+                buildInputs = [ pkgs.protobuf pkgs.rustfmt ];
+                PROTOC = "${pkgs.protobuf}/bin/protoc";
+              };
+              kubernetes-proto = attrs: {
+                buildInputs = [ pkgs.protobuf pkgs.rustfmt ];
+                PROTOC = "${pkgs.protobuf}/bin/protoc";
+              };
+            };
+          };
         in
         rec
         {
@@ -68,7 +79,7 @@
             ];
 
             ETCDCTL_API = 3;
-            PROTOC = "protoc";
+            PROTOC = "${pkgs.protobuf}/bin/protoc";
           };
         }
       );
