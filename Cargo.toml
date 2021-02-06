@@ -2,6 +2,5 @@
 members = [
   "eckd",
   "etcd-proto",
-  "gen-etcd-proto",
   "kubernetes-proto",
 ]

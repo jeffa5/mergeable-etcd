@@ -48,16 +48,6 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
-    "gen-etcd-proto" = rec {
-      packageId = "gen-etcd-proto";
-      build = internal.buildRustCrateWithFeatures {
-        packageId = "gen-etcd-proto";
-      };
-
-      # Debug support which might change between releases.
-      # File a bug if you depend on any for non-debug work!
-      debug = internal.debugCrate { inherit packageId; };
-    };
     "kubernetes-proto" = rec {
       packageId = "kubernetes-proto";
       build = internal.buildRustCrateWithFeatures {
@@ -1244,6 +1234,8 @@ rec {
             name = "tonic";
             packageId = "tonic";
           }
+        ];
+        buildDependencies = [
           {
             name = "tonic-build";
             packageId = "tonic-build";
@@ -1677,25 +1669,6 @@ rec {
           {
             name = "byteorder";
             packageId = "byteorder";
-          }
-        ];
-        
-      };
-      "gen-etcd-proto" = rec {
-        crateName = "gen-etcd-proto";
-        version = "0.1.0";
-        edition = "2018";
-        crateBin = [
-          { name = "gen-etcd-proto"; path = "src/main.rs"; }
-        ];
-        src = (builtins.filterSource sourceFilter ./gen-etcd-proto);
-        authors = [
-          "Andrew Jeffery <dev@jeffas.io>"
-        ];
-        dependencies = [
-          {
-            name = "tonic-build";
-            packageId = "tonic-build";
           }
         ];
         
