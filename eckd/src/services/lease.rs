@@ -27,7 +27,7 @@ impl LeaseTrait for Lease {
         request: Request<LeaseGrantRequest>,
     ) -> Result<Response<LeaseGrantResponse>, Status> {
         let request = request.into_inner();
-        info!("tracing lease_grant: {:?}", request);
+        info!("tracing lease_grant: {:?}", ron::ser::to_string(&request));
         let id = if request.id == 0 {
             None
         } else {
@@ -47,7 +47,7 @@ impl LeaseTrait for Lease {
         request: Request<LeaseRevokeRequest>,
     ) -> Result<Response<LeaseRevokeResponse>, Status> {
         let request = request.into_inner();
-        info!("tracing lease_revoke: {:?}", request);
+        info!("tracing lease_revoke: {:?}", ron::ser::to_string(&request));
         let server = self.server.revoke_lease(request.id);
         Ok(Response::new(LeaseRevokeResponse {
             header: Some(server.header()),

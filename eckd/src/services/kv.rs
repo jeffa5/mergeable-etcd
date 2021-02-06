@@ -27,7 +27,7 @@ impl Kv for KV {
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
         let request = request.into_inner();
-        info!("tracing range: {:?}", request);
+        info!("tracing range: {:?}", ron::ser::to_string(&request));
         assert_eq!(
             request.sort_order(),
             etcd_proto::etcdserverpb::range_request::SortOrder::None
@@ -91,7 +91,7 @@ impl Kv for KV {
 
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let request = request.into_inner();
-        info!("tracing put: {:?}", request);
+        info!("tracing put: {:?}", ron::ser::to_string(&request));
         assert_eq!(request.lease, 0);
         assert!(!request.ignore_value);
         assert!(!request.ignore_lease);
@@ -115,7 +115,7 @@ impl Kv for KV {
         request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
         let request = request.into_inner();
-        info!("tracing delete_range: {:?}", request);
+        info!("tracing delete_range: {:?}", ron::ser::to_string(&request));
         assert!(request.range_end.is_empty());
         assert!(request.prev_kv);
         debug!("delete_range: {:?}", request);
@@ -134,7 +134,7 @@ impl Kv for KV {
 
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
         let request = request.into_inner();
-        info!("tracing txn: {:?}", request);
+        info!("tracing txn: {:?}", ron::ser::to_string(&request));
         debug!("txn: {:?}", request);
         let (server, success, results) = self.server.store.txn(&request).unwrap();
         let reply = TxnResponse {

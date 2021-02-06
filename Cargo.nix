@@ -1109,6 +1109,10 @@ rec {
             packageId = "prost";
           }
           {
+            name = "ron";
+            packageId = "ron";
+          }
+          {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
@@ -1229,6 +1233,11 @@ rec {
           {
             name = "prost";
             packageId = "prost";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
           }
           {
             name = "tonic";
@@ -3854,6 +3863,33 @@ rec {
           "std" = [ "alloc" ];
         };
         resolvedDefaultFeatures = [ "alloc" "default" "dev_urandom_fallback" "once_cell" ];
+      };
+      "ron" = rec {
+        crateName = "ron";
+        version = "0.6.4";
+        edition = "2018";
+        sha256 = "07vzhbrnimz1lij0f280y624j4yzipn2404jmygs24mp7xhshkh6";
+        authors = [
+          "Christopher Durham <cad97@cad97.com>"
+          "Dzmitry Malyshau <kvarkus@gmail.com>"
+          "Thomas Schaller <torkleyy@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "base64";
+            packageId = "base64 0.13.0";
+          }
+          {
+            name = "bitflags";
+            packageId = "bitflags";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "serde_derive" ];
+          }
+        ];
+        
       };
       "rustls" = rec {
         crateName = "rustls";
