@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, convert::TryFrom};
 
 use etcd_proto::mvccpb::KeyValue;
-use log::info;
+use log::{info, warn};
 use prost::Message;
 use serde::{Deserialize, Serialize};
 
@@ -51,7 +51,12 @@ impl HistoricValue {
             let version = self.version(revision);
             let value = value.as_ref().cloned();
             if let Some(ref val) = value {
-                info!("k8s value: {:?} {:?}", val, K8sValue::try_from(val))
+                let k8s = K8sValue::try_from(val);
+                if let Ok(k8s) = k8s {
+                    info!("k8s value: {:?}", k8s);
+                } else {
+                    warn!("failed to get k8svalue: {:?}", val);
+                }
             }
             Some(Value {
                 key,
