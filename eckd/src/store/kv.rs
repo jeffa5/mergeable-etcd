@@ -1,6 +1,8 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, convert::TryFrom};
 
 use etcd_proto::mvccpb::KeyValue;
+use log::info;
+use prost::Message;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -48,6 +50,9 @@ impl HistoricValue {
         if let Some((&revision, value)) = self.revisions.iter().rfind(|(&k, _)| k <= revision) {
             let version = self.version(revision);
             let value = value.as_ref().cloned();
+            if let Some(ref val) = value {
+                info!("k8s value: {:?} {:?}", val, K8sValue::try_from(val))
+            }
             Some(Value {
                 key,
                 create_revision: self.create_revision(revision),
@@ -119,6 +124,45 @@ impl Value {
             value: Vec::new(),
             version: self.version,
         }
+    }
+}
+
+#[derive(Debug)]
+pub enum K8sValue {
+    Unknown(kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown),
+}
+
+impl TryFrom<&Vec<u8>> for K8sValue {
+    type Error = String;
+
+    fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
+        // check prefix
+        let rest = if value.len() >= 4 {
+            if value[0..4] == [b'k', b'8', b's', 0] {
+                &value[4..]
+            } else {
+                return Err("value doesn't start with k8s prefix".to_owned());
+            }
+        } else {
+            return Err("value doesn't start with k8s prefix".to_owned());
+        };
+
+        // parse rest from protobuf
+        if let Ok(unknown) =
+            kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown::decode(rest)
+        {
+            Ok(K8sValue::Unknown(unknown))
+        } else {
+            Err("failed to decode".to_owned())
+        }
+    }
+}
+
+impl TryFrom<Vec<u8>> for K8sValue {
+    type Error = String;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::try_from(&value)
     }
 }
 
