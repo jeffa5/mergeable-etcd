@@ -27,7 +27,7 @@ impl WatchTrait for Watch {
         &self,
         request: Request<tonic::Streaming<WatchRequest>>,
     ) -> Result<Response<Self::WatchStream>, Status> {
-        info!("Watch");
+        info!("tracing watch");
 
         let server_clone = self.server.clone();
 
@@ -42,6 +42,7 @@ impl WatchTrait for Watch {
                     Ok(request) => match request.request_union {
                         Some(RequestUnion::CreateRequest(create)) => {
                             // TODO: implement filters
+                            info!("tracing watch_create: {:?}", serde_json::to_string(&create));
                             let id = server_clone.create_watcher(create.key, tx_response.clone());
                             if tx_response
                                 .send(Ok(WatchResponse {
@@ -61,6 +62,7 @@ impl WatchTrait for Watch {
                             }
                         }
                         Some(RequestUnion::CancelRequest(cancel)) => {
+                            info!("tracing watch_cancel: {:?}", serde_json::to_string(&cancel));
                             server_clone.cancel_watcher(cancel.watch_id);
                             if tx_response
                                 .send(Ok(WatchResponse {
@@ -80,6 +82,7 @@ impl WatchTrait for Watch {
                             };
                         }
                         Some(RequestUnion::ProgressRequest(progress)) => {
+                            info!("tracing watch_progress: {:?}", serde_json::to_string(&progress));
                             warn!("got an unhandled progress request: {:?}", progress)
                         }
                         None => {
