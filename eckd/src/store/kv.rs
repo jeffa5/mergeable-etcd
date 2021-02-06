@@ -53,9 +53,19 @@ impl HistoricValue {
             if let Some(ref val) = value {
                 let k8s = K8sValue::try_from(val);
                 if let Ok(k8s) = k8s {
-                    info!("k8s value: {:?}", k8s);
+                    info!("k8s value: {:?} {:?}", String::from_utf8(key.clone()), k8s);
+                } else if let Ok(v) = serde_json::from_slice::<serde_json::Value>(val) {
+                    warn!(
+                        "Unhandled json k8svalue: {:?} {:?}",
+                        String::from_utf8(key.clone()),
+                        v
+                    )
                 } else {
-                    warn!("failed to get k8svalue: {:?}", val);
+                    warn!(
+                        "failed to get k8svalue: {:?} {:?}",
+                        String::from_utf8(key.clone()),
+                        val
+                    );
                 }
             }
             Some(Value {
@@ -133,8 +143,13 @@ impl Value {
 }
 
 #[derive(Debug)]
+// A K8s api value, encoded in protobuf format
+// https://kubernetes.io/docs/reference/using-api/api-concepts/#protobuf-encoding
 pub enum K8sValue {
+    Lease(kubernetes_proto::k8s::api::coordination::v1::Lease),
+    Endpoints(kubernetes_proto::k8s::api::core::v1::Endpoints),
     Unknown(kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown),
+    JSON(serde_json::Value),
 }
 
 impl TryFrom<&Vec<u8>> for K8sValue {
@@ -142,24 +157,44 @@ impl TryFrom<&Vec<u8>> for K8sValue {
 
     fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
         // check prefix
-        let rest = if value.len() >= 4 {
-            if value[0..4] == [b'k', b'8', b's', 0] {
-                &value[4..]
-            } else {
-                return Err("value doesn't start with k8s prefix".to_owned());
-            }
+        let rest = if value.len() >= 4 && value[0..4] == [b'k', b'8', b's', 0] {
+            &value[4..]
+        } else if let Ok(val) = serde_json::from_slice(value) {
+            return Ok(K8sValue::JSON(val));
         } else {
             return Err("value doesn't start with k8s prefix".to_owned());
         };
 
-        // parse rest from protobuf
-        if let Ok(unknown) =
+        // parse unknown from protobuf
+        let unknown = if let Ok(unknown) =
             kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown::decode(rest)
         {
-            Ok(K8sValue::Unknown(unknown))
+            unknown
         } else {
-            Err("failed to decode".to_owned())
-        }
+            return Err("failed to decode".to_owned());
+        };
+        let type_meta = unknown.type_meta.as_ref().unwrap();
+        let val = match (type_meta.api_version.as_deref(), type_meta.kind.as_deref()) {
+            (Some("coordination.k8s.io/v1beta1"), Some("Lease")) => {
+                let lease = kubernetes_proto::k8s::api::coordination::v1::Lease::decode(
+                    &unknown.raw.unwrap()[..],
+                );
+                info!("Lease: {:?}", lease);
+                K8sValue::Lease(lease.expect("Failed decoding Lease resource from raw"))
+            }
+            (Some("v1"), Some("Endpoints")) => {
+                let endpoints = kubernetes_proto::k8s::api::core::v1::Endpoints::decode(
+                    &unknown.raw.unwrap()[..],
+                );
+                info!("Endpoints: {:?}", endpoints);
+                K8sValue::Endpoints(endpoints.expect("Failed decoding Endpoints resource from raw"))
+            }
+            (api_version, kind) => {
+                warn!("Unknown api_version {:?} and kind {:?}", api_version, kind);
+                K8sValue::Unknown(unknown)
+            }
+        };
+        Ok(val)
     }
 }
 
