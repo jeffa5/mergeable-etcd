@@ -1,0 +1,15 @@
+{
+  "CN": "Local CA",
+  "hosts": ["example.net", "www.example.net"],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "UK",
+      "L": "England",
+      "ST": "Cambridge"
+    }
+  ]
+}

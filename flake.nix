@@ -51,13 +51,37 @@
 
               config.Cmd = [ "/bin/etcd" ];
             };
+
+            etcd = pkgs.buildGoModule rec {
+              pname = "etcd";
+              version = "3.4.14";
+
+              src = pkgs.fetchFromGitHub {
+                owner = "etcd-io";
+                repo = "etcd";
+                rev = "v${version}";
+                sha256 = "sha256-LgwJ85UkAQRwpIsILnHDssMw7gXVLO27cU1+5hHj3Wg=";
+              };
+
+              doCheck = false;
+
+              deleteVendor = true;
+              vendorSha256 = "sha256-bBlihD5i7YidtVW9Nz1ChU10RE5zjOsXbEL1hA6Blko=";
+            };
           };
 
           defaultPackage = packages.eckd;
 
-          apps.eckd = flake-utils.lib.mkApp {
-            name = "eckd";
-            drv = packages.eckd;
+          apps = {
+            eckd = flake-utils.lib.mkApp {
+              name = "eckd";
+              drv = packages.eckd;
+            };
+
+            etcd-benchmark = flake-utils.lib.mkApp {
+              name = "benchmark";
+              drv = packages.etcd;
+            };
           };
 
           defaultApp = apps.eckd;
@@ -73,7 +97,9 @@
               protobuf
               crate2nix
 
+              cfssl
               etcd
+              kind
 
               rnix-lsp
               nixpkgs-fmt
