@@ -44,4 +44,4 @@ docker-push: docker-load
 .PHONY: kind
 kind:
 	kind delete cluster
-	kind create cluster --config kubernetes/kind-config.yaml --image kindest/node:v1.19.1 --retain
+	kind create cluster --config kind-config.yaml --image kindest/node:v1.19.1 --retain

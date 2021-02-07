@@ -12,7 +12,7 @@ kind create cluster
 Or with a custom config (to use eckd)
 
 ```shell
-kind create cluster --config kubernetes/kind-config.yaml
+kind create cluster --config kind-config.yaml
 ```
 
 2. Extract api server client certificates and etcd ca cert
