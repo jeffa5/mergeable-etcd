@@ -5,7 +5,7 @@ pub struct EtcdContainer;
 // TODO: once https://github.com/fussybeaver/bollard/issues/130 is resolved, use bollard instead
 impl EtcdContainer {
     pub fn new() -> Self {
-        let out = Command::new("docker")
+        let _out = Command::new("docker")
             .args(&[
                 "run",
                 "--name",

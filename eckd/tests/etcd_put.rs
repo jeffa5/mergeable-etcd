@@ -40,7 +40,7 @@ fn put() {
                 etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
                     .await
                     .unwrap();
-            let kv_res = match eckd_client.put(eckd_request).await {
+            let eckd_response = match eckd_client.put(eckd_request).await {
                 Ok(r) => {
                     let mut r = r.into_inner();
                     r.header = None;
@@ -52,7 +52,7 @@ fn put() {
                 }
             };
 
-            let response = match etcd_client.put(etcd_request).await {
+            let etcd_response = match etcd_client.put(etcd_request).await {
                 Ok(r) => {
                     let mut r = r.into_inner();
                     r.header = None;
@@ -64,12 +64,12 @@ fn put() {
                 }
             };
 
-            if response != kv_res {
-                println!("etcd: {:?}", response);
-                println!("eckd: {:?}", kv_res);
+            if etcd_response != eckd_response {
+                println!("etcd: {:?}", etcd_response);
+                println!("eckd: {:?}", eckd_response);
             }
 
-            response == kv_res
+            etcd_response == eckd_response
         })
     }
 
