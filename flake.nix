@@ -89,7 +89,7 @@
           devShell = pkgs.mkShell {
             buildInputs = with pkgs;[
               (rust.override {
-                extensions = [ "rust-src" ];
+                extensions = [ "rust-src" "rustfmt" ];
               })
               cargo-edit
               cargo-watch
