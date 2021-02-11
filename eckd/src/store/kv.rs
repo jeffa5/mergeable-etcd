@@ -136,6 +136,7 @@ impl Value {
 pub enum K8sValue {
     Lease(kubernetes_proto::k8s::api::coordination::v1::Lease),
     Endpoints(kubernetes_proto::k8s::api::core::v1::Endpoints),
+    Pod(kubernetes_proto::k8s::api::core::v1::Pod),
     Unknown(kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown),
     Json(serde_json::Value),
 }
@@ -182,6 +183,13 @@ impl TryFrom<&[u8]> for K8sValue {
                     K8sValue::Endpoints(
                         endpoints.expect("Failed decoding Endpoints resource from raw"),
                     )
+                }
+                (Some("v1"), Some("Pod")) => {
+                    let pod = kubernetes_proto::k8s::api::core::v1::Pod::decode(
+                        &unknown.raw.unwrap()[..],
+                    );
+                    info!("Pod: {:?}", pod);
+                    K8sValue::Pod(pod.expect("Failed decoding Pod resource from raw"))
                 }
                 (api_version, kind) => {
                     warn!("Unknown api_version {:?} and kind {:?}", api_version, kind);
@@ -237,8 +245,8 @@ impl From<&K8sValue> for Vec<u8> {
                         },
                     ),
                     raw: Some(raw_bytes),
-                    content_encoding: None,
-                    content_type: None,
+                    content_encoding: Some(String::new()),
+                    content_type: Some(String::new()),
                 };
                 unknown.encode(&mut bytes).unwrap()
             }
@@ -253,12 +261,27 @@ impl From<&K8sValue> for Vec<u8> {
                         },
                     ),
                     raw: Some(raw_bytes),
-                    content_encoding: None,
-                    content_type: None,
+                    content_encoding: Some(String::new()),
+                    content_type: Some(String::new()),
                 };
                 unknown.encode(&mut bytes).unwrap()
             }
-
+            K8sValue::Pod(pod) => {
+                let mut raw_bytes = Vec::new();
+                pod.encode(&mut raw_bytes).unwrap();
+                let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(
+                        kubernetes_proto::k8s::apimachinery::pkg::runtime::TypeMeta {
+                            api_version: Some("v1".to_owned()),
+                            kind: Some("Pod".to_owned()),
+                        },
+                    ),
+                    raw: Some(raw_bytes),
+                    content_encoding: Some(String::new()),
+                    content_type: Some(String::new()),
+                };
+                unknown.encode(&mut bytes).unwrap()
+            }
             K8sValue::Unknown(unknown) => unknown.encode(&mut bytes).unwrap(),
             K8sValue::Json(json) => serde_json::to_writer(&mut bytes, &json).unwrap(),
         };
@@ -430,6 +453,15 @@ mod tests {
     fn k8svalue_endpoints_serde() {
         let inner = kubernetes_proto::k8s::api::core::v1::Endpoints::default();
         let val = K8sValue::Endpoints(inner);
+        let buf: Vec<u8> = (&val).into();
+        let val_back = K8sValue::try_from(buf).unwrap();
+        assert_eq!(val, val_back);
+    }
+
+    #[test]
+    fn k8svalue_pod_serde() {
+        let inner = kubernetes_proto::k8s::api::core::v1::Pod::default();
+        let val = K8sValue::Pod(inner);
         let buf: Vec<u8> = (&val).into();
         let val_back = K8sValue::try_from(buf).unwrap();
         assert_eq!(val, val_back);
