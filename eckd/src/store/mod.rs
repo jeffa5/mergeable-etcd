@@ -1,5 +1,7 @@
-use std::{convert::TryInto, path::Path};
-use std::convert::TryFrom;
+use std::{
+    convert::{TryFrom, TryInto},
+    path::Path,
+};
 
 use etcd_proto::etcdserverpb::{
     compare::{CompareResult, CompareTarget, TargetUnion},
@@ -277,7 +279,10 @@ fn transaction_inner(
             ),
             (CompareTarget::Value, Some(TargetUnion::Value(test_value))) => comp(
                 compare.result(),
-                &value.map(|v| v.value.map(|v| v.into())).unwrap_or_default().unwrap(),
+                &value
+                    .map(|v| v.value.map(|v| v.into()))
+                    .unwrap_or_default()
+                    .unwrap(),
                 test_value,
             ),
             (target, target_union) => panic!(
@@ -328,7 +333,7 @@ fn transaction_inner(
                 }
             }
             Some(Request::RequestPut(request)) => {
-            let value = kv::K8sValue::try_from(&request.value).unwrap();
+                let value = kv::K8sValue::try_from(&request.value).unwrap();
                 let (_, prev_kv) = insert_inner(
                     request.key.clone(),
                     value,
