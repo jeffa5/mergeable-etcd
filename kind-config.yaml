@@ -7,5 +7,5 @@ kubeadmConfigPatches:
     local:
       imageRepository: docker.io/jeffas
       imageTag: latest
-      extraArgs:
-        debug: ""
+      # extraArgs:
+      #   debug: ""
