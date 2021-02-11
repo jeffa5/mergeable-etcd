@@ -2454,6 +2454,11 @@ rec {
             packageId = "prost";
           }
           {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
             name = "tonic";
             packageId = "tonic";
           }
