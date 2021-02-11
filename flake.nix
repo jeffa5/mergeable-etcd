@@ -96,6 +96,8 @@
               cargo-udeps
               protobuf
               crate2nix
+              kubectl
+              k9s
 
               cfssl
               etcd
