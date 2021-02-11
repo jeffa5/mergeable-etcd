@@ -1,4 +1,5 @@
 use std::{convert::TryInto, path::Path};
+use std::convert::TryFrom;
 
 use etcd_proto::etcdserverpb::{
     compare::{CompareResult, CompareTarget, TargetUnion},
@@ -81,7 +82,8 @@ impl Store {
             server.increment_revision();
             server_tree.insert(SERVER_KEY, server.serialize())?;
 
-            insert_inner(key.to_vec(), value.to_vec(), prev_kv, server, kv_tree)
+            let value = kv::K8sValue::try_from(value).unwrap();
+            insert_inner(key.to_vec(), value, prev_kv, server, kv_tree)
         })?;
         Ok(result)
     }
@@ -204,7 +206,7 @@ fn get_inner(
 
 fn insert_inner(
     key: Vec<u8>,
-    value: Vec<u8>,
+    value: kv::K8sValue,
     prev_kv: bool,
     server: Server,
     kv_tree: &TransactionalTree,
@@ -275,7 +277,7 @@ fn transaction_inner(
             ),
             (CompareTarget::Value, Some(TargetUnion::Value(test_value))) => comp(
                 compare.result(),
-                &value.map(|v| v.value).unwrap_or_default().unwrap(),
+                &value.map(|v| v.value.map(|v| v.into())).unwrap_or_default().unwrap(),
                 test_value,
             ),
             (target, target_union) => panic!(
@@ -326,9 +328,10 @@ fn transaction_inner(
                 }
             }
             Some(Request::RequestPut(request)) => {
+            let value = kv::K8sValue::try_from(&request.value).unwrap();
                 let (_, prev_kv) = insert_inner(
                     request.key.clone(),
-                    request.value.clone(),
+                    value,
                     request.prev_kv,
                     server.clone(),
                     kv_tree,
