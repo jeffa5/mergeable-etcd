@@ -1,4 +1,5 @@
 mod common;
+use std::collections::HashMap;
 
 use common::EtcdContainer;
 use tonic::Request;
@@ -8,13 +9,16 @@ struct PutRequest(etcd_proto::etcdserverpb::PutRequest);
 
 impl quickcheck::Arbitrary for PutRequest {
     fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+        let v = String::arbitrary(g);
+        let mut value = HashMap::new();
+        value.insert("v", v);
         PutRequest(etcd_proto::etcdserverpb::PutRequest {
             ignore_lease: bool::arbitrary(g),
             ignore_value: bool::arbitrary(g),
             key: Vec::arbitrary(g),
             lease: 0,
             prev_kv: bool::arbitrary(g),
-            value: Vec::arbitrary(g),
+            value: serde_json::to_vec(&value).unwrap(),
         })
     }
 }
