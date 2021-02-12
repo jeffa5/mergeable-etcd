@@ -27,7 +27,6 @@ impl WatchTrait for Watch {
         &self,
         request: Request<tonic::Streaming<WatchRequest>>,
     ) -> Result<Response<Self::WatchStream>, Status> {
-
         let server_clone = self.server.clone();
 
         let (tx_response, rx_response) = tokio::sync::mpsc::channel(1);
