@@ -27,6 +27,7 @@ impl EtcdContainer {
 
 impl Drop for EtcdContainer {
     fn drop(&mut self) {
+        println!("Dropping etcd container");
         Command::new("docker")
             .args(&["kill", "etcd"])
             .output()
