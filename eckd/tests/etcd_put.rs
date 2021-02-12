@@ -31,17 +31,11 @@ fn put() {
 
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let _etcd_container = EtcdContainer::new();
             let _eckd_server = common::EckdServer::new().await;
-            println!("creating etcd connection");
-            let mut etcd_client =
-                etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
-                    .await
-                    .unwrap();
 
             println!("creating eckd connection");
             let mut eckd_client =
-                etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
+                etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2389")
                     .await
                     .unwrap();
             let eckd_response = match eckd_client.put(eckd_request).await {
@@ -55,6 +49,13 @@ fn put() {
                     None
                 }
             };
+
+            let _etcd_container = EtcdContainer::new();
+            println!("creating etcd connection");
+            let mut etcd_client =
+                etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
+                    .await
+                    .unwrap();
 
             let etcd_response = match etcd_client.put(etcd_request).await {
                 Ok(r) => {
