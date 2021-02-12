@@ -82,11 +82,13 @@ impl HistoricValue {
     }
 
     pub fn serialize(&self) -> Vec<u8> {
-        bincode::serialize(self).expect("Serialize value")
+        let mut buf = Vec::new();
+        serde_json::to_writer(&mut buf, self).expect("Serialize value");
+        buf
     }
 
     pub fn deserialize(bytes: &[u8]) -> Self {
-        bincode::deserialize(bytes).expect("Deserialize value")
+        serde_json::from_slice(bytes).expect("Deserialize value")
     }
 }
 
@@ -149,6 +151,7 @@ impl TryFrom<&[u8]> for K8sValue {
         let rest = if value.len() >= 4 && value[0..4] == [b'k', b'8', b's', 0] {
             &value[4..]
         } else if let Ok(val) = serde_json::from_slice(value) {
+            info!("Found a json value");
             return Ok(K8sValue::Json(val));
         } else {
             return Err("value doesn't start with k8s prefix".to_owned());

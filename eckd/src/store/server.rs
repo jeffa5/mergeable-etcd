@@ -44,10 +44,12 @@ impl Server {
     }
 
     pub(super) fn serialize(&self) -> Vec<u8> {
-        bincode::serialize(self).expect("Serialize server")
+        let mut buf = Vec::new();
+        serde_json::to_writer(&mut buf, self).expect("Serialize server");
+        buf
     }
 
     pub(super) fn deserialize(bytes: &[u8]) -> Self {
-        bincode::deserialize(bytes).expect("Deserialize server")
+        serde_json::from_slice(bytes).expect("Deserialize server")
     }
 }

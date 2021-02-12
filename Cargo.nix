@@ -274,30 +274,6 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
-      "bincode" = rec {
-        crateName = "bincode";
-        version = "1.3.1";
-        edition = "2015";
-        sha256 = "0vc9pjh6hfp9vfq752sa88rxwg93ydhm0dvvy58rcvx2p8wkl3gk";
-        authors = [
-          "Ty Overby <ty@pre-alpha.com>"
-          "Francesco Mazzoli <f@mazzo.li>"
-          "David Tolnay <dtolnay@gmail.com>"
-          "Zoey Riordan <zoey@dos.cafe>"
-        ];
-        dependencies = [
-          {
-            name = "byteorder";
-            packageId = "byteorder";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-          }
-        ];
-        features = {
-        };
-      };
       "bitflags" = rec {
         crateName = "bitflags";
         version = "1.2.1";
@@ -1076,10 +1052,6 @@ rec {
           "Andrew Jeffery <dev@jeffas.io>"
         ];
         dependencies = [
-          {
-            name = "bincode";
-            packageId = "bincode";
-          }
           {
             name = "derive_builder";
             packageId = "derive_builder";
