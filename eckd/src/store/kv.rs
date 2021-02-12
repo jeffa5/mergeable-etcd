@@ -154,7 +154,7 @@ impl TryFrom<&[u8]> for K8sValue {
             info!("Found a json value");
             return Ok(K8sValue::Json(val));
         } else {
-            return Err("value doesn't start with k8s prefix".to_owned());
+            return Err("value doesn't start with k8s prefix and is not JSON".to_owned());
         };
 
         // parse unknown from protobuf
