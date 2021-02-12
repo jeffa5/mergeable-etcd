@@ -56,12 +56,16 @@ impl EckdServer {
             .listen_peer_urls(vec![])
             .initial_advertise_peer_urls(vec![])
             .initial_cluster(vec![])
-            .advertise_client_urls(vec![])
+            .advertise_client_urls(vec![eckd::address::Address::try_from(
+                "http://127.0.0.1:2389",
+            )
+            .unwrap()])
             .cert_file(None)
             .key_file(None);
         let server = server_builder.build().unwrap();
         let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(());
         tokio::spawn(async move { server.serve(shutdown_rx).await.unwrap() });
+        std::thread::sleep(std::time::Duration::from_millis(500));
         EckdServer {
             store_dir,
             shutdown_tx,
@@ -71,6 +75,7 @@ impl EckdServer {
 
 impl Drop for EckdServer {
     fn drop(&mut self) {
+        println!("Dropping eckd server");
         self.shutdown_tx.send(()).unwrap()
     }
 }
