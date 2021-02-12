@@ -43,6 +43,7 @@ impl Store {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn get(
         &self,
         key: Vec<u8>,
@@ -70,6 +71,7 @@ impl Store {
         Ok((server, values))
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn insert(
         &self,
         key: &[u8],
@@ -90,6 +92,7 @@ impl Store {
         Ok(result)
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn remove(&self, key: &[u8]) -> Result<(Server, Option<Value>), Error> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
@@ -104,6 +107,7 @@ impl Store {
         Ok(result)
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn txn(&self, request: &TxnRequest) -> Result<(Server, bool, Vec<ResponseOp>), Error> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let server = server_tree
@@ -116,7 +120,8 @@ impl Store {
         Ok(result)
     }
 
-    pub async fn watch_prefix<P: AsRef<[u8]> + Send>(
+    #[tracing::instrument(skip(self))]
+    pub async fn watch_prefix<P: AsRef<[u8]> + Send+ std::fmt::Debug>(
         &self,
         prefix: P,
         tx: tokio::sync::mpsc::Sender<(Server, sled::Event)>,
@@ -137,6 +142,7 @@ impl Store {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn current_server(&self) -> Server {
         self.server
             .get(SERVER_KEY)
@@ -145,6 +151,7 @@ impl Store {
             .unwrap_or_default()
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn create_lease(&self, id: Option<i64>, ttl: i64) -> Result<(Server, i64, i64), Error> {
         let result = (&self.server, &self.lease).transaction(|(server_tree, lease_tree)| {
             let server = server_tree
@@ -158,6 +165,7 @@ impl Store {
         Ok(result)
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn refresh_lease(&self, id: i64) -> Result<(Server, i64), Error> {
         let result = (&self.server, &self.lease).transaction(|(server_tree, lease_tree)| {
             let server = server_tree
@@ -174,6 +182,7 @@ impl Store {
         Ok(result)
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn revoke_lease(&self, id: i64) -> Result<Server, Error> {
         let result = (&self.kv, &self.server, &self.lease).transaction(
             |(_kv_tree, server_tree, lease_tree)| {

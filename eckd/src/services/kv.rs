@@ -22,6 +22,7 @@ impl KV {
 
 #[tonic::async_trait]
 impl Kv for KV {
+    #[tracing::instrument(skip(self))]
     async fn range(
         &self,
         request: Request<RangeRequest>,
@@ -88,6 +89,7 @@ impl Kv for KV {
         Ok(Response::new(reply))
     }
 
+    #[tracing::instrument(skip(self))]
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let request = request.into_inner();
         assert_eq!(request.lease, 0);
@@ -108,6 +110,7 @@ impl Kv for KV {
         Ok(Response::new(reply))
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete_range(
         &self,
         request: Request<DeleteRangeRequest>,
@@ -129,6 +132,7 @@ impl Kv for KV {
         Ok(Response::new(reply))
     }
 
+    #[tracing::instrument(skip(self))]
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
         let request = request.into_inner();
         debug!("txn: {:?}", request);
@@ -141,6 +145,7 @@ impl Kv for KV {
         Ok(Response::new(reply))
     }
 
+    #[tracing::instrument(skip(self))]
     async fn compact(
         &self,
         request: Request<CompactionRequest>,
