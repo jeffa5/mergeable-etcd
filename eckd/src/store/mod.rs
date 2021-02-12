@@ -364,9 +364,7 @@ fn transaction_inner(
                     response: Some(Response::ResponseDeleteRange(reply)),
                 }
             }
-            Some(Request::RequestTxn(request)) => ResponseOp {
-                response: Some(Response::ResponseTxn(todo!())),
-            },
+            Some(Request::RequestTxn(_request)) => todo!(),
             None => unimplemented!(),
         })
         .collect::<Vec<_>>();
