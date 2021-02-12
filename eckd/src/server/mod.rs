@@ -6,8 +6,8 @@ use std::{
 
 use derive_builder::Builder;
 use etcd_proto::etcdserverpb::WatchResponse;
-use log::info;
 use tonic::{transport::Identity, Status};
+use tracing::info;
 
 use crate::address::{Address, NamedAddress, Scheme};
 

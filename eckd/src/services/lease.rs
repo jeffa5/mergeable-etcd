@@ -6,8 +6,8 @@ use etcd_proto::etcdserverpb::{
     LeaseRevokeRequest, LeaseRevokeResponse, LeaseTimeToLiveRequest, LeaseTimeToLiveResponse,
 };
 use futures::{Stream, StreamExt};
-use log::info;
 use tonic::{Request, Response, Status, Streaming};
+use tracing::info;
 
 #[derive(Debug)]
 pub struct Lease {

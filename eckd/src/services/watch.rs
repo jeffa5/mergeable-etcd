@@ -4,8 +4,8 @@ use etcd_proto::etcdserverpb::{
     watch_request::RequestUnion, watch_server::Watch as WatchTrait, WatchRequest, WatchResponse,
 };
 use futures::{Stream, StreamExt};
-use log::{debug, warn};
 use tonic::{Request, Response, Status};
+use tracing::{debug, warn};
 
 #[derive(Debug)]
 pub struct Watch {

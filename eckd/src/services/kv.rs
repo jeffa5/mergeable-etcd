@@ -4,8 +4,8 @@ use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
     PutRequest, PutResponse, RangeRequest, RangeResponse, TxnRequest, TxnResponse,
 };
-use log::{debug, info};
 use tonic::{Request, Response, Status};
+use tracing::{debug, info};
 
 use crate::store::Value;
 

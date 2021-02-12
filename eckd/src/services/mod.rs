@@ -13,12 +13,12 @@ use etcd_proto::etcdserverpb::{
     watch_server::WatchServer,
 };
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
-use log::{info, warn};
 use tonic::{
     body::BoxBody,
     transport::{Identity, NamedService, Server, ServerTlsConfig},
 };
 use tower::Service;
+use tracing::{info, warn};
 
 pub async fn serve(
     address: SocketAddr,

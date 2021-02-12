@@ -4,9 +4,9 @@ use std::{
 };
 
 use etcd_proto::mvccpb::KeyValue;
-use log::{info, warn};
 use prost::Message;
 use serde::{Deserialize, Serialize};
+use tracing::{info, warn};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct HistoricValue {

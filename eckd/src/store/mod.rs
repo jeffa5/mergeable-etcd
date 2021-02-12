@@ -9,9 +9,9 @@ use etcd_proto::etcdserverpb::{
     response_op::Response,
     ResponseOp, TxnRequest,
 };
-use log::warn;
 use sled::{transaction::TransactionalTree, Transactional};
 use thiserror::Error;
+use tracing::warn;
 
 mod kv;
 mod server;

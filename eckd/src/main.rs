@@ -5,8 +5,8 @@
 use std::{convert::TryFrom, path::PathBuf};
 
 use eckd::address::{Address, NamedAddress};
-use log::{debug, info};
 use structopt::StructOpt;
+use tracing::{debug, info, Level};
 
 #[derive(Debug, StructOpt)]
 struct Options {
@@ -89,14 +89,14 @@ struct Options {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = Options::from_args();
 
-    simple_logger::SimpleLogger::new()
-        .with_level(if options.debug {
-            log::LevelFilter::Debug
+    let collector = tracing_subscriber::fmt()
+        .with_max_level(if options.debug {
+            Level::DEBUG
         } else {
-            log::LevelFilter::Info
+            Level::INFO
         })
-        .init()
-        .unwrap();
+        .finish();
+    tracing::subscriber::set_global_default(collector).unwrap();
 
     debug!("{:#?}", options);
 

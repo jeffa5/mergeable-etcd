@@ -4,7 +4,7 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Body, Method, Request, Response, Server, StatusCode,
 };
-use log::info;
+use tracing::info;
 
 use crate::address::Address;
 

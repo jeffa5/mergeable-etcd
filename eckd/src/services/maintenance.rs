@@ -7,8 +7,8 @@ use etcd_proto::etcdserverpb::{
     StatusRequest, StatusResponse,
 };
 use futures::Stream;
-use log::info;
 use tonic::{Request, Response, Status};
+use tracing::info;
 
 #[derive(Debug)]
 pub struct Maintenance {

@@ -1,7 +1,7 @@
 use etcd_proto::{etcdserverpb::WatchResponse, mvccpb};
-use log::{debug, warn};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tonic::Status;
+use tracing::{debug, warn};
 
 use crate::store::{HistoricValue, Server, Value};
 
