@@ -1,5 +1,6 @@
 use std::{
     convert::{TryFrom, TryInto},
+    num::NonZeroU64,
     path::Path,
 };
 
@@ -18,6 +19,13 @@ mod server;
 
 pub use kv::{HistoricValue, Value};
 pub use server::Server;
+
+/// A revision is a historic version of the datastore
+/// The revision must be positive and starts at 1
+pub type Revision = NonZeroU64;
+
+/// A version is a positive number, starting at 1 for creation of a value
+pub type Version = Option<NonZeroU64>;
 
 const SERVER_KEY: &str = "server";
 
@@ -48,7 +56,7 @@ impl Store {
         &self,
         key: Vec<u8>,
         range_end: Option<Vec<u8>>,
-        revision: Option<i64>,
+        revision: Option<Revision>,
     ) -> Result<(Server, Vec<Value>), Error> {
         let server = self.current_server();
         let mut values = Vec::new();
@@ -121,7 +129,7 @@ impl Store {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn watch_prefix<P: AsRef<[u8]> + Send+ std::fmt::Debug>(
+    pub async fn watch_prefix<P: AsRef<[u8]> + Send + std::fmt::Debug>(
         &self,
         prefix: P,
         tx: tokio::sync::mpsc::Sender<(Server, sled::Event)>,
@@ -274,17 +282,17 @@ fn transaction_inner(
         let (_, value) = get_inner(compare.key.clone(), kv_tree, server_tree).unwrap();
         match (compare.target(), compare.target_union.as_ref()) {
             (CompareTarget::Version, Some(TargetUnion::Version(version))) => {
-                comp(compare.result(), &value.map_or(0, |v| v.version), version)
+                comp(compare.result(), &value.map_or(0, |v| v.version.map_or(0, |v|v.get())), &(*version as u64))
             }
             (CompareTarget::Create, Some(TargetUnion::CreateRevision(revision))) => comp(
                 compare.result(),
-                &value.map_or(0, |v| v.create_revision),
-                revision,
+                &value.map_or(0, |v| v.create_revision.map_or(0, |v| v.get())),
+                &(*revision as u64),
             ),
             (CompareTarget::Mod, Some(TargetUnion::ModRevision(revision))) => comp(
                 compare.result(),
-                &value.map_or(0, |v| v.mod_revision),
-                revision,
+                &value.map_or(0, |v| v.mod_revision.get()),
+                &(*revision as u64),
             ),
             (CompareTarget::Value, Some(TargetUnion::Value(test_value))) => comp(
                 compare.result(),

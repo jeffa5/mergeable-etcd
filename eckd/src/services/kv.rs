@@ -1,4 +1,5 @@
 use std::convert::TryInto;
+use std::num::NonZeroU64;
 
 use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
@@ -43,18 +44,14 @@ impl Kv for KV {
         } else {
             Some(&request.range_end)
         };
-        let revision = if request.revision <= 0 {
-            None
-        } else {
-            Some(request.revision)
-        };
+        let revision = NonZeroU64::new(request.revision.try_into().unwrap());
         let (server, kvs) = self
             .server
             .store
             .get(request.key, range_end.cloned(), revision)
             .unwrap();
 
-        if request.revision > 0 && server.revision < request.revision {
+        if request.revision > 0 && server.revision < revision.unwrap(){
             return Err(Status::out_of_range(
                 "requested revision is greater than that of the current server",
             ));
@@ -66,7 +63,7 @@ impl Kv for KV {
         let mut kvs = if request.count_only {
             Vec::new()
         } else if request.keys_only {
-            kvs.into_iter().map(Value::key).collect::<Vec<_>>()
+            kvs.into_iter().map(Value::key_only).collect::<Vec<_>>()
         } else {
             kvs.into_iter().map(Value::key_value).collect::<Vec<_>>()
         };

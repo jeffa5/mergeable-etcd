@@ -1,11 +1,13 @@
+use super::Revision;
 use etcd_proto::etcdserverpb::ResponseHeader;
 use serde::{Deserialize, Serialize};
+use std::num::NonZeroU64;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Server {
     cluster_id: u64,
     member_id: u64,
-    pub revision: i64,
+    pub revision: Revision,
     raft_term: u64,
 }
 
@@ -16,11 +18,11 @@ impl Default for Server {
 }
 
 impl Server {
-    pub(super) const fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             cluster_id: 2345,
             member_id: 1234,
-            revision: 1,
+            revision: NonZeroU64::new(1).unwrap(),
             raft_term: 1,
         }
     }
@@ -29,7 +31,7 @@ impl Server {
         ResponseHeader {
             cluster_id: self.cluster_id,
             member_id: self.member_id,
-            revision: self.revision,
+            revision: self.revision.get() as i64,
             raft_term: self.raft_term,
         }
     }
@@ -38,8 +40,8 @@ impl Server {
         self.member_id
     }
 
-    pub(super) fn increment_revision(&mut self) -> i64 {
-        self.revision += 1;
+    pub(super) fn increment_revision(&mut self) -> Revision {
+        self.revision = NonZeroU64::new(self.revision.get() + 1).unwrap();
         self.revision
     }
 
