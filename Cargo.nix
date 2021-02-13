@@ -880,6 +880,12 @@ rec {
             name = "tempfile";
             packageId = "tempfile";
           }
+          {
+            name = "test-env-log";
+            packageId = "test-env-log";
+            usesDefaultFeatures = false;
+            features = [ "trace" ];
+          }
         ];
         
       };
@@ -3570,6 +3576,35 @@ rec {
           }
         ];
         
+      };
+      "test-env-log" = rec {
+        crateName = "test-env-log";
+        version = "0.2.5";
+        edition = "2018";
+        sha256 = "0w1nmavjiywvvihj83f0cyd53dy074h742gqwgznq58j4dqsf0mp";
+        procMacro = true;
+        authors = [
+          "Daniel Mueller <deso@posteo.net>"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn";
+            features = [ "full" ];
+          }
+        ];
+        features = {
+          "default" = [ "log" ];
+        };
+        resolvedDefaultFeatures = [ "trace" ];
       };
       "textwrap" = rec {
         crateName = "textwrap";

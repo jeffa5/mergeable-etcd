@@ -288,6 +288,7 @@ dependencies = [
  "sled",
  "structopt",
  "tempfile",
+ "test-env-log",
  "thiserror",
  "tokio",
  "tokio-stream",
@@ -1307,6 +1308,17 @@ dependencies = [
  "redox_syscall 0.2.4",
  "remove_dir_all",
  "winapi",
+]
+
+[[package]]
+name = "test-env-log"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b702a7712312156cffe3f809722039c0b7519a67c00d2461dc9bfb28b7aa3670"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

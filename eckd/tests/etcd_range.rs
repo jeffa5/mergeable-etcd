@@ -1,6 +1,7 @@
 mod common;
 
 use common::EtcdContainer;
+use test_env_log::test;
 use tonic::Request;
 
 #[derive(Clone, Debug)]
