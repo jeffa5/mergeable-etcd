@@ -8,6 +8,7 @@ use tracing::info;
 
 use crate::address::Address;
 
+#[tracing::instrument]
 async fn health(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     info!("http request: {} {}", req.method(), req.uri());
     if req.method() == Method::GET && req.uri().path() == "/health" {
