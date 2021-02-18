@@ -1,10 +1,14 @@
+use std::{convert::TryFrom, num::NonZeroU64};
+
 use etcd_proto::{etcdserverpb::WatchResponse, mvccpb};
-use std::num::NonZeroU64;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tonic::Status;
 use tracing::{debug, warn};
 
-use crate::store::{HistoricValue, Server, Value};
+use crate::store::{
+    value::{HistoricValue, Value},
+    Server, SnapshotValue,
+};
 
 #[derive(Debug)]
 pub struct Watcher {
@@ -26,10 +30,10 @@ impl Watcher {
                         debug!("Got a watch event {:?}", event);
                         let event = match event {
                             sled::Event::Insert { key, value } => {
-                                let history = HistoricValue::deserialize(&value);
+                                let history = Value::try_from(value).unwrap();
                                 let latest_value = history.latest_value(key.to_vec());
                                 let (prev_kv,ty) = if let Some(ref latest_value) = latest_value {
-                                    (history.value_at_revision(NonZeroU64::new(latest_value.mod_revision.get()-1).unwrap(),key.to_vec()).map(Value::key_value), if latest_value.is_deleted() {
+                                    (history.value_at_revision(NonZeroU64::new(latest_value.mod_revision.get()-1).unwrap(),key.to_vec()).map(SnapshotValue::key_value), if latest_value.is_deleted() {
                                         mvccpb::event::EventType::Delete
                                     } else {
                                         mvccpb::event::EventType::Put
@@ -38,7 +42,7 @@ impl Watcher {
                                     unreachable!()
                                 };
                                 mvccpb::Event {
-                                    kv: latest_value.map(Value::key_value),
+                                    kv: latest_value.map(SnapshotValue::key_value),
                                     prev_kv ,
                                     r#type: ty as i32,
                                 }

@@ -14,21 +14,27 @@ use sled::{transaction::TransactionalTree, Transactional};
 use thiserror::Error;
 use tracing::warn;
 
-mod kv;
 mod server;
+pub mod value;
 
-pub use kv::{HistoricValue, Value};
 pub use server::Server;
+pub use value::{HistoricValue, SnapshotValue, Value};
 
 /// A revision is a historic version of the datastore
 /// The revision must be positive and starts at 1
 pub type Revision = NonZeroU64;
 
-/// A version is a positive number, starting at 1 for creation of a value
+/// The version of a resource
+///
+/// - `None` if the resource has been deleted at the revision
+/// - `Some(n)` otherwise and n will be the number of changes since creation
 pub type Version = Option<NonZeroU64>;
 
 const SERVER_KEY: &str = "server";
 
+/// The central store of data
+///
+/// Stores the underlying database and trees required for the operations
 #[derive(Debug, Clone)]
 pub struct Store {
     db: sled::Db,
@@ -57,21 +63,24 @@ impl Store {
         key: Vec<u8>,
         range_end: Option<Vec<u8>>,
         revision: Option<Revision>,
-    ) -> Result<(Server, Vec<Value>), Error> {
+    ) -> Result<(Server, Vec<SnapshotValue>), Error> {
         let server = self.current_server();
         let mut values = Vec::new();
         let revision = revision.unwrap_or(server.revision);
         if let Some(range_end) = range_end {
             for kv in self.kv.range(key..range_end) {
                 let (key, value) = kv?;
-                if let Some(value) =
-                    HistoricValue::deserialize(&value).value_at_revision(revision, key.to_vec())
+                if let Some(value) = Value::try_from(value)
+                    .unwrap()
+                    .value_at_revision(revision, key.to_vec())
                 {
                     values.push(value)
                 }
             }
         } else if let Some(value) = self.kv.get(&key)? {
-            if let Some(value) = HistoricValue::deserialize(&value).value_at_revision(revision, key)
+            if let Some(value) = Value::try_from(value)
+                .unwrap()
+                .value_at_revision(revision, key)
             {
                 values.push(value)
             }
@@ -85,7 +94,7 @@ impl Store {
         key: &[u8],
         value: &[u8],
         prev_kv: bool,
-    ) -> Result<(Server, Option<Value>), Error> {
+    ) -> Result<(Server, Option<SnapshotValue>), Error> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
@@ -94,14 +103,13 @@ impl Store {
             server.increment_revision();
             server_tree.insert(SERVER_KEY, server.serialize())?;
 
-            let value = kv::K8sValue::try_from(value).unwrap();
-            insert_inner(key.to_vec(), value, prev_kv, server, kv_tree)
+            insert_inner(key.to_vec(), value.to_vec(), prev_kv, server, kv_tree)
         })?;
         Ok(result)
     }
 
     #[tracing::instrument(skip(self))]
-    pub fn remove(&self, key: &[u8]) -> Result<(Server, Option<Value>), Error> {
+    pub fn remove(&self, key: &[u8]) -> Result<(Server, Option<SnapshotValue>), Error> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
@@ -211,28 +219,28 @@ fn get_inner(
     key: Vec<u8>,
     kv_tree: &TransactionalTree,
     server_tree: &TransactionalTree,
-) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
+) -> Result<(Server, Option<SnapshotValue>), sled::transaction::ConflictableTransactionError> {
     let server = server_tree
         .get(SERVER_KEY)?
         .map(|server| Server::deserialize(&server))
         .unwrap_or_default();
     let val = kv_tree
         .get(&key)?
-        .map(|v| HistoricValue::deserialize(&v))
+        .map(|v| Value::try_from(v).unwrap())
         .and_then(|historic| historic.value_at_revision(server.revision, key));
     Ok((server, val))
 }
 
 fn insert_inner(
     key: Vec<u8>,
-    value: kv::K8sValue,
+    value: Vec<u8>,
     prev_kv: bool,
     server: Server,
     kv_tree: &TransactionalTree,
-) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
+) -> Result<(Server, Option<SnapshotValue>), sled::transaction::ConflictableTransactionError> {
     let mut existing = kv_tree
         .get(&key)?
-        .map(|v| HistoricValue::deserialize(&v))
+        .map(|v| Value::try_from(v).unwrap())
         .unwrap_or_default();
     let prev = if prev_kv {
         existing.value_at_revision(server.revision, key.clone())
@@ -240,7 +248,7 @@ fn insert_inner(
         None
     };
     existing.insert(server.revision, value);
-    kv_tree.insert(key, existing.serialize())?;
+    kv_tree.insert(key, existing)?;
     Ok((server, prev))
 }
 
@@ -248,13 +256,13 @@ fn remove_inner(
     key: Vec<u8>,
     server: Server,
     kv_tree: &TransactionalTree,
-) -> Result<(Server, Option<Value>), sled::transaction::ConflictableTransactionError> {
+) -> Result<(Server, Option<SnapshotValue>), sled::transaction::ConflictableTransactionError> {
     // don't actually remove it, just get it and set the value to None (and update meta)
-    let historic = kv_tree.get(&key)?.map(|v| HistoricValue::deserialize(&v));
+    let historic = kv_tree.get(&key)?.map(|v| Value::try_from(v).unwrap());
     let prev_kv = if let Some(mut historic) = historic {
         let prev_kv = historic.value_at_revision(server.revision, key.clone());
         historic.delete(server.revision);
-        kv_tree.insert(key, historic.serialize())?;
+        kv_tree.insert(key, historic)?;
         prev_kv
     } else {
         None
@@ -281,9 +289,11 @@ fn transaction_inner(
     let success = request.compare.iter().all(|compare| {
         let (_, value) = get_inner(compare.key.clone(), kv_tree, server_tree).unwrap();
         match (compare.target(), compare.target_union.as_ref()) {
-            (CompareTarget::Version, Some(TargetUnion::Version(version))) => {
-                comp(compare.result(), &value.map_or(0, |v| v.version.map_or(0, |v|v.get())), &(*version as u64))
-            }
+            (CompareTarget::Version, Some(TargetUnion::Version(version))) => comp(
+                compare.result(),
+                &value.map_or(0, |v| v.version.map_or(0, |v| v.get())),
+                &(*version as u64),
+            ),
             (CompareTarget::Create, Some(TargetUnion::CreateRevision(revision))) => comp(
                 compare.result(),
                 &value.map_or(0, |v| v.create_revision.map_or(0, |v| v.get())),
@@ -296,10 +306,7 @@ fn transaction_inner(
             ),
             (CompareTarget::Value, Some(TargetUnion::Value(test_value))) => comp(
                 compare.result(),
-                &value
-                    .map(|v| v.value.map(|v| v.into()))
-                    .unwrap_or_default()
-                    .unwrap(),
+                &value.map(|v| v.value).unwrap_or_default().unwrap(),
                 test_value,
             ),
             (target, target_union) => panic!(
@@ -350,16 +357,15 @@ fn transaction_inner(
                 }
             }
             Some(Request::RequestPut(request)) => {
-                let value = kv::K8sValue::try_from(&request.value).unwrap();
                 let (_, prev_kv) = insert_inner(
                     request.key.clone(),
-                    value,
+                    request.value.clone(),
                     request.prev_kv,
                     server.clone(),
                     kv_tree,
                 )
                 .unwrap();
-                let prev_kv = prev_kv.map(Value::key_value);
+                let prev_kv = prev_kv.map(SnapshotValue::key_value);
                 let reply = etcd_proto::etcdserverpb::PutResponse {
                     header: Some(server.header()),
                     prev_kv,
@@ -371,7 +377,7 @@ fn transaction_inner(
             Some(Request::RequestDeleteRange(request)) => {
                 let (_, prev_kv) =
                     remove_inner(request.key.clone(), server.clone(), kv_tree).unwrap();
-                let prev_kv = prev_kv.map(Value::key_value).unwrap();
+                let prev_kv = prev_kv.map(SnapshotValue::key_value).unwrap();
                 let reply = etcd_proto::etcdserverpb::DeleteRangeResponse {
                     header: Some(server.header()),
                     deleted: 1,
