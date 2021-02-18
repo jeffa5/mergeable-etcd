@@ -1,12 +1,18 @@
-use super::Revision;
-use etcd_proto::etcdserverpb::ResponseHeader;
-use serde::{Deserialize, Serialize};
 use std::num::NonZeroU64;
 
+use etcd_proto::etcdserverpb::ResponseHeader;
+use serde::{Deserialize, Serialize};
+
+use super::Revision;
+
+/// The state of the server
+///
+/// Contains the global revision for the server and information to generate the header for API requests
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Server {
     cluster_id: u64,
     member_id: u64,
+    /// The global revision of this server
     pub revision: Revision,
     raft_term: u64,
 }
@@ -21,7 +27,7 @@ impl Server {
     pub(super) fn new() -> Self {
         Self {
             cluster_id: 2345,
-            member_id: 1234,
+            member_id: rand::random(),
             revision: NonZeroU64::new(1).unwrap(),
             raft_term: 1,
         }

@@ -1,5 +1,4 @@
-use std::convert::TryInto;
-use std::num::NonZeroU64;
+use std::{convert::TryInto, num::NonZeroU64};
 
 use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
@@ -8,7 +7,7 @@ use etcd_proto::etcdserverpb::{
 use tonic::{Request, Response, Status};
 use tracing::{debug, info};
 
-use crate::store::Value;
+use crate::store::SnapshotValue;
 
 #[derive(Debug)]
 pub struct KV {
@@ -51,7 +50,7 @@ impl Kv for KV {
             .get(request.key, range_end.cloned(), revision)
             .unwrap();
 
-        if request.revision > 0 && server.revision < revision.unwrap(){
+        if request.revision > 0 && server.revision < revision.unwrap() {
             return Err(Status::out_of_range(
                 "requested revision is greater than that of the current server",
             ));
@@ -63,9 +62,13 @@ impl Kv for KV {
         let mut kvs = if request.count_only {
             Vec::new()
         } else if request.keys_only {
-            kvs.into_iter().map(Value::key_only).collect::<Vec<_>>()
+            kvs.into_iter()
+                .map(SnapshotValue::key_only)
+                .collect::<Vec<_>>()
         } else {
-            kvs.into_iter().map(Value::key_value).collect::<Vec<_>>()
+            kvs.into_iter()
+                .map(SnapshotValue::key_value)
+                .collect::<Vec<_>>()
         };
 
         if request.limit > 0 {
@@ -98,7 +101,7 @@ impl Kv for KV {
             .store
             .insert(&request.key, &request.value, request.prev_kv)
             .unwrap();
-        let prev_kv = prev_kv.map(Value::key_value);
+        let prev_kv = prev_kv.map(SnapshotValue::key_value);
 
         let reply = PutResponse {
             header: Some(server.header()),

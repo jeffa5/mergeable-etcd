@@ -1,30 +1,29 @@
 use std::{
     collections::BTreeMap,
     convert::{TryFrom, TryInto},
+    num::NonZeroU64,
 };
 
-use etcd_proto::mvccpb::KeyValue;
 use prost::Message;
 use serde::{Deserialize, Serialize};
-use std::num::NonZeroU64;
 use tracing::{info, warn};
 
-use super::Revision;
-use super::Version;
+use crate::store::{Revision, SnapshotValue, Version};
 
+/// An implementation of a stored value with history and produces snapshotvalues
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct HistoricValue {
+pub struct Value {
     revisions: BTreeMap<Revision, Option<K8sValue>>,
     lease_id: i64,
 }
 
-impl Default for HistoricValue {
+impl Default for Value {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl HistoricValue {
+impl Value {
     pub fn new() -> Self {
         Self {
             revisions: BTreeMap::new(),
@@ -53,24 +52,26 @@ impl HistoricValue {
             .count();
         NonZeroU64::new(version.try_into().unwrap())
     }
+}
 
-    pub fn value_at_revision(&self, revision: Revision, key: Vec<u8>) -> Option<Value> {
+impl crate::store::HistoricValue for Value {
+    fn value_at_revision(&self, revision: Revision, key: Vec<u8>) -> Option<SnapshotValue> {
         if let Some((&revision, value)) = self.revisions.iter().rfind(|(&k, _)| k <= revision) {
             let version = self.version(revision);
 
-            Some(Value {
+            Some(SnapshotValue {
                 key,
                 create_revision: self.create_revision(revision),
                 mod_revision: revision,
                 version,
-                value: value.clone(),
+                value: value.as_ref().map(|v| v.into()),
             })
         } else {
             None
         }
     }
 
-    pub fn latest_value(&self, key: Vec<u8>) -> Option<Value> {
+    fn latest_value(&self, key: Vec<u8>) -> Option<SnapshotValue> {
         if let Some(&revision) = self.revisions.keys().last() {
             self.value_at_revision(revision, key)
         } else {
@@ -78,79 +79,35 @@ impl HistoricValue {
         }
     }
 
-    pub fn insert(&mut self, revision: Revision, value: K8sValue) {
-        self.revisions.insert(revision, Some(value));
+    fn insert(&mut self, revision: Revision, value: Vec<u8>) {
+        let k8svalue = K8sValue::try_from(value).unwrap();
+        self.revisions.insert(revision, Some(k8svalue));
     }
 
-    pub fn delete(&mut self, revision: Revision) {
+    fn delete(&mut self, revision: Revision) {
         self.revisions.insert(revision, None);
     }
+}
 
-    pub fn serialize(&self) -> Vec<u8> {
-        let mut buf = Vec::new();
-        serde_json::to_writer(&mut buf, self).expect("Serialize value");
-        buf
-    }
-
-    pub fn deserialize(bytes: &[u8]) -> Self {
-        serde_json::from_slice(bytes).expect("Deserialize value")
+impl From<Value> for sled::IVec {
+    fn from(value: Value) -> Self {
+        serde_json::to_vec(&value).unwrap().into()
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Value {
-    /// the key for this value
-    pub key: Vec<u8>,
-    /// the create_revision of the value
-    /// None when this represents a deleted value (a tombstone)
-    /// Some when it is a valid and active value
-    pub create_revision: Option<Revision>,
-    /// revision of the latest modification
-    pub mod_revision: Revision,
-    /// version (number of changes, 1 indicates creation)
-    /// deletion resets this to 0
-    pub version: Version,
-    /// actual value
-    /// None when this is a deleted value (a tombstone)
-    /// Some when it is a valid and active value
-    pub value: Option<K8sValue>,
-}
+impl TryFrom<sled::IVec> for Value {
+    type Error = String;
 
-impl Value {
-    pub const fn is_deleted(&self) -> bool {
-        self.value.is_none()
-    }
-
-    pub fn key_value(self) -> KeyValue {
-        KeyValue {
-            create_revision: self.create_revision.map(|n| n.get() as i64).unwrap_or(0),
-            key: self.key,
-            lease: 0,
-            mod_revision: self.mod_revision.get() as i64,
-            value: self
-                .value
-                .map(|k| k.try_into().unwrap())
-                .unwrap_or_default(),
-            version: self.version.map(|n| n.get() as i64).unwrap_or(0),
-        }
-    }
-
-    pub fn key_only(self) -> KeyValue {
-        KeyValue {
-            create_revision: self.create_revision.map(|n| n.get() as i64).unwrap_or(0),
-            key: self.key,
-            lease: 0,
-            mod_revision: self.mod_revision.get() as i64,
-            value: Vec::new(),
-            version: self.version.map(|v| v.get() as i64).unwrap_or(0),
-        }
+    fn try_from(value: sled::IVec) -> Result<Self, Self::Error> {
+        let s = String::from_utf8(value.to_vec()).unwrap();
+        serde_json::from_str(&s).expect("Deserialize value")
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 // A K8s api value, encoded in protobuf format
 // https://kubernetes.io/docs/reference/using-api/api-concepts/#protobuf-encoding
-pub enum K8sValue {
+enum K8sValue {
     Lease(kubernetes_proto::k8s::api::coordination::v1::Lease),
     Endpoints(kubernetes_proto::k8s::api::core::v1::Endpoints),
     Pod(kubernetes_proto::k8s::api::core::v1::Pod),
@@ -309,17 +266,19 @@ impl From<&K8sValue> for Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::assert_eq;
     use std::num::NonZeroU64;
 
+    use pretty_assertions::assert_eq;
+
     use super::*;
+    use crate::store::HistoricValue;
 
     #[allow(clippy::too_many_lines)]
     #[test]
     fn historic_value() {
-        let mut v = HistoricValue::default();
+        let mut v = Value::default();
         assert_eq!(
-            HistoricValue {
+            Value {
                 revisions: BTreeMap::new(),
                 lease_id: 0
             },
@@ -331,105 +290,96 @@ mod tests {
             "default 1"
         );
 
-        v.insert(
-            NonZeroU64::new(2).unwrap(),
-            K8sValue::Json(serde_json::Value::default()),
-        );
+        v.insert(NonZeroU64::new(2).unwrap(), b"{}".to_vec());
         assert_eq!(
             None,
             v.value_at_revision(NonZeroU64::new(1).unwrap(), Vec::new()),
             "2@1"
         );
         assert_eq!(
-            Some(Value {
+            Some(SnapshotValue {
                 key: Vec::new(),
                 create_revision: NonZeroU64::new(2),
                 mod_revision: NonZeroU64::new(2).unwrap(),
                 version: NonZeroU64::new(1),
-                value: Some(K8sValue::Json(serde_json::Value::default()))
+                value: Some(b"{}".to_vec())
             }),
             v.value_at_revision(NonZeroU64::new(2).unwrap(), Vec::new()),
             "2@2"
         );
 
-        v.insert(
-            NonZeroU64::new(4).unwrap(),
-            K8sValue::Json(serde_json::Value::default()),
-        );
+        v.insert(NonZeroU64::new(4).unwrap(), b"{}".to_vec());
         assert_eq!(
-            Some(Value {
+            Some(SnapshotValue {
                 key: Vec::new(),
                 create_revision: NonZeroU64::new(2),
                 mod_revision: NonZeroU64::new(2).unwrap(),
                 version: NonZeroU64::new(1),
-                value: Some(K8sValue::Json(serde_json::Value::default()))
+                value: Some(b"{}".to_vec())
             }),
             v.value_at_revision(NonZeroU64::new(2).unwrap(), Vec::new()),
             "4@2"
         );
         assert_eq!(
-            Some(Value {
+            Some(SnapshotValue {
                 key: Vec::new(),
                 create_revision: NonZeroU64::new(2),
                 mod_revision: NonZeroU64::new(4).unwrap(),
                 version: NonZeroU64::new(2),
-                value: Some(K8sValue::Json(serde_json::Value::default()))
+                value: Some(b"{}".to_vec())
             }),
             v.value_at_revision(NonZeroU64::new(4).unwrap(), Vec::new()),
             "4@4"
         );
         assert_eq!(
-            Some(Value {
+            Some(SnapshotValue {
                 key: Vec::new(),
                 create_revision: NonZeroU64::new(2),
                 mod_revision: NonZeroU64::new(4).unwrap(),
                 version: NonZeroU64::new(2),
-                value: Some(K8sValue::Json(serde_json::Value::default()))
+                value: Some(b"{}".to_vec())
             }),
             v.value_at_revision(NonZeroU64::new(7).unwrap(), Vec::new()),
             "4@7"
         );
 
-        v.insert(
-            NonZeroU64::new(5).unwrap(),
-            K8sValue::Json(serde_json::Value::default()),
-        );
+        v.insert(NonZeroU64::new(5).unwrap(), b"{}".to_vec());
         assert_eq!(
-            Some(Value {
+            Some(SnapshotValue {
                 key: Vec::new(),
                 create_revision: NonZeroU64::new(2),
                 mod_revision: NonZeroU64::new(4).unwrap(),
                 version: NonZeroU64::new(2),
-                value: Some(K8sValue::Json(serde_json::Value::default()))
+                value: Some(b"{}".to_vec())
             }),
             v.value_at_revision(NonZeroU64::new(4).unwrap(), Vec::new()),
             "5@4"
         );
         assert_eq!(
-            Some(Value {
+            Some(SnapshotValue {
                 key: Vec::new(),
                 create_revision: NonZeroU64::new(2),
                 mod_revision: NonZeroU64::new(5).unwrap(),
                 version: NonZeroU64::new(3),
-                value: Some(K8sValue::Json(serde_json::Value::default()))
+                value: Some(b"{}".to_vec())
             }),
             v.value_at_revision(NonZeroU64::new(7).unwrap(), Vec::new()),
             "5@7"
         );
         v.delete(NonZeroU64::new(7).unwrap());
         assert_eq!(
-            Some(Value {
+            Some(SnapshotValue {
                 key: Vec::new(),
                 create_revision: NonZeroU64::new(2),
                 mod_revision: NonZeroU64::new(4).unwrap(),
                 version: NonZeroU64::new(2),
-                value: Some(K8sValue::Json(serde_json::Value::default()))
+                value: Some(b"{}".to_vec())
             }),
             v.value_at_revision(NonZeroU64::new(4).unwrap(), Vec::new()),
             "7@4"
         );
         assert_eq!(
-            Some(Value {
+            Some(SnapshotValue {
                 key: Vec::new(),
                 create_revision: None,
                 mod_revision: NonZeroU64::new(7).unwrap(),
@@ -440,28 +390,25 @@ mod tests {
             "7@7"
         );
         assert_eq!(
-            Some(Value {
+            Some(SnapshotValue {
                 key: Vec::new(),
                 create_revision: None,
                 mod_revision: NonZeroU64::new(7).unwrap(),
                 version: NonZeroU64::new(0),
-                value: None
+                value: None,
             }),
             v.value_at_revision(NonZeroU64::new(8).unwrap(), Vec::new()),
             "7@8"
         );
 
-        v.insert(
-            NonZeroU64::new(9).unwrap(),
-            K8sValue::Json(serde_json::Value::default()),
-        );
+        v.insert(NonZeroU64::new(9).unwrap(), b"{}".to_vec());
         assert_eq!(
-            Some(Value {
+            Some(SnapshotValue {
                 key: Vec::new(),
                 create_revision: NonZeroU64::new(9),
                 mod_revision: NonZeroU64::new(9).unwrap(),
                 version: NonZeroU64::new(1),
-                value: Some(K8sValue::Json(serde_json::Value::default()))
+                value: Some(b"{}".to_vec())
             }),
             v.latest_value(Vec::new()),
             "9@9"
