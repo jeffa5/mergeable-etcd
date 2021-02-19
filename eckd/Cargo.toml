@@ -3,6 +3,9 @@ name = "eckd"
 version = "0.1.0"
 authors = ["Andrew Jeffery <dev@jeffas.io>"]
 edition = "2018"
+description = "An eventually consistent Kubernetes datastore"
+readme = "README.md"
+repository = "https://gitlab.developers.cam.ac.uk/apj39/eckd-rs"
 
 [features]
 default = ["value-lww"]
