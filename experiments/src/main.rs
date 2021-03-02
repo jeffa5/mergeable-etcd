@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
 use exp::{ExperimentConfiguration, NamedExperiment};
@@ -42,6 +42,7 @@ impl exp::RunnableExperiment<'_> for Experiments {
         match (self, configuration) {
             (Self::ClusterLatency(c), Config::ClusterLatency(conf)) => c.run(conf, data_dir).await,
         }
+        tokio::time::sleep(Duration::from_secs(10)).await
     }
 
     async fn post_run(&self, configuration: &Self::RunConfiguration) {
