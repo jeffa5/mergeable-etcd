@@ -22,7 +22,7 @@ kubernetes-proto = { path = "../kubernetes-proto" }
 derive_builder = "0.9.0"
 structopt = "0.3.21"
 url = "2.2.0"
-thiserror = "1.0.23"
+thiserror = "1.0.24"
 futures = "0.3.12"
 serde = { version = "1.0.123", features = ["derive"] }
 hyper = "0.14.2"

@@ -35,6 +35,8 @@
           packages = {
             eckd = cargoNix.workspaceMembers.eckd.build;
 
+            eckd-experiments = cargoNix.workspaceMembers.experiments.build;
+
             eckd-etcd = pkgs.stdenv.mkDerivation {
               name = "eckd-etcd";
               src = packages.eckd;
