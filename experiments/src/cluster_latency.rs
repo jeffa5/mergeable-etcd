@@ -21,19 +21,24 @@ impl RunnableExperiment<'_> for Experiment {
     type RunConfiguration = Config;
 
     fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
-        vec![Config {
-            repeats: 3,
-            cluster_size: 3,
-            bench_args: vec![
-                "--conns=100".to_owned(),
-                "--clients=1000".to_owned(),
-                "put".to_owned(),
-                "--key-size=8".to_owned(),
-                "--sequential-keys".to_owned(),
-                "--total=100000".to_owned(),
-                "--val-size=256".to_owned(),
-            ],
-        }]
+        let mut confs = Vec::new();
+        let repeats = 3;
+        for cluster_size in (1..=21).step_by(2) {
+            confs.push(Config {
+                repeats,
+                cluster_size,
+                bench_args: vec![
+                    "--conns=100".to_owned(),
+                    "--clients=1000".to_owned(),
+                    "put".to_owned(),
+                    "--key-size=8".to_owned(),
+                    "--sequential-keys".to_owned(),
+                    "--total=100000".to_owned(),
+                    "--val-size=256".to_owned(),
+                ],
+            })
+        }
+        confs
     }
 
     async fn pre_run(&self, configuration: &Self::RunConfiguration) {
