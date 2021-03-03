@@ -3,22 +3,20 @@ use std::time::Duration;
 use async_trait::async_trait;
 use exp::{
     docker_runner::{ContainerConfig, Runner},
-    ExperimentConfiguration, NamedExperiment, RunnableExperiment,
+    ExperimentConfiguration,
 };
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 
 pub struct Experiment;
 
-impl NamedExperiment for Experiment {
+#[async_trait]
+impl exp::Experiment<'_> for Experiment {
+    type RunConfiguration = Config;
+
     fn name(&self) -> &str {
         "cluster_latency"
     }
-}
-
-#[async_trait]
-impl RunnableExperiment<'_> for Experiment {
-    type RunConfiguration = Config;
 
     fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
         let mut confs = Vec::new();
@@ -130,6 +128,10 @@ impl RunnableExperiment<'_> for Experiment {
 
     async fn post_run(&self, configuration: &Self::RunConfiguration) {
         println!("post run")
+    }
+
+    fn analyse(&self, exp_dir: std::path::PathBuf, date: chrono::DateTime<chrono::offset::Local>) {
+        println!("analyse")
     }
 }
 

@@ -1,7 +1,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
-use exp::{ExperimentConfiguration, NamedExperiment};
+use exp::ExperimentConfiguration;
 use serde::{Deserialize, Serialize};
 
 mod cluster_latency;
@@ -10,17 +10,15 @@ enum Experiments {
     ClusterLatency(cluster_latency::Experiment),
 }
 
-impl NamedExperiment for Experiments {
+#[async_trait]
+impl exp::Experiment<'_> for Experiments {
+    type RunConfiguration = Config;
+
     fn name(&self) -> &str {
         match self {
             Self::ClusterLatency(c) => c.name(),
         }
     }
-}
-
-#[async_trait]
-impl exp::RunnableExperiment<'_> for Experiments {
-    type RunConfiguration = Config;
 
     fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
         match self {
@@ -48,6 +46,12 @@ impl exp::RunnableExperiment<'_> for Experiments {
     async fn post_run(&self, configuration: &Self::RunConfiguration) {
         match (self, configuration) {
             (Self::ClusterLatency(c), Config::ClusterLatency(conf)) => c.post_run(conf).await,
+        }
+    }
+
+    fn analyse(&self, exp_dir: std::path::PathBuf, date: chrono::DateTime<chrono::offset::Local>) {
+        match self {
+            Self::ClusterLatency(c) => c.analyse(exp_dir, date),
         }
     }
 }
