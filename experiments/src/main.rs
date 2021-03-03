@@ -1,6 +1,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
+use clap::Clap;
 use exp::ExperimentConfiguration;
 use serde::{Deserialize, Serialize};
 
@@ -69,12 +70,35 @@ impl ExperimentConfiguration<'_> for Config {
     }
 }
 
+#[derive(Clap)]
+struct CliOptions {
+    /// Run all the experiments
+    #[clap(long)]
+    run: bool,
+    /// Analyse all the experiments
+    #[clap(long)]
+    analyse: bool,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let exps = vec![Experiments::ClusterLatency(cluster_latency::Experiment)];
-    let conf = exp::RunConfig {
-        output_dir: PathBuf::from("experiments-tests"),
-    };
-    exp::run(&exps, &conf).await?;
+
+    let opts = CliOptions::parse();
+    if opts.run {
+        let conf = exp::RunConfig {
+            output_dir: PathBuf::from("experiments-tests"),
+        };
+
+        exp::run(&exps, &conf).await?;
+    }
+
+    if opts.analyse {
+        let conf = exp::AnalyseConfig {
+            output_dir: PathBuf::from("experiments-tests"),
+            date: None,
+        };
+        exp::analyse(&exps, &conf).await?;
+    }
     Ok(())
 }
