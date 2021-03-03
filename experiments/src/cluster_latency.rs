@@ -20,8 +20,8 @@ impl exp::Experiment<'_> for Experiment {
 
     fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
         let mut confs = Vec::new();
-        let repeats = 3;
-        for cluster_size in (1..=21).step_by(2) {
+        let repeats = 2;
+        for cluster_size in (1..=3).step_by(2) {
             confs.push(Config {
                 repeats,
                 cluster_size,
