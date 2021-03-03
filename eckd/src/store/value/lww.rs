@@ -4,6 +4,7 @@ use std::{
     num::NonZeroU64,
 };
 
+use automergeable::{Automergeable, FromAutomerge, ToAutomerge};
 use prost::Message;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
@@ -11,7 +12,7 @@ use tracing::{info, warn};
 use crate::store::{Revision, SnapshotValue, Version};
 
 /// An implementation of a stored value with history and produces snapshotvalues
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Automergeable)]
 pub struct Value {
     revisions: BTreeMap<Revision, Option<K8sValue>>,
     lease_id: i64,
@@ -104,7 +105,7 @@ impl TryFrom<sled::IVec> for Value {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Automergeable)]
 // A K8s api value, encoded in protobuf format
 // https://kubernetes.io/docs/reference/using-api/api-concepts/#protobuf-encoding
 enum K8sValue {

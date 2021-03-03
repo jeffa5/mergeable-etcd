@@ -148,7 +148,7 @@ dependencies = [
 [[package]]
 name = "automergeable"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#6b8196246f86a57a4762f5ce1e512473207efb0c"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#d189e14fff9dce8724fc2a1970a0dbb164a4591f"
 dependencies = [
  "automerge",
  "automerge-protocol",
@@ -160,7 +160,7 @@ dependencies = [
 [[package]]
 name = "automergeable-derive"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#6b8196246f86a57a4762f5ce1e512473207efb0c"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#d189e14fff9dce8724fc2a1970a0dbb164a4591f"
 dependencies = [
  "automerge",
  "automergeable-traits",
@@ -172,10 +172,11 @@ dependencies = [
 [[package]]
 name = "automergeable-traits"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#6b8196246f86a57a4762f5ce1e512473207efb0c"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#d189e14fff9dce8724fc2a1970a0dbb164a4591f"
 dependencies = [
  "automerge",
  "automerge-protocol",
+ "serde_json",
  "thiserror",
 ]
 
@@ -834,6 +835,7 @@ dependencies = [
 name = "kubernetes-proto"
 version = "0.1.0"
 dependencies = [
+ "automergeable",
  "prost",
  "serde",
  "tonic",

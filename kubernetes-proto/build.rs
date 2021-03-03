@@ -1,6 +1,9 @@
 fn main() {
     tonic_build::configure()
-        .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]")
+        .type_attribute(
+            ".",
+            "#[derive(serde::Serialize, serde::Deserialize, automergeable::Automergeable)]",
+        )
         .compile(
             &[
                 "proto/k8s.io/api/core/v1/generated.proto",

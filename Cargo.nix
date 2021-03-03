@@ -485,8 +485,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "6b8196246f86a57a4762f5ce1e512473207efb0c";
-          sha256 = "19gmknn423vsvc6piy3ngl76spxbygwvfmsnbl1nfhgq34m3n61c";
+          rev = "d189e14fff9dce8724fc2a1970a0dbb164a4591f";
+          sha256 = "0b38wb4xakvasmzz108g6i58p4qbm76h8d80r4hcypp31q7jwhfi";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -522,8 +522,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "6b8196246f86a57a4762f5ce1e512473207efb0c";
-          sha256 = "19gmknn423vsvc6piy3ngl76spxbygwvfmsnbl1nfhgq34m3n61c";
+          rev = "d189e14fff9dce8724fc2a1970a0dbb164a4591f";
+          sha256 = "0b38wb4xakvasmzz108g6i58p4qbm76h8d80r4hcypp31q7jwhfi";
         };
         procMacro = true;
         authors = [
@@ -560,8 +560,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "6b8196246f86a57a4762f5ce1e512473207efb0c";
-          sha256 = "19gmknn423vsvc6piy3ngl76spxbygwvfmsnbl1nfhgq34m3n61c";
+          rev = "d189e14fff9dce8724fc2a1970a0dbb164a4591f";
+          sha256 = "0b38wb4xakvasmzz108g6i58p4qbm76h8d80r4hcypp31q7jwhfi";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -574,6 +574,10 @@ rec {
           {
             name = "automerge-protocol";
             packageId = "automerge-protocol";
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
           }
           {
             name = "thiserror";
@@ -2381,6 +2385,10 @@ rec {
           "Andrew Jeffery <dev@jeffas.io>"
         ];
         dependencies = [
+          {
+            name = "automergeable";
+            packageId = "automergeable";
+          }
           {
             name = "prost";
             packageId = "prost";
