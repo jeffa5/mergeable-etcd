@@ -98,8 +98,9 @@ checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
 name = "bollard"
-version = "0.10.0"
-source = "git+https://github.com/fussybeaver/bollard#243eec8fa4315c6daa7a31bcbb804342432ef1d6"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "699194c00f3a2effd3358d47f880646818e3d483190b17ebcdf598c654fb77e9"
 dependencies = [
  "base64",
  "bollard-stubs",
@@ -430,7 +431,7 @@ dependencies = [
 [[package]]
 name = "exp"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/exp?branch=main#9f581ab3a2cb3b64780ce0c79634a39a8226f426"
+source = "git+https://github.com/jeffa5/exp?branch=main#46d63f876d848240edb67385510872a3ee200110"
 dependencies = [
  "async-trait",
  "bollard",
@@ -645,9 +646,9 @@ dependencies = [
 
 [[package]]
 name = "hex"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "http"

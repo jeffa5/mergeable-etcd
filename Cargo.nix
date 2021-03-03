@@ -306,14 +306,9 @@ rec {
       };
       "bollard" = rec {
         crateName = "bollard";
-        version = "0.10.0";
+        version = "0.10.1";
         edition = "2018";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/fussybeaver/bollard";
-          rev = "243eec8fa4315c6daa7a31bcbb804342432ef1d6";
-          sha256 = "05bl57wi2pkhp2nn2xdaxb85gd39r77hx5qlaxn1am0pdb9j59nl";
-        };
+        sha256 = "1sbpzdacd67mrpmif2qrhgaf6638cj0ghiwd6p9zybis1z0994b9";
         authors = [
           "Bollard contributors"
         ];
@@ -1276,8 +1271,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/exp";
-          rev = "9f581ab3a2cb3b64780ce0c79634a39a8226f426";
-          sha256 = "12f9jyhvcy8x4fyazcdrnl0chhrb0kd8fi7wgc122fly0s9pz9zw";
+          rev = "46d63f876d848240edb67385510872a3ee200110";
+          sha256 = "0975h54czm63kd9hsmy4bwfzkcfqx1l1zv8056bjfbwsg18w9bs7";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -1917,16 +1912,17 @@ rec {
       };
       "hex" = rec {
         crateName = "hex";
-        version = "0.4.2";
+        version = "0.4.3";
         edition = "2018";
-        sha256 = "0dbf00j3h3pz0lw8jp245rwypna6i23l4cpvym8gsczin9c92kv4";
+        sha256 = "0w1a4davm1lgzpamwnba907aysmlrnygbqmfis2mqjx5m552a93z";
         authors = [
           "KokaKiwi <kokakiwi@kokakiwi.net>"
         ];
         features = {
           "default" = [ "std" ];
+          "std" = [ "alloc" ];
         };
-        resolvedDefaultFeatures = [ "default" "std" ];
+        resolvedDefaultFeatures = [ "alloc" "default" "std" ];
       };
       "http" = rec {
         crateName = "http";
