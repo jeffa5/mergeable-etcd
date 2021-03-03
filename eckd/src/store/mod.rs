@@ -243,22 +243,31 @@ fn insert_inner(
     server: Server,
     kv_tree: &TransactionalTree,
 ) -> Result<(Server, Option<SnapshotValue>), sled::transaction::ConflictableTransactionError> {
-    let mut existing = kv_tree
-        .get(&key)?
-        .and_then(|v| {
-            let backend = automerge::Backend::load(v.to_vec()).unwrap();
-            let patch = backend.get_patch().unwrap();
-            let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
-            document.get()
-        })
-        .unwrap_or_default();
-    let prev = if prev_kv {
-        existing.value_at_revision(server.revision, key.clone())
+    let mut prev = None;
+    let (mut backend, mut document) = if let Some(v) = kv_tree.get(&key)? {
+        let backend = automerge::Backend::load(v.to_vec()).unwrap();
+        let patch = backend.get_patch().unwrap();
+        let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
+        (backend, document)
     } else {
-        None
+        let backend = automerge::Backend::init();
+        let document = automergeable::Document::<Value>::new();
+        (backend, document)
     };
-    existing.insert(server.revision, value);
-    kv_tree.insert(key, existing)?;
+    let change = document
+        .change::<_, automerge::InvalidChangeRequest>(|existing| {
+            if prev_kv {
+                prev = existing.value_at_revision(server.revision, key.clone())
+            }
+            existing.insert(server.revision, value);
+            Ok(())
+        })
+        .unwrap();
+    if let Some(change) = change {
+        backend.apply_local_change(change).unwrap();
+    }
+    kv_tree.insert(key, backend.save().unwrap())?;
+
     Ok((server, prev))
 }
 
@@ -268,22 +277,29 @@ fn remove_inner(
     kv_tree: &TransactionalTree,
 ) -> Result<(Server, Option<SnapshotValue>), sled::transaction::ConflictableTransactionError> {
     // don't actually remove it, just get it and set the value to None (and update meta)
-    let historic = kv_tree.get(&key)?.and_then(|v| {
+    let (mut backend, mut document) = if let Some(v) = kv_tree.get(&key)? {
         let backend = automerge::Backend::load(v.to_vec()).unwrap();
         let patch = backend.get_patch().unwrap();
         let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
-        document.get()
-    });
-    let prev_kv = if let Some(mut historic) = historic {
-        let prev_kv = historic.value_at_revision(server.revision, key.clone());
-        historic.delete(server.revision);
-        kv_tree.insert(key, historic)?;
-        prev_kv
+        (backend, document)
     } else {
-        None
+        let backend = automerge::Backend::init();
+        let document = automergeable::Document::<Value>::new();
+        (backend, document)
     };
-
-    Ok((server, prev_kv))
+    let mut prev = None;
+    let change = document
+        .change::<_, automerge::InvalidChangeRequest>(|historic| {
+            prev = historic.value_at_revision(server.revision, key.clone());
+            historic.delete(server.revision);
+            Ok(())
+        })
+        .unwrap();
+    if let Some(change) = change {
+        backend.apply_local_change(change).unwrap();
+    }
+    kv_tree.insert(key, backend.save().unwrap())?;
+    Ok((server, prev))
 }
 
 fn comp<T: PartialEq + PartialOrd>(op: CompareResult, a: &T, b: &T) -> bool {
