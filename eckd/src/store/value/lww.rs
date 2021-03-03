@@ -4,7 +4,7 @@ use std::{
     num::NonZeroU64,
 };
 
-use automergeable::{Automergeable, FromAutomerge, ToAutomerge};
+use automergeable::Automergeable;
 use prost::Message;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
