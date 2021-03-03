@@ -1,8 +1,4 @@
-use std::{
-    convert::{TryFrom, TryInto},
-    num::NonZeroU64,
-    path::Path,
-};
+use std::{convert::TryInto, num::NonZeroU64, path::Path};
 
 use etcd_proto::etcdserverpb::{
     compare::{CompareResult, CompareTarget, TargetUnion},
@@ -70,7 +66,11 @@ impl Store {
         if let Some(range_end) = range_end {
             for kv in self.kv.range(key..range_end) {
                 let (key, value) = kv?;
-                if let Some(value) = Value::try_from(value)
+                let backend = automerge::Backend::load(value.to_vec()).unwrap();
+                let patch = backend.get_patch().unwrap();
+                let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
+                if let Some(value) = document
+                    .get()
                     .unwrap()
                     .value_at_revision(revision, key.to_vec())
                 {
@@ -78,10 +78,10 @@ impl Store {
                 }
             }
         } else if let Some(value) = self.kv.get(&key)? {
-            if let Some(value) = Value::try_from(value)
-                .unwrap()
-                .value_at_revision(revision, key)
-            {
+            let backend = automerge::Backend::load(value.to_vec()).unwrap();
+            let patch = backend.get_patch().unwrap();
+            let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
+            if let Some(value) = document.get().unwrap().value_at_revision(revision, key) {
                 values.push(value)
             }
         }
@@ -226,7 +226,12 @@ fn get_inner(
         .unwrap_or_default();
     let val = kv_tree
         .get(&key)?
-        .map(|v| Value::try_from(v).unwrap())
+        .and_then(|v| {
+            let backend = automerge::Backend::load(v.to_vec()).unwrap();
+            let patch = backend.get_patch().unwrap();
+            let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
+            document.get()
+        })
         .and_then(|historic| historic.value_at_revision(server.revision, key));
     Ok((server, val))
 }
@@ -240,7 +245,12 @@ fn insert_inner(
 ) -> Result<(Server, Option<SnapshotValue>), sled::transaction::ConflictableTransactionError> {
     let mut existing = kv_tree
         .get(&key)?
-        .map(|v| Value::try_from(v).unwrap())
+        .and_then(|v| {
+            let backend = automerge::Backend::load(v.to_vec()).unwrap();
+            let patch = backend.get_patch().unwrap();
+            let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
+            document.get()
+        })
         .unwrap_or_default();
     let prev = if prev_kv {
         existing.value_at_revision(server.revision, key.clone())
@@ -258,7 +268,12 @@ fn remove_inner(
     kv_tree: &TransactionalTree,
 ) -> Result<(Server, Option<SnapshotValue>), sled::transaction::ConflictableTransactionError> {
     // don't actually remove it, just get it and set the value to None (and update meta)
-    let historic = kv_tree.get(&key)?.map(|v| Value::try_from(v).unwrap());
+    let historic = kv_tree.get(&key)?.and_then(|v| {
+        let backend = automerge::Backend::load(v.to_vec()).unwrap();
+        let patch = backend.get_patch().unwrap();
+        let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
+        document.get()
+    });
     let prev_kv = if let Some(mut historic) = historic {
         let prev_kv = historic.value_at_revision(server.revision, key.clone());
         historic.delete(server.revision);
