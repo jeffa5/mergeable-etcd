@@ -12,7 +12,7 @@ enum Experiments {
 }
 
 #[async_trait]
-impl exp::Experiment<'_> for Experiments {
+impl exp::Experiment for Experiments {
     type RunConfiguration = Config;
 
     fn name(&self) -> &str {
@@ -50,9 +50,22 @@ impl exp::Experiment<'_> for Experiments {
         }
     }
 
-    fn analyse(&self, exp_dir: std::path::PathBuf, date: chrono::DateTime<chrono::offset::Local>) {
+    fn analyse(
+        &self,
+        exp_dir: std::path::PathBuf,
+        date: chrono::DateTime<chrono::offset::Local>,
+        configurations: &[Self::RunConfiguration],
+    ) {
         match self {
-            Self::ClusterLatency(c) => c.analyse(exp_dir, date),
+            Self::ClusterLatency(c) => {
+                let confs = configurations
+                    .iter()
+                    .map(|c| match c {
+                        Config::ClusterLatency(a) => a.clone(),
+                    })
+                    .collect::<Vec<_>>();
+                c.analyse(exp_dir, date, &confs)
+            }
         }
     }
 }
@@ -62,7 +75,7 @@ enum Config {
     ClusterLatency(cluster_latency::Config),
 }
 
-impl ExperimentConfiguration<'_> for Config {
+impl ExperimentConfiguration for Config {
     fn repeats(&self) -> u32 {
         match self {
             Self::ClusterLatency(c) => c.repeats(),

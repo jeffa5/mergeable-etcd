@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{fs::File, time::Duration};
 
 use async_trait::async_trait;
 use exp::{
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 pub struct Experiment;
 
 #[async_trait]
-impl exp::Experiment<'_> for Experiment {
+impl exp::Experiment for Experiment {
     type RunConfiguration = Config;
 
     fn name(&self) -> &str {
@@ -130,19 +130,24 @@ impl exp::Experiment<'_> for Experiment {
         println!("post run")
     }
 
-    fn analyse(&self, exp_dir: std::path::PathBuf, date: chrono::DateTime<chrono::offset::Local>) {
-        println!("analyse")
+    fn analyse(
+        &self,
+        exp_dir: std::path::PathBuf,
+        date: chrono::DateTime<chrono::offset::Local>,
+        configurations: &[Self::RunConfiguration],
+    ) {
+        println!("analyse {:?} {:?}", exp_dir, configurations);
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub repeats: u32,
     pub cluster_size: u32,
     pub bench_args: Vec<String>,
 }
 
-impl ExperimentConfiguration<'_> for Config {
+impl ExperimentConfiguration for Config {
     fn repeats(&self) -> u32 {
         self.repeats
     }

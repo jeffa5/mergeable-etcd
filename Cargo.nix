@@ -1389,8 +1389,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/exp";
-          rev = "46d63f876d848240edb67385510872a3ee200110";
-          sha256 = "0975h54czm63kd9hsmy4bwfzkcfqx1l1zv8056bjfbwsg18w9bs7";
+          rev = "f6ee39a39d93276a17e028316b3bd8a76aef5fe7";
+          sha256 = "0hjdpa0iv1z0snxf0wd0jnc0zqp8gbnqcv4jrqvf4ickr4qbkv62";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -1485,6 +1485,10 @@ rec {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
           }
           {
             name = "tokio";

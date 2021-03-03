@@ -463,7 +463,7 @@ dependencies = [
 [[package]]
 name = "exp"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/exp?branch=main#46d63f876d848240edb67385510872a3ee200110"
+source = "git+https://github.com/jeffa5/exp?branch=main#f6ee39a39d93276a17e028316b3bd8a76aef5fe7"
 dependencies = [
  "async-trait",
  "bollard",
@@ -489,6 +489,7 @@ dependencies = [
  "exp",
  "futures",
  "serde",
+ "serde_json",
  "tokio",
 ]
 
