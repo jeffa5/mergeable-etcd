@@ -110,7 +110,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     if opts.run {
         let conf = exp::RunConfig {
-            output_dir: PathBuf::from("experiments-tests"),
+            output_dir: PathBuf::from("experiments-results"),
         };
 
         exp::run(&exps, &conf).await?;
@@ -118,7 +118,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     if opts.analyse {
         let conf = exp::AnalyseConfig {
-            output_dir: PathBuf::from("experiments-tests"),
+            output_dir: PathBuf::from("experiments-results"),
             date: None,
         };
         exp::analyse(&exps, &conf).await?;
