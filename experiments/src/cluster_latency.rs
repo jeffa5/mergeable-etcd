@@ -1,4 +1,4 @@
-use std::{fs::File, time::Duration};
+use std::time::Duration;
 
 use async_trait::async_trait;
 use exp::{
@@ -12,18 +12,23 @@ pub struct Experiment;
 
 #[async_trait]
 impl exp::Experiment for Experiment {
-    type RunConfiguration = Config;
+    type Configuration = Config;
 
     fn name(&self) -> &str {
         "cluster_latency"
     }
 
-    fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
+    fn configurations(&self) -> Vec<Self::Configuration> {
         let mut confs = Vec::new();
         let repeats = 2;
         for cluster_size in (1..=3).step_by(2) {
+            let description = format!(
+                "Test etcd cluster latency and throughput at {} nodes",
+                cluster_size
+            );
             confs.push(Config {
                 repeats,
+                description,
                 cluster_size,
                 bench_args: vec![
                     "--conns=100".to_owned(),
@@ -39,11 +44,11 @@ impl exp::Experiment for Experiment {
         confs
     }
 
-    async fn pre_run(&self, configuration: &Self::RunConfiguration) {
-        println!("pre run")
+    async fn pre_run(&self, configuration: &Self::Configuration) {
+        println!("Running cluster_latency experiment: {:?}", configuration);
     }
 
-    async fn run(&self, configuration: &Self::RunConfiguration, repeat_dir: std::path::PathBuf) {
+    async fn run(&self, configuration: &Self::Configuration, repeat_dir: std::path::PathBuf) {
         let mut runner = Runner::new(repeat_dir).await;
         let mut initial_cluster = "node1=http://172.18.0.2:2380".to_owned();
         let mut client_urls = "http://172.18.0.2:2379".to_owned();
@@ -126,15 +131,13 @@ impl exp::Experiment for Experiment {
         runner.finish().await
     }
 
-    async fn post_run(&self, configuration: &Self::RunConfiguration) {
-        println!("post run")
-    }
+    async fn post_run(&self, configuration: &Self::Configuration) {}
 
     fn analyse(
         &self,
         exp_dir: std::path::PathBuf,
         date: chrono::DateTime<chrono::offset::Local>,
-        configurations: &[Self::RunConfiguration],
+        configurations: &[Self::Configuration],
     ) {
         println!("analyse {:?} {:?}", exp_dir, configurations);
     }
@@ -143,6 +146,7 @@ impl exp::Experiment for Experiment {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub repeats: u32,
+    pub description: String,
     pub cluster_size: u32,
     pub bench_args: Vec<String>,
 }
@@ -150,5 +154,9 @@ pub struct Config {
 impl ExperimentConfiguration for Config {
     fn repeats(&self) -> u32 {
         self.repeats
+    }
+
+    fn description(&self) -> &str {
+        &self.description
     }
 }

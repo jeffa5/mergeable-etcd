@@ -1233,6 +1233,10 @@ rec {
             packageId = "prost";
           }
           {
+            name = "rand";
+            packageId = "rand";
+          }
+          {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
@@ -1310,7 +1314,10 @@ rec {
             features = [ "trace" ];
           }
         ];
-        
+        features = {
+          "default" = [ "value-lww" ];
+        };
+        resolvedDefaultFeatures = [ "default" "value-lww" ];
       };
       "either" = rec {
         crateName = "either";
@@ -1389,8 +1396,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/exp";
-          rev = "f6ee39a39d93276a17e028316b3bd8a76aef5fe7";
-          sha256 = "0hjdpa0iv1z0snxf0wd0jnc0zqp8gbnqcv4jrqvf4ickr4qbkv62";
+          rev = "ffae4971aacb463d98fd36fa4fb3e6f42ed79aa1";
+          sha256 = "1mbm98n4hxfi5q05d5gj99773h7iby5p9ijnprkb4j1mkmdpqp52";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -2968,9 +2975,9 @@ rec {
       };
       "pin-project-lite" = rec {
         crateName = "pin-project-lite";
-        version = "0.2.5";
+        version = "0.2.6";
         edition = "2018";
-        sha256 = "12jlqmyw8sy3d5jc8ri4d3gg9z7wyl6rzjr2qz8kw0sb5r293x0c";
+        sha256 = "01g96zxghb33s1vsjmjpn9l3a2nxdqj7glf9lhq7q5wjkhjiy3nw";
         authors = [
           "Taiki Endo <te316e89@gmail.com>"
         ];

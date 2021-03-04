@@ -13,7 +13,7 @@ enum Experiments {
 
 #[async_trait]
 impl exp::Experiment for Experiments {
-    type RunConfiguration = Config;
+    type Configuration = Config;
 
     fn name(&self) -> &str {
         match self {
@@ -21,30 +21,30 @@ impl exp::Experiment for Experiments {
         }
     }
 
-    fn run_configurations(&self) -> Vec<Self::RunConfiguration> {
+    fn configurations(&self) -> Vec<Self::Configuration> {
         match self {
             Self::ClusterLatency(c) => c
-                .run_configurations()
+                .configurations()
                 .into_iter()
                 .map(Config::ClusterLatency)
                 .collect(),
         }
     }
 
-    async fn pre_run(&self, configuration: &Self::RunConfiguration) {
+    async fn pre_run(&self, configuration: &Self::Configuration) {
         match (self, configuration) {
             (Self::ClusterLatency(c), Config::ClusterLatency(conf)) => c.pre_run(conf).await,
         }
     }
 
-    async fn run(&self, configuration: &Self::RunConfiguration, data_dir: PathBuf) {
+    async fn run(&self, configuration: &Self::Configuration, data_dir: PathBuf) {
         match (self, configuration) {
             (Self::ClusterLatency(c), Config::ClusterLatency(conf)) => c.run(conf, data_dir).await,
         }
         tokio::time::sleep(Duration::from_secs(10)).await
     }
 
-    async fn post_run(&self, configuration: &Self::RunConfiguration) {
+    async fn post_run(&self, configuration: &Self::Configuration) {
         match (self, configuration) {
             (Self::ClusterLatency(c), Config::ClusterLatency(conf)) => c.post_run(conf).await,
         }
@@ -54,7 +54,7 @@ impl exp::Experiment for Experiments {
         &self,
         exp_dir: std::path::PathBuf,
         date: chrono::DateTime<chrono::offset::Local>,
-        configurations: &[Self::RunConfiguration],
+        configurations: &[Self::Configuration],
     ) {
         match self {
             Self::ClusterLatency(c) => {
@@ -81,6 +81,12 @@ impl ExperimentConfiguration for Config {
             Self::ClusterLatency(c) => c.repeats(),
         }
     }
+
+    fn description(&self) -> &str {
+        match self {
+            Self::ClusterLatency(c) => c.description(),
+        }
+    }
 }
 
 #[derive(Clap)]
@@ -98,6 +104,10 @@ async fn main() -> Result<(), anyhow::Error> {
     let exps = vec![Experiments::ClusterLatency(cluster_latency::Experiment)];
 
     let opts = CliOptions::parse();
+    if !opts.run && !opts.analyse {
+        println!("Neither run nor analyse specified")
+    }
+
     if opts.run {
         let conf = exp::RunConfig {
             output_dir: PathBuf::from("experiments-tests"),

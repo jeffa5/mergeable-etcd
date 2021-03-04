@@ -463,7 +463,7 @@ dependencies = [
 [[package]]
 name = "exp"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/exp?branch=main#f6ee39a39d93276a17e028316b3bd8a76aef5fe7"
+source = "git+https://github.com/jeffa5/exp?branch=main#ffae4971aacb463d98fd36fa4fb3e6f42ed79aa1"
 dependencies = [
  "async-trait",
  "bollard",
@@ -1049,9 +1049,9 @@ dependencies = [
 
 [[package]]
 name = "pin-project-lite"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cf491442e4b033ed1c722cb9f0df5fcfcf4de682466c46469c36bc47dc5548a"
+checksum = "dc0e1f259c92177c30a4c9d177246edd0a3568b25756a977d0632cf8fa37e905"
 
 [[package]]
 name = "pin-utils"
