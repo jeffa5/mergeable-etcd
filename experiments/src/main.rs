@@ -2,7 +2,7 @@ use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
 use clap::Clap;
-use exp::ExperimentConfiguration;
+use exp::{Environment, ExperimentConfiguration};
 use serde::{Deserialize, Serialize};
 
 mod cluster_latency;
@@ -53,18 +53,19 @@ impl exp::Experiment for Experiments {
     fn analyse(
         &self,
         exp_dir: std::path::PathBuf,
-        date: chrono::DateTime<chrono::offset::Local>,
-        configurations: &[Self::Configuration],
+        date: chrono::DateTime<chrono::offset::Utc>,
+        environment: Environment,
+        configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
         match self {
             Self::ClusterLatency(c) => {
                 let confs = configurations
-                    .iter()
-                    .map(|c| match c {
-                        Config::ClusterLatency(a) => a.clone(),
+                    .into_iter()
+                    .map(|(c, p)| match c {
+                        Config::ClusterLatency(a) => (a, p),
                     })
                     .collect::<Vec<_>>();
-                c.analyse(exp_dir, date, &confs)
+                c.analyse(exp_dir, date, environment, confs)
             }
         }
     }

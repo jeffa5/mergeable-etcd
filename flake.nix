@@ -101,6 +101,12 @@
               kubectl
               k9s
 
+              cmake
+              pkgconfig
+              freetype
+              expat
+              fontconfig
+
               cfssl
               etcd
               kind
