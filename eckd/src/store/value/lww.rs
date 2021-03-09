@@ -90,21 +90,6 @@ impl crate::store::HistoricValue for Value {
     }
 }
 
-impl From<Value> for sled::IVec {
-    fn from(value: Value) -> Self {
-        serde_json::to_vec(&value).unwrap().into()
-    }
-}
-
-impl TryFrom<sled::IVec> for Value {
-    type Error = String;
-
-    fn try_from(value: sled::IVec) -> Result<Self, Self::Error> {
-        let s = String::from_utf8(value.to_vec()).unwrap();
-        serde_json::from_str(&s).expect("Deserialize value")
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Automergeable)]
 // A K8s api value, encoded in protobuf format
 // https://kubernetes.io/docs/reference/using-api/api-concepts/#protobuf-encoding

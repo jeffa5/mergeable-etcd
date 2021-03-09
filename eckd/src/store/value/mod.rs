@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 #[cfg(feature = "value-lww")]
 mod lww;
 
@@ -59,9 +57,7 @@ impl SnapshotValue {
 
 /// A trait for values which contain the history of the object, methods to prepare to store and
 /// retrieve the value from the database.
-pub trait HistoricValue:
-    std::fmt::Debug + TryFrom<sled::IVec> + Into<sled::IVec> + Default
-{
+pub trait HistoricValue: std::fmt::Debug + Default {
     /// Get the value at a specific revision
     ///
     /// `key` is required to be able to build the RawValue

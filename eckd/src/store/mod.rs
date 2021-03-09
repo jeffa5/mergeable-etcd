@@ -66,22 +66,28 @@ impl Store {
         if let Some(range_end) = range_end {
             for kv in self.kv.range(key..range_end) {
                 let (key, value) = kv?;
-                let backend = automerge::Backend::load(value.to_vec()).unwrap();
-                let patch = backend.get_patch().unwrap();
-                let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
+                let backend = automerge::Backend::load(value.to_vec())
+                    .expect("failed loading backend in get");
+                let patch = backend.get_patch().expect("failed getting patch");
+                let document = automergeable::Document::<Value>::new_with_patch(patch)
+                    .expect("failed making document with patch");
                 if let Some(value) = document
                     .get()
-                    .unwrap()
-                    .value_at_revision(revision, key.to_vec())
+                    .and_then(|v| v.value_at_revision(revision, key.to_vec()))
                 {
                     values.push(value)
                 }
             }
         } else if let Some(value) = self.kv.get(&key)? {
-            let backend = automerge::Backend::load(value.to_vec()).unwrap();
-            let patch = backend.get_patch().unwrap();
-            let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
-            if let Some(value) = document.get().unwrap().value_at_revision(revision, key) {
+            let backend = automerge::Backend::load(value.to_vec())
+                .expect("failed loading backend in get single");
+            let patch = backend.get_patch().expect("failed getting patch");
+            let document = automergeable::Document::<Value>::new_with_patch(patch)
+                .expect("failed making document with patch");
+            if let Some(value) = document
+                .get()
+                .and_then(|v| v.value_at_revision(revision, key))
+            {
                 values.push(value)
             }
         }
@@ -227,9 +233,10 @@ fn get_inner(
     let val = kv_tree
         .get(&key)?
         .and_then(|v| {
-            let backend = automerge::Backend::load(v.to_vec()).unwrap();
-            let patch = backend.get_patch().unwrap();
-            let document = automergeable::Document::<Value>::new_with_patch(patch).unwrap();
+            let backend = automerge::Backend::load(v.to_vec()).expect("failed loading backend");
+            let patch = backend.get_patch().expect("failed getting patch");
+            let document = automergeable::Document::<Value>::new_with_patch(patch)
+                .expect("failed building document with patch");
             document.get()
         })
         .and_then(|historic| historic.value_at_revision(server.revision, key));
