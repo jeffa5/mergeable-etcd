@@ -3,7 +3,7 @@ use std::num::NonZeroU64;
 use etcd_proto::{etcdserverpb::WatchResponse, mvccpb};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tonic::Status;
-use tracing::{debug, warn};
+use tracing::{debug, error, warn};
 
 use crate::store::{
     value::{HistoricValue, Value},
@@ -33,25 +33,27 @@ impl Watcher {
                                 let backend = automerge::Backend::load(value.to_vec()).expect("failed loading backend");
                                 let patch = backend.get_patch().expect("failed getting patch");
                                 let document = automergeable::Document::<Value>::new_with_patch(patch).expect("failed making document with patch");
-                                let latest_value = document.get().and_then(|v| v.latest_value(key.to_vec())) ;
                                 let history = document.get();
-                                if let Some(history ) = history {
-                                let (prev_kv,ty) = if let Some(ref latest_value) = latest_value {
-                                    (history.value_at_revision(NonZeroU64::new(latest_value.mod_revision.get()-1).unwrap(),key.to_vec()).map(SnapshotValue::key_value), if latest_value.is_deleted() {
-                                        mvccpb::event::EventType::Delete
+                                let latest_value = history.as_ref().and_then(|v| v.latest_value(key.to_vec())) ;
+                                if let Some(history) = history {
+                                    let (prev_kv,ty) = if let Some(ref latest_value) = latest_value {
+                                        (history.value_at_revision(NonZeroU64::new(latest_value.mod_revision.get()-1).unwrap(),key.to_vec()).map(SnapshotValue::key_value), if latest_value.is_deleted() {
+                                            mvccpb::event::EventType::Delete
+                                        } else {
+                                            mvccpb::event::EventType::Put
+                                        })
                                     } else {
-                                        mvccpb::event::EventType::Put
-                                    })
+                                        error!(?key, ?history, "no latest value");
+                                        panic!("failed to find a latest value")
+                                    };
+                                    mvccpb::Event {
+                                        kv: latest_value.map(SnapshotValue::key_value),
+                                        prev_kv ,
+                                        r#type: ty as i32,
+                                    }
                                 } else {
-                                    unreachable!()
-                                };
-                                mvccpb::Event {
-                                    kv: latest_value.map(SnapshotValue::key_value),
-                                    prev_kv ,
-                                    r#type: ty as i32,
-                                }
-                                }else {
-                                    unreachable!()
+                                    error!(?key, ?history, "no history");
+                                    panic!("failed to find history")
                                 }
                             },
                             sled::Event::Remove { key: _ } => {
