@@ -87,20 +87,20 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=fix-panic-in-change#ba5235b84092cce48b8573318edea8e3d3b5eb99"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
  "automerge-protocol",
  "serde",
  "serde_json",
- "uuid 0.5.1",
+ "uuid",
 ]
 
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=fix-panic-in-change#ba5235b84092cce48b8573318edea8e3d3b5eb99"
 dependencies = [
  "automerge-protocol",
  "fxhash",
@@ -122,34 +122,33 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=fix-panic-in-change#ba5235b84092cce48b8573318edea8e3d3b5eb99"
 dependencies = [
  "automerge-protocol",
- "chrono",
  "futures",
  "im-rc",
  "maplit",
  "serde",
  "serde_json",
  "thiserror",
- "uuid 0.5.1",
+ "uuid",
 ]
 
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=fix-panic-in-change#ba5235b84092cce48b8573318edea8e3d3b5eb99"
 dependencies = [
  "hex",
  "serde",
  "thiserror",
- "uuid 0.8.2",
+ "uuid",
 ]
 
 [[package]]
 name = "automergeable"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#80063c2a3b984083292194ab14ad9d2aff1acd9e"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#f27860766016959d2bc33960531b844606db4213"
 dependencies = [
  "automerge",
  "automerge-frontend",
@@ -162,7 +161,7 @@ dependencies = [
 [[package]]
 name = "automergeable-derive"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#80063c2a3b984083292194ab14ad9d2aff1acd9e"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#f27860766016959d2bc33960531b844606db4213"
 dependencies = [
  "automerge",
  "automergeable-traits",
@@ -174,7 +173,7 @@ dependencies = [
 [[package]]
 name = "automergeable-traits"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#80063c2a3b984083292194ab14ad9d2aff1acd9e"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#f27860766016959d2bc33960531b844606db4213"
 dependencies = [
  "automerge",
  "automerge-protocol",
@@ -269,7 +268,6 @@ dependencies = [
  "libc",
  "num-integer",
  "num-traits",
- "time",
  "winapi",
 ]
 
@@ -637,7 +635,7 @@ checksum = "c9495705279e7140bf035dde1f6e750c162df8b625267cd52cc44e0b156732c8"
 dependencies = [
  "cfg-if",
  "libc",
- "wasi 0.10.0+wasi-snapshot-preview1",
+ "wasi 0.10.2+wasi-snapshot-preview1",
 ]
 
 [[package]]
@@ -1667,17 +1665,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "time"
-version = "0.1.44"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6db9e6914ab8b1ae1c260a4ae7a49b6c5611b40328a735b21862567685e73255"
-dependencies = [
- "libc",
- "wasi 0.10.0+wasi-snapshot-preview1",
- "winapi",
-]
-
-[[package]]
 name = "tinyvec"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1994,15 +1981,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "uuid"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
-dependencies = [
- "getrandom 0.2.2",
-]
-
-[[package]]
 name = "vec_map"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2032,9 +2010,9 @@ checksum = "cccddf32554fecc6acb585f82a32a72e28b48f8c4c1883ddfeeeaa96f7d8e519"
 
 [[package]]
 name = "wasi"
-version = "0.10.0+wasi-snapshot-preview1"
+version = "0.10.2+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
+checksum = "fd6fbd9a79829dd1ad0cc20627bf1ed606756a7f77edff7b66b7064f9cb327c6"
 
 [[package]]
 name = "wasm-bindgen"

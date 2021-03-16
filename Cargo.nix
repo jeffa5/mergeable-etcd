@@ -290,8 +290,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "b290f9117aced3e3ed1535ed0ccde3a819d88232";
-          sha256 = "01mjc4sxd3bivgrhak7lpb7im1zf9a1ymmm04h4p4wyslwpnssm7";
+          rev = "ba5235b84092cce48b8573318edea8e3d3b5eb99";
+          sha256 = "1kcrl21pz0zlbqgbfl05lifjdwd2fcjygj56cybdhv8w4rlcsgvl";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -320,7 +320,7 @@ rec {
           }
           {
             name = "uuid";
-            packageId = "uuid 0.5.1";
+            packageId = "uuid";
             features = [ "v4" ];
           }
         ];
@@ -333,8 +333,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "b290f9117aced3e3ed1535ed0ccde3a819d88232";
-          sha256 = "01mjc4sxd3bivgrhak7lpb7im1zf9a1ymmm04h4p4wyslwpnssm7";
+          rev = "ba5235b84092cce48b8573318edea8e3d3b5eb99";
+          sha256 = "1kcrl21pz0zlbqgbfl05lifjdwd2fcjygj56cybdhv8w4rlcsgvl";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -414,8 +414,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "b290f9117aced3e3ed1535ed0ccde3a819d88232";
-          sha256 = "01mjc4sxd3bivgrhak7lpb7im1zf9a1ymmm04h4p4wyslwpnssm7";
+          rev = "ba5235b84092cce48b8573318edea8e3d3b5eb99";
+          sha256 = "1kcrl21pz0zlbqgbfl05lifjdwd2fcjygj56cybdhv8w4rlcsgvl";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -424,10 +424,6 @@ rec {
           {
             name = "automerge-protocol";
             packageId = "automerge-protocol";
-          }
-          {
-            name = "chrono";
-            packageId = "chrono";
           }
           {
             name = "futures";
@@ -456,7 +452,7 @@ rec {
           }
           {
             name = "uuid";
-            packageId = "uuid 0.5.1";
+            packageId = "uuid";
             features = [ "v4" ];
           }
         ];
@@ -469,8 +465,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "b290f9117aced3e3ed1535ed0ccde3a819d88232";
-          sha256 = "01mjc4sxd3bivgrhak7lpb7im1zf9a1ymmm04h4p4wyslwpnssm7";
+          rev = "ba5235b84092cce48b8573318edea8e3d3b5eb99";
+          sha256 = "1kcrl21pz0zlbqgbfl05lifjdwd2fcjygj56cybdhv8w4rlcsgvl";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -491,7 +487,7 @@ rec {
           }
           {
             name = "uuid";
-            packageId = "uuid 0.8.2";
+            packageId = "uuid";
             features = [ "v4" ];
           }
         ];
@@ -504,8 +500,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "80063c2a3b984083292194ab14ad9d2aff1acd9e";
-          sha256 = "0682y6dmi501kwzvkhisnkfmy02jpr4mps70fz2rjawghkhj4cpi";
+          rev = "f27860766016959d2bc33960531b844606db4213";
+          sha256 = "0h9zvxn5ycr8gqd3cwbkzn1881xp4r9hdpfs984sbrrj2jlickk0";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -545,8 +541,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "80063c2a3b984083292194ab14ad9d2aff1acd9e";
-          sha256 = "0682y6dmi501kwzvkhisnkfmy02jpr4mps70fz2rjawghkhj4cpi";
+          rev = "f27860766016959d2bc33960531b844606db4213";
+          sha256 = "0h9zvxn5ycr8gqd3cwbkzn1881xp4r9hdpfs984sbrrj2jlickk0";
         };
         procMacro = true;
         authors = [
@@ -583,8 +579,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "80063c2a3b984083292194ab14ad9d2aff1acd9e";
-          sha256 = "0682y6dmi501kwzvkhisnkfmy02jpr4mps70fz2rjawghkhj4cpi";
+          rev = "f27860766016959d2bc33960531b844606db4213";
+          sha256 = "0h9zvxn5ycr8gqd3cwbkzn1881xp4r9hdpfs984sbrrj2jlickk0";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -799,11 +795,6 @@ rec {
             usesDefaultFeatures = false;
           }
           {
-            name = "time";
-            packageId = "time";
-            optional = true;
-          }
-          {
             name = "winapi";
             packageId = "winapi";
             optional = true;
@@ -818,7 +809,7 @@ rec {
           "unstable-locales" = [ "pure-rust-locales" "alloc" ];
           "wasmbind" = [ "wasm-bindgen" "js-sys" ];
         };
-        resolvedDefaultFeatures = [ "clock" "default" "libc" "oldtime" "std" "time" "winapi" ];
+        resolvedDefaultFeatures = [ "clock" "libc" "std" "winapi" ];
       };
       "clap" = rec {
         crateName = "clap";
@@ -1872,7 +1863,7 @@ rec {
           }
           {
             name = "wasi";
-            packageId = "wasi 0.10.0+wasi-snapshot-preview1";
+            packageId = "wasi 0.10.2+wasi-snapshot-preview1";
             target = { target, features }: (target."os" == "wasi");
           }
         ];
@@ -4557,40 +4548,6 @@ rec {
         ];
 
       };
-      "time" = rec {
-        crateName = "time";
-        version = "0.1.44";
-        edition = "2015";
-        sha256 = "0m9jwy2pcmk232r3b9r80fs12mkckfjffjha4qfaxcdq9a8ydfbd";
-        authors = [
-          "The Rust Project Developers"
-        ];
-        dependencies = [
-          {
-            name = "libc";
-            packageId = "libc";
-          }
-          {
-            name = "wasi";
-            packageId = "wasi 0.10.0+wasi-snapshot-preview1";
-            target = { target, features }: (target."os" == "wasi");
-          }
-          {
-            name = "winapi";
-            packageId = "winapi";
-            target = { target, features }: (target."windows" or false);
-            features = [ "std" "minwinbase" "minwindef" "ntdef" "profileapi" "sysinfoapi" "timezoneapi" ];
-          }
-        ];
-        devDependencies = [
-          {
-            name = "winapi";
-            packageId = "winapi";
-            features = [ "std" "processthreadsapi" "winbase" ];
-          }
-        ];
-
-      };
       "tinyvec" = rec {
         crateName = "tinyvec";
         version = "1.1.1";
@@ -5582,7 +5539,7 @@ rec {
         ];
 
       };
-      "uuid 0.5.1" = rec {
+      "uuid" = rec {
         crateName = "uuid";
         version = "0.5.1";
         edition = "2015";
@@ -5604,35 +5561,6 @@ rec {
           "v5" = [ "sha1" ];
         };
         resolvedDefaultFeatures = [ "rand" "v4" ];
-      };
-      "uuid 0.8.2" = rec {
-        crateName = "uuid";
-        version = "0.8.2";
-        edition = "2018";
-        sha256 = "1dy4ldcp7rnzjy56dxh7d2sgrcvn4q77y0a8r0a48946h66zjp5w";
-        authors = [
-          "Ashley Mannix<ashleymannix@live.com.au>"
-          "Christopher Armstrong"
-          "Dylan DPC<dylan.dpc@gmail.com>"
-          "Hunar Roop Kahlon<hunar.roop@gmail.com>"
-        ];
-        dependencies = [
-          {
-            name = "getrandom";
-            packageId = "getrandom 0.2.2";
-            optional = true;
-          }
-        ];
-        features = {
-          "default" = [ "std" ];
-          "guid" = [ "winapi" ];
-          "stdweb" = [ "getrandom" "getrandom/js" ];
-          "v3" = [ "md5" ];
-          "v4" = [ "getrandom" ];
-          "v5" = [ "sha1" ];
-          "wasm-bindgen" = [ "getrandom" "getrandom/js" ];
-        };
-        resolvedDefaultFeatures = [ "default" "getrandom" "std" "v4" ];
       };
       "vec_map" = rec {
         crateName = "vec_map";
@@ -5701,11 +5629,11 @@ rec {
         ];
 
       };
-      "wasi 0.10.0+wasi-snapshot-preview1" = rec {
+      "wasi 0.10.2+wasi-snapshot-preview1" = rec {
         crateName = "wasi";
-        version = "0.10.0+wasi-snapshot-preview1";
+        version = "0.10.2+wasi-snapshot-preview1";
         edition = "2018";
-        sha256 = "07y3l8mzfzzz4cj09c8y90yak4hpsi9g7pllyzpr6xvwrabka50s";
+        sha256 = "1ii7nff4y1mpcrxzzvbpgxm7a1nn3szjf1n21jnx37c2g6dbsvzx";
         authors = [
           "The Cranelift Project Developers"
         ];
@@ -6383,7 +6311,7 @@ rec {
         features = {
           "debug" = [ "impl-debug" ];
         };
-        resolvedDefaultFeatures = [ "cfg" "consoleapi" "errhandlingapi" "evntrace" "fileapi" "handleapi" "in6addr" "inaddr" "ioapiset" "minwinbase" "minwindef" "mswsock" "namedpipeapi" "ntdef" "ntsecapi" "ntstatus" "processenv" "processthreadsapi" "profileapi" "std" "synchapi" "sysinfoapi" "timezoneapi" "winbase" "windef" "winerror" "winioctl" "winnt" "winsock2" "winuser" "ws2def" "ws2ipdef" "ws2tcpip" "wtypesbase" ];
+        resolvedDefaultFeatures = [ "cfg" "consoleapi" "errhandlingapi" "evntrace" "fileapi" "handleapi" "in6addr" "inaddr" "ioapiset" "minwinbase" "minwindef" "mswsock" "namedpipeapi" "ntdef" "ntsecapi" "ntstatus" "processenv" "processthreadsapi" "profileapi" "std" "synchapi" "timezoneapi" "winbase" "windef" "winerror" "winioctl" "winnt" "winsock2" "winuser" "ws2def" "ws2ipdef" "ws2tcpip" "wtypesbase" ];
       };
       "winapi-i686-pc-windows-gnu" = rec {
         crateName = "winapi-i686-pc-windows-gnu";
