@@ -79,8 +79,10 @@ impl Store {
                 }
             }
         } else if let Some(value) = self.kv.get(&key)? {
-            let backend = automerge::Backend::load(value.to_vec())
-                .expect("failed loading backend in get single");
+            let backend = automerge::Backend::load(value.to_vec()).expect(&format!(
+                "failed loading backend in get single {:?}",
+                String::from_utf8(key.clone()).unwrap()
+            ));
             let patch = backend.get_patch().expect("failed getting patch");
             let document = automergeable::Document::<Value>::new_with_patch(patch)
                 .expect("failed making document with patch");
