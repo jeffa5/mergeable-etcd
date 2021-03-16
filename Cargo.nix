@@ -283,7 +283,7 @@ rec {
         ];
 
       };
-      "automerge" = rec {
+      "automerge 0.0.2 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)" = rec {
         crateName = "automerge";
         version = "0.0.2";
         edition = "2018";
@@ -299,15 +299,15 @@ rec {
         dependencies = [
           {
             name = "automerge-backend";
-            packageId = "automerge-backend";
+            packageId = "automerge-backend 0.0.1 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
           }
           {
             name = "automerge-frontend";
-            packageId = "automerge-frontend";
+            packageId = "automerge-frontend 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
           }
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol";
+            packageId = "automerge-protocol 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
           }
           {
             name = "serde";
@@ -320,13 +320,56 @@ rec {
           }
           {
             name = "uuid";
-            packageId = "uuid";
+            packageId = "uuid 0.5.1";
             features = [ "v4" ];
           }
         ];
 
       };
-      "automerge-backend" = rec {
+      "automerge 0.0.2 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)" = rec {
+        crateName = "automerge";
+        version = "0.0.2";
+        edition = "2018";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/jeffa5/automerge-rs";
+          rev = "b290f9117aced3e3ed1535ed0ccde3a819d88232";
+          sha256 = "01mjc4sxd3bivgrhak7lpb7im1zf9a1ymmm04h4p4wyslwpnssm7";
+        };
+        authors = [
+          "Alex Good <alex@memoryandthought.me>"
+        ];
+        dependencies = [
+          {
+            name = "automerge-backend";
+            packageId = "automerge-backend 0.0.1 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+          }
+          {
+            name = "automerge-frontend";
+            packageId = "automerge-frontend 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+          }
+          {
+            name = "automerge-protocol";
+            packageId = "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "uuid";
+            packageId = "uuid 0.5.1";
+            features = [ "v4" ];
+          }
+        ];
+
+      };
+      "automerge-backend 0.0.1 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)" = rec {
         crateName = "automerge-backend";
         version = "0.0.1";
         edition = "2018";
@@ -342,7 +385,7 @@ rec {
         dependencies = [
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol";
+            packageId = "automerge-protocol 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
           }
           {
             name = "fxhash";
@@ -407,7 +450,88 @@ rec {
         ];
 
       };
-      "automerge-frontend" = rec {
+      "automerge-backend 0.0.1 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)" = rec {
+        crateName = "automerge-backend";
+        version = "0.0.1";
+        edition = "2018";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/jeffa5/automerge-rs";
+          rev = "b290f9117aced3e3ed1535ed0ccde3a819d88232";
+          sha256 = "01mjc4sxd3bivgrhak7lpb7im1zf9a1ymmm04h4p4wyslwpnssm7";
+        };
+        authors = [
+          "Alex Good <alex@memoryandthought.me>"
+        ];
+        dependencies = [
+          {
+            name = "automerge-protocol";
+            packageId = "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+          }
+          {
+            name = "fxhash";
+            packageId = "fxhash";
+          }
+          {
+            name = "hex";
+            packageId = "hex";
+          }
+          {
+            name = "itertools";
+            packageId = "itertools";
+          }
+          {
+            name = "js-sys";
+            packageId = "js-sys";
+          }
+          {
+            name = "leb128";
+            packageId = "leb128";
+          }
+          {
+            name = "maplit";
+            packageId = "maplit";
+          }
+          {
+            name = "rand";
+            packageId = "rand 0.7.3";
+            features = [ "small_rng" ];
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "sha2";
+            packageId = "sha2";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+            features = [ "log" ];
+          }
+          {
+            name = "wasm-bindgen";
+            packageId = "wasm-bindgen";
+          }
+          {
+            name = "web-sys";
+            packageId = "web-sys";
+            features = [ "console" ];
+          }
+        ];
+
+      };
+      "automerge-frontend 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)" = rec {
         crateName = "automerge-frontend";
         version = "0.1.0";
         edition = "2018";
@@ -423,7 +547,7 @@ rec {
         dependencies = [
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol";
+            packageId = "automerge-protocol 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
           }
           {
             name = "futures";
@@ -452,13 +576,68 @@ rec {
           }
           {
             name = "uuid";
-            packageId = "uuid";
+            packageId = "uuid 0.5.1";
             features = [ "v4" ];
           }
         ];
 
       };
-      "automerge-protocol" = rec {
+      "automerge-frontend 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)" = rec {
+        crateName = "automerge-frontend";
+        version = "0.1.0";
+        edition = "2018";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/jeffa5/automerge-rs";
+          rev = "b290f9117aced3e3ed1535ed0ccde3a819d88232";
+          sha256 = "01mjc4sxd3bivgrhak7lpb7im1zf9a1ymmm04h4p4wyslwpnssm7";
+        };
+        authors = [
+          "Alex Good <alex@memoryandthought.me>"
+        ];
+        dependencies = [
+          {
+            name = "automerge-protocol";
+            packageId = "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+          }
+          {
+            name = "futures";
+            packageId = "futures";
+          }
+          {
+            name = "im-rc";
+            packageId = "im-rc";
+          }
+          {
+            name = "maplit";
+            packageId = "maplit";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+          {
+            name = "uuid";
+            packageId = "uuid 0.5.1";
+            features = [ "v4" ];
+          }
+        ];
+
+      };
+      "automerge-protocol 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)" = rec {
         crateName = "automerge-protocol";
         version = "0.1.0";
         edition = "2018";
@@ -487,7 +666,42 @@ rec {
           }
           {
             name = "uuid";
-            packageId = "uuid";
+            packageId = "uuid 0.5.1";
+            features = [ "v4" ];
+          }
+        ];
+
+      };
+      "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)" = rec {
+        crateName = "automerge-protocol";
+        version = "0.1.0";
+        edition = "2018";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/jeffa5/automerge-rs";
+          rev = "b290f9117aced3e3ed1535ed0ccde3a819d88232";
+          sha256 = "01mjc4sxd3bivgrhak7lpb7im1zf9a1ymmm04h4p4wyslwpnssm7";
+        };
+        authors = [
+          "Alex Good <alex@memoryandthought.me>"
+        ];
+        dependencies = [
+          {
+            name = "hex";
+            packageId = "hex";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+          {
+            name = "uuid";
+            packageId = "uuid 0.8.2";
             features = [ "v4" ];
           }
         ];
@@ -500,8 +714,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "24613fee5db2f633a8b37543c430694efd4a3458";
-          sha256 = "1fwbi45fk7d4k4nbv9w3kmizmxwlxhq227ig704jixz3vfvv9ny7";
+          rev = "80063c2a3b984083292194ab14ad9d2aff1acd9e";
+          sha256 = "0682y6dmi501kwzvkhisnkfmy02jpr4mps70fz2rjawghkhj4cpi";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -509,15 +723,15 @@ rec {
         dependencies = [
           {
             name = "automerge";
-            packageId = "automerge";
+            packageId = "automerge 0.0.2 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
           }
           {
             name = "automerge-frontend";
-            packageId = "automerge-frontend";
+            packageId = "automerge-frontend 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
           }
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol";
+            packageId = "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
           }
           {
             name = "automergeable-derive";
@@ -541,8 +755,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "24613fee5db2f633a8b37543c430694efd4a3458";
-          sha256 = "1fwbi45fk7d4k4nbv9w3kmizmxwlxhq227ig704jixz3vfvv9ny7";
+          rev = "80063c2a3b984083292194ab14ad9d2aff1acd9e";
+          sha256 = "0682y6dmi501kwzvkhisnkfmy02jpr4mps70fz2rjawghkhj4cpi";
         };
         procMacro = true;
         authors = [
@@ -551,7 +765,7 @@ rec {
         dependencies = [
           {
             name = "automerge";
-            packageId = "automerge";
+            packageId = "automerge 0.0.2 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
           }
           {
             name = "automergeable-traits";
@@ -579,8 +793,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "24613fee5db2f633a8b37543c430694efd4a3458";
-          sha256 = "1fwbi45fk7d4k4nbv9w3kmizmxwlxhq227ig704jixz3vfvv9ny7";
+          rev = "80063c2a3b984083292194ab14ad9d2aff1acd9e";
+          sha256 = "0682y6dmi501kwzvkhisnkfmy02jpr4mps70fz2rjawghkhj4cpi";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -588,11 +802,11 @@ rec {
         dependencies = [
           {
             name = "automerge";
-            packageId = "automerge";
+            packageId = "automerge 0.0.2 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
           }
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol";
+            packageId = "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
           }
           {
             name = "serde_json";
@@ -719,9 +933,9 @@ rec {
       };
       "byteorder" = rec {
         crateName = "byteorder";
-        version = "1.4.2";
+        version = "1.4.3";
         edition = "2018";
-        sha256 = "0srh0h0594jmsnbvm7n0g8xabhla8lwb3gn8s0fzd7d1snix2i5f";
+        sha256 = "0456lv9xi1a5bcm32arknf33ikv76p3fr9yzki4lb2897p2qkh8l";
         authors = [
           "Andrew Gallant <jamslam@gmail.com>"
         ];
@@ -795,6 +1009,11 @@ rec {
             usesDefaultFeatures = false;
           }
           {
+            name = "time";
+            packageId = "time";
+            optional = true;
+          }
+          {
             name = "winapi";
             packageId = "winapi";
             optional = true;
@@ -809,7 +1028,7 @@ rec {
           "unstable-locales" = [ "pure-rust-locales" "alloc" ];
           "wasmbind" = [ "wasm-bindgen" "js-sys" ];
         };
-        resolvedDefaultFeatures = [ "clock" "libc" "std" "winapi" ];
+        resolvedDefaultFeatures = [ "clock" "default" "libc" "oldtime" "std" "time" "winapi" ];
       };
       "clap" = rec {
         crateName = "clap";
@@ -1194,11 +1413,11 @@ rec {
         dependencies = [
           {
             name = "automerge";
-            packageId = "automerge";
+            packageId = "automerge 0.0.2 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
           }
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol";
+            packageId = "automerge-protocol 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
           }
           {
             name = "automergeable";
@@ -1871,7 +2090,7 @@ rec {
           }
           {
             name = "wasi";
-            packageId = "wasi 0.10.2+wasi-snapshot-preview1";
+            packageId = "wasi 0.10.0+wasi-snapshot-preview1";
             target = { target, features }: (target."os" == "wasi");
           }
         ];
@@ -2426,9 +2645,9 @@ rec {
       };
       "libc" = rec {
         crateName = "libc";
-        version = "0.2.88";
+        version = "0.2.89";
         edition = "2015";
-        sha256 = "0fn7r9r18cghdhjf2181zazlz8wxd00wqxriyr1mx8rh4c47mc03";
+        sha256 = "1iiqm470z1nfrd6i4602i1lf3qr0jakw8y40vpbwvx46alp0k32k";
         authors = [
           "The Rust Project Developers"
         ];
@@ -2551,9 +2770,9 @@ rec {
       };
       "mio" = rec {
         crateName = "mio";
-        version = "0.7.9";
+        version = "0.7.10";
         edition = "2018";
-        sha256 = "0fl271d5s3zvicw21pf2gk6338rskw8l9x0aicmq9cv5417dxpm5";
+        sha256 = "0ffqz2bg0x76wqsnk9c01ad4b8lv13p2r5xikhrgbwxpycia30i1";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Thomas de Zeeuw <thomasdezeeuw@gmail.com>"
@@ -2619,9 +2838,9 @@ rec {
       };
       "multimap" = rec {
         crateName = "multimap";
-        version = "0.8.2";
+        version = "0.8.3";
         edition = "2015";
-        sha256 = "0cq3hlqwyxz0hmcpbajghhc832ln6h0qszvf89kv8fx875hhfm8j";
+        sha256 = "0sicyz4n500vdhgcxn4g8jz97cp1ijir1rnbgph3pmx9ckz4dkp5";
         authors = [
           "Håvar Nøvik <havar.novik@gmail.com>"
         ];
@@ -3715,9 +3934,9 @@ rec {
       };
       "regex" = rec {
         crateName = "regex";
-        version = "1.4.3";
+        version = "1.4.5";
         edition = "2015";
-        sha256 = "12llbg82js69mdl50lav4yn1iqlx71ckb18dww467q99w4wi49fr";
+        sha256 = "06awg9164h7w4pmbchmj9pkrqn78sa8y252ijqk1pfmyvpn5cw4m";
         authors = [
           "The Rust Project Developers"
         ];
@@ -3737,16 +3956,10 @@ rec {
             packageId = "regex-syntax";
             usesDefaultFeatures = false;
           }
-          {
-            name = "thread_local";
-            packageId = "thread_local";
-            optional = true;
-          }
         ];
         features = {
           "default" = [ "std" "perf" "unicode" "regex-syntax/default" ];
           "perf" = [ "perf-cache" "perf-dfa" "perf-inline" "perf-literal" ];
-          "perf-cache" = [ "thread_local" ];
           "perf-literal" = [ "aho-corasick" "memchr" ];
           "unicode" = [ "unicode-age" "unicode-bool" "unicode-case" "unicode-gencat" "unicode-perl" "unicode-script" "unicode-segment" "regex-syntax/unicode" ];
           "unicode-age" = [ "regex-syntax/unicode-age" ];
@@ -3759,7 +3972,7 @@ rec {
           "unstable" = [ "pattern" ];
           "use_std" = [ "std" ];
         };
-        resolvedDefaultFeatures = [ "aho-corasick" "memchr" "perf" "perf-cache" "perf-dfa" "perf-inline" "perf-literal" "std" "thread_local" ];
+        resolvedDefaultFeatures = [ "aho-corasick" "memchr" "perf" "perf-cache" "perf-dfa" "perf-inline" "perf-literal" "std" ];
       };
       "regex-automata" = rec {
         crateName = "regex-automata";
@@ -3790,9 +4003,9 @@ rec {
       };
       "regex-syntax" = rec {
         crateName = "regex-syntax";
-        version = "0.6.22";
+        version = "0.6.23";
         edition = "2015";
-        sha256 = "10b56ylil35jkb4nwqxm8hbyx3zq7fws0wpydjln165s8xql3sxm";
+        sha256 = "0j25v3pbfaprpr1k7h8smw5xrs6j5kzznddq50nzcq1f2n4z1m94";
         authors = [
           "The Rust Project Developers"
         ];
@@ -4386,9 +4599,9 @@ rec {
       };
       "syn" = rec {
         crateName = "syn";
-        version = "1.0.62";
+        version = "1.0.64";
         edition = "2018";
-        sha256 = "04pmc78nq20jzvkwg5323qj65gzcv19cwr347bjzw93bb6iphfhj";
+        sha256 = "0vsx3448kyym7s5kybrl0qixgya33gzjxaidahya00k1jzlx3n9z";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -4562,6 +4775,40 @@ rec {
         ];
 
       };
+      "time" = rec {
+        crateName = "time";
+        version = "0.1.44";
+        edition = "2015";
+        sha256 = "0m9jwy2pcmk232r3b9r80fs12mkckfjffjha4qfaxcdq9a8ydfbd";
+        authors = [
+          "The Rust Project Developers"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+          {
+            name = "wasi";
+            packageId = "wasi 0.10.0+wasi-snapshot-preview1";
+            target = { target, features }: (target."os" == "wasi");
+          }
+          {
+            name = "winapi";
+            packageId = "winapi";
+            target = { target, features }: (target."windows" or false);
+            features = [ "std" "minwinbase" "minwindef" "ntdef" "profileapi" "sysinfoapi" "timezoneapi" ];
+          }
+        ];
+        devDependencies = [
+          {
+            name = "winapi";
+            packageId = "winapi";
+            features = [ "std" "processthreadsapi" "winbase" ];
+          }
+        ];
+
+      };
       "tinyvec" = rec {
         crateName = "tinyvec";
         version = "1.1.1";
@@ -4594,9 +4841,9 @@ rec {
       };
       "tokio" = rec {
         crateName = "tokio";
-        version = "1.2.0";
+        version = "1.3.0";
         edition = "2018";
-        sha256 = "0fmfykdp29hjq5264mp6sa4c0wp5mlimbi0dd9mrxsk5qq20s6g8";
+        sha256 = "1npfx52b2nrlcdpr82wcpnwbha9ghxgzgy9qbwi117nrdrzlfmld";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -4740,9 +4987,9 @@ rec {
       };
       "tokio-stream" = rec {
         crateName = "tokio-stream";
-        version = "0.1.3";
+        version = "0.1.4";
         edition = "2018";
-        sha256 = "1spk7y6682cq4zw3pkwa4w6rc9kkjqnghfzll43baakqvybsv08r";
+        sha256 = "0sb4ax6y4vihzybdl81440nz3hcwzja8jnlrcb7cl6ps1hygadf5";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -4773,6 +5020,7 @@ rec {
           "fs" = [ "tokio/fs" ];
           "io-util" = [ "tokio/io-util" ];
           "net" = [ "tokio/net" ];
+          "signal" = [ "tokio/signal" ];
           "sync" = [ "tokio/sync" "tokio-util" ];
           "time" = [ "tokio/time" ];
         };
@@ -4780,9 +5028,9 @@ rec {
       };
       "tokio-util" = rec {
         crateName = "tokio-util";
-        version = "0.6.3";
+        version = "0.6.4";
         edition = "2018";
-        sha256 = "0yq11cgy29qqw0v3jdi8jz9r05ydf9i30lmjapvqvbn500pwpdzb";
+        sha256 = "0agvfvvgh225vgb2z9w83lwqcqsy3pvkcbvnaz7m7rj6dg6facgc";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -5167,9 +5415,9 @@ rec {
       };
       "tracing-attributes" = rec {
         crateName = "tracing-attributes";
-        version = "0.1.13";
+        version = "0.1.15";
         edition = "2018";
-        sha256 = "01scz4qv8cqfbd2ksvs81hskkakc2ikx1c4hl5rj6vvhnwfvvad8";
+        sha256 = "1qni83p58nrp20i256zm169dnf7cylfchkfd9iza3j076fjnybn4";
         procMacro = true;
         authors = [
           "Tokio Contributors <team@tokio.rs>"
@@ -5189,7 +5437,7 @@ rec {
             name = "syn";
             packageId = "syn";
             usesDefaultFeatures = false;
-            features = [ "full" "parsing" "printing" "visit-mut" "clone-impls" "extra-traits" "proc-macro" ];
+            features = [ "full" "parsing" "printing" "visit" "visit-mut" "clone-impls" "extra-traits" "proc-macro" ];
           }
         ];
         features = {
@@ -5296,9 +5544,9 @@ rec {
       };
       "tracing-subscriber" = rec {
         crateName = "tracing-subscriber";
-        version = "0.2.16";
+        version = "0.2.17";
         edition = "2018";
-        sha256 = "15mvk1fh9aag0h14r80xnys6zpcprihr76gp85hi49yaqdm9df4a";
+        sha256 = "1ajv10w2k16aprdb8mxk672xmnwxh80sm9jpsfjqxxivz339cl3h";
         authors = [
           "Eliza Weisman <eliza@buoyant.io>"
           "David Barsky <me@davidbarsky.com>"
@@ -5421,9 +5669,9 @@ rec {
       };
       "typenum" = rec {
         crateName = "typenum";
-        version = "1.12.0";
-        edition = "2015";
-        sha256 = "0cvbksljz61ian21fnn0h51kphl0pwpzb932bv4s0rwy1wh8lg1p";
+        version = "1.13.0";
+        edition = "2018";
+        sha256 = "01lbbspn4080yg8wp6y7q3xcqih1c1dmkkx4pwax4z1a9436k7w7";
         build = "build/main.rs";
         authors = [
           "Paho Lurie-Gregg <paho@paholg.com>"
@@ -5552,7 +5800,7 @@ rec {
         ];
 
       };
-      "uuid" = rec {
+      "uuid 0.5.1" = rec {
         crateName = "uuid";
         version = "0.5.1";
         edition = "2015";
@@ -5574,6 +5822,35 @@ rec {
           "v5" = [ "sha1" ];
         };
         resolvedDefaultFeatures = [ "rand" "v4" ];
+      };
+      "uuid 0.8.2" = rec {
+        crateName = "uuid";
+        version = "0.8.2";
+        edition = "2018";
+        sha256 = "1dy4ldcp7rnzjy56dxh7d2sgrcvn4q77y0a8r0a48946h66zjp5w";
+        authors = [
+          "Ashley Mannix<ashleymannix@live.com.au>"
+          "Christopher Armstrong"
+          "Dylan DPC<dylan.dpc@gmail.com>"
+          "Hunar Roop Kahlon<hunar.roop@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "getrandom";
+            packageId = "getrandom 0.2.2";
+            optional = true;
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "guid" = [ "winapi" ];
+          "stdweb" = [ "getrandom" "getrandom/js" ];
+          "v3" = [ "md5" ];
+          "v4" = [ "getrandom" ];
+          "v5" = [ "sha1" ];
+          "wasm-bindgen" = [ "getrandom" "getrandom/js" ];
+        };
+        resolvedDefaultFeatures = [ "default" "getrandom" "std" "v4" ];
       };
       "vec_map" = rec {
         crateName = "vec_map";
@@ -5614,9 +5891,9 @@ rec {
       };
       "version_check" = rec {
         crateName = "version_check";
-        version = "0.9.2";
+        version = "0.9.3";
         edition = "2015";
-        sha256 = "1vbaqdf802qinsq8q20w8w0qn2pv0rkq5p73ijcblrwxcvjp5adm";
+        sha256 = "1zmkcgj2m0pq0l4wnhrp1wl1lygf7x2h5p7pvjwc4719lnlxrv2z";
         authors = [
           "Sergio Benitez <sb@sergio.bz>"
         ];
@@ -5642,11 +5919,11 @@ rec {
         ];
 
       };
-      "wasi 0.10.2+wasi-snapshot-preview1" = rec {
+      "wasi 0.10.0+wasi-snapshot-preview1" = rec {
         crateName = "wasi";
-        version = "0.10.2+wasi-snapshot-preview1";
+        version = "0.10.0+wasi-snapshot-preview1";
         edition = "2018";
-        sha256 = "1ii7nff4y1mpcrxzzvbpgxm7a1nn3szjf1n21jnx37c2g6dbsvzx";
+        sha256 = "07y3l8mzfzzz4cj09c8y90yak4hpsi9g7pllyzpr6xvwrabka50s";
         authors = [
           "The Cranelift Project Developers"
         ];
@@ -6324,7 +6601,7 @@ rec {
         features = {
           "debug" = [ "impl-debug" ];
         };
-        resolvedDefaultFeatures = [ "cfg" "consoleapi" "errhandlingapi" "evntrace" "fileapi" "handleapi" "in6addr" "inaddr" "ioapiset" "minwinbase" "minwindef" "mswsock" "namedpipeapi" "ntdef" "ntsecapi" "ntstatus" "processenv" "processthreadsapi" "profileapi" "std" "synchapi" "timezoneapi" "winbase" "windef" "winerror" "winioctl" "winnt" "winsock2" "winuser" "ws2def" "ws2ipdef" "ws2tcpip" "wtypesbase" ];
+        resolvedDefaultFeatures = [ "cfg" "consoleapi" "errhandlingapi" "evntrace" "fileapi" "handleapi" "in6addr" "inaddr" "ioapiset" "minwinbase" "minwindef" "mswsock" "namedpipeapi" "ntdef" "ntsecapi" "ntstatus" "processenv" "processthreadsapi" "profileapi" "std" "synchapi" "sysinfoapi" "timezoneapi" "winbase" "windef" "winerror" "winioctl" "winnt" "winsock2" "winuser" "ws2def" "ws2ipdef" "ws2tcpip" "wtypesbase" ];
       };
       "winapi-i686-pc-windows-gnu" = rec {
         crateName = "winapi-i686-pc-windows-gnu";
