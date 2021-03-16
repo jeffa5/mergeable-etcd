@@ -33,8 +33,6 @@ futures-core = "0.3.12"
 tokio-stream = "0.1.2"
 serde_json = "1.0.62"
 rand = "0.8.3"
-automerge = { git = "https://github.com/automerge/automerge-rs", branch = "main" }
-automerge-protocol = { git = "https://github.com/automerge/automerge-rs", branch = "main" }
 automergeable = { git = "https://github.com/jeffa5/automergeable", branch = "main" }
 
 [build-dependencies]

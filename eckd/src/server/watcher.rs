@@ -1,5 +1,6 @@
 use std::num::NonZeroU64;
 
+use automergeable::automerge;
 use etcd_proto::{etcdserverpb::WatchResponse, mvccpb};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tonic::Status;

@@ -9,6 +9,7 @@ use etcd_proto::etcdserverpb::{
 use sled::{transaction::TransactionalTree, Transactional};
 use thiserror::Error;
 use tracing::warn;
+use automergeable::automerge;
 
 mod server;
 pub mod value;
