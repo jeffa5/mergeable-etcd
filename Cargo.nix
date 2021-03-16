@@ -283,50 +283,7 @@ rec {
         ];
 
       };
-      "automerge 0.0.2 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)" = rec {
-        crateName = "automerge";
-        version = "0.0.2";
-        edition = "2018";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "c103b0638e24076e6cd755f102f3c75926c25d51";
-          sha256 = "0ymhay14pwijgwiwsqg7gnn2fxapjffchl0jgwa14flqq4q47v21";
-        };
-        authors = [
-          "Alex Good <alex@memoryandthought.me>"
-        ];
-        dependencies = [
-          {
-            name = "automerge-backend";
-            packageId = "automerge-backend 0.0.1 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
-          }
-          {
-            name = "automerge-frontend";
-            packageId = "automerge-frontend 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
-          }
-          {
-            name = "automerge-protocol";
-            packageId = "automerge-protocol 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "uuid";
-            packageId = "uuid 0.5.1";
-            features = [ "v4" ];
-          }
-        ];
-
-      };
-      "automerge 0.0.2 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)" = rec {
+      "automerge" = rec {
         crateName = "automerge";
         version = "0.0.2";
         edition = "2018";
@@ -342,15 +299,15 @@ rec {
         dependencies = [
           {
             name = "automerge-backend";
-            packageId = "automerge-backend 0.0.1 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+            packageId = "automerge-backend";
           }
           {
             name = "automerge-frontend";
-            packageId = "automerge-frontend 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+            packageId = "automerge-frontend";
           }
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+            packageId = "automerge-protocol";
           }
           {
             name = "serde";
@@ -369,15 +326,15 @@ rec {
         ];
 
       };
-      "automerge-backend 0.0.1 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)" = rec {
+      "automerge-backend" = rec {
         crateName = "automerge-backend";
         version = "0.0.1";
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "c103b0638e24076e6cd755f102f3c75926c25d51";
-          sha256 = "0ymhay14pwijgwiwsqg7gnn2fxapjffchl0jgwa14flqq4q47v21";
+          url = "https://github.com/jeffa5/automerge-rs";
+          rev = "b290f9117aced3e3ed1535ed0ccde3a819d88232";
+          sha256 = "01mjc4sxd3bivgrhak7lpb7im1zf9a1ymmm04h4p4wyslwpnssm7";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -385,7 +342,7 @@ rec {
         dependencies = [
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
+            packageId = "automerge-protocol";
           }
           {
             name = "fxhash";
@@ -450,139 +407,7 @@ rec {
         ];
 
       };
-      "automerge-backend 0.0.1 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)" = rec {
-        crateName = "automerge-backend";
-        version = "0.0.1";
-        edition = "2018";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/jeffa5/automerge-rs";
-          rev = "b290f9117aced3e3ed1535ed0ccde3a819d88232";
-          sha256 = "01mjc4sxd3bivgrhak7lpb7im1zf9a1ymmm04h4p4wyslwpnssm7";
-        };
-        authors = [
-          "Alex Good <alex@memoryandthought.me>"
-        ];
-        dependencies = [
-          {
-            name = "automerge-protocol";
-            packageId = "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
-          }
-          {
-            name = "fxhash";
-            packageId = "fxhash";
-          }
-          {
-            name = "hex";
-            packageId = "hex";
-          }
-          {
-            name = "itertools";
-            packageId = "itertools";
-          }
-          {
-            name = "js-sys";
-            packageId = "js-sys";
-          }
-          {
-            name = "leb128";
-            packageId = "leb128";
-          }
-          {
-            name = "maplit";
-            packageId = "maplit";
-          }
-          {
-            name = "rand";
-            packageId = "rand 0.7.3";
-            features = [ "small_rng" ];
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "sha2";
-            packageId = "sha2";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror";
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-            features = [ "log" ];
-          }
-          {
-            name = "wasm-bindgen";
-            packageId = "wasm-bindgen";
-          }
-          {
-            name = "web-sys";
-            packageId = "web-sys";
-            features = [ "console" ];
-          }
-        ];
-
-      };
-      "automerge-frontend 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)" = rec {
-        crateName = "automerge-frontend";
-        version = "0.1.0";
-        edition = "2018";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "c103b0638e24076e6cd755f102f3c75926c25d51";
-          sha256 = "0ymhay14pwijgwiwsqg7gnn2fxapjffchl0jgwa14flqq4q47v21";
-        };
-        authors = [
-          "Alex Good <alex@memoryandthought.me>"
-        ];
-        dependencies = [
-          {
-            name = "automerge-protocol";
-            packageId = "automerge-protocol 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
-          }
-          {
-            name = "futures";
-            packageId = "futures";
-          }
-          {
-            name = "im-rc";
-            packageId = "im-rc";
-          }
-          {
-            name = "maplit";
-            packageId = "maplit";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror";
-          }
-          {
-            name = "uuid";
-            packageId = "uuid 0.5.1";
-            features = [ "v4" ];
-          }
-        ];
-
-      };
-      "automerge-frontend 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)" = rec {
+      "automerge-frontend" = rec {
         crateName = "automerge-frontend";
         version = "0.1.0";
         edition = "2018";
@@ -598,7 +423,7 @@ rec {
         dependencies = [
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+            packageId = "automerge-protocol";
           }
           {
             name = "chrono";
@@ -637,42 +462,7 @@ rec {
         ];
 
       };
-      "automerge-protocol 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)" = rec {
-        crateName = "automerge-protocol";
-        version = "0.1.0";
-        edition = "2018";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "c103b0638e24076e6cd755f102f3c75926c25d51";
-          sha256 = "0ymhay14pwijgwiwsqg7gnn2fxapjffchl0jgwa14flqq4q47v21";
-        };
-        authors = [
-          "Alex Good <alex@memoryandthought.me>"
-        ];
-        dependencies = [
-          {
-            name = "hex";
-            packageId = "hex";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror";
-          }
-          {
-            name = "uuid";
-            packageId = "uuid 0.5.1";
-            features = [ "v4" ];
-          }
-        ];
-
-      };
-      "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)" = rec {
+      "automerge-protocol" = rec {
         crateName = "automerge-protocol";
         version = "0.1.0";
         edition = "2018";
@@ -723,15 +513,15 @@ rec {
         dependencies = [
           {
             name = "automerge";
-            packageId = "automerge 0.0.2 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+            packageId = "automerge";
           }
           {
             name = "automerge-frontend";
-            packageId = "automerge-frontend 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+            packageId = "automerge-frontend";
           }
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+            packageId = "automerge-protocol";
           }
           {
             name = "automergeable-derive";
@@ -765,7 +555,7 @@ rec {
         dependencies = [
           {
             name = "automerge";
-            packageId = "automerge 0.0.2 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+            packageId = "automerge";
           }
           {
             name = "automergeable-traits";
@@ -802,11 +592,11 @@ rec {
         dependencies = [
           {
             name = "automerge";
-            packageId = "automerge 0.0.2 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+            packageId = "automerge";
           }
           {
             name = "automerge-protocol";
-            packageId = "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=update-uuid#b290f9117aced3e3ed1535ed0ccde3a819d88232)";
+            packageId = "automerge-protocol";
           }
           {
             name = "serde_json";
@@ -1411,14 +1201,6 @@ rec {
           "Andrew Jeffery <dev@jeffas.io>"
         ];
         dependencies = [
-          {
-            name = "automerge";
-            packageId = "automerge 0.0.2 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
-          }
-          {
-            name = "automerge-protocol";
-            packageId = "automerge-protocol 0.1.0 (git+https://github.com/automerge/automerge-rs?branch=main#c103b0638e24076e6cd755f102f3c75926c25d51)";
-          }
           {
             name = "automergeable";
             packageId = "automergeable";
