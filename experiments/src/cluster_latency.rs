@@ -78,7 +78,7 @@ impl exp::Experiment for Experiment {
         let mut initial_cluster = "node1=http://172.18.0.2:2380".to_owned();
         let mut client_urls = "http://172.18.0.2:2379".to_owned();
         let network_name = "etcd-bench".to_owned();
-        for i in (2..=configuration.cluster_size) {
+        for i in 2..=configuration.cluster_size {
             initial_cluster.push_str(&format!(
                 ",node{}=http://172.18.0.{}:{}",
                 i,
@@ -91,7 +91,7 @@ impl exp::Experiment for Experiment {
                 2379 + ((i - 1) * 10)
             ));
         }
-        for i in (1..configuration.cluster_size + 1) {
+        for i in 1..configuration.cluster_size + 1 {
             let ip = format!("172.18.0.{}", i + 1);
             let client_port = 2379 + ((i - 1) * 10);
             let peer_port = 2380 + ((i - 1) * 10);

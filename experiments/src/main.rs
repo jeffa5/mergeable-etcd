@@ -1,5 +1,3 @@
-#![feature(str_split_once)]
-
 use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
