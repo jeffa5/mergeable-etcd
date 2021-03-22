@@ -132,24 +132,34 @@ struct CliOptions {
     /// Analyse all the experiments
     #[clap(long)]
     analyse: bool,
+    /// experiment to run
+    #[clap(possible_values = &["kubernetes_startup", "cluster_latency"])]
+    experiment: String,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    // let exps = vec![Experiments::ClusterLatency(cluster_latency::Experiment)];
-    let exps = vec![Experiments::KubernetesStartup(k8s_startup::Experiment)];
-
     let opts = CliOptions::parse();
     if !opts.run && !opts.analyse {
-        println!("Neither run nor analyse specified")
+        anyhow::bail!("Neither run nor analyse specified");
     }
+
+    let experiment = match opts.experiment.as_str() {
+        "kubernetes_startup" => Experiments::KubernetesStartup(k8s_startup::Experiment),
+        "cluster_latency" => Experiments::ClusterLatency(cluster_latency::Experiment),
+        _ => {
+            anyhow::bail!("unknown experiment name");
+        }
+    };
+
+    let experiments = vec![experiment];
 
     if opts.run {
         let conf = exp::RunConfig {
             output_dir: PathBuf::from("experiments-results"),
         };
 
-        exp::run(&exps, &conf).await?;
+        exp::run(&experiments, &conf).await?;
     }
 
     if opts.analyse {
@@ -157,7 +167,7 @@ async fn main() -> Result<(), anyhow::Error> {
             output_dir: PathBuf::from("experiments-results"),
             date: None,
         };
-        exp::analyse(&exps, &conf).await?;
+        exp::analyse(&experiments, &conf).await?;
     }
     Ok(())
 }
