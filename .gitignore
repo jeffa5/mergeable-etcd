@@ -8,3 +8,4 @@ certs/*.pem
 certs/*.csr
 certs/*.crt
 certs/*.key
+experiments-results/

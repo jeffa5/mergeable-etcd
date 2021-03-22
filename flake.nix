@@ -35,6 +35,8 @@
           packages = {
             eckd = cargoNix.workspaceMembers.eckd.build;
 
+            eckd-experiments = cargoNix.workspaceMembers.experiments.build;
+
             eckd-etcd = pkgs.stdenv.mkDerivation {
               name = "eckd-etcd";
               src = packages.eckd;
@@ -98,6 +100,13 @@
               crate2nix
               kubectl
               k9s
+
+              cmake
+              pkgconfig
+              openssl
+              freetype
+              expat
+              fontconfig
 
               cfssl
               etcd
