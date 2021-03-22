@@ -103,6 +103,7 @@
 
               cmake
               pkgconfig
+              openssl
               freetype
               expat
               fontconfig

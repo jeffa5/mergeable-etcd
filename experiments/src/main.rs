@@ -6,9 +6,11 @@ use exp::{Environment, ExperimentConfiguration};
 use serde::{Deserialize, Serialize};
 
 mod cluster_latency;
+mod k8s_startup;
 
 enum Experiments {
     ClusterLatency(cluster_latency::Experiment),
+    KubernetesStartup(k8s_startup::Experiment),
 }
 
 #[async_trait]
@@ -18,6 +20,7 @@ impl exp::Experiment for Experiments {
     fn name(&self) -> &str {
         match self {
             Self::ClusterLatency(c) => c.name(),
+            Self::KubernetesStartup(c) => c.name(),
         }
     }
 
@@ -28,18 +31,29 @@ impl exp::Experiment for Experiments {
                 .into_iter()
                 .map(Config::ClusterLatency)
                 .collect(),
+            Self::KubernetesStartup(c) => c
+                .configurations()
+                .into_iter()
+                .map(Config::KubernetesStartup)
+                .collect(),
         }
     }
 
     async fn pre_run(&self, configuration: &Self::Configuration) {
         match (self, configuration) {
             (Self::ClusterLatency(c), Config::ClusterLatency(conf)) => c.pre_run(conf).await,
+            (Self::KubernetesStartup(c), Config::KubernetesStartup(conf)) => c.pre_run(conf).await,
+            (_, _) => panic!("unmatched experiment and configuration"),
         }
     }
 
     async fn run(&self, configuration: &Self::Configuration, data_dir: PathBuf) {
         match (self, configuration) {
             (Self::ClusterLatency(c), Config::ClusterLatency(conf)) => c.run(conf, data_dir).await,
+            (Self::KubernetesStartup(c), Config::KubernetesStartup(conf)) => {
+                c.run(conf, data_dir).await
+            }
+            (_, _) => panic!("unmatched experiment and configuration"),
         }
         tokio::time::sleep(Duration::from_secs(10)).await
     }
@@ -47,6 +61,8 @@ impl exp::Experiment for Experiments {
     async fn post_run(&self, configuration: &Self::Configuration) {
         match (self, configuration) {
             (Self::ClusterLatency(c), Config::ClusterLatency(conf)) => c.post_run(conf).await,
+            (Self::KubernetesStartup(c), Config::KubernetesStartup(conf)) => c.post_run(conf).await,
+            (_, _) => panic!("unmatched experiment and configuration"),
         }
     }
 
@@ -63,6 +79,19 @@ impl exp::Experiment for Experiments {
                     .into_iter()
                     .map(|(c, p)| match c {
                         Config::ClusterLatency(a) => (a, p),
+                        Config::KubernetesStartup(_) => {
+                            panic!("found wrong config type for analysis")
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                c.analyse(exp_dir, date, environment, confs)
+            }
+            Self::KubernetesStartup(c) => {
+                let confs = configurations
+                    .into_iter()
+                    .map(|(c, p)| match c {
+                        Config::ClusterLatency(_) => panic!("found wrong config type for analysis"),
+                        Config::KubernetesStartup(a) => (a, p),
                     })
                     .collect::<Vec<_>>();
                 c.analyse(exp_dir, date, environment, confs)
@@ -74,18 +103,21 @@ impl exp::Experiment for Experiments {
 #[derive(Debug, Serialize, Deserialize)]
 enum Config {
     ClusterLatency(cluster_latency::Config),
+    KubernetesStartup(k8s_startup::Config),
 }
 
 impl ExperimentConfiguration for Config {
     fn repeats(&self) -> u32 {
         match self {
             Self::ClusterLatency(c) => c.repeats(),
+            Self::KubernetesStartup(c) => c.repeats(),
         }
     }
 
     fn description(&self) -> &str {
         match self {
             Self::ClusterLatency(c) => c.description(),
+            Self::KubernetesStartup(c) => c.description(),
         }
     }
 }
@@ -102,7 +134,8 @@ struct CliOptions {
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let exps = vec![Experiments::ClusterLatency(cluster_latency::Experiment)];
+    // let exps = vec![Experiments::ClusterLatency(cluster_latency::Experiment)];
+    let exps = vec![Experiments::KubernetesStartup(k8s_startup::Experiment)];
 
     let opts = CliOptions::parse();
     if !opts.run && !opts.analyse {
