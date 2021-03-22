@@ -1,6 +1,6 @@
 use std::{
-    fs::{read_dir, File},
-    io::{BufRead, BufReader, Read, Write},
+    fs::File,
+    io::{BufRead, BufReader, Write},
     path::PathBuf,
     process::Command,
     time::Duration,
@@ -157,12 +157,12 @@ impl exp::Experiment for Experiment {
 
     fn analyse(
         &self,
-        experiment_dir: PathBuf,
-        date: chrono::DateTime<chrono::Utc>,
-        environment: exp::Environment,
+        _experiment_dir: PathBuf,
+        _date: chrono::DateTime<chrono::Utc>,
+        _environment: exp::Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
-        for (config, path) in configurations {
+        for (_config, path) in configurations {
             let repeats = exp::repeat_dirs(&path).unwrap();
             for repeat in repeats {
                 let mut events = Vec::new();

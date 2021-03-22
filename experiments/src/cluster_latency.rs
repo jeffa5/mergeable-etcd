@@ -156,13 +156,13 @@ impl exp::Experiment for Experiment {
         runner.finish().await
     }
 
-    async fn post_run(&self, configuration: &Self::Configuration) {}
+    async fn post_run(&self, _configuration: &Self::Configuration) {}
 
     fn analyse(
         &self,
         exp_dir: std::path::PathBuf,
         date: chrono::DateTime<chrono::offset::Utc>,
-        environment: Environment,
+        _environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
         let mut configs = HashMap::new();
@@ -198,9 +198,9 @@ impl exp::Experiment for Experiment {
 
         // extract benchmark information
         let mut bench_results = HashMap::new();
-        for (ci, (c, r)) in &configs {
+        for (ci, (_c, r)) in &configs {
             let mut repeats = HashMap::new();
-            for (ri, (logs, stats, tops)) in r {
+            for (ri, (logs, _stats, _tops)) in r {
                 if let Some(bench_logs) = logs.get("bench") {
                     let get_duration = |s| {
                         bench_logs
@@ -312,7 +312,7 @@ fn plot_latency(
 
     chart
         .draw_series(LineSeries::new(
-            configs.iter().map(|(i, (c, r))| {
+            configs.iter().map(|(i, (c, _r))| {
                 (c.cluster_size as u32, {
                     let mut v = bench_results[i]
                         .iter()
@@ -385,7 +385,7 @@ fn plot_throughput(
 
     chart
         .draw_series(LineSeries::new(
-            configs.iter().map(|(i, (c, r))| {
+            configs.iter().map(|(i, (c, _r))| {
                 (c.cluster_size as u32, {
                     let mut v = bench_results[i]
                         .iter()
