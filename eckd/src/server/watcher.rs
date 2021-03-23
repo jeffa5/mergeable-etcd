@@ -114,8 +114,11 @@ async fn handle_event(
         if tx.send(Ok(resp)).await.is_err() {
             // receiver has closed
             warn!("Got an error while sending watch response");
-            return true;
-        };
+            true
+        } else {
+            false
+        }
+    } else {
+        true
     }
-    false
 }
