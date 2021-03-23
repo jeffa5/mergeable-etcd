@@ -1,7 +1,7 @@
 use std::{
-    fs::File,
+    fs::{create_dir_all, File},
     io::{BufRead, BufReader, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command,
     time::Duration,
 };
@@ -57,7 +57,7 @@ impl exp::Experiment for Experiment {
 
     fn configurations(&self) -> Vec<Self::Configuration> {
         vec![Self::Configuration {
-            repeats: 1,
+            repeats: 3,
             description: "kind startup events".to_owned(),
         }]
     }
@@ -157,11 +157,12 @@ impl exp::Experiment for Experiment {
 
     fn analyse(
         &self,
-        _experiment_dir: PathBuf,
-        _date: chrono::DateTime<chrono::Utc>,
+        experiment_dir: PathBuf,
+        date: chrono::DateTime<chrono::Utc>,
         _environment: exp::Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
+        let mut all_timings = Vec::new();
         for (_config, path) in configurations {
             let repeats = exp::repeat_dirs(&path).unwrap();
             for repeat in repeats {
@@ -183,7 +184,6 @@ impl exp::Experiment for Experiment {
                 }
 
                 let mut timings = Vec::new();
-                // let start = events.first().unwrap().0;
                 for chunk in events.chunks(7) {
                     let mut t = Timings {
                         pod_scheduled: chrono::Utc::now(),
@@ -195,13 +195,6 @@ impl exp::Experiment for Experiment {
                         container_started: chrono::Utc::now(),
                     };
                     for (datetime, event) in chunk {
-                        // let offset = *datetime - start;
-                        // println!(
-                        //     "{: >6.3}s {} {:?}",
-                        //     offset.num_milliseconds() as f64 / 1000.,
-                        //     event.message.as_ref().unwrap(),
-                        //     event.reason.as_ref(),
-                        // );
                         match event.reason.as_ref().map(|s| s.as_ref()).unwrap() {
                             "Scheduled" => t.pod_scheduled = *datetime,
                             "SuccessfulCreate" => t.pod_created = *datetime,
@@ -241,9 +234,101 @@ impl exp::Experiment for Experiment {
                         println!();
                     }
                 }
+
+                all_timings.push(timings);
             }
         }
+        let plots_path = experiment_dir.join("plots");
+        create_dir_all(&plots_path).unwrap();
+        plot_timings_scatter(date, &plots_path, &all_timings);
     }
+}
+
+fn plot_timings_scatter(
+    date: chrono::DateTime<chrono::Utc>,
+    plots_path: &Path,
+    timings: &[Vec<Timings>],
+) {
+    use plotters::prelude::*;
+    let latency_plot = plots_path.join("timings.svg");
+    let root = SVGBackend::new(&latency_plot, (640, 480)).into_drawing_area();
+    root.fill(&WHITE).unwrap();
+    let mut chart = ChartBuilder::on(&root)
+        .caption(
+            format!("Kubernetes timings ({})", date),
+            ("sans-serif", 20).into_font(),
+        )
+        .margin(10)
+        .margin_right(20)
+        .x_label_area_size(30)
+        .y_label_area_size(40)
+        .build_cartesian_2d(
+            (0..5).with_key_points(vec![1, 2, 3, 4, 5]),
+            (0u32..3000u32).log_scale(),
+        )
+        .unwrap();
+
+    chart
+        .configure_mesh()
+        .y_desc("Duration (ms)")
+        .x_labels(5)
+        .x_label_formatter(&|x| match x {
+            1 => "schedule".to_owned(),
+            2 => "to node".to_owned(),
+            3 => "pull".to_owned(),
+            4 => "creation".to_owned(),
+            5 => "start".to_owned(),
+            _ => "".to_owned(),
+        })
+        .draw()
+        .unwrap();
+
+    chart
+        .draw_series(timings.into_iter().flatten().flat_map(|t| {
+            vec![
+                Cross::new(
+                    (
+                        1,
+                        (t.pod_scheduled - t.pod_created).num_milliseconds() as u32,
+                    ),
+                    3,
+                    BLUE.mix(0.5).filled(),
+                ),
+                Cross::new(
+                    (
+                        2,
+                        (t.pull_started - t.pod_scheduled).num_milliseconds() as u32,
+                    ),
+                    3,
+                    BLUE.mix(0.5).filled(),
+                ),
+                Cross::new(
+                    (
+                        3,
+                        (t.pull_finished - t.pull_started).num_milliseconds() as u32,
+                    ),
+                    3,
+                    BLUE.mix(0.5).filled(),
+                ),
+                Cross::new(
+                    (
+                        4,
+                        (t.container_created - t.pull_finished).num_milliseconds() as u32,
+                    ),
+                    3,
+                    BLUE.mix(0.5).filled(),
+                ),
+                Cross::new(
+                    (
+                        5,
+                        (t.container_started - t.container_created).num_milliseconds() as u32,
+                    ),
+                    3,
+                    BLUE.mix(0.5).filled(),
+                ),
+            ]
+        }))
+        .unwrap();
 }
 
 #[derive(Debug)]
