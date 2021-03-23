@@ -14,6 +14,7 @@ use kube::{
     Client,
 };
 use kube_runtime::{utils::try_flatten_applied, watcher};
+use plotters::data::fitting_range;
 use serde::{Deserialize, Serialize};
 use tokio::time::sleep;
 
@@ -257,80 +258,57 @@ fn plot_timings_scatter(
     let latency_plot = plots_path.join("timings.svg");
     let root = SVGBackend::new(&latency_plot, (640, 480)).into_drawing_area();
     root.fill(&WHITE).unwrap();
+
+    let data = timings
+        .into_iter()
+        .flatten()
+        .map(|t| {
+            vec![
+                (t.pod_scheduled - t.pod_created).num_milliseconds() as u32,
+                (t.pull_started - t.pod_scheduled).num_milliseconds() as u32,
+                (t.pull_finished - t.pull_started).num_milliseconds() as u32,
+                (t.container_created - t.pull_finished).num_milliseconds() as u32,
+                (t.container_started - t.container_created).num_milliseconds() as u32,
+            ]
+        })
+        .collect::<Vec<_>>();
+
     let mut chart = ChartBuilder::on(&root)
         .caption(
             format!("Kubernetes timings ({})", date),
             ("sans-serif", 20).into_font(),
         )
         .margin(10)
-        .margin_right(20)
-        .x_label_area_size(30)
+        .margin_right(45)
+        .x_label_area_size(40)
         .y_label_area_size(40)
         .build_cartesian_2d(
-            (0..5).with_key_points(vec![1, 2, 3, 4, 5]),
-            (0u32..3000u32).log_scale(),
+            (1..5).with_key_points(vec![1, 2, 3, 4, 5]),
+            (fitting_range(data.iter().flatten())).log_scale(),
         )
         .unwrap();
 
     chart
         .configure_mesh()
         .y_desc("Duration (ms)")
+        .x_desc("Events")
         .x_labels(5)
         .x_label_formatter(&|x| match x {
-            1 => "schedule".to_owned(),
-            2 => "to node".to_owned(),
-            3 => "pull".to_owned(),
-            4 => "creation".to_owned(),
-            5 => "start".to_owned(),
+            1 => "Pod scheduling".to_owned(),
+            2 => "Pod to node".to_owned(),
+            3 => "Container pull".to_owned(),
+            4 => "Container creation".to_owned(),
+            5 => "Container start".to_owned(),
             _ => "".to_owned(),
         })
         .draw()
         .unwrap();
 
     chart
-        .draw_series(timings.into_iter().flatten().flat_map(|t| {
-            vec![
-                Cross::new(
-                    (
-                        1,
-                        (t.pod_scheduled - t.pod_created).num_milliseconds() as u32,
-                    ),
-                    3,
-                    BLUE.mix(0.5).filled(),
-                ),
-                Cross::new(
-                    (
-                        2,
-                        (t.pull_started - t.pod_scheduled).num_milliseconds() as u32,
-                    ),
-                    3,
-                    BLUE.mix(0.5).filled(),
-                ),
-                Cross::new(
-                    (
-                        3,
-                        (t.pull_finished - t.pull_started).num_milliseconds() as u32,
-                    ),
-                    3,
-                    BLUE.mix(0.5).filled(),
-                ),
-                Cross::new(
-                    (
-                        4,
-                        (t.container_created - t.pull_finished).num_milliseconds() as u32,
-                    ),
-                    3,
-                    BLUE.mix(0.5).filled(),
-                ),
-                Cross::new(
-                    (
-                        5,
-                        (t.container_started - t.container_created).num_milliseconds() as u32,
-                    ),
-                    3,
-                    BLUE.mix(0.5).filled(),
-                ),
-            ]
+        .draw_series(data.iter().flat_map(|v| {
+            v.iter()
+                .enumerate()
+                .map(|(i, t)| Cross::new((i as i32 + 1, *t as u32), 3, BLUE.mix(0.5).filled()))
         }))
         .unwrap();
 }
