@@ -1,6 +1,7 @@
 mod common;
 
 use common::EtcdContainer;
+use quickcheck::Gen;
 use test_env_log::test;
 use tonic::Request;
 
@@ -38,18 +39,16 @@ fn range_request() {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
             let _eckd_server = common::EckdServer::new().await;
-            println!("creating etcd connection");
             let mut etcd_client =
                 etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
                     .await
                     .unwrap();
 
-            println!("creating eckd connection");
             let mut eckd_client =
                 etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
                     .await
                     .unwrap();
-            let kv_res = match eckd_client.range(eckd_request).await {
+            let eckd_response = match eckd_client.range(eckd_request).await {
                 Ok(r) => {
                     let mut r = r.into_inner();
                     r.header = None;
@@ -61,7 +60,7 @@ fn range_request() {
                 }
             };
 
-            let response = match etcd_client.range(etcd_request).await {
+            let etcd_response = match etcd_client.range(etcd_request).await {
                 Ok(r) => {
                     let mut r = r.into_inner();
                     r.header = None;
@@ -73,14 +72,19 @@ fn range_request() {
                 }
             };
 
-            if response != kv_res {
-                println!("etcd: {:?}", response);
-                println!("eckd: {:?}", kv_res);
+            if etcd_response != eckd_response {
+                println!(
+                    "{}",
+                    pretty_assertions::Comparison::new(&etcd_response, &eckd_response)
+                )
             }
 
-            response == kv_res
+            etcd_response == eckd_response
         })
     }
 
-    quickcheck::QuickCheck::new().quickcheck(q as fn(RangeRequest) -> bool)
+    quickcheck::QuickCheck::new()
+        .tests(100)
+        .gen(Gen::new(20))
+        .quickcheck(q as fn(RangeRequest) -> bool)
 }
