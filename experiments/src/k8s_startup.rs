@@ -218,23 +218,23 @@ impl exp::Experiment for Experiment {
 
                 for (i, timing) in timings.iter().enumerate() {
                     println!(
-                        "schedule timing: {: >5}ms",
+                        "{: >5}ms for scheduling the pod to a node",
                         (timing.pod_scheduled - timing.pod_created).num_milliseconds()
                     );
                     println!(
-                        "node timing    : {: >5}ms",
+                        "{: >5}ms for the pod to be recognised and setup started at the node",
                         (timing.pull_started - timing.pod_scheduled).num_milliseconds()
                     );
                     println!(
-                        "pull timing    : {: >5}ms",
+                        "{: >5}ms for pulling the image",
                         (timing.pull_finished - timing.pull_started).num_milliseconds()
                     );
                     println!(
-                        "creation timing: {: >5}ms",
+                        "{: >5}ms for creating the container",
                         (timing.container_created - timing.pull_finished).num_milliseconds()
                     );
                     println!(
-                        "start timing   : {: >5}ms",
+                        "{: >5}ms for starting the container",
                         (timing.container_started - timing.container_created).num_milliseconds()
                     );
                     if i < timings.len() - 1 {
