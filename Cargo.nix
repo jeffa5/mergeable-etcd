@@ -605,8 +605,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "9100f8c7df5d15dd7fdb92642a5c18415210450a";
-          sha256 = "19ylq159xq0zdsvds0fv6lfwqi71cbfq9gkw1ja06b0mgj30fb6q";
+          rev = "360f551eca81cdd7f069e264349d0e6ea28ad788";
+          sha256 = "1692n5c69hhmdk6kzdzfkwmh7gh9xdba38l40wr8caspa6wyzp9g";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -649,8 +649,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "9100f8c7df5d15dd7fdb92642a5c18415210450a";
-          sha256 = "19ylq159xq0zdsvds0fv6lfwqi71cbfq9gkw1ja06b0mgj30fb6q";
+          rev = "360f551eca81cdd7f069e264349d0e6ea28ad788";
+          sha256 = "1692n5c69hhmdk6kzdzfkwmh7gh9xdba38l40wr8caspa6wyzp9g";
         };
         procMacro = true;
         authors = [
@@ -687,8 +687,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "9100f8c7df5d15dd7fdb92642a5c18415210450a";
-          sha256 = "19ylq159xq0zdsvds0fv6lfwqi71cbfq9gkw1ja06b0mgj30fb6q";
+          rev = "360f551eca81cdd7f069e264349d0e6ea28ad788";
+          sha256 = "1692n5c69hhmdk6kzdzfkwmh7gh9xdba38l40wr8caspa6wyzp9g";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -1584,9 +1584,9 @@ rec {
       };
       "ctor" = rec {
         crateName = "ctor";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2018";
-        sha256 = "06bbsv7lm9c9mfdg896vdxmdkkammc0sa56n2x4fzg0psjd5vx78";
+        sha256 = "0v80naiw5fp81xkyfkds6jpyamf3wx43kz4nif936bkq3any562y";
         procMacro = true;
         authors = [
           "Matt Mastracci <matthew@mastracci.com>"
@@ -4379,9 +4379,9 @@ rec {
       };
       "libc" = rec {
         crateName = "libc";
-        version = "0.2.90";
+        version = "0.2.91";
         edition = "2015";
-        sha256 = "1bll4c76xv9aa1mcmijpqb0m15wif26br4v9vh8p8qf37zlfsjms";
+        sha256 = "1rq2clij7a22p2ik62486whd2shmgkicxv4gav30w4qprbvb25l9";
         authors = [
           "The Rust Project Developers"
         ];
@@ -6833,9 +6833,9 @@ rec {
       };
       "serde" = rec {
         crateName = "serde";
-        version = "1.0.124";
+        version = "1.0.125";
         edition = "2015";
-        sha256 = "17yjk4g886jzq8ihn5k6523mbpp95m8scgdbp7xlaanbazwiyxmx";
+        sha256 = "0w8i0f4wsq4zd9vz1k6lq00066rjrgzlxkm25h8sfpss387cb3am";
         authors = [
           "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
           "David Tolnay <dtolnay@gmail.com>"
@@ -6881,9 +6881,9 @@ rec {
       };
       "serde_derive" = rec {
         crateName = "serde_derive";
-        version = "1.0.124";
+        version = "1.0.125";
         edition = "2015";
-        sha256 = "16q6k7zmc7pcbl4pmngpmw4aj3apw4d2ja2swbsqdqcl7rlzf00q";
+        sha256 = "0vfhndim4sa1i1x38dyvrxyq5v8zxjs0av05ldfkn82qpfibg4xh";
         procMacro = true;
         authors = [
           "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
@@ -7650,9 +7650,9 @@ rec {
       };
       "test-env-log" = rec {
         crateName = "test-env-log";
-        version = "0.2.5";
+        version = "0.2.6";
         edition = "2018";
-        sha256 = "0w1nmavjiywvvihj83f0cyd53dy074h742gqwgznq58j4dqsf0mp";
+        sha256 = "1bg6cwj700w0i3z3x4nj4snzsca7w4lvkk3cj7jqaa9bjmv826z6";
         procMacro = true;
         authors = [
           "Daniel Mueller <deso@posteo.net>"
