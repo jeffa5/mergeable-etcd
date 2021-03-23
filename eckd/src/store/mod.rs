@@ -8,7 +8,6 @@ use etcd_proto::etcdserverpb::{
     ResponseOp, TxnRequest,
 };
 use sled::{transaction::TransactionalTree, Transactional};
-use thiserror::Error;
 use tracing::{error, warn};
 
 mod server;
@@ -63,7 +62,7 @@ impl Store {
         key: Vec<u8>,
         range_end: Option<Vec<u8>>,
         revision: Option<Revision>,
-    ) -> Result<(Server, Vec<SnapshotValue>), Error> {
+    ) -> Result<(Server, Vec<SnapshotValue>), StoreError> {
         let server = self.current_server();
         let mut values = Vec::new();
         let revision = revision.unwrap_or(server.revision);
@@ -115,7 +114,7 @@ impl Store {
         key: &[u8],
         value: &[u8],
         prev_kv: bool,
-    ) -> Result<(Server, Option<SnapshotValue>), Error> {
+    ) -> Result<(Server, Option<SnapshotValue>), StoreError> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
@@ -124,13 +123,13 @@ impl Store {
             server.increment_revision();
             server_tree.insert(SERVER_KEY, server.serialize())?;
 
-            insert_inner(key.to_vec(), value.to_vec(), prev_kv, server, kv_tree)
+            Ok(insert_inner(key.to_vec(), value.to_vec(), prev_kv, server, kv_tree).unwrap())
         })?;
         Ok(result)
     }
 
     #[tracing::instrument(skip(self), fields(key = %std::str::from_utf8(key).unwrap()))]
-    pub fn remove(&self, key: &[u8]) -> Result<(Server, Option<SnapshotValue>), Error> {
+    pub fn remove(&self, key: &[u8]) -> Result<(Server, Option<SnapshotValue>), StoreError> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let mut server = server_tree
                 .get(SERVER_KEY)?
@@ -139,20 +138,20 @@ impl Store {
             server.increment_revision();
             server_tree.insert(SERVER_KEY, server.serialize())?;
 
-            remove_inner(key.to_vec(), server, kv_tree)
+            Ok(remove_inner(key.to_vec(), server, kv_tree).unwrap())
         })?;
         Ok(result)
     }
 
     #[tracing::instrument(skip(self, request))]
-    pub fn txn(&self, request: &TxnRequest) -> Result<(Server, bool, Vec<ResponseOp>), Error> {
+    pub fn txn(&self, request: &TxnRequest) -> Result<(Server, bool, Vec<ResponseOp>), StoreError> {
         let result = (&self.kv, &self.server).transaction(|(kv_tree, server_tree)| {
             let server = server_tree
                 .get(SERVER_KEY)
                 .unwrap()
                 .map(|server| Server::deserialize(&server))
                 .unwrap_or_default();
-            transaction_inner(request, server, kv_tree, server_tree)
+            Ok(transaction_inner(request, server, kv_tree, server_tree).unwrap())
         })?;
         Ok(result)
     }
@@ -189,7 +188,11 @@ impl Store {
     }
 
     #[tracing::instrument(skip(self))]
-    pub fn create_lease(&self, id: Option<i64>, ttl: i64) -> Result<(Server, i64, i64), Error> {
+    pub fn create_lease(
+        &self,
+        id: Option<i64>,
+        ttl: i64,
+    ) -> Result<(Server, i64, i64), StoreError> {
         let result = (&self.server, &self.lease).transaction(|(server_tree, lease_tree)| {
             let server = server_tree
                 .get(SERVER_KEY)?
@@ -203,7 +206,7 @@ impl Store {
     }
 
     #[tracing::instrument(skip(self))]
-    pub fn refresh_lease(&self, id: i64) -> Result<(Server, i64), Error> {
+    pub fn refresh_lease(&self, id: i64) -> Result<(Server, i64), StoreError> {
         let result = (&self.server, &self.lease).transaction(|(server_tree, lease_tree)| {
             let server = server_tree
                 .get(SERVER_KEY)?
@@ -220,7 +223,7 @@ impl Store {
     }
 
     #[tracing::instrument(skip(self))]
-    pub fn revoke_lease(&self, id: i64) -> Result<Server, Error> {
+    pub fn revoke_lease(&self, id: i64) -> Result<Server, StoreError> {
         let result = (&self.kv, &self.server, &self.lease).transaction(
             |(_kv_tree, server_tree, lease_tree)| {
                 let server = server_tree
@@ -241,7 +244,7 @@ fn get_inner(
     key: Vec<u8>,
     kv_tree: &TransactionalTree,
     server_tree: &TransactionalTree,
-) -> Result<(Server, Option<SnapshotValue>), sled::transaction::ConflictableTransactionError> {
+) -> Result<(Server, Option<SnapshotValue>), StoreError> {
     let server = server_tree
         .get(SERVER_KEY)?
         .map(|server| Server::deserialize(&server))
@@ -272,27 +275,26 @@ fn insert_inner(
     prev_kv: bool,
     server: Server,
     kv_tree: &TransactionalTree,
-) -> Result<(Server, Option<SnapshotValue>), sled::transaction::ConflictableTransactionError> {
-    if String::from_utf8(key.clone()).unwrap() == "/registry/ranges/serviceips" {
-        let mut prev = None;
-        let (mut backend, mut document) = if let Some(v) = kv_tree.get(&key)? {
-            let backend = automerge::Backend::load(v.to_vec());
-            if let Err(e) = backend {
-                error!(error = ?e, "failed loading backend");
-                (automerge::Backend::init(), Document::new())
-            } else {
-                let backend = backend.unwrap();
-                let patch = backend.get_patch().unwrap();
-                let document = Document::new_with_patch(patch).unwrap();
-                (backend, document)
-            }
+) -> Result<(Server, Option<SnapshotValue>), StoreError> {
+    let mut prev = None;
+    let (mut backend, mut document) = if let Some(v) = kv_tree.get(&key)? {
+        let backend = automerge::Backend::load(v.to_vec());
+        if let Err(e) = backend {
+            error!(error = ?e, "failed loading backend");
+            (automerge::Backend::init(), Document::new())
         } else {
-            let backend = automerge::Backend::init();
-            let document = Document::new();
+            let backend = backend.unwrap();
+            let patch = backend.get_patch().unwrap();
+            let document = Document::new_with_patch(patch).unwrap();
             (backend, document)
-        };
-        tracing::info!("inserting");
-        let change = document.change::<_, automerge::InvalidChangeRequest>(|existing| {
+        }
+    } else {
+        let backend = automerge::Backend::init();
+        let document = Document::new();
+        (backend, document)
+    };
+    tracing::info!("inserting");
+    let change = document.change(|existing| {
         if prev_kv {
             prev = existing.value_at_revision(server.revision, key.clone())
         }
@@ -301,20 +303,17 @@ fn insert_inner(
         tracing::info!(key=?String::from_utf8(key.clone()).unwrap(), ?existing, changes=changes.len(), "existing");
         Ok(())
     });
-        if let Err(e) = change {
-            error!(error = ?e, "failed making the change");
-            Ok((Server::default(), None))
-        } else {
-            let change = change.unwrap();
-            if let Some(change) = change {
-                backend.apply_local_change(change).unwrap();
-            }
-            kv_tree.insert(key, backend.save().unwrap())?;
-
-            Ok((server, prev))
-        }
+    if let Err(e) = change {
+        error!(error = ?e, "failed making the change");
+        Err(StoreError::from(e))
     } else {
-        Ok((server, None))
+        let change = change.unwrap();
+        if let Some(change) = change {
+            backend.apply_local_change(change).unwrap();
+        }
+        kv_tree.insert(key, backend.save().unwrap())?;
+
+        Ok((server, prev))
     }
 }
 
@@ -323,7 +322,7 @@ fn remove_inner(
     key: Vec<u8>,
     server: Server,
     kv_tree: &TransactionalTree,
-) -> Result<(Server, Option<SnapshotValue>), sled::transaction::ConflictableTransactionError> {
+) -> Result<(Server, Option<SnapshotValue>), StoreError> {
     // don't actually remove it, just get it and set the value to None (and update meta)
     let (mut backend, mut document) = if let Some(v) = kv_tree.get(&key)? {
         let backend = automerge::Backend::load(v.to_vec()).unwrap();
@@ -338,7 +337,7 @@ fn remove_inner(
     let mut prev = None;
     tracing::info!("changing 2");
     let change = document
-        .change::<_, automerge::InvalidChangeRequest>(|historic| {
+        .change::<_, std::convert::Infallible>(|historic| {
             prev = historic.value_at_revision(server.revision, key.clone());
             historic.delete(server.revision);
             Ok(())
@@ -365,7 +364,7 @@ fn transaction_inner(
     mut server: Server,
     kv_tree: &TransactionalTree,
     server_tree: &TransactionalTree,
-) -> Result<(Server, bool, Vec<ResponseOp>), sled::transaction::ConflictableTransactionError> {
+) -> Result<(Server, bool, Vec<ResponseOp>), StoreError> {
     let success = request.compare.iter().all(|compare| {
         let (_, value) = get_inner(compare.key.clone(), kv_tree, server_tree).unwrap();
         match (compare.target(), compare.target_union.as_ref()) {
@@ -474,10 +473,16 @@ fn transaction_inner(
     Ok((server, success, results))
 }
 
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("sled error {0}")]
+#[derive(Debug, thiserror::Error)]
+pub enum StoreError {
+    #[error(transparent)]
     SledError(#[from] sled::Error),
-    #[error("sled transaction error {0}")]
+    #[error(transparent)]
     SledTransactionError(#[from] sled::transaction::TransactionError),
+    #[error(transparent)]
+    SledConflictableTransactionError(#[from] sled::transaction::ConflictableTransactionError),
+    #[error(transparent)]
+    SledUnabortableTransactionError(#[from] sled::transaction::UnabortableTransactionError),
+    #[error(transparent)]
+    AutomergeDocumentChangeError(#[from] automergeable::DocumentChangeError),
 }
