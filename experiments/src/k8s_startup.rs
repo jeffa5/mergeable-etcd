@@ -165,7 +165,7 @@ impl exp::Experiment for Experiment {
         let mut all_timings = Vec::new();
         for (_config, path) in configurations {
             let repeats = exp::repeat_dirs(&path).unwrap();
-            for repeat in repeats {
+            for (i, repeat) in repeats.iter().enumerate() {
                 let mut events = Vec::new();
 
                 let events_file = BufReader::new(File::open(repeat.join("events")).unwrap());
@@ -233,6 +233,10 @@ impl exp::Experiment for Experiment {
                     if i < timings.len() - 1 {
                         println!();
                     }
+                }
+
+                if i < repeats.len() - 1 {
+                    println!();
                 }
 
                 all_timings.push(timings);
