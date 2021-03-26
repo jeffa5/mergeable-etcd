@@ -27,6 +27,7 @@ $(SERVER_KEYS): $(CA_KEYS) $(CERTS_DIR)/ca-config.json $(CERTS_DIR)/server.json
 clean:
 	rm -f $(CA_KEYS) $(SERVER_KEYS)
 	rm -rf default.{eckd,etcd}
+	rm -f result result-lib
 	cargo clean
 
 .PHONY: docker-image
