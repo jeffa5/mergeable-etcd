@@ -392,8 +392,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "ba3f0babf846ce9b213486afc6a5e994c1b496a8";
-          sha256 = "177vszfbk9isf62f9c6hb0lxkf4v8a67sbn3s3vagzrrq42j3s1d";
+          rev = "ae3549d214f8d36b792de3ecd27f46bae7724364";
+          sha256 = "13m7yv9phq308hh75f842i1ibxd6k5sjcg11c757ij9725v8adlk";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -435,8 +435,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "ba3f0babf846ce9b213486afc6a5e994c1b496a8";
-          sha256 = "177vszfbk9isf62f9c6hb0lxkf4v8a67sbn3s3vagzrrq42j3s1d";
+          rev = "ae3549d214f8d36b792de3ecd27f46bae7724364";
+          sha256 = "13m7yv9phq308hh75f842i1ibxd6k5sjcg11c757ij9725v8adlk";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -516,8 +516,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "ba3f0babf846ce9b213486afc6a5e994c1b496a8";
-          sha256 = "177vszfbk9isf62f9c6hb0lxkf4v8a67sbn3s3vagzrrq42j3s1d";
+          rev = "ae3549d214f8d36b792de3ecd27f46bae7724364";
+          sha256 = "13m7yv9phq308hh75f842i1ibxd6k5sjcg11c757ij9725v8adlk";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -570,8 +570,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "ba3f0babf846ce9b213486afc6a5e994c1b496a8";
-          sha256 = "177vszfbk9isf62f9c6hb0lxkf4v8a67sbn3s3vagzrrq42j3s1d";
+          rev = "ae3549d214f8d36b792de3ecd27f46bae7724364";
+          sha256 = "13m7yv9phq308hh75f842i1ibxd6k5sjcg11c757ij9725v8adlk";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -605,8 +605,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "360f551eca81cdd7f069e264349d0e6ea28ad788";
-          sha256 = "1692n5c69hhmdk6kzdzfkwmh7gh9xdba38l40wr8caspa6wyzp9g";
+          rev = "503fc8accd6463145520e3c9ec3f739c3ee8d37f";
+          sha256 = "1y88x8k5wcw51dj17n5w66jpsq15kva6jz3682rjlyp2zxbj1q2l";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -649,8 +649,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "360f551eca81cdd7f069e264349d0e6ea28ad788";
-          sha256 = "1692n5c69hhmdk6kzdzfkwmh7gh9xdba38l40wr8caspa6wyzp9g";
+          rev = "503fc8accd6463145520e3c9ec3f739c3ee8d37f";
+          sha256 = "1y88x8k5wcw51dj17n5w66jpsq15kva6jz3682rjlyp2zxbj1q2l";
         };
         procMacro = true;
         authors = [
@@ -687,8 +687,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "360f551eca81cdd7f069e264349d0e6ea28ad788";
-          sha256 = "1692n5c69hhmdk6kzdzfkwmh7gh9xdba38l40wr8caspa6wyzp9g";
+          rev = "503fc8accd6463145520e3c9ec3f739c3ee8d37f";
+          sha256 = "1y88x8k5wcw51dj17n5w66jpsq15kva6jz3682rjlyp2zxbj1q2l";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -901,7 +901,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.5";
+            packageId = "pin-project 1.0.6";
           }
           {
             name = "serde";
@@ -3209,9 +3209,9 @@ rec {
       };
       "h2" = rec {
         crateName = "h2";
-        version = "0.3.1";
+        version = "0.3.2";
         edition = "2018";
-        sha256 = "0y5fxy3sy0s3j1h6p0c2xk5n2gs4jk1dvmk88lvgwm22ywfv0cnq";
+        sha256 = "006w22103hxyiwyb4msq7xnfc21ayszpwipj1rypgqkkhcc8w0gw";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Sean McArthur <sean@seanmonstar.com>"
@@ -3491,7 +3491,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.5";
+            packageId = "pin-project 1.0.6";
           }
           {
             name = "socket2";
@@ -3654,7 +3654,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.5";
+            packageId = "pin-project 1.0.6";
           }
           {
             name = "tokio";
@@ -4164,7 +4164,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.5";
+            packageId = "pin-project 1.0.6";
           }
           {
             name = "serde";
@@ -4271,7 +4271,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.5";
+            packageId = "pin-project 1.0.6";
           }
           {
             name = "serde";
@@ -4513,9 +4513,9 @@ rec {
       };
       "memoffset" = rec {
         crateName = "memoffset";
-        version = "0.6.1";
+        version = "0.6.2";
         edition = "2015";
-        sha256 = "11yxgw330cf8g4wy0fnb20ag8gg1b33fsnfmg2g8z6h5wc444yqm";
+        sha256 = "0f7xzgnzh0y7llgmbq1cxb0gp6fh8hzcryhk84mlgd0jm1agq56c";
         authors = [
           "Gilad Naaman <gilad.naaman@gmail.com>"
         ];
@@ -5293,18 +5293,18 @@ rec {
         ];
 
       };
-      "pin-project 1.0.5" = rec {
+      "pin-project 1.0.6" = rec {
         crateName = "pin-project";
-        version = "1.0.5";
+        version = "1.0.6";
         edition = "2018";
-        sha256 = "0qqbmxna4b49p80qnhlbnzvdi2q6p22l8da4y5vl8717j2xqxyln";
+        sha256 = "19hva0wx1zm1v4n5vp4qdbljj6n9jpd7l63mwldfj1l8frclh5xw";
         authors = [
           "Taiki Endo <te316e89@gmail.com>"
         ];
         dependencies = [
           {
             name = "pin-project-internal";
-            packageId = "pin-project-internal 1.0.5";
+            packageId = "pin-project-internal 1.0.6";
             usesDefaultFeatures = false;
           }
         ];
@@ -5336,11 +5336,11 @@ rec {
         ];
 
       };
-      "pin-project-internal 1.0.5" = rec {
+      "pin-project-internal 1.0.6" = rec {
         crateName = "pin-project-internal";
-        version = "1.0.5";
+        version = "1.0.6";
         edition = "2018";
-        sha256 = "02scl9dsvlg5nnlxcfb6x9d1jnhbmkvl32x1s95zgijq6np6k1km";
+        sha256 = "1ra9j3q9yiwz3agfmr07chrlz31dzqxlw91z10dysmp832ck5454";
         procMacro = true;
         authors = [
           "Taiki Endo <te316e89@gmail.com>"
@@ -6648,6 +6648,18 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "has-atomics" "std" ];
       };
+      "rustversion" = rec {
+        crateName = "rustversion";
+        version = "1.0.4";
+        edition = "2018";
+        sha256 = "1kas7n19n097fjjhdwrv36yjjvih0j5lkqzx2vyxiln6dl1jlpfb";
+        procMacro = true;
+        build = "build/build.rs";
+        authors = [
+          "David Tolnay <dtolnay@gmail.com>"
+        ];
+
+      };
       "ryu" = rec {
         crateName = "ryu";
         version = "1.0.5";
@@ -6975,13 +6987,18 @@ rec {
       };
       "serde_with" = rec {
         crateName = "serde_with";
-        version = "1.6.4";
+        version = "1.7.0";
         edition = "2018";
-        sha256 = "1r8vaszww19zz6l1b55fbfaxk4a95m6ag73wf0h08ji1gqifjjxl";
+        sha256 = "1csslrcvhhag4mih13qcwb086pfp931abj138jg2bnr3y16vn8vz";
         authors = [
           "Jonas Bushart"
+          "Marcin Kaźmierczak"
         ];
         dependencies = [
+          {
+            name = "rustversion";
+            packageId = "rustversion";
+          }
           {
             name = "serde";
             packageId = "serde";
@@ -8190,7 +8207,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.5";
+            packageId = "pin-project 1.0.6";
           }
           {
             name = "prost";
@@ -8320,7 +8337,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.5";
+            packageId = "pin-project 1.0.6";
           }
           {
             name = "rand";
@@ -8527,7 +8544,7 @@ rec {
         dependencies = [
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.5";
+            packageId = "pin-project 1.0.6";
             optional = true;
           }
           {
