@@ -1,4 +1,4 @@
-use std::{convert::TryInto, num::NonZeroU64};
+use std::convert::TryInto;
 
 use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
@@ -7,7 +7,7 @@ use etcd_proto::etcdserverpb::{
 use tonic::{Request, Response, Status};
 use tracing::{debug, info};
 
-use crate::store::SnapshotValue;
+use crate::store::{Revision, SnapshotValue};
 
 #[derive(Debug)]
 pub struct KV {
@@ -43,7 +43,7 @@ impl Kv for KV {
         } else {
             Some(&request.range_end)
         };
-        let revision = NonZeroU64::new(request.revision.try_into().unwrap());
+        let revision = Revision::new(request.revision.try_into().unwrap());
         let (server, kvs) = self
             .server
             .store

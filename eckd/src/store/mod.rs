@@ -1,4 +1,4 @@
-use std::{convert::TryInto, num::NonZeroU64, path::Path};
+use std::{convert::TryInto, path::Path};
 
 use automergeable::automerge;
 use etcd_proto::etcdserverpb::{
@@ -10,21 +10,18 @@ use etcd_proto::etcdserverpb::{
 use sled::{transaction::TransactionalTree, Transactional};
 use tracing::{error, warn};
 
+mod key;
+mod revision;
 mod server;
 pub mod value;
+mod version;
 
+pub use key::Key;
+pub use revision::Revision;
 pub use server::Server;
 pub use value::{HistoricValue, SnapshotValue, Value};
+pub use version::Version;
 
-/// A revision is a historic version of the datastore
-/// The revision must be positive and starts at 1
-pub type Revision = NonZeroU64;
-
-/// The version of a resource
-///
-/// - `None` if the resource has been deleted at the revision
-/// - `Some(n)` otherwise and n will be the number of changes since creation
-pub type Version = Option<NonZeroU64>;
 
 type Document = automergeable::Document<Value>;
 

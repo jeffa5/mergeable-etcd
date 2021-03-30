@@ -1,5 +1,3 @@
-use std::num::NonZeroU64;
-
 use automergeable::automerge;
 use etcd_proto::{etcdserverpb::WatchResponse, mvccpb};
 use sled::Event;
@@ -9,7 +7,7 @@ use tracing::{debug, error, warn};
 
 use crate::store::{
     value::{HistoricValue, Value},
-    Server, SnapshotValue,
+    Revision, Server, SnapshotValue,
 };
 
 #[derive(Debug)]
@@ -67,8 +65,7 @@ async fn handle_event(
                             Some((
                                 history
                                     .value_at_revision(
-                                        NonZeroU64::new(latest_value.mod_revision.get() - 1)
-                                            .unwrap(),
+                                        Revision::new(latest_value.mod_revision.get() - 1).unwrap(),
                                         key.to_vec(),
                                     )
                                     .map(SnapshotValue::key_value),
