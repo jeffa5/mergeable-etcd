@@ -29,14 +29,14 @@ pub struct EckdServer {
 
 #[derive(Debug, Clone)]
 pub struct Server {
-    pub store: crate::store::Store,
+    pub store: crate::store::Frontend,
     max_watcher_id: Arc<AtomicI64>,
     watchers: Arc<Mutex<HashMap<i64, watcher::Watcher>>>,
     leases: Arc<Mutex<HashMap<i64, lease::Lease>>>,
 }
 
 impl Server {
-    pub fn new(store: crate::store::Store) -> Self {
+    pub fn new(store: crate::store::Frontend) -> Self {
         Self {
             store,
             max_watcher_id: Arc::new(AtomicI64::new(1)),
@@ -48,6 +48,7 @@ impl Server {
     pub fn create_watcher(
         &self,
         key: Vec<u8>,
+        range_end: Vec<u8>,
         tx_results: tokio::sync::mpsc::Sender<Result<WatchResponse, Status>>,
     ) -> i64 {
         // TODO: have a more robust cancel mechanism
@@ -56,7 +57,7 @@ impl Server {
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let (tx_events, rx_events) = tokio::sync::mpsc::channel(1);
         let store_clone = self.store.clone();
-        tokio::spawn(async move { store_clone.watch_prefix(key, tx_events).await });
+        tokio::spawn(async move { store_clone.watch_range(key, range_end, tx_events).await });
         let watcher = watcher::Watcher::new(id, rx_events, tx_results);
         self.watchers.lock().unwrap().insert(id, watcher);
         id
@@ -105,7 +106,7 @@ impl EckdServer {
         &self,
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let store = crate::store::Store::new(&self.data_dir);
+        let store = crate::store::Frontend::new(&self.data_dir);
         let server = Server::new(store);
         let servers = self
             .listen_client_urls

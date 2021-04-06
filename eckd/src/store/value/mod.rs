@@ -1,17 +1,16 @@
 #[cfg(feature = "value-lww")]
 mod lww;
-
 use etcd_proto::mvccpb::KeyValue;
 #[cfg(feature = "value-lww")]
 pub use lww::Value;
 
-use crate::store::{Revision, Version};
+use crate::store::{Key, Revision, Version};
 
 /// A SnapshotValue corresponds to the value for the API, being just a snapshot of the `StoredValue` at a particular revision.
 #[derive(Debug, PartialEq)]
 pub struct SnapshotValue {
     /// the key for this value
-    pub key: Vec<u8>,
+    pub key: Key,
     /// the create_revision of the value
     /// None when this represents a deleted value (a tombstone)
     /// Some when it is a valid and active value
@@ -35,7 +34,7 @@ impl SnapshotValue {
     pub fn key_value(self) -> KeyValue {
         KeyValue {
             create_revision: self.create_revision.map(|n| n.get() as i64).unwrap_or(0),
-            key: self.key,
+            key: self.key.into(),
             lease: 0,
             mod_revision: self.mod_revision.get() as i64,
             value: self.value.unwrap_or_default(),
@@ -46,7 +45,7 @@ impl SnapshotValue {
     pub fn key_only(self) -> KeyValue {
         KeyValue {
             create_revision: self.create_revision.map(|n| n.get() as i64).unwrap_or(0),
-            key: self.key,
+            key: self.key.into(),
             lease: 0,
             mod_revision: self.mod_revision.get() as i64,
             value: Vec::new(),
@@ -61,12 +60,12 @@ pub trait HistoricValue: std::fmt::Debug + Default {
     /// Get the value at a specific revision
     ///
     /// `key` is required to be able to build the RawValue
-    fn value_at_revision(&self, revision: Revision, key: Vec<u8>) -> Option<SnapshotValue>;
+    fn value_at_revision(&self, revision: Revision, key: Key) -> Option<SnapshotValue>;
 
     /// Get the latest value based on revision (if it exists)
     ///
     /// `key` is required to be able to build the RawValue
-    fn latest_value(&self, key: Vec<u8>) -> Option<SnapshotValue>;
+    fn latest_value(&self, key: Key) -> Option<SnapshotValue>;
 
     /// Insert a new value (or update an existing value) at the given revision
     fn insert(&mut self, revision: Revision, value: Vec<u8>);

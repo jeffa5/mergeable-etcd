@@ -198,6 +198,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "automerge-persistent-sled"
+version = "0.1.0"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#d31c7118bd2aaee0266f64be0146e74388bc9187"
+dependencies = [
+ "automerge",
+ "automerge-persistent",
+ "automerge-protocol",
+ "sled",
+ "thiserror",
+]
+
+[[package]]
 name = "automerge-protocol"
 version = "0.1.0"
 source = "git+https://github.com/jeffa5/automerge-rs?branch=main#e607d2e22baa67ab42b0aec15015c0de4d67c53d"
@@ -820,6 +832,7 @@ name = "eckd"
 version = "0.1.0"
 dependencies = [
  "automerge-persistent",
+ "automerge-persistent-sled",
  "automergeable",
  "derive_builder",
  "etcd-proto",

@@ -9,7 +9,7 @@ use prost::Message;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use crate::store::{Revision, SnapshotValue, Version};
+use crate::store::{Key, Revision, SnapshotValue, Version};
 
 /// An implementation of a stored value with history and produces snapshotvalues
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Automergeable)]
@@ -56,7 +56,7 @@ impl Value {
 }
 
 impl crate::store::HistoricValue for Value {
-    fn value_at_revision(&self, revision: Revision, key: Vec<u8>) -> Option<SnapshotValue> {
+    fn value_at_revision(&self, revision: Revision, key: Key) -> Option<SnapshotValue> {
         if let Some((&revision, value)) = self.revisions.iter().rfind(|(&k, _)| k <= revision) {
             let version = self.version(revision);
 
@@ -72,7 +72,7 @@ impl crate::store::HistoricValue for Value {
         }
     }
 
-    fn latest_value(&self, key: Vec<u8>) -> Option<SnapshotValue> {
+    fn latest_value(&self, key: Key) -> Option<SnapshotValue> {
         if let Some(&revision) = self.revisions.keys().last() {
             self.value_at_revision(revision, key)
         } else {
@@ -272,131 +272,131 @@ mod tests {
         );
         assert_eq!(
             None,
-            v.value_at_revision(NonZeroU64::new(1).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(1).unwrap(), Vec::new().into()),
             "default 1"
         );
 
-        v.insert(NonZeroU64::new(2).unwrap(), b"{}".to_vec());
+        v.insert(Revision::new(2).unwrap(), b"{}".to_vec());
         assert_eq!(
             None,
-            v.value_at_revision(NonZeroU64::new(1).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(1).unwrap(), Vec::new().into()),
             "2@1"
         );
         assert_eq!(
             Some(SnapshotValue {
-                key: Vec::new(),
-                create_revision: NonZeroU64::new(2),
-                mod_revision: NonZeroU64::new(2).unwrap(),
+                key: Vec::new().into(),
+                create_revision: Revision::new(2),
+                mod_revision: Revision::new(2).unwrap(),
                 version: NonZeroU64::new(1),
                 value: Some(b"{}".to_vec())
             }),
-            v.value_at_revision(NonZeroU64::new(2).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(2).unwrap(), Vec::new().into()),
             "2@2"
         );
 
-        v.insert(NonZeroU64::new(4).unwrap(), b"{}".to_vec());
+        v.insert(Revision::new(4).unwrap(), b"{}".to_vec());
         assert_eq!(
             Some(SnapshotValue {
-                key: Vec::new(),
-                create_revision: NonZeroU64::new(2),
-                mod_revision: NonZeroU64::new(2).unwrap(),
+                key: Vec::new().into(),
+                create_revision: Revision::new(2),
+                mod_revision: Revision::new(2).unwrap(),
                 version: NonZeroU64::new(1),
                 value: Some(b"{}".to_vec())
             }),
-            v.value_at_revision(NonZeroU64::new(2).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(2).unwrap(), Vec::new().into()),
             "4@2"
         );
         assert_eq!(
             Some(SnapshotValue {
-                key: Vec::new(),
-                create_revision: NonZeroU64::new(2),
-                mod_revision: NonZeroU64::new(4).unwrap(),
+                key: Vec::new().into(),
+                create_revision: Revision::new(2),
+                mod_revision: Revision::new(4).unwrap(),
                 version: NonZeroU64::new(2),
                 value: Some(b"{}".to_vec())
             }),
-            v.value_at_revision(NonZeroU64::new(4).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(4).unwrap(), Vec::new().into()),
             "4@4"
         );
         assert_eq!(
             Some(SnapshotValue {
-                key: Vec::new(),
-                create_revision: NonZeroU64::new(2),
-                mod_revision: NonZeroU64::new(4).unwrap(),
+                key: Vec::new().into(),
+                create_revision: Revision::new(2),
+                mod_revision: Revision::new(4).unwrap(),
                 version: NonZeroU64::new(2),
                 value: Some(b"{}".to_vec())
             }),
-            v.value_at_revision(NonZeroU64::new(7).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(7).unwrap(), Vec::new().into()),
             "4@7"
         );
 
-        v.insert(NonZeroU64::new(5).unwrap(), b"{}".to_vec());
+        v.insert(Revision::new(5).unwrap(), b"{}".to_vec());
         assert_eq!(
             Some(SnapshotValue {
-                key: Vec::new(),
-                create_revision: NonZeroU64::new(2),
-                mod_revision: NonZeroU64::new(4).unwrap(),
+                key: Vec::new().into(),
+                create_revision: Revision::new(2),
+                mod_revision: Revision::new(4).unwrap(),
                 version: NonZeroU64::new(2),
                 value: Some(b"{}".to_vec())
             }),
-            v.value_at_revision(NonZeroU64::new(4).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(4).unwrap(), Vec::new().into()),
             "5@4"
         );
         assert_eq!(
             Some(SnapshotValue {
-                key: Vec::new(),
-                create_revision: NonZeroU64::new(2),
-                mod_revision: NonZeroU64::new(5).unwrap(),
+                key: Vec::new().into(),
+                create_revision: Revision::new(2),
+                mod_revision: Revision::new(5).unwrap(),
                 version: NonZeroU64::new(3),
                 value: Some(b"{}".to_vec())
             }),
-            v.value_at_revision(NonZeroU64::new(7).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(7).unwrap(), Vec::new().into()),
             "5@7"
         );
-        v.delete(NonZeroU64::new(7).unwrap());
+        v.delete(Revision::new(7).unwrap());
         assert_eq!(
             Some(SnapshotValue {
-                key: Vec::new(),
-                create_revision: NonZeroU64::new(2),
-                mod_revision: NonZeroU64::new(4).unwrap(),
+                key: Vec::new().into(),
+                create_revision: Revision::new(2),
+                mod_revision: Revision::new(4).unwrap(),
                 version: NonZeroU64::new(2),
                 value: Some(b"{}".to_vec())
             }),
-            v.value_at_revision(NonZeroU64::new(4).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(4).unwrap(), Vec::new().into()),
             "7@4"
         );
         assert_eq!(
             Some(SnapshotValue {
-                key: Vec::new(),
+                key: Vec::new().into(),
                 create_revision: None,
-                mod_revision: NonZeroU64::new(7).unwrap(),
+                mod_revision: Revision::new(7).unwrap(),
                 version: NonZeroU64::new(0),
                 value: None
             }),
-            v.value_at_revision(NonZeroU64::new(7).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(7).unwrap(), Vec::new().into()),
             "7@7"
         );
         assert_eq!(
             Some(SnapshotValue {
-                key: Vec::new(),
+                key: Vec::new().into(),
                 create_revision: None,
-                mod_revision: NonZeroU64::new(7).unwrap(),
+                mod_revision: Revision::new(7).unwrap(),
                 version: NonZeroU64::new(0),
                 value: None,
             }),
-            v.value_at_revision(NonZeroU64::new(8).unwrap(), Vec::new()),
+            v.value_at_revision(Revision::new(8).unwrap(), Vec::new().into()),
             "7@8"
         );
 
-        v.insert(NonZeroU64::new(9).unwrap(), b"{}".to_vec());
+        v.insert(Revision::new(9).unwrap(), b"{}".to_vec());
         assert_eq!(
             Some(SnapshotValue {
-                key: Vec::new(),
-                create_revision: NonZeroU64::new(9),
-                mod_revision: NonZeroU64::new(9).unwrap(),
+                key: Vec::new().into(),
+                create_revision: Revision::new(9),
+                mod_revision: Revision::new(9).unwrap(),
                 version: NonZeroU64::new(1),
                 value: Some(b"{}".to_vec())
             }),
-            v.latest_value(Vec::new()),
+            v.latest_value(Vec::new().into()),
             "9@9"
         );
     }
