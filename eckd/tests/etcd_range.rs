@@ -91,7 +91,7 @@ fn range_request() {
     }
 
     quickcheck::QuickCheck::new()
-        .tests(100)
+        .tests(1000)
         .gen(Gen::new(20))
         .quickcheck(q as fn(RangeRequest) -> bool)
 }
