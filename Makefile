@@ -52,6 +52,10 @@ docker-push: docker-load
 	docker push jeffas/etcd:latest
 	docker push jeffas/bencher:latest
 
+.PHONY: test
+test: docker-load
+	cargo test
+
 .PHONY: kind
 kind:
 	kind delete cluster

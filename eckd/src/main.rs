@@ -4,7 +4,10 @@
 
 use std::{convert::TryFrom, path::PathBuf};
 
-use eckd::address::{Address, NamedAddress};
+use eckd::{
+    address::{Address, NamedAddress},
+    EckdBuilder,
+};
 use structopt::StructOpt;
 use tracing::{debug, info, Level};
 
@@ -23,7 +26,7 @@ struct Options {
     listen_peer_urls: Vec<Address>,
 
     /// List of URLs to listen on for client traffic.
-    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2379", use_delimiter=true)]
+    #[structopt(long, parse(try_from_str = Address::try_from), use_delimiter=true)]
     listen_client_urls: Vec<Address>,
 
     /// List of URLs to listen on for metrics.
@@ -100,7 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     debug!("{:#?}", options);
 
-    let mut server_builder = eckd::server::EckdServerBuilder::default();
+    let mut server_builder = EckdBuilder::default();
     server_builder
         .name(options.name)
         .data_dir(options.data_dir)

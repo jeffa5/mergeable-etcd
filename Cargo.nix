@@ -345,9 +345,9 @@ rec {
       };
       "async-trait" = rec {
         crateName = "async-trait";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2018";
-        sha256 = "1pvaay9kpq90pgckbzy53qhxdhsyl4w3c5ac814jqwqhirs5dsin";
+        sha256 = "0j3vv30ky9mfxaxjjw6bvf8b40jp892y2fybgqg5scybgk7555jq";
         procMacro = true;
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
@@ -605,6 +605,76 @@ rec {
           "default" = [ "std" ];
         };
         resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "automerge-persistent" = rec {
+        crateName = "automerge-persistent";
+        version = "0.1.0";
+        edition = "2018";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/jeffa5/automerge-persistent";
+          rev = "d31c7118bd2aaee0266f64be0146e74388bc9187";
+          sha256 = "14yqwmsvviiwnfwxfhaascs1fyhilh57y21hb4pgy075p6scgd0l";
+        };
+        authors = [
+          "Andrew Jeffery <dev@jeffas.io>"
+        ];
+        dependencies = [
+          {
+            name = "automerge";
+            packageId = "automerge";
+          }
+          {
+            name = "automerge-backend";
+            packageId = "automerge-backend";
+          }
+          {
+            name = "automerge-protocol";
+            packageId = "automerge-protocol";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+        ];
+
+      };
+      "automerge-persistent-sled" = rec {
+        crateName = "automerge-persistent-sled";
+        version = "0.1.0";
+        edition = "2018";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/jeffa5/automerge-persistent";
+          rev = "d31c7118bd2aaee0266f64be0146e74388bc9187";
+          sha256 = "14yqwmsvviiwnfwxfhaascs1fyhilh57y21hb4pgy075p6scgd0l";
+        };
+        authors = [
+          "Andrew Jeffery <dev@jeffas.io>"
+        ];
+        dependencies = [
+          {
+            name = "automerge";
+            packageId = "automerge";
+          }
+          {
+            name = "automerge-persistent";
+            packageId = "automerge-persistent";
+          }
+          {
+            name = "automerge-protocol";
+            packageId = "automerge-protocol";
+          }
+          {
+            name = "sled";
+            packageId = "sled";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+        ];
+
       };
       "automerge-protocol" = rec {
         crateName = "automerge-protocol";
@@ -2282,6 +2352,14 @@ rec {
         ];
         dependencies = [
           {
+            name = "automerge-persistent";
+            packageId = "automerge-persistent";
+          }
+          {
+            name = "automerge-persistent-sled";
+            packageId = "automerge-persistent-sled";
+          }
+          {
             name = "automergeable";
             packageId = "automergeable";
           }
@@ -2518,8 +2596,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/exp";
-          rev = "e8c2c2cd2f80cdca7531eb642891e1dce03b7d62";
-          sha256 = "1llmym3y8q6pgi9zxq8yvlpg9mfkpwg3vn0qbmb3s45mclp7m3ym";
+          rev = "ab20743668a0b90ea0008446c4f0b19845b81335";
+          sha256 = "12l49sqq6jndxm0nq5lnqbgj0zdkb9ppfrkk2f6lz75ckwsn1hlq";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -5373,7 +5451,7 @@ rec {
           }
           {
             name = "redox_syscall";
-            packageId = "redox_syscall 0.2.5";
+            packageId = "redox_syscall 0.2.6";
             target = { target, features }: (target."os" == "redox");
           }
           {
@@ -6487,11 +6565,11 @@ rec {
         ];
 
       };
-      "redox_syscall 0.2.5" = rec {
+      "redox_syscall 0.2.6" = rec {
         crateName = "redox_syscall";
-        version = "0.2.5";
+        version = "0.2.6";
         edition = "2018";
-        sha256 = "1n878lpw577avdr5dzbkil02xwbx0a57mr2r3dcnnkz28i71wd4l";
+        sha256 = "0hchadrvdfvsrxg7zxz808nj521bnzq552apgs753sycbi5k2w42";
         libName = "syscall";
         authors = [
           "Jeremy Soller <jackpot51@gmail.com>"
@@ -6551,7 +6629,7 @@ rec {
           }
           {
             name = "redox_syscall";
-            packageId = "redox_syscall 0.2.5";
+            packageId = "redox_syscall 0.2.6";
           }
         ];
         features = {
@@ -7844,7 +7922,7 @@ rec {
           }
           {
             name = "redox_syscall";
-            packageId = "redox_syscall 0.2.5";
+            packageId = "redox_syscall 0.2.6";
             target = { target, features }: (target."os" == "redox");
           }
           {
@@ -8360,9 +8438,9 @@ rec {
       };
       "tonic" = rec {
         crateName = "tonic";
-        version = "0.4.1";
+        version = "0.4.2";
         edition = "2018";
-        sha256 = "0q9g8zmp15dfrq9cj8lw7589955cmp5rs7wcxj4j27s32mgiwjci";
+        sha256 = "12vg41fyc0s5navyd1sk1m33y9w0j98x5hygg61d2i8g8ldw6vam";
         authors = [
           "Lucio Franco <luciofranco14@gmail.com>"
         ];
@@ -8491,9 +8569,9 @@ rec {
       };
       "tonic-build" = rec {
         crateName = "tonic-build";
-        version = "0.4.1";
+        version = "0.4.2";
         edition = "2018";
-        sha256 = "1fmnmm9jc1kvi4a05916zk5swf85mday26cj0lb0fk7zmda9iq72";
+        sha256 = "1kzx489zx06b9a305nix8q2vi30s2dw7276s3lcrfiig60kxx5f6";
         authors = [
           "Lucio Franco <luciofranco14@gmail.com>"
         ];

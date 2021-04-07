@@ -1,6 +1,8 @@
 mod common;
 
-use common::EtcdContainer;
+use std::process::Command;
+
+use common::{EckdContainer, EtcdContainer};
 use quickcheck::Gen;
 use test_env_log::test;
 use tonic::Request;
@@ -11,7 +13,7 @@ struct RangeRequest(etcd_proto::etcdserverpb::RangeRequest);
 impl quickcheck::Arbitrary for RangeRequest {
     fn arbitrary(g: &mut quickcheck::Gen) -> Self {
         RangeRequest(etcd_proto::etcdserverpb::RangeRequest {
-            key: Vec::arbitrary(g),
+            key: String::arbitrary(g).as_bytes().to_vec(),
             range_end: Vec::arbitrary(g),
             limit: i64::arbitrary(g),
             revision: i64::arbitrary(g),
@@ -31,6 +33,8 @@ impl quickcheck::Arbitrary for RangeRequest {
 #[test]
 fn range_request() {
     let _etcd_container = EtcdContainer::new();
+    let _eckd_container = EckdContainer::new();
+    std::thread::sleep(std::time::Duration::from_millis(5000));
 
     fn q(request: RangeRequest) -> bool {
         let eckd_request = Request::new(request.clone().0);
@@ -38,14 +42,13 @@ fn range_request() {
 
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let _eckd_server = common::EckdServer::new().await;
             let mut etcd_client =
                 etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
                     .await
                     .unwrap();
 
             let mut eckd_client =
-                etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
+                etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2389")
                     .await
                     .unwrap();
             let eckd_response = match eckd_client.range(eckd_request).await {
@@ -73,6 +76,10 @@ fn range_request() {
             };
 
             if etcd_response != eckd_response {
+                Command::new("docker")
+                    .args(&["logs", "eckd"])
+                    .status()
+                    .unwrap();
                 println!(
                     "{}",
                     pretty_assertions::Comparison::new(&etcd_response, &eckd_response)

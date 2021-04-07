@@ -10,7 +10,7 @@ mod version;
 
 pub use backend::Backend;
 pub use content::StoreContents;
-pub use frontend::{Frontend, FrontendError};
+pub use frontend::{FrontendActor, FrontendError, FrontendHandle};
 pub use key::Key;
 pub use revision::Revision;
 pub use server::Server;

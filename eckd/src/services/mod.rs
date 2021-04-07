@@ -26,11 +26,16 @@ pub async fn serve(
     mut shutdown: tokio::sync::watch::Receiver<()>,
     server: crate::server::Server,
 ) -> Result<(), tonic::transport::Error> {
-    let kv = kv::KV::new(server.clone());
-    let kv_service = KvServer::new(kv);
-    let maintenance_service = MaintenanceServer::new(maintenance::Maintenance::new(server.clone()));
-    let watch_service = WatchServer::new(watch::Watch::new(server.clone()));
-    let lease_service = LeaseServer::new(lease::Lease::new(server.clone()));
+    let kv_service = KvServer::new(kv::KV {
+        server: server.clone(),
+    });
+    let maintenance_service = MaintenanceServer::new(maintenance::Maintenance {
+        server: server.clone(),
+    });
+    let watch_service = WatchServer::new(watch::Watch {
+        server: server.clone(),
+    });
+    let lease_service = LeaseServer::new(lease::Lease { server });
     let mut server = Server::builder();
     if let Some(identity) = identity {
         server = server.tls_config(ServerTlsConfig::new().identity(identity))?;

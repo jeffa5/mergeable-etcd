@@ -7,15 +7,11 @@ use futures::{Stream, StreamExt};
 use tonic::{Request, Response, Status};
 use tracing::{debug, warn};
 
+use crate::server::Server;
+
 #[derive(Debug)]
 pub struct Watch {
-    server: crate::server::Server,
-}
-
-impl Watch {
-    pub const fn new(server: crate::server::Server) -> Self {
-        Self { server }
-    }
+    pub server: Server,
 }
 
 #[tonic::async_trait]
@@ -40,10 +36,16 @@ impl WatchTrait for Watch {
                     Ok(request) => match request.request_union {
                         Some(RequestUnion::CreateRequest(create)) => {
                             // TODO: implement filters
-                            let id = server_clone.create_watcher(create.key, tx_response.clone());
+                            let id = server_clone.create_watcher(
+                                create.key,
+                                create.range_end,
+                                tx_response.clone(),
+                            );
+                            let server = server_clone.current_server();
+                            let header = server.await.header();
                             if tx_response
                                 .send(Ok(WatchResponse {
-                                    header: Some(server_clone.store.current_server().header()),
+                                    header: Some(header),
                                     watch_id: id,
                                     created: true,
                                     canceled: false,
@@ -60,9 +62,11 @@ impl WatchTrait for Watch {
                         }
                         Some(RequestUnion::CancelRequest(cancel)) => {
                             server_clone.cancel_watcher(cancel.watch_id);
+                            let server = server_clone.current_server();
+                            let header = server.await.header();
                             if tx_response
                                 .send(Ok(WatchResponse {
-                                    header: Some(server_clone.store.current_server().header()),
+                                    header: Some(header),
                                     watch_id: cancel.watch_id,
                                     created: false,
                                     canceled: true,

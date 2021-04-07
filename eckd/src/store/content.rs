@@ -51,23 +51,23 @@ impl StoreContents {
     ) -> Option<SnapshotValue> {
         tracing::info!("inserting");
 
-        let v = self.values.get(&key);
-        let prev = if let Some(v) = v {
+        let v = self.values.get_mut(&key);
+
+        if let Some(v) = v {
             let prev = v.value_at_revision(revision, key);
             v.insert(revision, value);
             prev
         } else {
-            let v = Value::default();
+            let mut v = Value::default();
             v.insert(revision, value);
             self.values.insert(key, v);
             None
-        };
-        prev
+        }
     }
 
     #[tracing::instrument(skip(self), fields(key = %key))]
     pub(crate) fn remove_inner(&mut self, key: Key, revision: Revision) -> Option<SnapshotValue> {
-        let v = self.values.get(&key);
+        let v = self.values.get_mut(&key);
         v.and_then(|v| {
             let prev = v.value_at_revision(revision, key);
             v.delete(revision);
@@ -76,11 +76,10 @@ impl StoreContents {
     }
 
     #[tracing::instrument(skip(self, request))]
-    pub(crate) fn transaction_inner(&mut self, request: &TxnRequest) -> (bool, Vec<ResponseOp>) {
+    pub(crate) fn transaction_inner(&mut self, request: TxnRequest) -> (bool, Vec<ResponseOp>) {
         let success = request.compare.iter().all(|compare| {
-            let value = self
-                .get_inner(compare.key.clone().into(), None, self.server.revision)
-                .first();
+            let values = self.get_inner(compare.key.clone().into(), None, self.server.revision);
+            let value = values.first();
             match (compare.target(), compare.target_union.as_ref()) {
                 (CompareTarget::Version, Some(TargetUnion::Version(version))) => comp(
                     compare.result(),
@@ -99,7 +98,7 @@ impl StoreContents {
                 ),
                 (CompareTarget::Value, Some(TargetUnion::Value(test_value))) => comp(
                     compare.result(),
-                    &value.map(|v| v.value).unwrap_or_default().unwrap(),
+                    value.map(|v| v.value.as_ref()).unwrap_or_default().unwrap(),
                     test_value,
                 ),
                 (target, target_union) => panic!(
@@ -122,7 +121,7 @@ impl StoreContents {
                         if request.range_end.is_empty() {
                             None
                         } else {
-                            Some(request.range_end.into())
+                            Some(request.range_end.clone().into())
                         },
                         Revision::new(request.revision.try_into().unwrap())
                             .unwrap_or(self.server.revision),

@@ -47,10 +47,10 @@ impl Default for Revision {
 }
 
 impl FromStr for Revision {
-    type Err = std::convert::Infallible;
+    type Err = std::num::ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse()
+        s.parse::<NonZeroU64>().map(Revision)
     }
 }
 
@@ -64,16 +64,53 @@ impl FromAutomerge for Revision {
     fn from_automerge(
         value: &automergeable::automerge::Value,
     ) -> Result<Self, automergeable::traits::FromAutomergeError> {
-        if let Value::Primitive(Primitive::Uint(u)) = value {
-            if let Some(rev) = Revision::new(*u) {
-                Ok(rev)
+        if let Value::Sequence(seq) = value {
+            if let Some(Value::Primitive(Primitive::Uint(u))) = seq.get(0) {
+                if let Some(rev) = Revision::new(*u) {
+                    Ok(rev)
+                } else {
+                    Err(FromAutomergeError::FailedTryFrom)
+                }
             } else {
-                Err(FromAutomergeError::FailedTryFrom)
+                Err(FromAutomergeError::WrongType {
+                    found: value.clone(),
+                })
             }
         } else {
             Err(FromAutomergeError::WrongType {
                 found: value.clone(),
             })
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use automergeable::{
+        automerge::{Primitive, Value},
+        traits::ToAutomerge,
+    };
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn to_automerge() {
+        let rev = Revision::new(3).unwrap();
+
+        assert_eq!(
+            rev.to_automerge(),
+            Value::Sequence(vec![Value::Primitive(Primitive::Uint(3))])
+        )
+    }
+
+    #[test]
+    fn from_automerge() {
+        let val = Revision::new(3).unwrap().to_automerge();
+
+        assert_eq!(
+            Revision::from_automerge(&val).unwrap(),
+            Revision::new(3).unwrap()
+        )
     }
 }

@@ -9,15 +9,11 @@ use futures::{Stream, StreamExt};
 use tonic::{Request, Response, Status, Streaming};
 use tracing::info;
 
+use crate::server::Server;
+
 #[derive(Debug)]
 pub struct Lease {
-    server: crate::server::Server,
-}
-
-impl Lease {
-    pub const fn new(server: crate::server::Server) -> Self {
-        Self { server }
-    }
+    pub server: Server,
 }
 
 #[tonic::async_trait]
@@ -32,7 +28,8 @@ impl LeaseTrait for Lease {
         } else {
             Some(request.id)
         };
-        let (server, id, ttl) = self.server.create_lease(id, request.ttl);
+        let create_lease_result = self.server.create_lease(id, request.ttl);
+        let (server, id, ttl) = create_lease_result.await;
         Ok(Response::new(LeaseGrantResponse {
             header: Some(server.header()),
             id,
@@ -46,7 +43,8 @@ impl LeaseTrait for Lease {
         request: Request<LeaseRevokeRequest>,
     ) -> Result<Response<LeaseRevokeResponse>, Status> {
         let request = request.into_inner();
-        let server = self.server.revoke_lease(request.id);
+        let server_result = self.server.revoke_lease(request.id);
+        let server = server_result.await.unwrap();
         Ok(Response::new(LeaseRevokeResponse {
             header: Some(server.header()),
         }))
@@ -65,12 +63,13 @@ impl LeaseTrait for Lease {
         tokio::spawn(async move {
             let mut request = request.into_inner();
             while let Some(Ok(request)) = request.next().await {
-                let (server, ttl) = server.refresh_lease(request.id);
+                let refresh_result = server.refresh_lease(request.id);
+                let (server, ttl) = refresh_result.await.unwrap();
                 let _ = tx
                     .send(Ok(LeaseKeepAliveResponse {
                         header: Some(server.header()),
                         id: request.id,
-                        ttl,
+                        ttl: *ttl,
                     }))
                     .await;
             }

@@ -7,17 +7,14 @@ use etcd_proto::etcdserverpb::{
 use tonic::{Request, Response, Status};
 use tracing::{debug, info};
 
-use crate::store::{Revision, SnapshotValue};
+use crate::{
+    server::Server,
+    store::{Revision, SnapshotValue},
+};
 
 #[derive(Debug)]
 pub struct KV {
-    server: crate::server::Server,
-}
-
-impl KV {
-    pub const fn new(server: crate::server::Server) -> Self {
-        Self { server }
-    }
+    pub server: Server,
 }
 
 #[tonic::async_trait]
@@ -41,14 +38,11 @@ impl Kv for KV {
         let range_end = if request.range_end.is_empty() {
             None
         } else {
-            Some(&request.range_end)
+            Some(request.range_end.into())
         };
-        let revision = Revision::new(request.revision.try_into().unwrap());
-        let (server, kvs) = self
-            .server
-            .store
-            .get(request.key, range_end.cloned(), revision)
-            .unwrap();
+        let revision = Revision::new(request.revision as u64);
+        let get_result = self.server.get(request.key.into(), range_end, revision);
+        let (server, kvs) = get_result.await.unwrap();
 
         if request.revision > 0 && server.revision < revision.unwrap() {
             return Err(Status::out_of_range(
@@ -96,11 +90,10 @@ impl Kv for KV {
         assert!(!request.ignore_value);
         assert!(!request.ignore_lease);
         debug!("put: {:?}", request);
-        let (server, prev_kv) = self
-            .server
-            .store
-            .insert(&request.key, &request.value, request.prev_kv)
-            .unwrap();
+        let insert_response =
+            self.server
+                .insert(request.key.into(), request.value, request.prev_kv);
+        let (server, prev_kv) = insert_response.await.unwrap();
         let prev_kv = prev_kv.map(SnapshotValue::key_value);
 
         let reply = PutResponse {
@@ -119,7 +112,8 @@ impl Kv for KV {
         assert!(request.range_end.is_empty());
         assert!(request.prev_kv);
         debug!("delete_range: {:?}", request);
-        let (server, prev_kv) = self.server.store.remove(&request.key).unwrap();
+        let remove_response = self.server.remove(request.key.into());
+        let (server, prev_kv) = remove_response.await.unwrap();
         let prev_kvs = prev_kv
             .map(|prev_kv| vec![prev_kv.key_value()])
             .unwrap_or_default();
@@ -136,7 +130,8 @@ impl Kv for KV {
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
         let request = request.into_inner();
         debug!("txn: {:?}", request);
-        let (server, success, results) = self.server.store.txn(&request).unwrap();
+        let txn_result = self.server.txn(request);
+        let (server, success, results) = txn_result.await.unwrap();
         let reply = TxnResponse {
             header: Some(server.header()),
             responses: results,

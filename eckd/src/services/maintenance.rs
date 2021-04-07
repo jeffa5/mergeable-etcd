@@ -10,15 +10,11 @@ use futures::Stream;
 use tonic::{Request, Response, Status};
 use tracing::info;
 
+use crate::server::Server;
+
 #[derive(Debug)]
 pub struct Maintenance {
-    server: crate::server::Server,
-}
-
-impl Maintenance {
-    pub const fn new(server: crate::server::Server) -> Self {
-        Self { server }
-    }
+    pub server: Server,
 }
 
 #[tonic::async_trait]
@@ -35,7 +31,8 @@ impl MaintenanceTrait for Maintenance {
         _request: Request<StatusRequest>,
     ) -> Result<Response<StatusResponse>, Status> {
         info!("status request");
-        let server = self.server.store.current_server();
+        let server = self.server.current_server();
+        let server = server.await;
         let reply = StatusResponse {
             header: Some(server.header()),
             version: r#"{"etcdserver":"3.4.13","etcdcluster":"3.4.0"}"#.to_owned(),
