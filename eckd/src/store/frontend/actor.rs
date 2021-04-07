@@ -225,7 +225,7 @@ impl FrontendActor {
             document.server.increment_revision();
             let server = document.server.clone();
 
-            let id = id.unwrap_or_else(|| 0);
+            let id = id.unwrap_or(0);
             document.leases.insert(id, ttl);
             result = Some((server, id, ttl));
             Ok(())
