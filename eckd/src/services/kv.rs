@@ -19,7 +19,7 @@ pub struct KV {
 
 #[tonic::async_trait]
 impl Kv for KV {
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, request))]
     async fn range(
         &self,
         request: Request<RangeRequest>,
@@ -86,7 +86,7 @@ impl Kv for KV {
         Ok(Response::new(reply))
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, request))]
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
@@ -110,7 +110,7 @@ impl Kv for KV {
         Ok(Response::new(reply))
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, request))]
     async fn delete_range(
         &self,
         request: Request<DeleteRangeRequest>,
@@ -143,7 +143,7 @@ impl Kv for KV {
         Ok(Response::new(reply))
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, request))]
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
@@ -158,7 +158,7 @@ impl Kv for KV {
         Ok(Response::new(reply))
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, request))]
     async fn compact(
         &self,
         request: Request<CompactionRequest>,
