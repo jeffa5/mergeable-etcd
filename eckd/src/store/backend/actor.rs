@@ -58,12 +58,11 @@ impl BackendActor {
 
     async fn handle_message(&mut self, msg: BackendMessage) {
         match msg {
-            BackendMessage::ApplyLocalChange {
-                change,
-                frontend_handle,
-            } => {
+            BackendMessage::ApplyLocalChange { change } => {
                 let (patch, _) = self.apply_local_change(change).unwrap();
-                frontend_handle.apply_patch(patch).await;
+                for frontend in &self.frontends {
+                    frontend.apply_patch(patch.clone()).await;
+                }
             }
             BackendMessage::ApplyChanges { changes } => {
                 let patch = self.apply_changes(changes).unwrap();

@@ -6,7 +6,6 @@ use automergeable::{
 use tokio::sync::{mpsc, oneshot};
 
 use super::BackendMessage;
-use crate::store::FrontendHandle;
 
 #[derive(Clone, Debug)]
 pub struct BackendHandle {
@@ -18,15 +17,8 @@ impl BackendHandle {
         Self { sender }
     }
 
-    pub async fn apply_local_change(
-        &self,
-        change: UncompressedChange,
-        frontend_handle: FrontendHandle,
-    ) {
-        let msg = BackendMessage::ApplyLocalChange {
-            change,
-            frontend_handle,
-        };
+    pub async fn apply_local_change(&self, change: UncompressedChange) {
+        let msg = BackendMessage::ApplyLocalChange { change };
         let _ = self.sender.send(msg).await;
     }
 

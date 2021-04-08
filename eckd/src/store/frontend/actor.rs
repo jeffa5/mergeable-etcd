@@ -8,7 +8,7 @@ use tokio::{
 };
 use tracing::{error, warn};
 
-use super::{FrontendHandle, FrontendMessage};
+use super::FrontendMessage;
 use crate::store::{
     BackendHandle, Key, Revision, Server, SnapshotValue, StoreContents, Ttl, Value,
 };
@@ -18,7 +18,6 @@ pub struct FrontendActor {
     document: automergeable::Document<StoreContents>,
     backend: BackendHandle,
     watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, Value)>)>>,
-    self_handle: FrontendHandle,
     receiver: mpsc::Receiver<FrontendMessage>,
     shutdown: watch::Receiver<()>,
     id: usize,
@@ -42,7 +41,6 @@ impl WatchRange {
 impl FrontendActor {
     pub async fn new(
         backend: BackendHandle,
-        self_handle: FrontendHandle,
         receiver: mpsc::Receiver<FrontendMessage>,
         shutdown: watch::Receiver<()>,
         id: usize,
@@ -52,7 +50,6 @@ impl FrontendActor {
         document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
         Self {
-            self_handle,
             receiver,
             document,
             backend,
@@ -196,9 +193,8 @@ impl FrontendActor {
 
         if let Some(change) = change {
             let backend = self.backend.clone();
-            let self_handle = self.self_handle.clone();
             task::spawn_local(async move {
-                backend.apply_local_change(change, self_handle).await;
+                backend.apply_local_change(change).await;
             });
         }
 
@@ -236,9 +232,8 @@ impl FrontendActor {
 
         if let Some(change) = change {
             let backend = self.backend.clone();
-            let self_handle = self.self_handle.clone();
             task::spawn_local(async move {
-                backend.apply_local_change(change, self_handle).await;
+                backend.apply_local_change(change).await;
             });
         }
 
@@ -260,9 +255,8 @@ impl FrontendActor {
 
         if let Some(change) = change {
             let backend = self.backend.clone();
-            let self_handle = self.self_handle.clone();
             task::spawn_local(async move {
-                backend.apply_local_change(change, self_handle).await;
+                backend.apply_local_change(change).await;
             });
         }
 
@@ -309,9 +303,8 @@ impl FrontendActor {
 
         if let Some(change) = change {
             let backend = self.backend.clone();
-            let self_handle = self.self_handle.clone();
             task::spawn_local(async move {
-                backend.apply_local_change(change, self_handle).await;
+                backend.apply_local_change(change).await;
             });
         }
 
@@ -332,9 +325,8 @@ impl FrontendActor {
 
         if let Some(change) = change {
             let backend = self.backend.clone();
-            let self_handle = self.self_handle.clone();
             task::spawn_local(async move {
-                backend.apply_local_change(change, self_handle).await;
+                backend.apply_local_change(change).await;
             });
         }
 
@@ -357,9 +349,8 @@ impl FrontendActor {
 
         if let Some(change) = change {
             let backend = self.backend.clone();
-            let self_handle = self.self_handle.clone();
             task::spawn_local(async move {
-                backend.apply_local_change(change, self_handle).await;
+                backend.apply_local_change(change).await;
             });
         }
 
