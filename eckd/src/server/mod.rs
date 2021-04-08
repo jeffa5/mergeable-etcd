@@ -58,6 +58,7 @@ impl Server {
         &self,
         key: Vec<u8>,
         range_end: Vec<u8>,
+        prev_kv: bool,
         tx_results: tokio::sync::mpsc::Sender<Result<WatchResponse, Status>>,
         remote_addr: Option<SocketAddr>,
     ) -> i64 {
@@ -77,7 +78,7 @@ impl Server {
                 .watch_range(key.into(), range_end, tx_events)
                 .await
         });
-        let watcher = watcher::Watcher::new(id, rx_events, tx_results);
+        let watcher = watcher::Watcher::new(id, prev_kv, rx_events, tx_results);
         self.inner.lock().unwrap().watchers.insert(id, watcher);
         id
     }

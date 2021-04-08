@@ -16,6 +16,7 @@ pub struct Watcher {
 impl Watcher {
     pub(super) fn new(
         id: i64,
+        prev_kv: bool,
         mut changes: Receiver<(Server, Vec<(Key, Value)>)>,
         tx: Sender<Result<WatchResponse, Status>>,
     ) -> Self {
@@ -24,7 +25,7 @@ impl Watcher {
             loop {
                 tokio::select! {
                     _ = &mut should_cancel => break,
-                    Some((server, keys)) = changes.recv() => if handle_event(id, &tx, server, keys).await { break },
+                    Some((server, keys)) = changes.recv() => if handle_event(id,prev_kv, &tx, server, keys).await { break },
                     else => break,
                 };
             }
@@ -39,6 +40,7 @@ impl Watcher {
 
 async fn handle_event(
     id: i64,
+    prev_kv: bool,
     tx: &Sender<Result<WatchResponse, Status>>,
     server: Server,
     changes: Vec<(Key, Value)>,
@@ -48,12 +50,16 @@ async fn handle_event(
         .into_iter()
         .map(|(key, value)| {
             let latest_value = value.latest_value(key.clone()).unwrap();
-            let prev_kv = value
-                .value_at_revision(
-                    Revision::new(latest_value.mod_revision.get() - 1).unwrap(),
-                    key,
-                )
-                .map(SnapshotValue::key_value);
+            let prev_kv = if prev_kv {
+                value
+                    .value_at_revision(
+                        Revision::new(latest_value.mod_revision.get() - 1).unwrap(),
+                        key,
+                    )
+                    .map(SnapshotValue::key_value)
+            } else {
+                None
+            };
             let ty = if latest_value.is_deleted() {
                 mvccpb::event::EventType::Delete
             } else {

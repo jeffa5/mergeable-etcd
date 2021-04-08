@@ -40,13 +40,13 @@ impl WatchTrait for Watch {
                             // assert_eq!(create.start_revision, 0);
                             assert_eq!(create.progress_notify, false);
                             assert_eq!(create.filters.len(), 0);
-                            assert_eq!(create.prev_kv, false);
                             assert_eq!(create.watch_id, 0);
                             assert_eq!(create.fragment, false);
                             // TODO: implement filters
                             let id = server_clone.create_watcher(
                                 create.key,
                                 create.range_end,
+                                create.prev_kv,
                                 tx_response.clone(),
                                 remote_addr,
                             );

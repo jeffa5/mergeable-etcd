@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Range};
 
 use automerge_persistent::PersistentBackendError;
-use etcd_proto::etcdserverpb::{request_op::Request, RequestOp, ResponseOp, TxnRequest};
+use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use tokio::{
     sync::{mpsc, watch},
     task,
