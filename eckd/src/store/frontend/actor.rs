@@ -212,10 +212,22 @@ impl FrontendActor {
             document.server.increment_revision();
             let server = document.server.clone();
 
-            let prev = document.remove_inner(key, range_end, server.revision);
+            let prev = document.remove_inner(key.clone(), range_end, server.revision);
             result = Some((server, prev));
             Ok(())
         })?;
+
+        let (server, prev) = result.unwrap();
+
+        let doc = self.document.get().unwrap();
+        let value = doc.values.get(&key).unwrap();
+        for (range, sender) in &self.watchers {
+            if range.contains(&key) {
+                let _ = sender
+                    .send((server.clone(), vec![(key.clone(), value.clone())]))
+                    .await;
+            }
+        }
 
         if let Some(change) = change {
             let backend = self.backend.clone();
@@ -225,7 +237,7 @@ impl FrontendActor {
             });
         }
 
-        Ok(result.unwrap())
+        Ok((server, prev))
     }
 
     #[tracing::instrument(skip(self, request))]
