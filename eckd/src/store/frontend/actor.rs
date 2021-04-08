@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Range};
 
 use automerge_persistent::PersistentBackendError;
-use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
+use etcd_proto::etcdserverpb::{request_op::Request, RequestOp, ResponseOp, TxnRequest};
 use tokio::{
     sync::{mpsc, watch},
     task,
@@ -221,6 +221,7 @@ impl FrontendActor {
 
         let (server, prev) = result.unwrap();
 
+        // TODO: handle range
         let doc = self.document.get().unwrap();
         let value = doc.values.get(&key).unwrap();
         for (range, sender) in &self.watchers {
@@ -248,11 +249,53 @@ impl FrontendActor {
     ) -> Result<(Server, bool, Vec<ResponseOp>), FrontendError> {
         // FIXME: once automerge allows changes to return values
         let mut result = None;
+        let dup_request = request.clone();
         let change = self.document.change(|document| {
             let (success, results) = document.transaction_inner(request);
             result = Some((document.server.clone(), success, results));
             Ok(())
         })?;
+
+        let (server, success, results) = result.unwrap();
+        // TODO: handle ranges
+        let iter = if success {
+            dup_request.success
+        } else {
+            dup_request.failure
+        };
+        let doc = self.document.get().unwrap();
+        for request_op in iter {
+            match request_op.request.unwrap() {
+                Request::RequestRange(_) => {
+                    // ranges don't change values so no watch response
+                }
+                Request::RequestPut(put) => {
+                    let key = put.key.into();
+                    let value = doc.values.get(&key).unwrap();
+                    for (range, sender) in &self.watchers {
+                        if range.contains(&key) {
+                            let _ = sender
+                                .send((server.clone(), vec![(key.clone(), value.clone())]))
+                                .await;
+                        }
+                    }
+                }
+                Request::RequestDeleteRange(del) => {
+                    let key = del.key.into();
+                    let value = doc.values.get(&key).unwrap();
+                    for (range, sender) in &self.watchers {
+                        if range.contains(&key) {
+                            let _ = sender
+                                .send((server.clone(), vec![(key.clone(), value.clone())]))
+                                .await;
+                        }
+                    }
+                }
+                Request::RequestTxn(_txn) => {
+                    todo!()
+                }
+            }
+        }
 
         if let Some(change) = change {
             let backend = self.backend.clone();
@@ -261,7 +304,7 @@ impl FrontendActor {
             });
         }
 
-        Ok(result.unwrap())
+        Ok((server, success, results))
     }
 
     #[tracing::instrument]
