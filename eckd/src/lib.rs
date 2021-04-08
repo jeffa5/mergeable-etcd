@@ -38,7 +38,6 @@ impl Eckd {
         let (b_sender, b_receiver) = tokio::sync::mpsc::channel(8);
         let backend = BackendHandle::new(b_sender);
 
-        // TODO: have more frontends, approx number of cores
         let mut frontends = Vec::new();
         let mut locals = Vec::new();
         for _ in 0..num_cpus::get() {
