@@ -49,6 +49,7 @@ impl FrontendActor {
         let patch = backend.get_patch().await.unwrap();
         document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
+        tracing::info!("Created frontend actor {}", id);
         Self {
             receiver,
             document,

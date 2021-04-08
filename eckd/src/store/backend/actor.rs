@@ -33,6 +33,7 @@ impl BackendActor {
             String::new(),
         );
         let backend = automerge_persistent::PersistentBackend::load(sled_perst).unwrap();
+        tracing::info!("Created backend actor");
 
         Self {
             db,
