@@ -6,25 +6,25 @@ digraph G {
   frontend[label="Frontend"];
   backend[label="Backend"];
 
-  server -> frontend [ label="CurrentServer",color="red3" ];
-  server -> frontend [ label="Get",color="red3" ];
-  server -> frontend [ label="Insert",color="red3" ];
-  server -> frontend [ label="Remove",color="red3" ];
-  server -> frontend [ label="Txn",color="red3" ];
-  server -> frontend [ label="WatchRange",color="blue3" ];
-  server -> frontend [ label="CreateLease",color="red3" ];
-  server -> frontend [ label="RefreshLease",color="red3" ];
-  server -> frontend [ label="RevokeLease",color="red3" ];
+  server -> frontend [ label="CurrentServer",color="coral" ];
+  server -> frontend [ label="Get",color="coral" ];
+  server -> frontend [ label="Insert",color="coral" ];
+  server -> frontend [ label="Remove",color="coral" ];
+  server -> frontend [ label="Txn",color="coral" ];
+  server -> frontend [ label="WatchRange",color="cornflowerblue" ];
+  server -> frontend [ label="CreateLease",color="coral" ];
+  server -> frontend [ label="RefreshLease",color="coral" ];
+  server -> frontend [ label="RevokeLease",color="coral" ];
 
-  backend -> frontend [ label="ApplyPatch",color="blue3" ];
+  backend -> frontend [ label="ApplyPatch",color="cornflowerblue" ];
 
-  frontend -> backend [ label="ApplyLocalChange",color="blue3" ];
-  frontend -> backend [ label="ApplyChanges",color="blue3" ];
-  frontend -> backend [ label="GetPatch",color="red3" ];
+  frontend -> backend [ label="ApplyLocalChange",color="cornflowerblue" ];
+  frontend -> backend [ label="ApplyChanges",color="cornflowerblue" ];
+  frontend -> backend [ label="GetPatch",color="coral" ];
 
   subgraph cluster_0 {
     label = "Legend";
-    a [color=red3,label="Synchronous"]
-    b [color=blue3,label="Asynchronous"]
+    a [color=coral,label="Synchronous"]
+    b [color=cornflowerblue,label="Asynchronous"]
   }
 }

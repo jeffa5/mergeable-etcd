@@ -1,18 +1,18 @@
 digraph G {
   rankdir=LR;
-  node[shape=rectangle,style=rounded];
+  node[shape=rectangle,style="filled,rounded"];
 
   subgraph cluster_0 {
     style=filled;
     color=lightgrey;
     node [style="rounded,filled",color=white];
 
-    kv;
-    watch;
-    lease;
-    maintenance;
+    kv [color=coral];
+    watch[color=coral];
+    lease[color=coral];
+    maintenance[color=coral];
 
-    label="server"
+    label="Server"
   }
 
   subgraph cluster_1 {
@@ -20,13 +20,14 @@ digraph G {
     color=lightgrey;
     node [style="rounded,filled",color=white];
 
-    frontend_0;
-    backend;
+    frontend_0[color=cornflowerblue];
+    frontend_1[color=cornflowerblue];
+    backend[color=coral];
 
     frontend_0 -> backend;
     frontend_1 -> backend;
 
-    label="store"
+    label="Store"
   }
 
   client_0 -> kv;
@@ -34,4 +35,10 @@ digraph G {
 
   client_1 -> watch;
   watch -> frontend_1;
+
+  subgraph cluster_10 {
+    label = "Legend";
+    a [color=coral,style="filled,rounded",label="Multi-threaded"]
+    b [color=cornflowerblue,style="filled,rounded",label="Single-threaded"]
+  }
 }
