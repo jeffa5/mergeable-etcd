@@ -41,7 +41,7 @@ impl Eckd {
         // TODO: have more frontends, approx number of cores
         let mut frontends = Vec::new();
         let mut locals = Vec::new();
-        for _ in 0..10 {
+        for _ in 0..num_cpus::get() {
             locals.push(tokio::task::LocalSet::new());
         }
         let mut local_futures = Vec::new();

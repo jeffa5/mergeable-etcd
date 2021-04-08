@@ -840,6 +840,7 @@ dependencies = [
  "futures-core",
  "hyper",
  "kubernetes-proto",
+ "num_cpus",
  "pretty_assertions",
  "prost",
  "quickcheck",

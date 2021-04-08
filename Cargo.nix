@@ -2388,6 +2388,10 @@ rec {
             packageId = "kubernetes-proto";
           }
           {
+            name = "num_cpus";
+            packageId = "num_cpus";
+          }
+          {
             name = "prost";
             packageId = "prost";
           }
