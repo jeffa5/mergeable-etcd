@@ -33,5 +33,7 @@ this value is written we can remove the previously extracted changes from sled.
 
 ## Todo
 
-- [ ] investigate thread locals use with tokio tasks (one frontend but multiple clients trying to use it)
-- [ ] look into persisting changes in sled (https://github.com/automerge/automerge/issues/331)
+- [x] investigate thread locals use with tokio tasks (one frontend but multiple clients trying to use it)
+  - done using actors, need to create correct number of actors first and then balance across them but just using one for now
+- [x] look into persisting changes in sled (https://github.com/automerge/automerge/issues/331)
+  - done in automerge-persistent

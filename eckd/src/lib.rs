@@ -59,6 +59,7 @@ impl Eckd {
             actor.run().await;
         });
 
+        // TODO: have more frontends, approx number of cores
         let frontends = vec![crate::store::FrontendHandle::new(f_sender)];
         let server = crate::server::Server::new(frontends);
         let client_urls = match (

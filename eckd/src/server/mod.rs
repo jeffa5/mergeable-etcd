@@ -39,6 +39,8 @@ impl Server {
     }
 
     fn select_frontend(&self) -> FrontendHandle {
+        // TODO: actually select a frontend to balance across them
+        // maybe take the request in here, or some metadata to direct same clients to same frontend.
         self.inner.lock().unwrap().frontends[0].clone()
     }
 
