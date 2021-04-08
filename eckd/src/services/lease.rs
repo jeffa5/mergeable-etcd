@@ -22,13 +22,14 @@ impl LeaseTrait for Lease {
         &self,
         request: Request<LeaseGrantRequest>,
     ) -> Result<Response<LeaseGrantResponse>, Status> {
+        let remote_addr = request.remote_addr();
         let request = request.into_inner();
         let id = if request.id == 0 {
             None
         } else {
             Some(request.id)
         };
-        let create_lease_result = self.server.create_lease(id, request.ttl);
+        let create_lease_result = self.server.create_lease(id, request.ttl, remote_addr);
         let (server, id, ttl) = create_lease_result.await;
         Ok(Response::new(LeaseGrantResponse {
             header: Some(server.header()),
@@ -42,8 +43,9 @@ impl LeaseTrait for Lease {
         &self,
         request: Request<LeaseRevokeRequest>,
     ) -> Result<Response<LeaseRevokeResponse>, Status> {
+        let remote_addr = request.remote_addr();
         let request = request.into_inner();
-        let server_result = self.server.revoke_lease(request.id);
+        let server_result = self.server.revoke_lease(request.id, remote_addr);
         let server = server_result.await.unwrap();
         Ok(Response::new(LeaseRevokeResponse {
             header: Some(server.header()),
@@ -57,13 +59,14 @@ impl LeaseTrait for Lease {
         &self,
         request: Request<Streaming<LeaseKeepAliveRequest>>,
     ) -> Result<Response<Self::LeaseKeepAliveStream>, Status> {
+        let remote_addr = request.remote_addr();
         let (tx, rx) = tokio::sync::mpsc::channel(1);
 
         let server = self.server.clone();
         tokio::spawn(async move {
             let mut request = request.into_inner();
             while let Some(Ok(request)) = request.next().await {
-                let refresh_result = server.refresh_lease(request.id);
+                let refresh_result = server.refresh_lease(request.id, remote_addr);
                 let (server, ttl) = refresh_result.await.unwrap();
                 let _ = tx
                     .send(Ok(LeaseKeepAliveResponse {

@@ -19,11 +19,13 @@ impl WatchTrait for Watch {
     type WatchStream =
         Pin<Box<dyn Stream<Item = Result<WatchResponse, Status>> + Send + Sync + 'static>>;
 
+    #[tracing::instrument(skip(self))]
     async fn watch(
         &self,
         request: Request<tonic::Streaming<WatchRequest>>,
     ) -> Result<Response<Self::WatchStream>, Status> {
         let server_clone = self.server.clone();
+        let remote_addr = request.remote_addr();
 
         let (tx_response, rx_response) = tokio::sync::mpsc::channel(1);
 
@@ -40,8 +42,9 @@ impl WatchTrait for Watch {
                                 create.key,
                                 create.range_end,
                                 tx_response.clone(),
+                                remote_addr,
                             );
-                            let server = server_clone.current_server();
+                            let server = server_clone.current_server(remote_addr);
                             let header = server.await.header();
                             if tx_response
                                 .send(Ok(WatchResponse {
@@ -62,7 +65,7 @@ impl WatchTrait for Watch {
                         }
                         Some(RequestUnion::CancelRequest(cancel)) => {
                             server_clone.cancel_watcher(cancel.watch_id);
-                            let server = server_clone.current_server();
+                            let server = server_clone.current_server(remote_addr);
                             let header = server.await.header();
                             if tx_response
                                 .send(Ok(WatchResponse {

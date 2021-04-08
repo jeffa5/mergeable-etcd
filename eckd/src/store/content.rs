@@ -27,6 +27,7 @@ impl StoreContents {
         range_end: Option<Key>,
         revision: Revision,
     ) -> Vec<SnapshotValue> {
+        tracing::info!("getting");
         let mut values = Vec::new();
         if let Some(range_end) = range_end {
             for (key, value) in self.values.range(key..range_end) {
@@ -72,6 +73,7 @@ impl StoreContents {
         range_end: Option<Key>,
         revision: Revision,
     ) -> Vec<SnapshotValue> {
+        tracing::info!("removing");
         let mut values = Vec::new();
         if let Some(range_end) = range_end {
             for (key, value) in self.values.range_mut(key..range_end) {
@@ -93,6 +95,7 @@ impl StoreContents {
 
     #[tracing::instrument(skip(self, request))]
     pub(crate) fn transaction_inner(&mut self, request: TxnRequest) -> (bool, Vec<ResponseOp>) {
+        tracing::info!("transacting");
         let success = request.compare.iter().all(|compare| {
             let values = self.get_inner(compare.key.clone().into(), None, self.server.revision);
             let value = values.first();

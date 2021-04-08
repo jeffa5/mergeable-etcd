@@ -24,6 +24,7 @@ impl Kv for KV {
         &self,
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
+        let remote_addr = request.remote_addr();
         let request = request.into_inner();
         assert_eq!(
             request.sort_order(),
@@ -41,7 +42,9 @@ impl Kv for KV {
             Some(request.range_end.into())
         };
         let revision = Revision::new(request.revision as u64);
-        let get_result = self.server.get(request.key.into(), range_end, revision);
+        let get_result = self
+            .server
+            .get(request.key.into(), range_end, revision, remote_addr);
         let (server, kvs) = get_result.await.unwrap();
 
         if request.revision > 0 && server.revision < revision.unwrap() {
@@ -85,14 +88,18 @@ impl Kv for KV {
 
     #[tracing::instrument(skip(self))]
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
+        let remote_addr = request.remote_addr();
         let request = request.into_inner();
         assert_eq!(request.lease, 0);
         assert!(!request.ignore_value);
         assert!(!request.ignore_lease);
         debug!("put: {:?}", request);
-        let insert_response =
-            self.server
-                .insert(request.key.into(), request.value, request.prev_kv);
+        let insert_response = self.server.insert(
+            request.key.into(),
+            request.value,
+            request.prev_kv,
+            remote_addr,
+        );
         let (server, prev_kv) = insert_response.await.unwrap();
         let prev_kv = prev_kv.map(SnapshotValue::key_value);
 
@@ -108,6 +115,7 @@ impl Kv for KV {
         &self,
         request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
+        let remote_addr = request.remote_addr();
         let request = request.into_inner();
         debug!("delete_range: {:?}", request);
 
@@ -117,7 +125,9 @@ impl Kv for KV {
             Some(request.range_end.into())
         };
 
-        let remove_response = self.server.remove(request.key.into(), range_end);
+        let remove_response = self
+            .server
+            .remove(request.key.into(), range_end, remote_addr);
         let (server, prev_kvs) = remove_response.await.unwrap();
         let prev_kvs = if request.prev_kv {
             prev_kvs.into_iter().map(SnapshotValue::key_value).collect()
@@ -135,9 +145,10 @@ impl Kv for KV {
 
     #[tracing::instrument(skip(self))]
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
+        let remote_addr = request.remote_addr();
         let request = request.into_inner();
         debug!("txn: {:?}", request);
-        let txn_result = self.server.txn(request);
+        let txn_result = self.server.txn(request, remote_addr);
         let (server, success, results) = txn_result.await.unwrap();
         let reply = TxnResponse {
             header: Some(server.header()),

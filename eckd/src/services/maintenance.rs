@@ -28,10 +28,11 @@ impl MaintenanceTrait for Maintenance {
 
     async fn status(
         &self,
-        _request: Request<StatusRequest>,
+        request: Request<StatusRequest>,
     ) -> Result<Response<StatusResponse>, Status> {
         info!("status request");
-        let server = self.server.current_server();
+        let remote_addr = request.remote_addr();
+        let server = self.server.current_server(remote_addr);
         let server = server.await;
         let reply = StatusResponse {
             header: Some(server.header()),
