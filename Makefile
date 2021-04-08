@@ -2,6 +2,8 @@ CERTS_DIR ?= certs
 CA_KEYS := $(CERTS_DIR)/ca.pem $(CERTS_DIR)/ca-key.pem $(CERTS_DIR)/ca.csr
 SERVER_KEYS := $(CERTS_DIR)/server.crt $(CERTS_DIR)/server.key $(CERTS_DIR)/server.csr
 RUN_ARGS ?=
+DOT_FILES := $(shell find -name '*.dot')
+SVG_FILES := $(patsubst %.dot, %.svg, $(DOT_FILES))
 
 .PHONY: run-eckd
 run-eckd: $(SERVER_KEYS)
@@ -62,3 +64,9 @@ test: docker-load
 kind:
 	kind delete cluster
 	kind create cluster --config kind-config.yaml --image kindest/node:v1.19.1 --retain
+
+.PHONY: diagrams
+diagrams: $(SVG_FILES)
+
+%.svg: %.dot
+	dot -Tsvg $< > $@

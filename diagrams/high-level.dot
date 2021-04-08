@@ -1,0 +1,37 @@
+digraph G {
+  rankdir=LR;
+  node[shape=rectangle,style=rounded];
+
+  subgraph cluster_0 {
+    style=filled;
+    color=lightgrey;
+    node [style="rounded,filled",color=white];
+
+    kv;
+    watch;
+    lease;
+    maintenance;
+
+    label="server"
+  }
+
+  subgraph cluster_1 {
+    style=filled;
+    color=lightgrey;
+    node [style="rounded,filled",color=white];
+
+    frontend_0;
+    backend;
+
+    frontend_0 -> backend;
+    frontend_1 -> backend;
+
+    label="store"
+  }
+
+  client_0 -> kv;
+  kv -> frontend_0;
+
+  client_1 -> watch;
+  watch -> frontend_1;
+}

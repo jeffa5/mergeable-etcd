@@ -133,6 +133,8 @@
               etcd
               kind
 
+              graphviz
+
               rnix-lsp
               nixpkgs-fmt
             ];
