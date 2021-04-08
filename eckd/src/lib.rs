@@ -36,12 +36,6 @@ impl Eckd {
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let (b_sender, b_receiver) = tokio::sync::mpsc::channel(8);
-        let shutdown_clone = shutdown.clone();
-        let config = sled::Config::new().path(&self.data_dir);
-        tokio::spawn(async move {
-            let mut actor = BackendActor::new(&config, b_receiver, shutdown_clone);
-            actor.run().await;
-        });
         let backend = BackendHandle::new(b_sender);
 
         let (f_sender, f_receiver) = tokio::sync::mpsc::channel(8);
@@ -61,6 +55,15 @@ impl Eckd {
 
         // TODO: have more frontends, approx number of cores
         let frontends = vec![crate::store::FrontendHandle::new(f_sender)];
+
+        let shutdown_clone = shutdown.clone();
+        let config = sled::Config::new().path(&self.data_dir);
+        let frontends_clone = frontends.clone();
+        tokio::spawn(async move {
+            let mut actor = BackendActor::new(&config, frontends_clone, b_receiver, shutdown_clone);
+            actor.run().await;
+        });
+
         let server = crate::server::Server::new(frontends);
         let client_urls = match (
             &self.listen_client_urls[..],

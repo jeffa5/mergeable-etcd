@@ -1,5 +1,8 @@
 use automerge_persistent::PersistentBackendError;
-use automergeable::automerge_protocol::{Patch, UncompressedChange};
+use automergeable::{
+    automerge::Change,
+    automerge_protocol::{Patch, UncompressedChange},
+};
 use tokio::sync::{mpsc, oneshot};
 
 use super::BackendMessage;
@@ -24,6 +27,11 @@ impl BackendHandle {
             change,
             frontend_handle,
         };
+        let _ = self.sender.send(msg).await;
+    }
+
+    pub async fn apply_changes(&self, changes: Vec<Change>) {
+        let msg = BackendMessage::ApplyChanges { changes };
         let _ = self.sender.send(msg).await;
     }
 

@@ -6,6 +6,7 @@ use automergeable::{
 use tokio::sync::{mpsc, watch};
 
 use super::BackendMessage;
+use crate::store::FrontendHandle;
 
 #[derive(Debug)]
 pub struct BackendActor {
@@ -13,11 +14,13 @@ pub struct BackendActor {
     backend: automerge_persistent::PersistentBackend<automerge_persistent_sled::SledPersister>,
     receiver: mpsc::Receiver<BackendMessage>,
     shutdown: watch::Receiver<()>,
+    frontends: Vec<FrontendHandle>,
 }
 
 impl BackendActor {
     pub fn new(
         config: &sled::Config,
+        frontends: Vec<FrontendHandle>,
         receiver: mpsc::Receiver<BackendMessage>,
         shutdown: watch::Receiver<()>,
     ) -> Self {
@@ -34,6 +37,7 @@ impl BackendActor {
         Self {
             db,
             backend,
+            frontends,
             receiver,
             shutdown,
         }
@@ -43,7 +47,7 @@ impl BackendActor {
         loop {
             tokio::select! {
                 Some(msg) = self.receiver.recv() => {
-                    self.handle_message(msg);
+                    self.handle_message(msg).await;
                 }
                 _ = self.shutdown.changed() => {
                     break
@@ -52,14 +56,20 @@ impl BackendActor {
         }
     }
 
-    fn handle_message(&mut self, msg: BackendMessage) {
+    async fn handle_message(&mut self, msg: BackendMessage) {
         match msg {
             BackendMessage::ApplyLocalChange {
                 change,
                 frontend_handle,
             } => {
                 let (patch, _) = self.apply_local_change(change).unwrap();
-                tokio::spawn(async move { frontend_handle.apply_patch(patch).await });
+                frontend_handle.apply_patch(patch).await;
+            }
+            BackendMessage::ApplyChanges { changes } => {
+                let patch = self.apply_changes(changes).unwrap();
+                for frontend in &self.frontends {
+                    frontend.apply_patch(patch.clone()).await;
+                }
             }
             BackendMessage::GetPatch { ret } => {
                 let result = self.get_patch();
@@ -73,6 +83,13 @@ impl BackendActor {
         change: UncompressedChange,
     ) -> Result<(Patch, Change), PersistentBackendError<sled::Error>> {
         self.backend.apply_local_change(change)
+    }
+
+    fn apply_changes(
+        &mut self,
+        changes: Vec<Change>,
+    ) -> Result<Patch, PersistentBackendError<sled::Error>> {
+        self.backend.apply_changes(changes)
     }
 
     fn get_patch(&self) -> Result<Patch, PersistentBackendError<sled::Error>> {
