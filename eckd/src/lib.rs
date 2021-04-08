@@ -38,23 +38,33 @@ impl Eckd {
         let (b_sender, b_receiver) = tokio::sync::mpsc::channel(8);
         let backend = BackendHandle::new(b_sender);
 
-        let (f_sender, f_receiver) = tokio::sync::mpsc::channel(8);
-        let local = tokio::task::LocalSet::new();
-        let shutdown_clone = shutdown.clone();
-        let f_sender_clone = f_sender.clone();
-        let local_future = local.run_until(async move {
-            let mut actor = FrontendActor::new(
-                backend,
-                FrontendHandle::new(f_sender_clone),
-                f_receiver,
-                shutdown_clone,
-            )
-            .await;
-            actor.run().await;
-        });
-
         // TODO: have more frontends, approx number of cores
-        let frontends = vec![crate::store::FrontendHandle::new(f_sender)];
+        let mut frontends = Vec::new();
+        let mut locals = Vec::new();
+        for _ in 0..10 {
+            locals.push(tokio::task::LocalSet::new());
+        }
+        let mut local_futures = Vec::new();
+        for (i, local) in locals.iter().enumerate() {
+            let (f_sender, f_receiver) = tokio::sync::mpsc::channel(8);
+            let shutdown_clone = shutdown.clone();
+            let f_sender_clone = f_sender.clone();
+            let backend_clone = backend.clone();
+            let local_future = local.run_until(async move {
+                let mut actor = FrontendActor::new(
+                    backend_clone,
+                    FrontendHandle::new(f_sender_clone),
+                    f_receiver,
+                    shutdown_clone,
+                    i,
+                )
+                .await;
+                actor.run().await;
+            });
+
+            frontends.push(crate::store::FrontendHandle::new(f_sender));
+            local_futures.push(local_future);
+        }
 
         let shutdown_clone = shutdown.clone();
         let config = sled::Config::new().path(&self.data_dir);
@@ -103,7 +113,7 @@ impl Eckd {
 
         tokio::join![
             async { futures::future::try_join_all(servers).await.unwrap() },
-            local_future
+            async { futures::future::join_all(local_futures).await },
         ];
         Ok(())
     }
