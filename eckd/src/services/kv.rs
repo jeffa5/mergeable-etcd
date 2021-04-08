@@ -109,14 +109,21 @@ impl Kv for KV {
         request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
         let request = request.into_inner();
-        assert!(request.range_end.is_empty());
-        assert!(request.prev_kv);
         debug!("delete_range: {:?}", request);
-        let remove_response = self.server.remove(request.key.into());
-        let (server, prev_kv) = remove_response.await.unwrap();
-        let prev_kvs = prev_kv
-            .map(|prev_kv| vec![prev_kv.key_value()])
-            .unwrap_or_default();
+
+        let range_end = if request.range_end.is_empty() {
+            None
+        } else {
+            Some(request.range_end.into())
+        };
+
+        let remove_response = self.server.remove(request.key.into(), range_end);
+        let (server, prev_kvs) = remove_response.await.unwrap();
+        let prev_kvs = if request.prev_kv {
+            prev_kvs.into_iter().map(SnapshotValue::key_value).collect()
+        } else {
+            Vec::new()
+        };
 
         let reply = DeleteRangeResponse {
             header: Some(server.header()),

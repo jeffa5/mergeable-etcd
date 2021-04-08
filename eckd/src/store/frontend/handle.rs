@@ -59,9 +59,17 @@ impl FrontendHandle {
         recv.await.expect("Actor task has been killed")
     }
 
-    pub async fn remove(&self, key: Key) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
+    pub async fn remove(
+        &self,
+        key: Key,
+        range_end: Option<Key>,
+    ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::Remove { key, ret: send };
+        let msg = FrontendMessage::Remove {
+            key,
+            range_end,
+            ret: send,
+        };
 
         let _ = self.sender.send(msg).await;
         recv.await.expect("Actor task has been killed")

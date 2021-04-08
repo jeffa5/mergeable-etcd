@@ -145,8 +145,9 @@ impl Server {
     pub async fn remove(
         &self,
         key: Key,
-    ) -> Result<(crate::store::Server, Option<SnapshotValue>), FrontendError> {
-        self.select_frontend().remove(key).await
+        range_end: Option<Key>,
+    ) -> Result<(crate::store::Server, Vec<SnapshotValue>), FrontendError> {
+        self.select_frontend().remove(key, range_end).await
     }
 
     pub async fn txn(

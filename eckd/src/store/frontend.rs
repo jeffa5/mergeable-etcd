@@ -29,7 +29,8 @@ pub enum FrontendMessage {
     },
     Remove {
         key: Key,
-        ret: oneshot::Sender<Result<(Server, Option<SnapshotValue>), FrontendError>>,
+        range_end: Option<Key>,
+        ret: oneshot::Sender<Result<(Server, Vec<SnapshotValue>), FrontendError>>,
     },
     Txn {
         request: TxnRequest,

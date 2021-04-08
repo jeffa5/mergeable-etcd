@@ -97,8 +97,12 @@ impl FrontendActor {
                 let result = self.insert(key, value, prev_kv).await;
                 let _ = ret.send(result);
             }
-            FrontendMessage::Remove { key, ret } => {
-                let result = self.remove(key).await;
+            FrontendMessage::Remove {
+                key,
+                range_end,
+                ret,
+            } => {
+                let result = self.remove(key, range_end).await;
                 let _ = ret.send(result);
             }
             FrontendMessage::Txn { request, ret } => {
@@ -197,14 +201,18 @@ impl FrontendActor {
     }
 
     #[tracing::instrument(skip(self), fields(key = %key))]
-    async fn remove(&mut self, key: Key) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
+    async fn remove(
+        &mut self,
+        key: Key,
+        range_end: Option<Key>,
+    ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
         // FIXME: once automerge allows changes to return values
         let mut result = None;
         let change = self.document.change(|document| {
             document.server.increment_revision();
             let server = document.server.clone();
 
-            let prev = document.remove_inner(key, server.revision);
+            let prev = document.remove_inner(key, range_end, server.revision);
             result = Some((server, prev));
             Ok(())
         })?;

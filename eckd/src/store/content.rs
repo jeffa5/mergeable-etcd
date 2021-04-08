@@ -66,13 +66,29 @@ impl StoreContents {
     }
 
     #[tracing::instrument(skip(self), fields(key = %key))]
-    pub(crate) fn remove_inner(&mut self, key: Key, revision: Revision) -> Option<SnapshotValue> {
-        let v = self.values.get_mut(&key);
-        v.and_then(|v| {
-            let prev = v.value_at_revision(revision, key);
-            v.delete(revision);
-            prev
-        })
+    pub(crate) fn remove_inner(
+        &mut self,
+        key: Key,
+        range_end: Option<Key>,
+        revision: Revision,
+    ) -> Vec<SnapshotValue> {
+        let mut values = Vec::new();
+        if let Some(range_end) = range_end {
+            for (key, value) in self.values.range_mut(key..range_end) {
+                let prev = value.value_at_revision(revision, key.clone());
+                value.delete(revision);
+                if let Some(prev) = prev {
+                    values.push(prev)
+                }
+            }
+        } else if let Some(value) = self.values.get_mut(&key) {
+            let prev = value.value_at_revision(revision, key);
+            value.delete(revision);
+            if let Some(prev) = prev {
+                values.push(prev)
+            }
+        }
+        values
     }
 
     #[tracing::instrument(skip(self, request))]
@@ -159,8 +175,15 @@ impl StoreContents {
                     }
                 }
                 Some(Request::RequestDeleteRange(request)) => {
-                    let prev_kvs =
-                        self.remove_inner(request.key.clone().into(), self.server.revision);
+                    let prev_kvs = self.remove_inner(
+                        request.key.clone().into(),
+                        if request.range_end.is_empty() {
+                            None
+                        } else {
+                            Some(request.range_end.clone().into())
+                        },
+                        self.server.revision,
+                    );
                     let prev_kvs = if request.prev_kv {
                         prev_kvs.into_iter().map(SnapshotValue::key_value).collect()
                     } else {
