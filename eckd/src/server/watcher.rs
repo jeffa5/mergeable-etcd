@@ -51,12 +51,11 @@ async fn handle_event(
         .map(|(key, value)| {
             let latest_value = value.latest_value(key.clone()).unwrap();
             let prev_kv = if prev_kv {
-                value
-                    .value_at_revision(
-                        Revision::new(latest_value.mod_revision.get() - 1).unwrap(),
-                        key,
-                    )
-                    .map(SnapshotValue::key_value)
+                Revision::new(latest_value.mod_revision.get() - 1).and_then(|rev| {
+                    value
+                        .value_at_revision(rev, key)
+                        .map(SnapshotValue::key_value)
+                })
             } else {
                 None
             };
