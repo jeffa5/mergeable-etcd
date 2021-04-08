@@ -4,7 +4,6 @@ use std::{
 };
 
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest, WatchResponse};
-use tokio::task;
 use tonic::Status;
 
 use crate::store::{FrontendError, FrontendHandle, Key, Revision, SnapshotValue, Ttl};
@@ -60,7 +59,7 @@ impl Server {
             Some(range_end.into())
         };
         let self_clone = self.clone();
-        task::spawn_local(async move {
+        tokio::spawn(async move {
             self_clone
                 .select_frontend()
                 .watch_range(key.into(), range_end, tx_events)
@@ -92,7 +91,7 @@ impl Server {
         let (tx_timeout, rx_timeout) = tokio::sync::oneshot::channel();
 
         let self_clone = self.clone();
-        task::spawn_local(async move {
+        tokio::spawn(async move {
             if let Ok(()) = rx_timeout.await {
                 self_clone.revoke_lease(id).await.unwrap();
             }

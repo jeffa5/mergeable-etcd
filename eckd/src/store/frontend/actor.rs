@@ -29,6 +29,15 @@ pub enum WatchRange {
     Single(Key),
 }
 
+impl WatchRange {
+    fn contains(&self, key: &Key) -> bool {
+        match self {
+            Self::Range(range) => range.contains(key),
+            Self::Single(s) => s == key,
+        }
+    }
+}
+
 impl FrontendActor {
     pub async fn new(
         backend: BackendHandle,
@@ -101,10 +110,16 @@ impl FrontendActor {
                 range_end,
                 tx_events,
             } => {
-                todo!()
-                // tokio::task::spawn_local(async move {
-                //     self.watch_range(key, range_end, tx_events).await;
-                // });
+                let range = if let Some(end) = range_end {
+                    WatchRange::Range(key..end)
+                } else {
+                    WatchRange::Single(key)
+                };
+                let (sender, receiver) = mpsc::channel(1);
+                self.watchers.insert(range, sender);
+                tokio::task::spawn_local(async move {
+                    Self::watch_range(receiver, tx_events).await;
+                });
             }
             FrontendMessage::CreateLease { id, ttl, ret } => {
                 let result = self.create_lease(id, ttl).await;
@@ -153,10 +168,22 @@ impl FrontendActor {
             document.server.increment_revision();
             let server = document.server.clone();
 
-            let prev = document.insert_inner(key, value, server.revision);
+            let prev = document.insert_inner(key.clone(), value.clone(), server.revision);
             result = Some((server, prev));
             Ok(())
         })?;
+
+        let (server, prev) = result.unwrap();
+
+        let doc = self.document.get().unwrap();
+        let value = doc.values.get(&key).unwrap();
+        for (range, sender) in &self.watchers {
+            if range.contains(&key) {
+                let _ = sender
+                    .send((server.clone(), vec![(key.clone(), value.clone())]))
+                    .await;
+            }
+        }
 
         if let Some(change) = change {
             let backend = self.backend.clone();
@@ -166,7 +193,7 @@ impl FrontendActor {
             });
         }
 
-        Ok(result.unwrap())
+        Ok((server, prev))
     }
 
     #[tracing::instrument(skip(self), fields(key = %key))]
@@ -217,20 +244,11 @@ impl FrontendActor {
         Ok(result.unwrap())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument]
     async fn watch_range(
-        &mut self,
-        key: Key,
-        range_end: Option<Key>,
+        mut receiver: mpsc::Receiver<(Server, Vec<(Key, Value)>)>,
         tx: tokio::sync::mpsc::Sender<(Server, Vec<(Key, Value)>)>,
     ) {
-        let range = if let Some(end) = range_end {
-            WatchRange::Range(key..end)
-        } else {
-            WatchRange::Single(key)
-        };
-        let (sender, mut receiver) = mpsc::channel(1);
-        self.watchers.insert(range, sender);
         while let Some((server, events)) = receiver.recv().await {
             if tx.send((server, events)).await.is_err() {
                 // receiver has closed
