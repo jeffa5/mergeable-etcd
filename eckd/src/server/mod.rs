@@ -39,8 +39,10 @@ impl Server {
         }
     }
 
+    /// Select a frontend based on the source address.
+    ///
+    /// This aims to have requests from the same host repeatedly hit the same frontend
     fn select_frontend(&self, remote_addr: Option<SocketAddr>) -> FrontendHandle {
-        tracing::info!("selecting frontend for {:?}", remote_addr);
         let mut hasher = DefaultHasher::new();
         remote_addr.hash(&mut hasher);
         let value = hasher.finish();
