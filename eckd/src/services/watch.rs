@@ -91,7 +91,8 @@ impl WatchTrait for Watch {
                             };
                         }
                         Some(RequestUnion::ProgressRequest(progress)) => {
-                            warn!("got an unhandled progress request: {:?}", progress)
+                            warn!("got an unhandled progress request: {:?}", progress);
+                            todo!()
                         }
                         None => {
                             warn!("Got an empty watch request");
