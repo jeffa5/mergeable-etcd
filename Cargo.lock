@@ -843,13 +843,11 @@ dependencies = [
  "num_cpus",
  "pretty_assertions",
  "prost",
- "quickcheck",
  "rand 0.8.3",
  "serde",
  "serde_json",
  "sled",
  "structopt",
- "tempfile",
  "test-env-log",
  "thiserror",
  "tokio",
@@ -879,16 +877,6 @@ dependencies = [
  "log",
  "regex",
  "termcolor",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17392a012ea30ef05a610aa97dfb49496e71c9f676b27879922ea5bdf60d9d3f"
-dependencies = [
- "log",
- "regex",
 ]
 
 [[package]]
@@ -1479,7 +1467,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61352ec23883402b7d30b3313c16cbabefb8907361c4eb669d990cbb87ceee5a"
 dependencies = [
  "array_tool",
- "env_logger 0.7.1",
+ "env_logger",
  "log",
  "serde",
  "serde_json",
@@ -2194,17 +2182,6 @@ name = "quick-error"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
-
-[[package]]
-name = "quickcheck"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "588f6378e4dd99458b60ec275b4477add41ce4fa9f64dcba6f15adccb19b50d6"
-dependencies = [
- "env_logger 0.8.3",
- "log",
- "rand 0.8.3",
-]
 
 [[package]]
 name = "quote"

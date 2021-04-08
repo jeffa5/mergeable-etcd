@@ -2463,14 +2463,6 @@ rec {
             packageId = "pretty_assertions";
           }
           {
-            name = "quickcheck";
-            packageId = "quickcheck";
-          }
-          {
-            name = "tempfile";
-            packageId = "tempfile";
-          }
-          {
             name = "test-env-log";
             packageId = "test-env-log";
             usesDefaultFeatures = false;
@@ -2495,7 +2487,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "use_std" ];
       };
-      "env_logger 0.7.1" = rec {
+      "env_logger" = rec {
         crateName = "env_logger";
         version = "0.7.1";
         edition = "2018";
@@ -2534,33 +2526,6 @@ rec {
           "default" = [ "termcolor" "atty" "humantime" "regex" ];
         };
         resolvedDefaultFeatures = [ "atty" "default" "humantime" "regex" "termcolor" ];
-      };
-      "env_logger 0.8.3" = rec {
-        crateName = "env_logger";
-        version = "0.8.3";
-        edition = "2018";
-        sha256 = "0gwx1pvbv99fj9wpicknyv4p2vj997xpva8ac5dg03m35q0jlf8p";
-        authors = [
-          "The Rust Project Developers"
-        ];
-        dependencies = [
-          {
-            name = "log";
-            packageId = "log";
-            features = [ "std" ];
-          }
-          {
-            name = "regex";
-            packageId = "regex";
-            optional = true;
-            usesDefaultFeatures = false;
-            features = [ "std" "perf" ];
-          }
-        ];
-        features = {
-          "default" = [ "termcolor" "atty" "humantime" "regex" ];
-        };
-        resolvedDefaultFeatures = [ "regex" ];
       };
       "etcd-proto" = rec {
         crateName = "etcd-proto";
@@ -4278,7 +4243,7 @@ rec {
           }
           {
             name = "env_logger";
-            packageId = "env_logger 0.7.1";
+            packageId = "env_logger";
           }
           {
             name = "log";
@@ -6215,40 +6180,6 @@ rec {
           "Colin Kiegel <kiegel@gmx.de>"
         ];
 
-      };
-      "quickcheck" = rec {
-        crateName = "quickcheck";
-        version = "1.0.3";
-        edition = "2018";
-        sha256 = "1mjhkfqwrb8mdyxdqr4zzbj1rm5dfx25n9zcc25lb6fxwiw673sq";
-        authors = [
-          "Andrew Gallant <jamslam@gmail.com>"
-        ];
-        dependencies = [
-          {
-            name = "env_logger";
-            packageId = "env_logger 0.8.3";
-            optional = true;
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "log";
-            packageId = "log";
-            optional = true;
-          }
-          {
-            name = "rand";
-            packageId = "rand 0.8.3";
-            usesDefaultFeatures = false;
-            features = [ "getrandom" "small_rng" ];
-          }
-        ];
-        features = {
-          "default" = [ "regex" "use_logging" ];
-          "regex" = [ "env_logger/regex" ];
-          "use_logging" = [ "log" "env_logger" ];
-        };
-        resolvedDefaultFeatures = [ "default" "env_logger" "log" "regex" "use_logging" ];
       };
       "quote" = rec {
         crateName = "quote";
