@@ -8,7 +8,7 @@ mod ttl;
 pub mod value;
 mod version;
 
-pub use backend::Backend;
+pub use backend::{BackendActor, BackendHandle};
 pub use content::StoreContents;
 pub use frontend::{FrontendActor, FrontendError, FrontendHandle};
 pub use key::Key;

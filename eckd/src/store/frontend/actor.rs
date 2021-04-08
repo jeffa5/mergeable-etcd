@@ -1,22 +1,25 @@
-use std::{
-    collections::HashMap,
-    ops::Range,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, ops::Range};
 
+use automerge_persistent::PersistentBackendError;
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
-use tokio::sync::{mpsc, watch};
+use tokio::{
+    sync::{mpsc, watch},
+    task,
+};
 use tracing::{error, warn};
 
-use super::FrontendMessage;
-use crate::store::{Backend, Key, Revision, Server, SnapshotValue, StoreContents, Ttl, Value};
+use super::{FrontendHandle, FrontendMessage};
+use crate::store::{
+    BackendHandle, Key, Revision, Server, SnapshotValue, StoreContents, Ttl, Value,
+};
 
 #[derive(Debug)]
 pub struct FrontendActor {
-    receiver: mpsc::Receiver<FrontendMessage>,
     document: automergeable::Document<StoreContents>,
-    backend: Arc<Mutex<Backend>>,
+    backend: BackendHandle,
     watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, Value)>)>>,
+    self_handle: FrontendHandle,
+    receiver: mpsc::Receiver<FrontendMessage>,
     shutdown: watch::Receiver<()>,
 }
 
@@ -27,14 +30,18 @@ pub enum WatchRange {
 }
 
 impl FrontendActor {
-    pub fn new(
-        backend: Arc<Mutex<Backend>>,
+    pub async fn new(
+        backend: BackendHandle,
+        self_handle: FrontendHandle,
         receiver: mpsc::Receiver<FrontendMessage>,
         shutdown: watch::Receiver<()>,
     ) -> Self {
-        let document = automergeable::Document::new();
+        let mut document = automergeable::Document::new();
+        let patch = backend.get_patch().await.unwrap();
+        document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
         Self {
+            self_handle,
             receiver,
             document,
             backend,
@@ -47,7 +54,7 @@ impl FrontendActor {
         loop {
             tokio::select! {
                 Some(msg) = self.receiver.recv() => {
-                    self.handle_message(msg);
+                    self.handle_message(msg).await;
                 }
                 _ = self.shutdown.changed() => {
                     break
@@ -56,7 +63,7 @@ impl FrontendActor {
         }
     }
 
-    fn handle_message(&mut self, msg: FrontendMessage) {
+    async fn handle_message(&mut self, msg: FrontendMessage) {
         match msg {
             FrontendMessage::CurrentServer { ret } => {
                 let server = self.current_server();
@@ -78,15 +85,15 @@ impl FrontendActor {
                 ret,
             } => {
                 tracing::debug!("insert");
-                let result = self.insert(key, value, prev_kv);
+                let result = self.insert(key, value, prev_kv).await;
                 let _ = ret.send(result);
             }
             FrontendMessage::Remove { key, ret } => {
-                let result = self.remove(key);
+                let result = self.remove(key).await;
                 let _ = ret.send(result);
             }
             FrontendMessage::Txn { request, ret } => {
-                let result = self.txn(request);
+                let result = self.txn(request).await;
                 let _ = ret.send(result);
             }
             FrontendMessage::WatchRange {
@@ -100,17 +107,18 @@ impl FrontendActor {
                 // });
             }
             FrontendMessage::CreateLease { id, ttl, ret } => {
-                let result = self.create_lease(id, ttl);
+                let result = self.create_lease(id, ttl).await;
                 let _ = ret.send(result);
             }
             FrontendMessage::RefreshLease { id, ret } => {
-                let result = self.refresh_lease(id);
+                let result = self.refresh_lease(id).await;
                 let _ = ret.send(result);
             }
             FrontendMessage::RevokeLease { id, ret } => {
-                let result = self.revoke_lease(id);
+                let result = self.revoke_lease(id).await;
                 let _ = ret.send(result);
             }
+            FrontendMessage::ApplyPatch { patch } => self.document.apply_patch(patch).unwrap(),
         }
     }
 
@@ -132,7 +140,7 @@ impl FrontendActor {
     }
 
     #[tracing::instrument(skip(self, value), fields(key = %key))]
-    fn insert(
+    async fn insert(
         &mut self,
         key: Key,
         value: Vec<u8>,
@@ -141,7 +149,7 @@ impl FrontendActor {
         tracing::debug!("inserting");
         // FIXME: once automerge allows changes to return values
         let mut result = None;
-        self.document.change(|document| {
+        let change = self.document.change(|document| {
             document.server.increment_revision();
             let server = document.server.clone();
 
@@ -150,14 +158,22 @@ impl FrontendActor {
             Ok(())
         })?;
 
+        if let Some(change) = change {
+            let backend = self.backend.clone();
+            let self_handle = self.self_handle.clone();
+            task::spawn_local(async move {
+                backend.apply_local_change(change, self_handle).await;
+            });
+        }
+
         Ok(result.unwrap())
     }
 
     #[tracing::instrument(skip(self), fields(key = %key))]
-    fn remove(&mut self, key: Key) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
+    async fn remove(&mut self, key: Key) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
         // FIXME: once automerge allows changes to return values
         let mut result = None;
-        self.document.change(|document| {
+        let change = self.document.change(|document| {
             document.server.increment_revision();
             let server = document.server.clone();
 
@@ -166,21 +182,38 @@ impl FrontendActor {
             Ok(())
         })?;
 
+        if let Some(change) = change {
+            let backend = self.backend.clone();
+            let self_handle = self.self_handle.clone();
+            task::spawn_local(async move {
+                backend.apply_local_change(change, self_handle).await;
+            });
+        }
+
         Ok(result.unwrap())
     }
 
     #[tracing::instrument(skip(self, request))]
-    fn txn(
+    async fn txn(
         &mut self,
         request: TxnRequest,
     ) -> Result<(Server, bool, Vec<ResponseOp>), FrontendError> {
         // FIXME: once automerge allows changes to return values
         let mut result = None;
-        self.document.change(|document| {
+        let change = self.document.change(|document| {
             let (success, results) = document.transaction_inner(request);
             result = Some((document.server.clone(), success, results));
             Ok(())
         })?;
+
+        if let Some(change) = change {
+            let backend = self.backend.clone();
+            let self_handle = self.self_handle.clone();
+            task::spawn_local(async move {
+                backend.apply_local_change(change, self_handle).await;
+            });
+        }
+
         Ok(result.unwrap())
     }
 
@@ -213,14 +246,14 @@ impl FrontendActor {
     }
 
     #[tracing::instrument(skip(self))]
-    fn create_lease(
+    async fn create_lease(
         &mut self,
         id: Option<i64>,
         ttl: Ttl,
     ) -> Result<(Server, i64, Ttl), FrontendError> {
         // FIXME: once automerge allows changes to return values
         let mut result = None;
-        self.document.change(|document| {
+        let change = self.document.change(|document| {
             // TODO: proper id generation
             document.server.increment_revision();
             let server = document.server.clone();
@@ -230,28 +263,46 @@ impl FrontendActor {
             result = Some((server, id, ttl));
             Ok(())
         })?;
+
+        if let Some(change) = change {
+            let backend = self.backend.clone();
+            let self_handle = self.self_handle.clone();
+            task::spawn_local(async move {
+                backend.apply_local_change(change, self_handle).await;
+            });
+        }
+
         Ok(result.unwrap())
     }
 
     #[tracing::instrument(skip(self))]
-    fn refresh_lease(&mut self, id: i64) -> Result<(Server, Ttl), FrontendError> {
+    async fn refresh_lease(&mut self, id: i64) -> Result<(Server, Ttl), FrontendError> {
         // FIXME: once automerge allows changes to return values
         let mut result = None;
-        self.document.change(|document| {
+        let change = self.document.change(|document| {
             document.server.increment_revision();
             let server = document.server.clone();
             let ttl = document.leases.get(&id).unwrap();
             result = Some((server, *ttl));
             Ok(())
         })?;
+
+        if let Some(change) = change {
+            let backend = self.backend.clone();
+            let self_handle = self.self_handle.clone();
+            task::spawn_local(async move {
+                backend.apply_local_change(change, self_handle).await;
+            });
+        }
+
         Ok(result.unwrap())
     }
 
     #[tracing::instrument(skip(self))]
-    fn revoke_lease(&mut self, id: i64) -> Result<Server, FrontendError> {
+    async fn revoke_lease(&mut self, id: i64) -> Result<Server, FrontendError> {
         // FIXME: once automerge allows changes to return values
         let mut result = None;
-        self.document.change(|document| {
+        let change = self.document.change(|document| {
             document.server.increment_revision();
             let server = document.server.clone();
             document.leases.remove(&id);
@@ -260,6 +311,15 @@ impl FrontendActor {
             result = Some(server);
             Ok(())
         })?;
+
+        if let Some(change) = change {
+            let backend = self.backend.clone();
+            let self_handle = self.self_handle.clone();
+            task::spawn_local(async move {
+                backend.apply_local_change(change, self_handle).await;
+            });
+        }
+
         Ok(result.unwrap())
     }
 }
@@ -274,6 +334,8 @@ pub enum FrontendError {
     SledConflictableTransactionError(#[from] sled::transaction::ConflictableTransactionError),
     #[error(transparent)]
     SledUnabortableTransactionError(#[from] sled::transaction::UnabortableTransactionError),
+    #[error(transparent)]
+    BackendError(#[from] PersistentBackendError<sled::Error>),
     #[error(transparent)]
     AutomergeDocumentChangeError(#[from] automergeable::DocumentChangeError),
 }

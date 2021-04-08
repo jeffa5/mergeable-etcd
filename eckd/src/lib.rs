@@ -4,13 +4,11 @@ pub mod server;
 pub mod services;
 pub mod store;
 
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use std::path::PathBuf;
 
 pub use address::Address;
 use derive_builder::Builder;
+use store::{BackendActor, BackendHandle, FrontendHandle};
 use tonic::transport::Identity;
 use tracing::info;
 
@@ -37,15 +35,27 @@ impl Eckd {
         &self,
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let backend = Arc::new(Mutex::new(crate::store::Backend::new(
-            &sled::Config::new().path(&self.data_dir),
-        )));
+        let (b_sender, b_receiver) = tokio::sync::mpsc::channel(8);
+        let shutdown_clone = shutdown.clone();
+        let config = sled::Config::new().path(&self.data_dir);
+        tokio::spawn(async move {
+            let mut actor = BackendActor::new(&config, b_receiver, shutdown_clone);
+            actor.run().await;
+        });
+        let backend = BackendHandle::new(b_sender);
 
         let (f_sender, f_receiver) = tokio::sync::mpsc::channel(8);
         let local = tokio::task::LocalSet::new();
         let shutdown_clone = shutdown.clone();
+        let f_sender_clone = f_sender.clone();
         let local_future = local.run_until(async move {
-            let mut actor = FrontendActor::new(backend, f_receiver, shutdown_clone);
+            let mut actor = FrontendActor::new(
+                backend,
+                FrontendHandle::new(f_sender_clone),
+                f_receiver,
+                shutdown_clone,
+            )
+            .await;
             actor.run().await;
         });
 

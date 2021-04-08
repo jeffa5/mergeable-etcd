@@ -109,7 +109,6 @@ impl TryFrom<&[u8]> for K8sValue {
         let rest = if value.len() >= 4 && value[0..4] == [b'k', b'8', b's', 0] {
             &value[4..]
         } else if let Ok(val) = serde_json::from_slice(value) {
-            info!("Found a json value");
             return Ok(K8sValue::Json(val));
         } else {
             return Err("value doesn't start with k8s prefix and is not JSON".to_owned());

@@ -1,3 +1,4 @@
+use automergeable::automerge_protocol::Patch;
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, oneshot};
 
@@ -118,5 +119,10 @@ impl FrontendHandle {
 
         let _ = self.sender.send(msg).await;
         recv.await.expect("Actor task has been killed")
+    }
+
+    pub async fn apply_patch(&self, patch: Patch) {
+        let msg = FrontendMessage::ApplyPatch { patch };
+        let _ = self.sender.send(msg).await;
     }
 }
