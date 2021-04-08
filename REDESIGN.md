@@ -37,3 +37,7 @@ this value is written we can remove the previously extracted changes from sled.
   - done using actors, need to create correct number of actors first and then balance across them but just using one for now
 - [x] look into persisting changes in sled (https://github.com/automerge/automerge/issues/331)
   - done in automerge-persistent
+- [ ] Internal and external replication factor
+  - backend parameters that ensure differing consistency
+  - internal for ensuring how many frontends on the local node apply the patch before we return
+  - external for how many other nodes apply our changes before we return
