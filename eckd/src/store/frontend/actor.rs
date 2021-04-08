@@ -21,6 +21,7 @@ pub struct FrontendActor {
     self_handle: FrontendHandle,
     receiver: mpsc::Receiver<FrontendMessage>,
     shutdown: watch::Receiver<()>,
+    id: usize,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -44,6 +45,7 @@ impl FrontendActor {
         self_handle: FrontendHandle,
         receiver: mpsc::Receiver<FrontendMessage>,
         shutdown: watch::Receiver<()>,
+        id: usize,
     ) -> Self {
         let mut document = automergeable::Document::new();
         let patch = backend.get_patch().await.unwrap();
@@ -56,6 +58,7 @@ impl FrontendActor {
             backend,
             watchers,
             shutdown,
+            id,
         }
     }
 
@@ -73,6 +76,7 @@ impl FrontendActor {
     }
 
     async fn handle_message(&mut self, msg: FrontendMessage) {
+        tracing::info!("frontend {}", self.id);
         match msg {
             FrontendMessage::CurrentServer { ret } => {
                 let server = self.current_server();
@@ -114,6 +118,7 @@ impl FrontendActor {
                 range_end,
                 tx_events,
             } => {
+                tracing::info!("creating watcher");
                 let range = if let Some(end) = range_end {
                     WatchRange::Range(key..end)
                 } else {
