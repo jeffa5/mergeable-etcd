@@ -43,8 +43,9 @@ impl Server {
     ///
     /// This aims to have requests from the same host repeatedly hit the same frontend
     fn select_frontend(&self, remote_addr: Option<SocketAddr>) -> FrontendHandle {
+        let remote_ip = remote_addr.map(|a| a.ip());
         let mut hasher = DefaultHasher::new();
-        remote_addr.hash(&mut hasher);
+        remote_ip.hash(&mut hasher);
         let value = hasher.finish();
 
         let frontends = &self.inner.lock().unwrap().frontends;
