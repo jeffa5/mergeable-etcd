@@ -1,57 +1,29 @@
+mod common;
 use std::{
     collections::HashMap,
-    process::Command,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use pretty_assertions::assert_eq;
+use common::{run_requests, Response};
 use test_env_log::test;
-use tonic::Request;
 
-async fn test_put(request: etcd_proto::etcdserverpb::PutRequest) {
-    let eckd_request = Request::new(request.clone());
-    let etcd_request = Request::new(request);
-
-    let mut eckd_client =
-        etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2389")
-            .await
-            .unwrap();
-    let eckd_response = match eckd_client.put(eckd_request).await {
-        Ok(r) => {
-            let mut r = r.into_inner();
-            r.header = None;
-            Some(r)
+async fn test_put(request: &etcd_proto::etcdserverpb::PutRequest) {
+    run_requests(|mut clients| async move {
+        let response = match clients.kv.put(request.clone()).await {
+            Ok(r) => {
+                let mut r = r.into_inner();
+                r.header = None;
+                Some(r)
+            }
+            Err(status) => {
+                println!("eckd error: {:?}", status);
+                None
+            }
         }
-        Err(status) => {
-            println!("eckd error: {:?}", status);
-            None
-        }
-    };
-
-    let mut etcd_client =
-        etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
-            .await
-            .unwrap();
-
-    let etcd_response = match etcd_client.put(etcd_request).await {
-        Ok(r) => {
-            let mut r = r.into_inner();
-            r.header = None;
-            Some(r)
-        }
-        Err(status) => {
-            println!("etcd error: {:?}", status);
-            None
-        }
-    };
-
-    if etcd_response != eckd_response {
-        Command::new("docker")
-            .args(&["logs", "eckd"])
-            .status()
-            .unwrap();
-    }
-    assert_eq!(etcd_response, eckd_response)
+        .unwrap();
+        vec![Response::PutResponse(response)]
+    })
+    .await
 }
 
 static KEY_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -73,7 +45,7 @@ async fn put_simple() {
         ignore_value: false,
         ignore_lease: false,
     };
-    test_put(request).await;
+    test_put(&request).await;
 }
 
 #[test(tokio::test)]
@@ -88,7 +60,7 @@ async fn put_simple_prev_kv() {
         ignore_value: false,
         ignore_lease: false,
     };
-    test_put(request).await;
+    test_put(&request).await;
 
     let mut value = HashMap::new();
     value.insert("v", "hello world");
@@ -100,5 +72,5 @@ async fn put_simple_prev_kv() {
         ignore_value: false,
         ignore_lease: false,
     };
-    test_put(request).await;
+    test_put(&request).await;
 }
