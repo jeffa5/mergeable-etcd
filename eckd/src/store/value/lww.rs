@@ -11,6 +11,8 @@ use tracing::{info, warn};
 
 use crate::store::{Key, Revision, SnapshotValue, Version};
 
+const K8S_PREFIX: &[u8] = &[b'k', b'8', b's', 0];
+
 /// An implementation of a stored value with history and produces snapshotvalues
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Automergeable)]
 pub struct Value {
@@ -106,7 +108,7 @@ impl TryFrom<&[u8]> for K8sValue {
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         // check prefix
-        let rest = if value.len() >= 4 && value[0..4] == [b'k', b'8', b's', 0] {
+        let rest = if value.len() >= 4 && &value[0..4] == K8S_PREFIX {
             &value[4..]
         } else if let Ok(val) = serde_json::from_slice(value) {
             return Ok(K8sValue::Json(val));
@@ -191,7 +193,7 @@ impl From<&K8sValue> for Vec<u8> {
         let mut bytes = if let K8sValue::Json(_) = val {
             Vec::new()
         } else {
-            vec![b'k', b'8', b's', 0]
+            K8S_PREFIX.to_vec()
         };
         match val {
             K8sValue::Lease(lease) => {
