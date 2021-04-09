@@ -74,7 +74,6 @@ impl FrontendActor {
     }
 
     async fn handle_message(&mut self, msg: FrontendMessage) {
-        tracing::info!("frontend {}", self.id);
         match msg {
             FrontendMessage::CurrentServer { ret } => {
                 let server = self.current_server();
