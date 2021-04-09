@@ -2,10 +2,7 @@ use std::{collections::HashMap, ops::Range};
 
 use automerge_persistent::PersistentBackendError;
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
-use tokio::{
-    sync::{mpsc, watch},
-    task,
-};
+use tokio::sync::{mpsc, watch};
 use tracing::{error, warn};
 
 use super::FrontendMessage;

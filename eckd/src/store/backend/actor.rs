@@ -1,4 +1,5 @@
 use automerge_persistent::PersistentBackendError;
+use automerge_persistent_sled::SledPersisterError;
 use automergeable::{
     automerge::Change,
     automerge_protocol::{Patch, UncompressedChange},
@@ -81,18 +82,18 @@ impl BackendActor {
     fn apply_local_change(
         &mut self,
         change: UncompressedChange,
-    ) -> Result<(Patch, Change), PersistentBackendError<sled::Error>> {
+    ) -> Result<(Patch, Change), PersistentBackendError<SledPersisterError>> {
         self.backend.apply_local_change(change)
     }
 
     fn apply_changes(
         &mut self,
         changes: Vec<Change>,
-    ) -> Result<Patch, PersistentBackendError<sled::Error>> {
+    ) -> Result<Patch, PersistentBackendError<SledPersisterError>> {
         self.backend.apply_changes(changes)
     }
 
-    fn get_patch(&self) -> Result<Patch, PersistentBackendError<sled::Error>> {
+    fn get_patch(&self) -> Result<Patch, PersistentBackendError<SledPersisterError>> {
         self.backend.get_patch()
     }
 }

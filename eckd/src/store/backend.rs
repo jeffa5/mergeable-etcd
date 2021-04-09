@@ -3,6 +3,7 @@ mod handle;
 
 pub use actor::BackendActor;
 use automerge_persistent::PersistentBackendError;
+use automerge_persistent_sled::SledPersisterError;
 use automergeable::{
     automerge::Change,
     automerge_protocol::{Patch, UncompressedChange},
@@ -19,6 +20,6 @@ pub enum BackendMessage {
         changes: Vec<Change>,
     },
     GetPatch {
-        ret: oneshot::Sender<Result<Patch, PersistentBackendError<sled::Error>>>,
+        ret: oneshot::Sender<Result<Patch, PersistentBackendError<SledPersisterError>>>,
     },
 }

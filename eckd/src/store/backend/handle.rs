@@ -1,4 +1,5 @@
 use automerge_persistent::PersistentBackendError;
+use automerge_persistent_sled::SledPersisterError;
 use automergeable::{
     automerge::Change,
     automerge_protocol::{Patch, UncompressedChange},
@@ -27,7 +28,7 @@ impl BackendHandle {
         let _ = self.sender.send(msg).await;
     }
 
-    pub async fn get_patch(&self) -> Result<Patch, PersistentBackendError<sled::Error>> {
+    pub async fn get_patch(&self) -> Result<Patch, PersistentBackendError<SledPersisterError>> {
         let (send, recv) = oneshot::channel();
         let msg = BackendMessage::GetPatch { ret: send };
 

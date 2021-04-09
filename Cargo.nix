@@ -115,33 +115,6 @@ rec {
     #   inject test dependencies into the build
 
     crates = {
-      "Inflector" = rec {
-        crateName = "Inflector";
-        version = "0.11.4";
-        edition = "2015";
-        sha256 = "1lqmcni21ifzyq41fhz6k1j2b23cmsx469s4g4sf01l78miqqhzy";
-        libName = "inflector";
-        authors = [
-          "Josh Teeter<joshteeter@gmail.com>"
-        ];
-        dependencies = [
-          {
-            name = "lazy_static";
-            packageId = "lazy_static";
-            optional = true;
-          }
-          {
-            name = "regex";
-            packageId = "regex";
-            optional = true;
-          }
-        ];
-        features = {
-          "default" = [ "heavyweight" ];
-          "heavyweight" = [ "regex" "lazy_static" ];
-        };
-        resolvedDefaultFeatures = [ "default" "heavyweight" "lazy_static" "regex" ];
-      };
       "adler" = rec {
         crateName = "adler";
         version = "1.0.2";
@@ -1803,32 +1776,7 @@ rec {
         ];
 
       };
-      "darling 0.10.2" = rec {
-        crateName = "darling";
-        version = "0.10.2";
-        edition = "2015";
-        sha256 = "0n7qsp6854wm3y1q1lvylhv15zvc87ibbac1nyfmcdbyv1snww0d";
-        authors = [
-          "Ted Driggs <ted.driggs@outlook.com>"
-        ];
-        dependencies = [
-          {
-            name = "darling_core";
-            packageId = "darling_core 0.10.2";
-          }
-          {
-            name = "darling_macro";
-            packageId = "darling_macro 0.10.2";
-          }
-        ];
-        features = {
-          "default" = [ "suggestions" ];
-          "diagnostics" = [ "darling_core/diagnostics" ];
-          "suggestions" = [ "darling_core/suggestions" ];
-        };
-        resolvedDefaultFeatures = [ "default" "suggestions" ];
-      };
-      "darling 0.12.3" = rec {
+      "darling" = rec {
         crateName = "darling";
         version = "0.12.3";
         edition = "2015";
@@ -1839,11 +1787,11 @@ rec {
         dependencies = [
           {
             name = "darling_core";
-            packageId = "darling_core 0.12.3";
+            packageId = "darling_core";
           }
           {
             name = "darling_macro";
-            packageId = "darling_macro 0.12.3";
+            packageId = "darling_macro";
           }
         ];
         features = {
@@ -1853,48 +1801,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "suggestions" ];
       };
-      "darling_core 0.10.2" = rec {
-        crateName = "darling_core";
-        version = "0.10.2";
-        edition = "2015";
-        sha256 = "16sija1jv0l754x4aa6b6fy01d1kf8m0r4id3flqipm45np61jgh";
-        authors = [
-          "Ted Driggs <ted.driggs@outlook.com>"
-        ];
-        dependencies = [
-          {
-            name = "fnv";
-            packageId = "fnv";
-          }
-          {
-            name = "ident_case";
-            packageId = "ident_case";
-          }
-          {
-            name = "proc-macro2";
-            packageId = "proc-macro2";
-          }
-          {
-            name = "quote";
-            packageId = "quote";
-          }
-          {
-            name = "strsim";
-            packageId = "strsim 0.9.3";
-            optional = true;
-          }
-          {
-            name = "syn";
-            packageId = "syn";
-            features = [ "full" "extra-traits" ];
-          }
-        ];
-        features = {
-          "suggestions" = [ "strsim" ];
-        };
-        resolvedDefaultFeatures = [ "strsim" "suggestions" ];
-      };
-      "darling_core 0.12.3" = rec {
+      "darling_core" = rec {
         crateName = "darling_core";
         version = "0.12.3";
         edition = "2015";
@@ -1935,32 +1842,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "strsim" "suggestions" ];
       };
-      "darling_macro 0.10.2" = rec {
-        crateName = "darling_macro";
-        version = "0.10.2";
-        edition = "2015";
-        sha256 = "0wlv31cxkrjijz5gv13hvk55c9lmd781aj12c8n84sa9mksa5dfr";
-        procMacro = true;
-        authors = [
-          "Ted Driggs <ted.driggs@outlook.com>"
-        ];
-        dependencies = [
-          {
-            name = "darling_core";
-            packageId = "darling_core 0.10.2";
-          }
-          {
-            name = "quote";
-            packageId = "quote";
-          }
-          {
-            name = "syn";
-            packageId = "syn";
-          }
-        ];
-
-      };
-      "darling_macro 0.12.3" = rec {
+      "darling_macro" = rec {
         crateName = "darling_macro";
         version = "0.12.3";
         edition = "2015";
@@ -1972,7 +1854,7 @@ rec {
         dependencies = [
           {
             name = "darling_core";
-            packageId = "darling_core 0.12.3";
+            packageId = "darling_core";
           }
           {
             name = "quote";
@@ -2080,11 +1962,9 @@ rec {
       };
       "derive_builder" = rec {
         crateName = "derive_builder";
-        version = "0.9.0";
+        version = "0.10.0";
         edition = "2015";
-        sha256 = "1h4f8vnggmpyw27fznl3cpyjrzz1nw5xrxx6ca3zcb3z54hqcrd2";
-        procMacro = true;
-        build = "build/mod.rs";
+        sha256 = "0wrm3x369ykk2snhyx6b1q1vyjn900b71517gma0q3czbirjbvvq";
         authors = [
           "Colin Kiegel <kiegel@gmx.de>"
           "Pascal Hertleif <killercup@gmail.com>"
@@ -2092,39 +1972,26 @@ rec {
           "Ted Driggs <ted.driggs@outlook.com>"
         ];
         dependencies = [
-          {
-            name = "darling";
-            packageId = "darling 0.10.2";
-          }
           {
             name = "derive_builder_core";
             packageId = "derive_builder_core";
           }
           {
-            name = "proc-macro2";
-            packageId = "proc-macro2";
-          }
-          {
-            name = "quote";
-            packageId = "quote";
-          }
-          {
-            name = "syn";
-            packageId = "syn";
-            features = [ "full" "extra-traits" ];
+            name = "derive_builder_macro";
+            packageId = "derive_builder_macro";
           }
         ];
         features = {
-          "logging" = [ "log" "env_logger" "derive_builder_core/logging" ];
-          "nightlytests" = [ "compiletest_rs" ];
-          "skeptic_tests" = [ "skeptic" ];
+          "clippy" = [ "derive_builder_macro/clippy" "derive_builder_core/clippy" ];
+          "default" = [ "std" ];
         };
+        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "derive_builder_core" = rec {
         crateName = "derive_builder_core";
-        version = "0.9.0";
+        version = "0.10.0";
         edition = "2015";
-        sha256 = "1vwb8nwls4lhd2yiyj87kmwws4mmfqfrjcr0pk09b11c6wzfm497";
+        sha256 = "0mz417mbmzb89aa4wqsgr7bgfr63gx405dzfsfcpp1028vlg2l1i";
         authors = [
           "Colin Kiegel <kiegel@gmx.de>"
           "Pascal Hertleif <killercup@gmail.com>"
@@ -2134,7 +2001,7 @@ rec {
         dependencies = [
           {
             name = "darling";
-            packageId = "darling 0.10.2";
+            packageId = "darling";
           }
           {
             name = "proc-macro2";
@@ -2151,22 +2018,44 @@ rec {
           }
         ];
         features = {
-          "logging" = [ "log" ];
         };
       };
-      "difference" = rec {
-        crateName = "difference";
-        version = "2.0.0";
+      "derive_builder_macro" = rec {
+        crateName = "derive_builder_macro";
+        version = "0.10.0";
         edition = "2015";
-        crateBin = [];
-        sha256 = "1621wx4k8h452p6xzmzzvm7mz87kxh4yqz0kzxfjj9xmjxlbyk2j";
+        sha256 = "0p7hfz2ikzjizfld3d31y853k17kjixv5bilwz8hip7gvn5h18aw";
+        procMacro = true;
         authors = [
-          "Johann Hofmann <mail@johann-hofmann.com>"
+          "Colin Kiegel <kiegel@gmx.de>"
+          "Pascal Hertleif <killercup@gmail.com>"
+          "Jan-Erik Rediger <janerik@fnordig.de>"
+          "Ted Driggs <ted.driggs@outlook.com>"
+        ];
+        dependencies = [
+          {
+            name = "derive_builder_core";
+            packageId = "derive_builder_core";
+          }
+          {
+            name = "syn";
+            packageId = "syn";
+            features = [ "full" "extra-traits" ];
+          }
         ];
         features = {
-          "bin" = [ "getopts" ];
+          "clippy" = [ "derive_builder_core/clippy" ];
         };
-        resolvedDefaultFeatures = [ "default" ];
+      };
+      "diff" = rec {
+        crateName = "diff";
+        version = "0.1.12";
+        edition = "2015";
+        sha256 = "16b40bhsa2qgvgvxs983l625pkxyp6m0mzmpwg2605cvj53yl98f";
+        authors = [
+          "Utkarsh Kukreti <utkarshkukreti@gmail.com>"
+        ];
+
       };
       "digest" = rec {
         crateName = "digest";
@@ -4320,9 +4209,9 @@ rec {
       };
       "kube" = rec {
         crateName = "kube";
-        version = "0.51.0";
+        version = "0.52.0";
         edition = "2018";
-        sha256 = "0ah1kkz8hm0mw8bnbar6g7v42jx21xkjdw6agl1ca7c8kxgaaiwd";
+        sha256 = "1j2l0m22kkniaqg4d3ic10z89w6pbgsp487ml0sq8byrbblgpck5";
         authors = [
           "clux <sszynrae@gmail.com>"
           "Teo Klestrup Röijezon <teo@nullable.se>"
@@ -4330,10 +4219,6 @@ rec {
           "ynqa <un.pensiero.vano@gmail.com>"
         ];
         dependencies = [
-          {
-            name = "Inflector";
-            packageId = "Inflector";
-          }
           {
             name = "base64";
             packageId = "base64";
@@ -4445,6 +4330,10 @@ rec {
             features = [ "buffer" "util" ];
           }
           {
+            name = "tracing";
+            packageId = "tracing";
+          }
+          {
             name = "url";
             packageId = "url";
           }
@@ -4470,15 +4359,15 @@ rec {
           "native-tls" = [ "openssl" "hyper-tls" "tokio-native-tls" ];
           "oauth" = [ "tame-oauth" ];
           "rustls-tls" = [ "hyper-rustls" "tokio-rustls" ];
-          "ws" = [ "tokio-tungstenite" ];
+          "ws" = [ "tokio-tungstenite" "rand" ];
         };
         resolvedDefaultFeatures = [ "default" "hyper-tls" "native-tls" "openssl" "tokio-native-tls" ];
       };
       "kube-runtime" = rec {
         crateName = "kube-runtime";
-        version = "0.51.0";
+        version = "0.52.0";
         edition = "2018";
-        sha256 = "0yqj91l2c08qirs4rjncq67h4hd8k3a18ik37d67r3bbzr3mrn39";
+        sha256 = "04js40q4h30hm6m9iql56c57aasrc4xx22xbkn94x654wr8ppgzx";
         authors = [
           "Teo Klestrup Röijezon <teo@nullable.se>"
           "clux <sszynrae@gmail.com>"
@@ -5888,17 +5777,18 @@ rec {
       };
       "pretty_assertions" = rec {
         crateName = "pretty_assertions";
-        version = "0.6.1";
+        version = "0.7.1";
         edition = "2018";
-        sha256 = "09yl14gnmpygiqrdlsa64lcl4w6ydjl9m8jri6kgam0v9rjf309z";
+        sha256 = "1101lnyl9qf3davi8v6h6b93m25b101n43ibvr2qvpx74wn595zj";
         authors = [
           "Colin Kiegel <kiegel@gmx.de>"
           "Florent Fayolle <florent.fayolle69@gmail.com>"
+          "Tom Milligan <code@tommilligan.net>"
         ];
         dependencies = [
           {
             name = "ansi_term";
-            packageId = "ansi_term 0.11.0";
+            packageId = "ansi_term 0.12.1";
           }
           {
             name = "ctor";
@@ -5906,8 +5796,8 @@ rec {
             target = { target, features }: (target."windows" or false);
           }
           {
-            name = "difference";
-            packageId = "difference";
+            name = "diff";
+            packageId = "diff";
           }
           {
             name = "output_vt100";
@@ -7261,7 +7151,7 @@ rec {
         dependencies = [
           {
             name = "darling";
-            packageId = "darling 0.12.3";
+            packageId = "darling";
           }
           {
             name = "proc-macro2";
@@ -7709,16 +7599,6 @@ rec {
         version = "0.8.0";
         edition = "2015";
         sha256 = "0sjsm7hrvjdifz661pjxq5w4hf190hx53fra8dfvamacvff139cf";
-        authors = [
-          "Danny Guo <dannyguo91@gmail.com>"
-        ];
-
-      };
-      "strsim 0.9.3" = rec {
-        crateName = "strsim";
-        version = "0.9.3";
-        edition = "2015";
-        sha256 = "0k497pv882qn3q977ckznm13vxx927g8s1swvcv68j3c1pccwik4";
         authors = [
           "Danny Guo <dannyguo91@gmail.com>"
         ];
