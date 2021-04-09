@@ -193,10 +193,8 @@ impl FrontendActor {
         }
 
         if let Some(change) = change {
-            let backend = self.backend.clone();
-            task::spawn_local(async move {
-                backend.apply_local_change(change).await;
-            });
+            self.backend.apply_local_change(change).await;
+            // patch comes back asynchronously
         }
 
         Ok((server, prev))
@@ -233,10 +231,8 @@ impl FrontendActor {
         }
 
         if let Some(change) = change {
-            let backend = self.backend.clone();
-            task::spawn_local(async move {
-                backend.apply_local_change(change).await;
-            });
+            self.backend.apply_local_change(change).await;
+            // patch comes back asynchronously
         }
 
         Ok((server, prev))
@@ -298,10 +294,8 @@ impl FrontendActor {
         }
 
         if let Some(change) = change {
-            let backend = self.backend.clone();
-            task::spawn_local(async move {
-                backend.apply_local_change(change).await;
-            });
+            self.backend.apply_local_change(change).await;
+            // patch comes back asynchronously
         }
 
         Ok((server, success, results))
@@ -346,10 +340,8 @@ impl FrontendActor {
         })?;
 
         if let Some(change) = change {
-            let backend = self.backend.clone();
-            task::spawn_local(async move {
-                backend.apply_local_change(change).await;
-            });
+            self.backend.apply_local_change(change).await;
+            // patch comes back asynchronously
         }
 
         Ok(result.unwrap())
@@ -368,10 +360,8 @@ impl FrontendActor {
         })?;
 
         if let Some(change) = change {
-            let backend = self.backend.clone();
-            task::spawn_local(async move {
-                backend.apply_local_change(change).await;
-            });
+            self.backend.apply_local_change(change).await;
+            // patch comes back asynchronously
         }
 
         Ok(result.unwrap())
@@ -392,10 +382,8 @@ impl FrontendActor {
         })?;
 
         if let Some(change) = change {
-            let backend = self.backend.clone();
-            task::spawn_local(async move {
-                backend.apply_local_change(change).await;
-            });
+            self.backend.apply_local_change(change).await;
+            // patch comes back asynchronously
         }
 
         Ok(result.unwrap())
