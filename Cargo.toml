@@ -6,3 +6,6 @@ members = [
   "kubernetes-proto",
   "experiments",
 ]
+
+[profile.release]
+lto = true
