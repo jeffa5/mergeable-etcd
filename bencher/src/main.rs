@@ -102,7 +102,9 @@ async fn main() -> anyhow::Result<()> {
                     .scenario
                     .execute(&mut kv_client, client, i, options.iterations)
                     .await
-                    .context("Failed doing request")?;
+                    .with_context(|| {
+                        format!("Failed doing request client {} iteration {}", client, i)
+                    })?;
 
                 output.client = client;
 
