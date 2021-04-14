@@ -116,10 +116,13 @@ async fn main() -> anyhow::Result<()> {
             let res: Result<(), anyhow::Error> = Ok(());
             res
         });
-        client_tasks.push(client_task)
+        client_tasks.push(client_task);
     }
 
-    futures::future::try_join_all(client_tasks).await?;
+    futures::future::try_join_all(client_tasks)
+        .await?
+        .into_iter()
+        .collect::<Result<_, _>>()?;
 
     Ok(())
 }
