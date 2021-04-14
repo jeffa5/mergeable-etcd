@@ -1,14 +1,9 @@
 use std::{num::NonZeroU64, ops::Deref, str::FromStr};
 
-use automergeable::{
-    automerge::{Primitive, Value},
-    traits::{FromAutomerge, FromAutomergeError},
-};
-
 /// A revision is a historic version of the datastore
 /// The revision must be positive and starts at 1
 #[derive(
-    automergeable::ToAutomerge,
+    automergeable::Automergeable,
     serde::Serialize,
     serde::Deserialize,
     Debug,
@@ -60,35 +55,11 @@ impl ToString for Revision {
     }
 }
 
-impl FromAutomerge for Revision {
-    fn from_automerge(
-        value: &automergeable::automerge::Value,
-    ) -> Result<Self, automergeable::traits::FromAutomergeError> {
-        if let Value::Sequence(seq) = value {
-            if let Some(Value::Primitive(Primitive::Uint(u))) = seq.get(0) {
-                if let Some(rev) = Revision::new(*u) {
-                    Ok(rev)
-                } else {
-                    Err(FromAutomergeError::FailedTryFrom)
-                }
-            } else {
-                Err(FromAutomergeError::WrongType {
-                    found: value.clone(),
-                })
-            }
-        } else {
-            Err(FromAutomergeError::WrongType {
-                found: value.clone(),
-            })
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use automergeable::{
         automerge::{Primitive, Value},
-        traits::ToAutomerge,
+        traits::{FromAutomerge, ToAutomerge},
     };
     use pretty_assertions::assert_eq;
 
@@ -98,10 +69,7 @@ mod tests {
     fn to_automerge() {
         let rev = Revision::new(3).unwrap();
 
-        assert_eq!(
-            rev.to_automerge(),
-            Value::Sequence(vec![Value::Primitive(Primitive::Uint(3))])
-        )
+        assert_eq!(rev.to_automerge(), Value::Primitive(Primitive::Uint(3)))
     }
 
     #[test]

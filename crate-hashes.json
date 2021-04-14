@@ -5,8 +5,8 @@
   "automerge-persistent 0.1.0 (git+https://github.com/jeffa5/automerge-persistent?branch=main#d31c7118bd2aaee0266f64be0146e74388bc9187)": "14yqwmsvviiwnfwxfhaascs1fyhilh57y21hb4pgy075p6scgd0l",
   "automerge-persistent-sled 0.1.0 (git+https://github.com/jeffa5/automerge-persistent?branch=main#d31c7118bd2aaee0266f64be0146e74388bc9187)": "14yqwmsvviiwnfwxfhaascs1fyhilh57y21hb4pgy075p6scgd0l",
   "automerge-protocol 0.1.0 (git+https://github.com/jeffa5/automerge-rs?branch=main#e607d2e22baa67ab42b0aec15015c0de4d67c53d)": "1l2agy6z5k4jwkydnfl88vjkgrf1f9c0jd2r0i74ki752k6xxh6i",
-  "automergeable 0.1.0 (git+https://github.com/jeffa5/automergeable?branch=main#bc40de68041c920530ace492159328ded3ce4fe3)": "0sm4524k6j2gk4shgb8r0nx0kphlj5kvmj6hq4v1pnmdb8zn0ikk",
-  "automergeable-derive 0.1.0 (git+https://github.com/jeffa5/automergeable?branch=main#bc40de68041c920530ace492159328ded3ce4fe3)": "0sm4524k6j2gk4shgb8r0nx0kphlj5kvmj6hq4v1pnmdb8zn0ikk",
-  "automergeable-traits 0.1.0 (git+https://github.com/jeffa5/automergeable?branch=main#bc40de68041c920530ace492159328ded3ce4fe3)": "0sm4524k6j2gk4shgb8r0nx0kphlj5kvmj6hq4v1pnmdb8zn0ikk",
+  "automergeable 0.1.0 (git+https://github.com/jeffa5/automergeable?branch=main#07f9af9c117f7b0d1060ba3c6d57107116597a8c)": "1k6d69ixqsn5x309j2a1wxba37z1479ympmcip73n259mb7pw0ip",
+  "automergeable-derive 0.1.0 (git+https://github.com/jeffa5/automergeable?branch=main#07f9af9c117f7b0d1060ba3c6d57107116597a8c)": "1k6d69ixqsn5x309j2a1wxba37z1479ympmcip73n259mb7pw0ip",
+  "automergeable-traits 0.1.0 (git+https://github.com/jeffa5/automergeable?branch=main#07f9af9c117f7b0d1060ba3c6d57107116597a8c)": "1k6d69ixqsn5x309j2a1wxba37z1479ympmcip73n259mb7pw0ip",
   "exp 0.1.0 (git+https://github.com/jeffa5/exp?branch=main#ab20743668a0b90ea0008446c4f0b19845b81335)": "12l49sqq6jndxm0nq5lnqbgj0zdkb9ppfrkk2f6lz75ckwsn1hlq"
 }

@@ -691,8 +691,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "bc40de68041c920530ace492159328ded3ce4fe3";
-          sha256 = "0sm4524k6j2gk4shgb8r0nx0kphlj5kvmj6hq4v1pnmdb8zn0ikk";
+          rev = "07f9af9c117f7b0d1060ba3c6d57107116597a8c";
+          sha256 = "1k6d69ixqsn5x309j2a1wxba37z1479ympmcip73n259mb7pw0ip";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -750,8 +750,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "bc40de68041c920530ace492159328ded3ce4fe3";
-          sha256 = "0sm4524k6j2gk4shgb8r0nx0kphlj5kvmj6hq4v1pnmdb8zn0ikk";
+          rev = "07f9af9c117f7b0d1060ba3c6d57107116597a8c";
+          sha256 = "1k6d69ixqsn5x309j2a1wxba37z1479ympmcip73n259mb7pw0ip";
         };
         procMacro = true;
         authors = [
@@ -788,8 +788,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "bc40de68041c920530ace492159328ded3ce4fe3";
-          sha256 = "0sm4524k6j2gk4shgb8r0nx0kphlj5kvmj6hq4v1pnmdb8zn0ikk";
+          rev = "07f9af9c117f7b0d1060ba3c6d57107116597a8c";
+          sha256 = "1k6d69ixqsn5x309j2a1wxba37z1479ympmcip73n259mb7pw0ip";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"

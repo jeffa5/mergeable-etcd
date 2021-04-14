@@ -152,7 +152,7 @@ impl FrontendActor {
         let values = self
             .document
             .get()
-            .map(|doc| doc.get_inner(key, range_end, revision))
+            .map(|doc| doc.unwrap().get_inner(key, range_end, revision))
             .unwrap_or_default();
         Ok((server, values))
     }
@@ -178,7 +178,7 @@ impl FrontendActor {
 
         let (server, prev) = result.unwrap();
 
-        let doc = self.document.get().unwrap();
+        let doc = self.document.get().unwrap().unwrap();
         let value = doc.values.get(&key).unwrap();
         for (range, sender) in &self.watchers {
             if range.contains(&key) {
@@ -216,7 +216,7 @@ impl FrontendActor {
         let (server, prev) = result.unwrap();
 
         // TODO: handle range
-        let doc = self.document.get().unwrap();
+        let doc = self.document.get().unwrap().unwrap();
         let value = doc.values.get(&key).unwrap();
         for (range, sender) in &self.watchers {
             if range.contains(&key) {
@@ -255,7 +255,7 @@ impl FrontendActor {
         } else {
             dup_request.failure
         };
-        let doc = self.document.get().unwrap();
+        let doc = self.document.get().unwrap().unwrap();
         for request_op in iter {
             match request_op.request.unwrap() {
                 Request::RequestRange(_) => {
@@ -313,7 +313,7 @@ impl FrontendActor {
 
     #[tracing::instrument(skip(self))]
     fn current_server(&self) -> Server {
-        self.document.get().unwrap().server
+        self.document.get().unwrap().unwrap().server
     }
 
     #[tracing::instrument(skip(self))]
