@@ -167,7 +167,6 @@ impl FrontendActor {
         value: Vec<u8>,
         prev_kv: bool,
     ) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
-        tracing::debug!("inserting");
         // FIXME: once automerge allows changes to return values
         let mut result = None;
         let change = self.document.change(|document| {
