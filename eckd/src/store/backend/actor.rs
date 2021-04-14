@@ -4,7 +4,9 @@ use automergeable::{
     automerge::Change,
     automerge_protocol::{Patch, UncompressedChange},
 };
+use futures::future::join_all;
 use tokio::sync::{mpsc, watch};
+use tracing::info;
 
 use super::BackendMessage;
 use crate::store::FrontendHandle;
@@ -52,6 +54,7 @@ impl BackendActor {
                     self.handle_message(msg).await;
                 }
                 _ = self.shutdown.changed() => {
+                    info!("backend shutting down");
                     break
                 }
             }
@@ -62,15 +65,27 @@ impl BackendActor {
         match msg {
             BackendMessage::ApplyLocalChange { change } => {
                 let (patch, _) = self.apply_local_change(change).unwrap();
-                for frontend in &self.frontends {
-                    frontend.apply_patch(patch.clone()).await;
-                }
+
+                let frontends = self.frontends.clone();
+                tokio::spawn(async move {
+                    let apply_patches = frontends
+                        .iter()
+                        .map(|f| f.apply_patch(patch.clone()))
+                        .collect::<Vec<_>>();
+                    join_all(apply_patches).await;
+                });
             }
             BackendMessage::ApplyChanges { changes } => {
                 let patch = self.apply_changes(changes).unwrap();
-                for frontend in &self.frontends {
-                    frontend.apply_patch(patch.clone()).await;
-                }
+
+                let frontends = self.frontends.clone();
+                tokio::spawn(async move {
+                    let apply_patches = frontends
+                        .iter()
+                        .map(|f| f.apply_patch(patch.clone()))
+                        .collect::<Vec<_>>();
+                    join_all(apply_patches).await;
+                });
             }
             BackendMessage::GetPatch { ret } => {
                 let result = self.get_patch();
