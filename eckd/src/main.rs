@@ -120,8 +120,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.unwrap();
-        info!("SIGINT received: shutting down");
+        info!("SIGINT received: shutting down, send again to force");
         shutdown_tx.send(()).unwrap();
+        tokio::signal::ctrl_c().await.unwrap();
+        info!("SIGINT received: killing");
+        std::process::exit(1)
     });
 
     let metrics_urls = options.listen_metrics_urls.clone();
