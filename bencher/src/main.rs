@@ -15,7 +15,7 @@ use structopt::StructOpt;
 use tokio::time::sleep;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 
-#[derive(StructOpt, Clone)]
+#[derive(StructOpt, Debug, Clone)]
 struct Options {
     #[structopt(long, default_value = "10")]
     iterations: u32,
