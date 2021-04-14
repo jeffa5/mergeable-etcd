@@ -1,9 +1,9 @@
-use std::{collections::HashMap, ops::Range};
+use std::{collections::HashMap, ops::Range, thread};
 
 use automerge_persistent::PersistentBackendError;
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, watch};
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 
 use super::FrontendMessage;
 use crate::store::{
@@ -46,7 +46,11 @@ impl FrontendActor {
         let patch = backend.get_patch().await.unwrap();
         document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
-        tracing::info!("Created frontend actor {}", id);
+        tracing::info!(
+            "Created frontend actor {} on thread {:?}",
+            id,
+            thread::current().id()
+        );
         Self {
             receiver,
             document,
@@ -64,6 +68,7 @@ impl FrontendActor {
                     self.handle_message(msg).await;
                 }
                 _ = self.shutdown.changed() => {
+                    info!("frontend {} shutting down", self.id);
                     break
                 }
             }
@@ -91,7 +96,6 @@ impl FrontendActor {
                 prev_kv,
                 ret,
             } => {
-                tracing::debug!("insert");
                 let result = self.insert(key, value, prev_kv).await;
                 let _ = ret.send(result);
             }
@@ -112,7 +116,6 @@ impl FrontendActor {
                 range_end,
                 tx_events,
             } => {
-                tracing::info!("creating watcher");
                 let range = if let Some(end) = range_end {
                     WatchRange::Range(key..end)
                 } else {
@@ -140,7 +143,7 @@ impl FrontendActor {
         }
     }
 
-    #[tracing::instrument(skip(self), fields(key = %key))]
+    #[tracing::instrument(skip(self), fields(key = %key, frontend = self.id))]
     fn get(
         &self,
         key: Key,
@@ -157,7 +160,7 @@ impl FrontendActor {
         Ok((server, values))
     }
 
-    #[tracing::instrument(skip(self, value), fields(key = %key))]
+    #[tracing::instrument(skip(self, value), fields(key = %key, frontend = self.id))]
     async fn insert(
         &mut self,
         key: Key,
@@ -196,7 +199,7 @@ impl FrontendActor {
         Ok((server, prev))
     }
 
-    #[tracing::instrument(skip(self), fields(key = %key))]
+    #[tracing::instrument(skip(self), fields(key = %key, frontend = self.id))]
     async fn remove(
         &mut self,
         key: Key,
@@ -234,7 +237,7 @@ impl FrontendActor {
         Ok((server, prev))
     }
 
-    #[tracing::instrument(skip(self, request))]
+    #[tracing::instrument(skip(self, request), fields(frontend = self.id))]
     async fn txn(
         &mut self,
         request: TxnRequest,
@@ -311,7 +314,7 @@ impl FrontendActor {
         }
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(frontend = self.id))]
     fn current_server(&self) -> Server {
         self.document.get().unwrap().unwrap().server
     }
