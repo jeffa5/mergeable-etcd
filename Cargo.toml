@@ -2,6 +2,7 @@
 members = [
   "eckd",
   "etcd-proto",
+  "bencher",
   "kubernetes-proto",
   "experiments",
 ]
