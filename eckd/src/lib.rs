@@ -9,6 +9,7 @@ use std::path::PathBuf;
 pub use address::Address;
 use derive_builder::Builder;
 use store::{BackendActor, BackendHandle, FrontendHandle};
+use tokio::{runtime::Builder, task::LocalSet};
 use tonic::transport::Identity;
 use tracing::info;
 
@@ -35,27 +36,32 @@ impl Eckd {
         &self,
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (b_sender, b_receiver) = tokio::sync::mpsc::channel(8);
+        let (b_sender, b_receiver) = tokio::sync::mpsc::channel(1);
         let backend = BackendHandle::new(b_sender);
 
         let mut frontends = Vec::new();
-        let mut locals = Vec::new();
-        for _ in 0..num_cpus::get() {
-            locals.push(tokio::task::LocalSet::new());
-        }
         let mut local_futures = Vec::new();
-        for (i, local) in locals.iter().enumerate() {
-            let (f_sender, f_receiver) = tokio::sync::mpsc::channel(8);
+        for i in 0..num_cpus::get() {
+            let (f_sender, f_receiver) = tokio::sync::mpsc::channel(1);
             let shutdown_clone = shutdown.clone();
             let backend_clone = backend.clone();
-            let local_future = local.run_until(async move {
-                let mut actor =
-                    FrontendActor::new(backend_clone, f_receiver, shutdown_clone, i).await;
-                actor.run().await;
+
+            let (send, recv) = tokio::sync::oneshot::channel();
+            let rt = Builder::new_current_thread().enable_all().build().unwrap();
+            std::thread::spawn(move || {
+                let local = LocalSet::new();
+
+                local.block_on(&rt, async move {
+                    let mut actor =
+                        FrontendActor::new(backend_clone, f_receiver, shutdown_clone, i).await;
+                    actor.run().await;
+                });
+
+                send.send(())
             });
 
             frontends.push(FrontendHandle::new(f_sender));
-            local_futures.push(local_future);
+            local_futures.push(recv);
         }
 
         let shutdown_clone = shutdown.clone();
