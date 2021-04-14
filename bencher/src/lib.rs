@@ -10,27 +10,24 @@ pub struct Output {
     pub start: SystemTime,
     pub end: SystemTime,
     pub client: u32,
+    pub iteration: u32,
     pub member_id: u64,
 }
 
-impl Default for Output {
-    fn default() -> Self {
-        Self::start()
-    }
-}
-
 impl Output {
-    pub fn start() -> Self {
+    pub fn start(client: u32, iteration: u32) -> Self {
         let now = SystemTime::now();
         Self {
             start: now,
             end: now,
-            client: 0,
+            client,
+            iteration,
             member_id: 0,
         }
     }
 
-    pub fn stop(&mut self) {
+    pub fn stop(&mut self, member_id: u64) {
+        self.member_id = member_id;
         self.end = SystemTime::now();
     }
 }
@@ -50,9 +47,17 @@ impl Scenario {
         total_iterations: u32,
     ) -> Result<Output, tonic::Status> {
         match self {
-            Scenario::PutSingle { ref key } => put_single(kv_client, iteration, key.clone()).await,
+            Scenario::PutSingle { ref key } => {
+                put_single(kv_client, client_id, iteration, key.clone()).await
+            }
             Scenario::PutRange => {
-                put_range(kv_client, (client_id * total_iterations) + iteration).await
+                put_range(
+                    kv_client,
+                    client_id,
+                    iteration,
+                    (client_id * total_iterations) + iteration,
+                )
+                .await
             }
         }
     }
@@ -60,27 +65,29 @@ impl Scenario {
 
 pub async fn put_range(
     kv_client: &mut KvClient<Channel>,
+    client: u32,
     iteration: u32,
+    key: u32,
 ) -> Result<Output, tonic::Status> {
-    let value = format!(r#"{{"{}":""}}"#, iteration).as_bytes().to_vec();
+    let value = format!(r#"{{"{}":""}}"#, key).as_bytes().to_vec();
     let request = PutRequest {
-        key: iteration.to_string().into_bytes(),
+        key: key.to_string().into_bytes(),
         value,
         lease: 0,
         prev_kv: false,
         ignore_value: false,
         ignore_lease: false,
     };
-    let mut output = Output::start();
+    let mut output = Output::start(client, iteration);
     let response = kv_client.put(request).await?;
-    output.stop();
     let member_id = response.into_inner().header.unwrap().member_id;
-    output.member_id = member_id;
+    output.stop(member_id);
     Ok(output)
 }
 
 pub async fn put_single(
     kv_client: &mut KvClient<Channel>,
+    client: u32,
     iteration: u32,
     key: String,
 ) -> Result<Output, tonic::Status> {
@@ -93,10 +100,9 @@ pub async fn put_single(
         ignore_value: false,
         ignore_lease: false,
     };
-    let mut output = Output::start();
+    let mut output = Output::start(client, iteration);
     let response = kv_client.put(request).await?;
-    output.stop();
     let member_id = response.into_inner().header.unwrap().member_id;
-    output.member_id = member_id;
+    output.stop(member_id);
     Ok(output)
 }

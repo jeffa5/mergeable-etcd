@@ -98,15 +98,13 @@ async fn main() -> anyhow::Result<()> {
             let mut kv_client = KvClient::new(channel);
 
             for i in 0..options.iterations {
-                let mut output = options
+                let output = options
                     .scenario
                     .execute(&mut kv_client, client, i, options.iterations)
                     .await
                     .with_context(|| {
                         format!("Failed doing request client {} iteration {}", client, i)
                     })?;
-
-                output.client = client;
 
                 {
                     let mut out = out_writer.lock().unwrap();
