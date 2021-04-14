@@ -13,7 +13,7 @@ use tonic::transport::Identity;
 use tracing::info;
 
 use crate::{
-    address::{Address, NamedAddress, Scheme},
+    address::{NamedAddress, Scheme},
     store::FrontendActor,
 };
 
