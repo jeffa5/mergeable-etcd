@@ -24,7 +24,7 @@ struct Options {
     #[structopt(long, parse(try_from_str = eckd::Address::try_from), default_value = "http://localhost:2379", use_delimiter = true)]
     endpoints: Vec<eckd::Address>,
     /// Interval between requests (in milliseconds)
-    #[structopt(long, default_value = "10")]
+    #[structopt(long, default_value = "0")]
     interval: u64,
     /// Start at rfc3339 encoded datetime, useful for synchronising multiple benchers
     #[structopt(long)]
