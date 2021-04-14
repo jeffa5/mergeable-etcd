@@ -35,7 +35,18 @@
           packages = {
             eckd = cargoNix.workspaceMembers.eckd.build;
 
-            eckd-experiments = cargoNix.workspaceMembers.experiments.build;
+            experiments = cargoNix.workspaceMembers.experiments.build;
+
+            bencher = cargoNix.workspaceMembers.bencher.build;
+
+            bencher-docker = pkgs.dockerTools.buildLayeredImage {
+              name = "jeffas/bencher";
+              tag = "latest";
+              contents = packages.bencher;
+
+              config.Cmd = [ "/bin/bencher" ];
+              config.Entrypoint = [ "/bin/bencher" ];
+            };
 
             eckd-etcd = pkgs.stdenv.mkDerivation {
               name = "eckd-etcd";
@@ -80,9 +91,19 @@
               drv = packages.eckd;
             };
 
+            experiments = flake-utils.lib.mkApp {
+              name = "experiments";
+              drv = packages.experiments;
+            };
+
             etcd-benchmark = flake-utils.lib.mkApp {
               name = "benchmark";
               drv = packages.etcd;
+            };
+
+            bencher = flake-utils.lib.mkApp {
+              name = "bencher";
+              drv = packages.bencher;
             };
           };
 

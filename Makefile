@@ -15,6 +15,10 @@ run-etcd: $(SERVER_KEYS)
 bench: $(SERVER_KEYS)
 	nix run .\#etcd-benchmark -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem put key
 
+.PHONY: bencher
+bencher: $(SERVER_KEYS)
+	nix run .\#bencher -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem put-range
+
 $(CA_KEYS): $(CERTS_DIR)/ca-csr.json
 	cfssl gencert -initca $(CERTS_DIR)/ca-csr.json | cfssljson -bare $(CERTS_DIR)/ca -
 
@@ -30,17 +34,23 @@ clean:
 	rm -f result result-lib
 	cargo clean
 
-.PHONY: docker-image
-docker-image:
+.PHONY: docker-eckd
+docker-eckd:
 	nix build .\#eckd-docker
+	docker load -i result
+
+.PHONY: docker-bencher
+docker-bencher:
+	nix build .\#bencher-docker
+	docker load -i result
 
 .PHONY: docker-load
-docker-load: docker-image
-	docker load -i result
+docker-load: docker-eckd docker-bencher
 
 .PHONY: docker-push
 docker-push: docker-load
 	docker push jeffas/etcd:latest
+	docker push jeffas/bencher:latest
 
 .PHONY: kind
 kind:
