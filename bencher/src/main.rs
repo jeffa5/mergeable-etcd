@@ -124,5 +124,7 @@ async fn main() -> anyhow::Result<()> {
         .into_iter()
         .collect::<Result<_, _>>()?;
 
+    out_writer.lock().unwrap().flush()?;
+
     Ok(())
 }
