@@ -50,7 +50,7 @@ impl StoreContents {
         value: Vec<u8>,
         revision: Revision,
     ) -> Option<SnapshotValue> {
-        tracing::info!("inserting");
+        tracing::debug!("inserting");
 
         let v = self.values.get_mut(&key);
 
