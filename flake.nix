@@ -109,6 +109,14 @@
 
           defaultApp = apps.eckd;
 
+          checks = {
+            eckd = cargoNix.workspaceMembers.eckd.build;
+
+            experiments = cargoNix.workspaceMembers.experiments.build;
+
+            bencher = cargoNix.workspaceMembers.bencher.build;
+          };
+
           devShell = pkgs.mkShell {
             buildInputs = with pkgs;[
               (rust.override {
