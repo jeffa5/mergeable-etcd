@@ -16,7 +16,7 @@
               overlays = [ rust-overlay.overlay ];
               system = system;
             };
-          rust = pkgs.rust-bin.nightly.latest.rust;
+          rust = pkgs.rust-bin.stable.latest.default;
           cargoNix = pkgs.callPackage ./Cargo.nix {
             defaultCrateOverrides = pkgs.defaultCrateOverrides // {
               etcd-proto = attrs: {
@@ -26,6 +26,15 @@
               kubernetes-proto = attrs: {
                 buildInputs = [ pkgs.protobuf pkgs.rustfmt ];
                 PROTOC = "${pkgs.protobuf}/bin/protoc";
+              };
+              expat-sys = attrs: {
+                buildInputs = [ pkgs.expat pkgs.pkg-config ];
+              };
+              servo-freetype-sys = attrs: {
+                buildInputs = [ pkgs.freetype pkgs.pkg-config ];
+              };
+              servo-fontconfig-sys = attrs: {
+                buildInputs = [ pkgs.fontconfig pkgs.pkg-config ];
               };
             };
           };
