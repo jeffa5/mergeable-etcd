@@ -172,15 +172,17 @@ impl exp::Experiment for Experiment {
                 let events_file = BufReader::new(File::open(repeat.join("events")).unwrap());
                 for line in events_file.lines() {
                     let line = line.unwrap();
-                    let (datetime, json) = line.split_once(" ").unwrap();
-                    let datetime = chrono::DateTime::parse_from_rfc3339(datetime)
-                        .unwrap()
-                        .with_timezone(&chrono::Utc);
-                    let event: Event = serde_json::from_str(json).unwrap();
-                    if event.message.as_ref().unwrap().contains("busybox")
-                        || event.message.as_ref().unwrap().contains("exp-latency")
-                    {
-                        events.push((datetime, event));
+                    let parts = line.splitn(2, " ").collect::<Vec<_>>();
+                    if let [datetime, json] = parts[..] {
+                        let datetime = chrono::DateTime::parse_from_rfc3339(datetime)
+                            .unwrap()
+                            .with_timezone(&chrono::Utc);
+                        let event: Event = serde_json::from_str(json).unwrap();
+                        if event.message.as_ref().unwrap().contains("busybox")
+                            || event.message.as_ref().unwrap().contains("exp-latency")
+                        {
+                            events.push((datetime, event));
+                        }
                     }
                 }
 

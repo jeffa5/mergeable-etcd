@@ -158,9 +158,19 @@ struct CliOptions {
     /// Analyse all the experiments
     #[clap(long)]
     analyse: bool,
-    /// experiment to run
-    #[clap(possible_values = &["kubernetes_startup", "cluster_latency","bencher"])]
-    experiment: String,
+    /// experiments to run
+    #[clap(arg_enum)]
+    experiments: Vec<ExperimentChoice>,
+}
+
+#[derive(Clap, Debug)]
+enum ExperimentChoice {
+    /// old etcd cluster latency benchmark using etcdbenchmark
+    ClusterLatency,
+    /// measuring Kubernetes startup latency
+    KubernetesStartup,
+    /// new etcd cluster latency benchmark using bencher
+    BencherLatency,
 }
 
 #[tokio::main]
@@ -170,16 +180,19 @@ async fn main() -> Result<(), anyhow::Error> {
         anyhow::bail!("Neither run nor analyse specified");
     }
 
-    let experiment = match opts.experiment.as_str() {
-        "kubernetes_startup" => Experiments::KubernetesStartup(k8s_startup::Experiment),
-        "cluster_latency" => Experiments::ClusterLatency(cluster_latency::Experiment),
-        "bencher" => Experiments::Bencher(bencher::Experiment),
-        _ => {
-            anyhow::bail!("unknown experiment name");
-        }
-    };
-
-    let experiments = vec![experiment];
+    let experiments = opts
+        .experiments
+        .into_iter()
+        .map(|e| match e {
+            ExperimentChoice::KubernetesStartup => {
+                Experiments::KubernetesStartup(k8s_startup::Experiment)
+            }
+            ExperimentChoice::ClusterLatency => {
+                Experiments::ClusterLatency(cluster_latency::Experiment)
+            }
+            ExperimentChoice::BencherLatency => Experiments::Bencher(bencher::Experiment),
+        })
+        .collect::<Vec<_>>();
 
     if opts.run {
         let conf = exp::RunConfig {
