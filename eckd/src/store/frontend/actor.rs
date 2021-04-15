@@ -1,6 +1,7 @@
 use std::{collections::HashMap, ops::Range, thread};
 
 use automerge_persistent::PersistentBackendError;
+use automerge_persistent_sled::SledPersisterError;
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, watch};
 use tracing::{error, info, warn};
@@ -41,9 +42,9 @@ impl FrontendActor {
         receiver: mpsc::Receiver<FrontendMessage>,
         shutdown: watch::Receiver<()>,
         id: usize,
-    ) -> Self {
+    ) -> Result<Self, FrontendError> {
         let mut document = automergeable::Document::new();
-        let patch = backend.get_patch().await.unwrap();
+        let patch = backend.get_patch().await?;
         document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
         tracing::info!(
@@ -51,21 +52,21 @@ impl FrontendActor {
             id,
             thread::current().id()
         );
-        Self {
+        Ok(Self {
             receiver,
             document,
             backend,
             watchers,
             shutdown,
             id,
-        }
+        })
     }
 
-    pub async fn run(&mut self) {
+    pub async fn run(&mut self) -> Result<(), FrontendError> {
         loop {
             tokio::select! {
                 Some(msg) = self.receiver.recv() => {
-                    self.handle_message(msg).await;
+                    self.handle_message(msg).await?;
                 }
                 _ = self.shutdown.changed() => {
                     info!("frontend {} shutting down", self.id);
@@ -73,13 +74,15 @@ impl FrontendActor {
                 }
             }
         }
+        Ok(())
     }
 
-    async fn handle_message(&mut self, msg: FrontendMessage) {
+    async fn handle_message(&mut self, msg: FrontendMessage) -> Result<(), FrontendError> {
         match msg {
             FrontendMessage::CurrentServer { ret } => {
                 let server = self.current_server();
                 let _ = ret.send(server);
+                Ok(())
             }
             FrontendMessage::Get {
                 ret,
@@ -89,6 +92,7 @@ impl FrontendActor {
             } => {
                 let result = self.get(key, range_end, revision);
                 let _ = ret.send(result);
+                Ok(())
             }
             FrontendMessage::Insert {
                 key,
@@ -98,6 +102,7 @@ impl FrontendActor {
             } => {
                 let result = self.insert(key, value, prev_kv).await;
                 let _ = ret.send(result);
+                Ok(())
             }
             FrontendMessage::Remove {
                 key,
@@ -106,10 +111,12 @@ impl FrontendActor {
             } => {
                 let result = self.remove(key, range_end).await;
                 let _ = ret.send(result);
+                Ok(())
             }
             FrontendMessage::Txn { request, ret } => {
                 let result = self.txn(request).await;
                 let _ = ret.send(result);
+                Ok(())
             }
             FrontendMessage::WatchRange {
                 key,
@@ -126,20 +133,27 @@ impl FrontendActor {
                 tokio::task::spawn_local(async move {
                     Self::watch_range(receiver, tx_events).await;
                 });
+                Ok(())
             }
             FrontendMessage::CreateLease { id, ttl, ret } => {
                 let result = self.create_lease(id, ttl).await;
                 let _ = ret.send(result);
+                Ok(())
             }
             FrontendMessage::RefreshLease { id, ret } => {
                 let result = self.refresh_lease(id).await;
                 let _ = ret.send(result);
+                Ok(())
             }
             FrontendMessage::RevokeLease { id, ret } => {
                 let result = self.revoke_lease(id).await;
                 let _ = ret.send(result);
+                Ok(())
             }
-            FrontendMessage::ApplyPatch { patch } => self.document.apply_patch(patch).unwrap(),
+            FrontendMessage::ApplyPatch { patch } => {
+                self.document.apply_patch(patch).unwrap();
+                Ok(())
+            }
         }
     }
 
@@ -167,18 +181,13 @@ impl FrontendActor {
         value: Vec<u8>,
         prev_kv: bool,
     ) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
-        // FIXME: once automerge allows changes to return values
-        let mut result = None;
-        let change = self.document.change(|document| {
+        let ((server, prev), change) = self.document.change(|document| {
             document.server.increment_revision();
             let server = document.server.clone();
 
             let prev = document.insert_inner(key.clone(), value.clone(), server.revision);
-            result = Some((server, prev));
-            Ok(())
+            Ok((server, prev))
         })?;
-
-        let (server, prev) = result.unwrap();
 
         let doc = self.document.get().unwrap().unwrap();
         let value = doc.values.get(&key).unwrap();
@@ -204,18 +213,13 @@ impl FrontendActor {
         key: Key,
         range_end: Option<Key>,
     ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
-        // FIXME: once automerge allows changes to return values
-        let mut result = None;
-        let change = self.document.change(|document| {
+        let ((server, prev), change) = self.document.change(|document| {
             document.server.increment_revision();
             let server = document.server.clone();
 
             let prev = document.remove_inner(key.clone(), range_end, server.revision);
-            result = Some((server, prev));
-            Ok(())
+            Ok((server, prev))
         })?;
-
-        let (server, prev) = result.unwrap();
 
         // TODO: handle range
         let doc = self.document.get().unwrap().unwrap();
@@ -241,16 +245,12 @@ impl FrontendActor {
         &mut self,
         request: TxnRequest,
     ) -> Result<(Server, bool, Vec<ResponseOp>), FrontendError> {
-        // FIXME: once automerge allows changes to return values
-        let mut result = None;
         let dup_request = request.clone();
-        let change = self.document.change(|document| {
+        let ((server, success, results), change) = self.document.change(|document| {
             let (success, results) = document.transaction_inner(request);
-            result = Some((document.server.clone(), success, results));
-            Ok(())
+            Ok((document.server.clone(), success, results))
         })?;
 
-        let (server, success, results) = result.unwrap();
         // TODO: handle ranges
         let iter = if success {
             dup_request.success
@@ -324,17 +324,14 @@ impl FrontendActor {
         id: Option<i64>,
         ttl: Ttl,
     ) -> Result<(Server, i64, Ttl), FrontendError> {
-        // FIXME: once automerge allows changes to return values
-        let mut result = None;
-        let change = self.document.change(|document| {
+        let (result, change) = self.document.change(|document| {
             // TODO: proper id generation
             document.server.increment_revision();
             let server = document.server.clone();
 
             let id = id.unwrap_or(0);
             document.leases.insert(id, ttl);
-            result = Some((server, id, ttl));
-            Ok(())
+            Ok((server, id, ttl))
         })?;
 
         if let Some(change) = change {
@@ -342,19 +339,16 @@ impl FrontendActor {
             // patch comes back asynchronously
         }
 
-        Ok(result.unwrap())
+        Ok(result)
     }
 
     #[tracing::instrument(skip(self))]
     async fn refresh_lease(&mut self, id: i64) -> Result<(Server, Ttl), FrontendError> {
-        // FIXME: once automerge allows changes to return values
-        let mut result = None;
-        let change = self.document.change(|document| {
+        let (result, change) = self.document.change(|document| {
             document.server.increment_revision();
             let server = document.server.clone();
             let ttl = document.leases.get(&id).unwrap();
-            result = Some((server, *ttl));
-            Ok(())
+            Ok((server, *ttl))
         })?;
 
         if let Some(change) = change {
@@ -362,21 +356,18 @@ impl FrontendActor {
             // patch comes back asynchronously
         }
 
-        Ok(result.unwrap())
+        Ok(result)
     }
 
     #[tracing::instrument(skip(self))]
     async fn revoke_lease(&mut self, id: i64) -> Result<Server, FrontendError> {
-        // FIXME: once automerge allows changes to return values
-        let mut result = None;
-        let change = self.document.change(|document| {
+        let (result, change) = self.document.change(|document| {
             document.server.increment_revision();
             let server = document.server.clone();
             document.leases.remove(&id);
             tracing::warn!("revoking lease but not removing kv");
             // TODO: delete the keys with the associated lease
-            result = Some(server);
-            Ok(())
+            Ok(server)
         })?;
 
         if let Some(change) = change {
@@ -384,7 +375,7 @@ impl FrontendActor {
             // patch comes back asynchronously
         }
 
-        Ok(result.unwrap())
+        Ok(result)
     }
 }
 
@@ -399,7 +390,7 @@ pub enum FrontendError {
     #[error(transparent)]
     SledUnabortableTransactionError(#[from] sled::transaction::UnabortableTransactionError),
     #[error(transparent)]
-    BackendError(#[from] PersistentBackendError<sled::Error>),
+    BackendError(#[from] PersistentBackendError<SledPersisterError>),
     #[error(transparent)]
     AutomergeDocumentChangeError(#[from] automergeable::DocumentChangeError),
 }

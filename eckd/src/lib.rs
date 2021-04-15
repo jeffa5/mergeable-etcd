@@ -53,8 +53,10 @@ impl Eckd {
 
                 local.block_on(&rt, async move {
                     let mut actor =
-                        FrontendActor::new(backend_clone, f_receiver, shutdown_clone, i).await;
-                    actor.run().await;
+                        FrontendActor::new(backend_clone, f_receiver, shutdown_clone, i)
+                            .await
+                            .unwrap();
+                    actor.run().await.unwrap();
                 });
 
                 send.send(())
