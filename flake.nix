@@ -16,7 +16,7 @@
               overlays = [ rust-overlay.overlay ];
               system = system;
             };
-          rust = pkgs.rust-bin.stable.latest.default;
+          rust = pkgs.rust-bin.nightly.latest.rust;
           cargoNix = pkgs.callPackage ./Cargo.nix {
             defaultCrateOverrides = pkgs.defaultCrateOverrides // {
               etcd-proto = attrs: {
