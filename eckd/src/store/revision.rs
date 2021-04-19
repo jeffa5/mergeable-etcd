@@ -1,18 +1,12 @@
 use std::{num::NonZeroU64, ops::Deref, str::FromStr};
 
+use automergeable::Automergeable;
+use serde::{Deserialize, Serialize};
+
 /// A revision is a historic version of the datastore
 /// The revision must be positive and starts at 1
 #[derive(
-    automergeable::Automergeable,
-    serde::Serialize,
-    serde::Deserialize,
-    Debug,
-    PartialOrd,
-    Ord,
-    PartialEq,
-    Eq,
-    Clone,
-    Copy,
+    Automergeable, Serialize, Deserialize, Debug, PartialOrd, Ord, PartialEq, Eq, Clone, Copy,
 )]
 pub struct Revision(NonZeroU64);
 
@@ -59,7 +53,7 @@ impl ToString for Revision {
 mod tests {
     use automergeable::{
         automerge::{Primitive, Value},
-        traits::{FromAutomerge, ToAutomerge},
+        FromAutomerge, ToAutomerge,
     };
     use pretty_assertions::assert_eq;
 

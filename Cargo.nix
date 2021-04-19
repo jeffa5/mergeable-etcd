@@ -318,9 +318,9 @@ rec {
       };
       "async-trait" = rec {
         crateName = "async-trait";
-        version = "0.1.49";
+        version = "0.1.50";
         edition = "2018";
-        sha256 = "0j3vv30ky9mfxaxjjw6bvf8b40jp892y2fybgqg5scybgk7555jq";
+        sha256 = "08m7xim7dvcjw5cx2ryz3wndxc0vib2s02qrvabxvg2cpd5yi60b";
         procMacro = true;
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
@@ -586,8 +586,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "728b22eaf1b29ef16a3fc433fde3c80d8113f3c0";
-          sha256 = "02768mvbf0bwid3gpfbdx3zkr5yih84rzjrmqqifkd0grlys4vp1";
+          rev = "25c7f0ee25868ab5d90708ea1f2a4c4ccdf0ee03";
+          sha256 = "0kr19a2kf5yawbwhj13kir2rrbq1a2q3c84siafygd51nzwjzch6";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -619,8 +619,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "728b22eaf1b29ef16a3fc433fde3c80d8113f3c0";
-          sha256 = "02768mvbf0bwid3gpfbdx3zkr5yih84rzjrmqqifkd0grlys4vp1";
+          rev = "25c7f0ee25868ab5d90708ea1f2a4c4ccdf0ee03";
+          sha256 = "0kr19a2kf5yawbwhj13kir2rrbq1a2q3c84siafygd51nzwjzch6";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -691,8 +691,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "c9e8e3af2946ecb2fdfa355d640c4cec47f065ad";
-          sha256 = "1l011ia9z743ibaxmzcr42lvmszvjl8d5gsv27pisawdn5f534wp";
+          rev = "f948758b63b4143472ed6361ec42794ee4529e35";
+          sha256 = "0q99sj7cqmc9757idn323c5fky1ypgl5zsfqbx7xmmfap0v1bb0n";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -750,8 +750,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "c9e8e3af2946ecb2fdfa355d640c4cec47f065ad";
-          sha256 = "1l011ia9z743ibaxmzcr42lvmszvjl8d5gsv27pisawdn5f534wp";
+          rev = "f948758b63b4143472ed6361ec42794ee4529e35";
+          sha256 = "0q99sj7cqmc9757idn323c5fky1ypgl5zsfqbx7xmmfap0v1bb0n";
         };
         procMacro = true;
         authors = [
@@ -788,8 +788,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "c9e8e3af2946ecb2fdfa355d640c4cec47f065ad";
-          sha256 = "1l011ia9z743ibaxmzcr42lvmszvjl8d5gsv27pisawdn5f534wp";
+          rev = "f948758b63b4143472ed6361ec42794ee4529e35";
+          sha256 = "0q99sj7cqmc9757idn323c5fky1ypgl5zsfqbx7xmmfap0v1bb0n";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -1072,7 +1072,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.6";
+            packageId = "pin-project 1.0.7";
           }
           {
             name = "serde";
@@ -3525,9 +3525,9 @@ rec {
       };
       "httparse" = rec {
         crateName = "httparse";
-        version = "1.3.6";
+        version = "1.4.0";
         edition = "2015";
-        sha256 = "12cmrxq1vdgx4z93r68l3q8249w9qwjx89wsrxsc2gnrp6awjddw";
+        sha256 = "0ds4grlxbbqnji8c30gr3yhrnhnc7mf31izxqa3lhxn9dw6y872a";
         authors = [
           "Sean McArthur <sean@seanmonstar.com>"
         ];
@@ -3617,7 +3617,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.6";
+            packageId = "pin-project 1.0.7";
           }
           {
             name = "socket2";
@@ -3780,7 +3780,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.6";
+            packageId = "pin-project 1.0.7";
           }
           {
             name = "tokio";
@@ -3814,9 +3814,9 @@ rec {
       };
       "idna" = rec {
         crateName = "idna";
-        version = "0.2.2";
+        version = "0.2.3";
         edition = "2018";
-        sha256 = "08ccsjp86296ppm4v1m9948vcwwiwdzk7b572j1k8gf2d5frm0l9";
+        sha256 = "1y7ca2w5qp9msgl57n03zqp78gq1bk2crqzg6kv7a542mdphm2j1";
         authors = [
           "The rust-url developers"
         ];
@@ -4286,7 +4286,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.6";
+            packageId = "pin-project 1.0.7";
           }
           {
             name = "serde";
@@ -4397,7 +4397,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.6";
+            packageId = "pin-project 1.0.7";
           }
           {
             name = "serde";
@@ -5445,18 +5445,18 @@ rec {
         ];
 
       };
-      "pin-project 1.0.6" = rec {
+      "pin-project 1.0.7" = rec {
         crateName = "pin-project";
-        version = "1.0.6";
+        version = "1.0.7";
         edition = "2018";
-        sha256 = "19hva0wx1zm1v4n5vp4qdbljj6n9jpd7l63mwldfj1l8frclh5xw";
+        sha256 = "1964rh32hiy5v2ircli8wv8fxq9h2nkgfalda6j407040v0rql67";
         authors = [
           "Taiki Endo <te316e89@gmail.com>"
         ];
         dependencies = [
           {
             name = "pin-project-internal";
-            packageId = "pin-project-internal 1.0.6";
+            packageId = "pin-project-internal 1.0.7";
             usesDefaultFeatures = false;
           }
         ];
@@ -5488,11 +5488,11 @@ rec {
         ];
 
       };
-      "pin-project-internal 1.0.6" = rec {
+      "pin-project-internal 1.0.7" = rec {
         crateName = "pin-project-internal";
-        version = "1.0.6";
+        version = "1.0.7";
         edition = "2018";
-        sha256 = "1ra9j3q9yiwz3agfmr07chrlz31dzqxlw91z10dysmp832ck5454";
+        sha256 = "0vs289my2262ziwxj60mnzr2k41ibga73z8yddah1dc34l9m1ja8";
         procMacro = true;
         authors = [
           "Taiki Endo <te316e89@gmail.com>"
@@ -5777,9 +5777,9 @@ rec {
       };
       "pretty_assertions" = rec {
         crateName = "pretty_assertions";
-        version = "0.7.1";
+        version = "0.7.2";
         edition = "2018";
-        sha256 = "1101lnyl9qf3davi8v6h6b93m25b101n43ibvr2qvpx74wn595zj";
+        sha256 = "12yris0ni87wvzhj23a5nnz7amskvahhnpikx5snhdyg09y0xaqw";
         authors = [
           "Colin Kiegel <kiegel@gmx.de>"
           "Florent Fayolle <florent.fayolle69@gmail.com>"
@@ -6691,9 +6691,9 @@ rec {
       };
       "rustls" = rec {
         crateName = "rustls";
-        version = "0.19.0";
+        version = "0.19.1";
         edition = "2018";
-        sha256 = "02wqas2pcxk75s9l9c9f1r5am7258bmqprh68pnqfvkwz0gx4kq6";
+        sha256 = "1mx6nzbplydy9khll4clsl35m6c1a2cgz9czr74swfgfzrsvdv9m";
         authors = [
           "Joseph Birr-Pixton <jpixton@gmail.com>"
         ];
@@ -7344,9 +7344,9 @@ rec {
       };
       "sized-chunks" = rec {
         crateName = "sized-chunks";
-        version = "0.6.4";
+        version = "0.6.5";
         edition = "2018";
-        sha256 = "01yjydh1a45yp4b07fi1lkfprmj57bsjqnpac7rpik8kkxm5vrk5";
+        sha256 = "07ix5fsdnpf2xsb0k5rbiwlmsicm2237fcx7blirp9p7pljr5mhn";
         authors = [
           "Bodil Stokke <bodil@bodil.org>"
         ];
@@ -8312,7 +8312,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.6";
+            packageId = "pin-project 1.0.7";
           }
           {
             name = "prost";
@@ -8442,7 +8442,7 @@ rec {
           }
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.6";
+            packageId = "pin-project 1.0.7";
           }
           {
             name = "rand";
@@ -8649,7 +8649,7 @@ rec {
         dependencies = [
           {
             name = "pin-project";
-            packageId = "pin-project 1.0.6";
+            packageId = "pin-project 1.0.7";
             optional = true;
           }
           {
@@ -9010,9 +9010,9 @@ rec {
       };
       "vcpkg" = rec {
         crateName = "vcpkg";
-        version = "0.2.11";
+        version = "0.2.12";
         edition = "2015";
-        sha256 = "1yvrd2b97j4hv5bfhcj3al0dpkbzkdsr6dclxqz3zqm50rhwl2xh";
+        sha256 = "0p9ypqvv55cq2rl0s7g5ca2bkvwn62cdrdb0hm8j0hd2crigznyb";
         authors = [
           "Jim McGrath <jimmc2@gmail.com>"
         ];
