@@ -1,5 +1,6 @@
-use std::pin::Pin;
+use std::{convert::TryFrom, pin::Pin};
 
+use automergeable::Automergeable;
 use etcd_proto::etcdserverpb::{
     maintenance_server::Maintenance as MaintenanceTrait, AlarmRequest, AlarmResponse,
     DefragmentRequest, DefragmentResponse, HashKvRequest, HashKvResponse, HashRequest,
@@ -10,15 +11,22 @@ use futures::Stream;
 use tonic::{Request, Response, Status};
 use tracing::info;
 
-use crate::server::Server;
+use crate::{server::Server, StoreValue};
 
 #[derive(Debug)]
-pub struct Maintenance {
-    pub server: Server,
+pub struct Maintenance<T>
+where
+    T: StoreValue,
+{
+    pub server: Server<T>,
 }
 
 #[tonic::async_trait]
-impl MaintenanceTrait for Maintenance {
+impl<T> MaintenanceTrait for Maintenance<T>
+where
+    T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     async fn alarm(
         &self,
         _request: Request<AlarmRequest>,

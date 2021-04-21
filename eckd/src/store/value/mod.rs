@@ -1,12 +1,16 @@
+mod k8s;
 #[cfg(feature = "value-lww")]
 mod lww;
+
 use etcd_proto::mvccpb::KeyValue;
+pub use k8s::K8sValue;
+pub use lww::StoreValue;
 #[cfg(feature = "value-lww")]
 pub use lww::Value;
 
 use crate::store::{Key, Revision, Version};
 
-/// A SnapshotValue corresponds to the value for the API, being just a snapshot of the `StoredValue` at a particular revision.
+/// A SnapshotValue corresponds to the value for the API, being just a snapshot of the `StoreValue` at a particular revision.
 #[derive(Debug, PartialEq)]
 pub struct SnapshotValue {
     /// the key for this value
@@ -27,7 +31,7 @@ pub struct SnapshotValue {
 }
 
 impl SnapshotValue {
-    pub const fn is_deleted(&self) -> bool {
+    pub fn is_deleted(&self) -> bool {
         self.value.is_none()
     }
 
@@ -37,7 +41,7 @@ impl SnapshotValue {
             key: self.key.into(),
             lease: 0,
             mod_revision: self.mod_revision.get() as i64,
-            value: self.value.unwrap_or_default(),
+            value: self.value.unwrap_or_default().into(),
             version: self.version.map(|n| n.get() as i64).unwrap_or(0),
         }
     }
@@ -52,24 +56,4 @@ impl SnapshotValue {
             version: self.version.map(|v| v.get() as i64).unwrap_or(0),
         }
     }
-}
-
-/// A trait for values which contain the history of the object, methods to prepare to store and
-/// retrieve the value from the database.
-pub trait HistoricValue: std::fmt::Debug + Default {
-    /// Get the value at a specific revision
-    ///
-    /// `key` is required to be able to build the RawValue
-    fn value_at_revision(&self, revision: Revision, key: Key) -> Option<SnapshotValue>;
-
-    /// Get the latest value based on revision (if it exists)
-    ///
-    /// `key` is required to be able to build the RawValue
-    fn latest_value(&self, key: Key) -> Option<SnapshotValue>;
-
-    /// Insert a new value (or update an existing value) at the given revision
-    fn insert(&mut self, revision: Revision, value: Vec<u8>);
-
-    /// Delete the value with the given revision
-    fn delete(&mut self, revision: Revision);
 }

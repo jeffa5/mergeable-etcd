@@ -1,8 +1,9 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    convert::TryInto,
+    convert::{TryFrom, TryInto},
 };
 
+use automergeable::Automergeable;
 use etcd_proto::etcdserverpb::{
     compare::{CompareResult, CompareTarget, TargetUnion},
     request_op::Request,
@@ -10,16 +11,26 @@ use etcd_proto::etcdserverpb::{
     ResponseOp, TxnRequest,
 };
 
-use crate::store::{HistoricValue, Key, Revision, Server, SnapshotValue, Ttl, Value};
+use crate::{
+    store::{Key, Revision, Server, SnapshotValue, Ttl, Value},
+    StoreValue,
+};
 
-#[derive(Debug, Clone, Default, automergeable::Automergeable)]
-pub struct StoreContents {
-    pub values: BTreeMap<Key, Value>,
+#[derive(Debug, Clone, Default, Automergeable)]
+pub struct StoreContents<T>
+where
+    T: StoreValue,
+{
+    pub values: BTreeMap<Key, Value<T>>,
     pub server: Server,
     pub leases: HashMap<i64, Ttl>,
 }
 
-impl StoreContents {
+impl<T> StoreContents<T>
+where
+    T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     #[tracing::instrument(skip(self, range_end), fields(key = %key))]
     pub(crate) fn get_inner(
         &self,

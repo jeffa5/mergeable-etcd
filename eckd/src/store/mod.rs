@@ -15,5 +15,5 @@ pub use key::Key;
 pub use revision::Revision;
 pub use server::Server;
 pub use ttl::Ttl;
-pub use value::{HistoricValue, SnapshotValue, Value};
+pub use value::{K8sValue, SnapshotValue, StoreValue, Value};
 pub use version::Version;

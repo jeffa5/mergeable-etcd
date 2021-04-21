@@ -6,7 +6,7 @@ use std::{convert::TryFrom, path::PathBuf};
 
 use eckd::{
     address::{Address, NamedAddress},
-    EckdBuilder,
+    EckdBuilder, K8sValue,
 };
 use structopt::StructOpt;
 use tracing::{debug, info, Level};
@@ -103,7 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     debug!("{:#?}", options);
 
-    let mut server_builder = EckdBuilder::default();
+    let mut server_builder = EckdBuilder::<K8sValue>::default();
     server_builder
         .name(options.name)
         .data_dir(options.data_dir)

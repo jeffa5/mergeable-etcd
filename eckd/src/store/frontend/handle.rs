@@ -3,15 +3,24 @@ use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, oneshot};
 
 use super::{actor::FrontendError, FrontendMessage};
-use crate::store::{Key, Revision, Server, SnapshotValue, Ttl, Value};
+use crate::{
+    store::{Key, Revision, Server, SnapshotValue, Ttl, Value},
+    StoreValue,
+};
 
 #[derive(Clone, Debug)]
-pub struct FrontendHandle {
-    sender: mpsc::Sender<FrontendMessage>,
+pub struct FrontendHandle<T>
+where
+    T: StoreValue,
+{
+    sender: mpsc::Sender<FrontendMessage<T>>,
 }
 
-impl FrontendHandle {
-    pub fn new(sender: mpsc::Sender<FrontendMessage>) -> Self {
+impl<T> FrontendHandle<T>
+where
+    T: StoreValue,
+{
+    pub fn new(sender: mpsc::Sender<FrontendMessage<T>>) -> Self {
         Self { sender }
     }
 
@@ -90,7 +99,7 @@ impl FrontendHandle {
         &self,
         key: Key,
         range_end: Option<Key>,
-        tx_events: mpsc::Sender<(Server, Vec<(Key, Value)>)>,
+        tx_events: mpsc::Sender<(Server, Vec<(Key, Value<T>)>)>,
     ) {
         let msg = FrontendMessage::WatchRange {
             key,

@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 
 use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
@@ -10,15 +10,23 @@ use tracing::{debug, info};
 use crate::{
     server::Server,
     store::{Revision, SnapshotValue},
+    StoreValue,
 };
 
 #[derive(Debug)]
-pub struct KV {
-    pub server: Server,
+pub struct KV<T>
+where
+    T: StoreValue,
+{
+    pub server: Server<T>,
 }
 
 #[tonic::async_trait]
-impl Kv for KV {
+impl<T> Kv for KV<T>
+where
+    T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     #[tracing::instrument(skip(self, request))]
     async fn range(
         &self,

@@ -8,10 +8,16 @@ pub use handle::FrontendHandle;
 use tokio::sync::{mpsc, oneshot};
 
 use super::{SnapshotValue, Ttl};
-use crate::store::{Key, Revision, Server, Value};
+use crate::{
+    store::{Key, Revision, Server, Value},
+    StoreValue,
+};
 
 #[derive(Debug)]
-pub enum FrontendMessage {
+pub enum FrontendMessage<T>
+where
+    T: StoreValue,
+{
     CurrentServer {
         ret: oneshot::Sender<Server>,
     },
@@ -39,7 +45,7 @@ pub enum FrontendMessage {
     WatchRange {
         key: Key,
         range_end: Option<Key>,
-        tx_events: mpsc::Sender<(Server, Vec<(Key, Value)>)>,
+        tx_events: mpsc::Sender<(Server, Vec<(Key, Value<T>)>)>,
     },
     CreateLease {
         id: Option<i64>,

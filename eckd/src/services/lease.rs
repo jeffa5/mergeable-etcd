@@ -1,4 +1,4 @@
-use std::pin::Pin;
+use std::{convert::TryFrom, pin::Pin};
 
 use etcd_proto::etcdserverpb::{
     lease_server::Lease as LeaseTrait, LeaseGrantRequest, LeaseGrantResponse,
@@ -9,15 +9,22 @@ use futures::{Stream, StreamExt};
 use tonic::{Request, Response, Status, Streaming};
 use tracing::info;
 
-use crate::server::Server;
+use crate::{server::Server, StoreValue};
 
 #[derive(Debug)]
-pub struct Lease {
-    pub server: Server,
+pub struct Lease<T>
+where
+    T: StoreValue,
+{
+    pub server: Server<T>,
 }
 
 #[tonic::async_trait]
-impl LeaseTrait for Lease {
+impl<T> LeaseTrait for Lease<T>
+where
+    T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     async fn lease_grant(
         &self,
         request: Request<LeaseGrantRequest>,

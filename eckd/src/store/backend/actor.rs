@@ -9,21 +9,27 @@ use tokio::sync::{mpsc, watch};
 use tracing::info;
 
 use super::BackendMessage;
-use crate::store::FrontendHandle;
+use crate::{store::FrontendHandle, StoreValue};
 
 #[derive(Debug)]
-pub struct BackendActor {
+pub struct BackendActor<T>
+where
+    T: StoreValue,
+{
     db: sled::Db,
     backend: automerge_persistent::PersistentBackend<automerge_persistent_sled::SledPersister>,
     receiver: mpsc::Receiver<BackendMessage>,
     shutdown: watch::Receiver<()>,
-    frontends: Vec<FrontendHandle>,
+    frontends: Vec<FrontendHandle<T>>,
 }
 
-impl BackendActor {
+impl<T> BackendActor<T>
+where
+    T: StoreValue,
+{
     pub fn new(
         config: &sled::Config,
-        frontends: Vec<FrontendHandle>,
+        frontends: Vec<FrontendHandle<T>>,
         receiver: mpsc::Receiver<BackendMessage>,
         shutdown: watch::Receiver<()>,
     ) -> Self {

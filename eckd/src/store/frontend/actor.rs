@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Range, thread};
+use std::{collections::HashMap, convert::TryFrom, ops::Range, thread};
 
 use automerge_persistent::PersistentBackendError;
 use automerge_persistent_sled::SledPersisterError;
@@ -7,16 +7,20 @@ use tokio::sync::{mpsc, watch};
 use tracing::{error, info, warn};
 
 use super::FrontendMessage;
-use crate::store::{
-    BackendHandle, Key, Revision, Server, SnapshotValue, StoreContents, Ttl, Value,
+use crate::{
+    store::{BackendHandle, Key, Revision, Server, SnapshotValue, StoreContents, Ttl, Value},
+    StoreValue,
 };
 
 #[derive(Debug)]
-pub struct FrontendActor {
-    document: automergeable::Document<StoreContents>,
+pub struct FrontendActor<T>
+where
+    T: StoreValue,
+{
+    document: automergeable::Document<StoreContents<T>>,
     backend: BackendHandle,
-    watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, Value)>)>>,
-    receiver: mpsc::Receiver<FrontendMessage>,
+    watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, Value<T>)>)>>,
+    receiver: mpsc::Receiver<FrontendMessage<T>>,
     shutdown: watch::Receiver<()>,
     id: usize,
 }
@@ -36,10 +40,14 @@ impl WatchRange {
     }
 }
 
-impl FrontendActor {
+impl<T> FrontendActor<T>
+where
+    T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     pub async fn new(
         backend: BackendHandle,
-        receiver: mpsc::Receiver<FrontendMessage>,
+        receiver: mpsc::Receiver<FrontendMessage<T>>,
         shutdown: watch::Receiver<()>,
         id: usize,
     ) -> Result<Self, FrontendError> {
@@ -77,7 +85,7 @@ impl FrontendActor {
         Ok(())
     }
 
-    async fn handle_message(&mut self, msg: FrontendMessage) -> Result<(), FrontendError> {
+    async fn handle_message(&mut self, msg: FrontendMessage<T>) -> Result<(), FrontendError> {
         match msg {
             FrontendMessage::CurrentServer { ret } => {
                 let server = self.current_server();
@@ -301,8 +309,8 @@ impl FrontendActor {
 
     #[tracing::instrument]
     async fn watch_range(
-        mut receiver: mpsc::Receiver<(Server, Vec<(Key, Value)>)>,
-        tx: tokio::sync::mpsc::Sender<(Server, Vec<(Key, Value)>)>,
+        mut receiver: mpsc::Receiver<(Server, Vec<(Key, Value<T>)>)>,
+        tx: tokio::sync::mpsc::Sender<(Server, Vec<(Key, Value<T>)>)>,
     ) {
         while let Some((server, events)) = receiver.recv().await {
             if tx.send((server, events)).await.is_err() {

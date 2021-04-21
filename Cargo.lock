@@ -126,7 +126,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com/jeffa5/automerge-rs?branch=main#fc45ff09a325b2c369fed8a5540612fa57403789"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=main#c9ba656c0c7947c948b83a6d9432eb93e26c825b"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
@@ -139,7 +139,7 @@ dependencies = [
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com/jeffa5/automerge-rs?branch=main#fc45ff09a325b2c369fed8a5540612fa57403789"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=main#c9ba656c0c7947c948b83a6d9432eb93e26c825b"
 dependencies = [
  "automerge-protocol",
  "flate2",
@@ -162,7 +162,7 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-rs?branch=main#fc45ff09a325b2c369fed8a5540612fa57403789"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=main#c9ba656c0c7947c948b83a6d9432eb93e26c825b"
 dependencies = [
  "automerge-protocol",
  "futures",
@@ -202,7 +202,7 @@ dependencies = [
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-rs?branch=main#fc45ff09a325b2c369fed8a5540612fa57403789"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=main#c9ba656c0c7947c948b83a6d9432eb93e26c825b"
 dependencies = [
  "hex",
  "serde",
@@ -213,7 +213,7 @@ dependencies = [
 [[package]]
 name = "automergeable"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#f948758b63b4143472ed6361ec42794ee4529e35"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#1fd453d01a8e4c5136f55e523f6c47dd65871bea"
 dependencies = [
  "automerge",
  "automerge-frontend",
@@ -228,7 +228,7 @@ dependencies = [
 [[package]]
 name = "automergeable-derive"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#f948758b63b4143472ed6361ec42794ee4529e35"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#1fd453d01a8e4c5136f55e523f6c47dd65871bea"
 dependencies = [
  "automerge",
  "automergeable-traits",
@@ -240,7 +240,7 @@ dependencies = [
 [[package]]
 name = "automergeable-traits"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#f948758b63b4143472ed6361ec42794ee4529e35"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#1fd453d01a8e4c5136f55e523f6c47dd65871bea"
 dependencies = [
  "automerge",
  "automerge-protocol",

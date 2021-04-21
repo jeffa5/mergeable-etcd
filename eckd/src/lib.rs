@@ -4,11 +4,12 @@ pub mod server;
 pub mod services;
 pub mod store;
 
-use std::path::PathBuf;
+use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 
 pub use address::Address;
 use derive_builder::Builder;
 use store::{BackendActor, BackendHandle, FrontendHandle};
+pub use store::{K8sValue, StoreValue};
 use tokio::{runtime::Builder, task::LocalSet};
 use tonic::transport::Identity;
 use tracing::info;
@@ -19,7 +20,10 @@ use crate::{
 };
 
 #[derive(Debug, Builder)]
-pub struct Eckd {
+pub struct Eckd<T>
+where
+    T: StoreValue,
+{
     name: String,
     data_dir: PathBuf,
     listen_peer_urls: Vec<Address>,
@@ -29,9 +33,14 @@ pub struct Eckd {
     advertise_client_urls: Vec<Address>,
     cert_file: Option<PathBuf>,
     key_file: Option<PathBuf>,
+    _data: PhantomData<T>,
 }
 
-impl Eckd {
+impl<T> Eckd<T>
+where
+    T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     pub async fn serve(
         &self,
         shutdown: tokio::sync::watch::Receiver<()>,
@@ -53,7 +62,7 @@ impl Eckd {
 
                 local.block_on(&rt, async move {
                     let mut actor =
-                        FrontendActor::new(backend_clone, f_receiver, shutdown_clone, i)
+                        FrontendActor::<T>::new(backend_clone, f_receiver, shutdown_clone, i)
                             .await
                             .unwrap();
                     actor.run().await.unwrap();
