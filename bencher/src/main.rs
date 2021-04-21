@@ -10,6 +10,7 @@ use std::{
 use anyhow::{bail, Context};
 use bencher::Scenario;
 use chrono::{DateTime, Utc};
+use ecetcd::Address;
 use etcd_proto::etcdserverpb::kv_client::KvClient;
 use structopt::StructOpt;
 use tokio::time::sleep;
@@ -21,8 +22,8 @@ struct Options {
     iterations: u32,
     #[structopt(long)]
     cacert: Option<PathBuf>,
-    #[structopt(long, parse(try_from_str = eckd::Address::try_from), default_value = "http://localhost:2379", use_delimiter = true)]
-    endpoints: Vec<eckd::Address>,
+    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2379", use_delimiter = true)]
+    endpoints: Vec<Address>,
     /// Interval between requests (in milliseconds)
     #[structopt(long, default_value = "0")]
     interval: u64,
@@ -57,10 +58,10 @@ async fn main() -> anyhow::Result<()> {
     let mut endpoints = Vec::new();
     for endpoint in &options.endpoints {
         match endpoint.scheme {
-            eckd::address::Scheme::Http => {
+            ecetcd::address::Scheme::Http => {
                 endpoints.push(Channel::from_shared(endpoint.to_string())?)
             }
-            eckd::address::Scheme::Https => {
+            ecetcd::address::Scheme::Https => {
                 if let Some(ref cacert) = options.cacert {
                     let pem = tokio::fs::read(cacert)
                         .await

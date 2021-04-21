@@ -9,7 +9,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use super::{SnapshotValue, Ttl};
 use crate::{
-    store::{Key, Revision, Server, Value},
+    store::{IValue, Key, Revision, Server},
     StoreValue,
 };
 
@@ -45,7 +45,7 @@ where
     WatchRange {
         key: Key,
         range_end: Option<Key>,
-        tx_events: mpsc::Sender<(Server, Vec<(Key, Value<T>)>)>,
+        tx_events: mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>,
     },
     CreateLease {
         id: Option<i64>,

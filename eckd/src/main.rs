@@ -4,12 +4,15 @@
 
 use std::{convert::TryFrom, path::PathBuf};
 
-use eckd::{
+use ecetcd::{
     address::{Address, NamedAddress},
-    EckdBuilder, K8sValue,
+    EcetcdBuilder,
 };
 use structopt::StructOpt;
 use tracing::{debug, info, Level};
+
+mod k8s;
+use k8s::Value;
 
 #[derive(Debug, StructOpt)]
 struct Options {
@@ -18,7 +21,7 @@ struct Options {
     name: String,
 
     /// Path to the data directory.
-    #[structopt(long, default_value = "default.eckd")]
+    #[structopt(long, default_value = "default.ecetcd")]
     data_dir: PathBuf,
 
     /// List of URLs to listen on for peer traffic.
@@ -103,7 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     debug!("{:#?}", options);
 
-    let mut server_builder = EckdBuilder::<K8sValue>::default();
+    let mut server_builder = EcetcdBuilder::<Value>::default();
     server_builder
         .name(options.name)
         .data_dir(options.data_dir)
@@ -128,7 +131,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let metrics_urls = options.listen_metrics_urls.clone();
-    tokio::spawn(async move { eckd::health::serve(metrics_urls).await.unwrap() });
+    tokio::spawn(async move { ecetcd::health::serve(metrics_urls).await.unwrap() });
 
     server.serve(shutdown_rx).await?;
 

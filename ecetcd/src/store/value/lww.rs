@@ -17,12 +17,12 @@ pub trait StoreValue:
 
 /// An implementation of a stored value with history and produces snapshotvalues
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Automergeable)]
-pub struct Value<T: StoreValue> {
+pub struct IValue<T: StoreValue> {
     revisions: BTreeMap<Revision, Option<T>>,
     lease_id: i64,
 }
 
-impl<T> Default for Value<T>
+impl<T> Default for IValue<T>
 where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
@@ -32,7 +32,7 @@ where
     }
 }
 
-impl<T> Value<T>
+impl<T> IValue<T>
 where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: Debug,

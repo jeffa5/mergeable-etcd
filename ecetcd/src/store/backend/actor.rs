@@ -47,9 +47,9 @@ where
         Self {
             db,
             backend,
-            frontends,
             receiver,
             shutdown,
+            frontends,
         }
     }
 

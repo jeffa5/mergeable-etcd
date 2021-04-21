@@ -8,7 +8,7 @@ use tracing::{error, info, warn};
 
 use super::FrontendMessage;
 use crate::{
-    store::{BackendHandle, Key, Revision, Server, SnapshotValue, StoreContents, Ttl, Value},
+    store::{BackendHandle, IValue, Key, Revision, Server, SnapshotValue, StoreContents, Ttl},
     StoreValue,
 };
 
@@ -19,7 +19,7 @@ where
 {
     document: automergeable::Document<StoreContents<T>>,
     backend: BackendHandle,
-    watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, Value<T>)>)>>,
+    watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>>,
     receiver: mpsc::Receiver<FrontendMessage<T>>,
     shutdown: watch::Receiver<()>,
     id: usize,
@@ -61,10 +61,10 @@ where
             thread::current().id()
         );
         Ok(Self {
-            receiver,
             document,
             backend,
             watchers,
+            receiver,
             shutdown,
             id,
         })
@@ -309,8 +309,8 @@ where
 
     #[tracing::instrument]
     async fn watch_range(
-        mut receiver: mpsc::Receiver<(Server, Vec<(Key, Value<T>)>)>,
-        tx: tokio::sync::mpsc::Sender<(Server, Vec<(Key, Value<T>)>)>,
+        mut receiver: mpsc::Receiver<(Server, Vec<(Key, IValue<T>)>)>,
+        tx: tokio::sync::mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>,
     ) {
         while let Some((server, events)) = receiver.recv().await {
             if tx.send((server, events)).await.is_err() {

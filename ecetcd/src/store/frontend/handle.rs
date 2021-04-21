@@ -4,7 +4,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use super::{actor::FrontendError, FrontendMessage};
 use crate::{
-    store::{Key, Revision, Server, SnapshotValue, Ttl, Value},
+    store::{IValue, Key, Revision, Server, SnapshotValue, Ttl},
     StoreValue,
 };
 
@@ -99,7 +99,7 @@ where
         &self,
         key: Key,
         range_end: Option<Key>,
-        tx_events: mpsc::Sender<(Server, Vec<(Key, Value<T>)>)>,
+        tx_events: mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>,
     ) {
         let msg = FrontendMessage::WatchRange {
             key,

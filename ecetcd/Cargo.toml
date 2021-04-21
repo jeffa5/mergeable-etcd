@@ -1,0 +1,45 @@
+[package]
+name = "ecetcd"
+version = "0.1.0"
+authors = ["Andrew Jeffery <dev@jeffas.io>"]
+edition = "2018"
+description = "An eventually consistent etcd"
+readme = "README.md"
+repository = "https://gitlab.developers.cam.ac.uk/apj39/eckd-rs"
+
+[features]
+default = ["value-lww"]
+
+value-lww = []
+
+[dependencies]
+sled = "0.34.6"
+tonic = { version = "0.4.0", features = ["transport", "tls"] }
+prost = "0.7.0"
+tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread", "fs", "signal", "sync"] }
+etcd-proto = { path = "../etcd-proto" }
+derive_builder = "0.10.0"
+structopt = "0.3.21"
+url = "2.2.0"
+thiserror = "1.0.24"
+futures = "0.3.12"
+serde = { version = "1.0.123", features = ["derive"] }
+hyper = "0.14.2"
+tower = "0.4.4"
+tracing = "0.1.23"
+tracing-subscriber = "0.2.15"
+futures-core = "0.3.12"
+tokio-stream = "0.1.2"
+serde_json = "1.0.62"
+rand = "0.8.3"
+automergeable = { git = "https://github.com/jeffa5/automergeable", branch = "main" }
+automerge-persistent = { git = "https://github.com/jeffa5/automerge-persistent", branch = "main" }
+automerge-persistent-sled = { git = "https://github.com/jeffa5/automerge-persistent", branch = "main" }
+num_cpus = "1.13.0"
+
+[build-dependencies]
+tonic-build = "0.4.0"
+
+[dev-dependencies]
+pretty_assertions = "0.7.1"
+test-env-log = { version = "0.2.5", features = ["trace"], default-features = false }

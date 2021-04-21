@@ -172,7 +172,7 @@ impl exp::Experiment for Experiment {
                 let events_file = BufReader::new(File::open(repeat.join("events")).unwrap());
                 for line in events_file.lines() {
                     let line = line.unwrap();
-                    let parts = line.splitn(2, " ").collect::<Vec<_>>();
+                    let parts = line.splitn(2, ' ').collect::<Vec<_>>();
                     if let [datetime, json] = parts[..] {
                         let datetime = chrono::DateTime::parse_from_rfc3339(datetime)
                             .unwrap()
@@ -262,7 +262,7 @@ fn plot_timings_scatter(
     root.fill(&WHITE).unwrap();
 
     let data = timings
-        .into_iter()
+        .iter()
         .flatten()
         .map(|t| {
             vec![

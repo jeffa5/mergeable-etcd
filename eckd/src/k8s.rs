@@ -1,28 +1,27 @@
 use std::convert::TryFrom;
 
 use automergeable::Automergeable;
+use ecetcd::StoreValue;
 use prost::Message;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
-
-use crate::StoreValue;
 
 const K8S_PREFIX: &[u8] = &[b'k', b'8', b's', 0];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Automergeable)]
 // A K8s api value, encoded in protobuf format
 // https://kubernetes.io/docs/reference/using-api/api-concepts/#protobuf-encoding
-pub enum K8sValue {
+pub enum Value {
     Lease(kubernetes_proto::k8s::api::coordination::v1::Lease),
     Endpoints(kubernetes_proto::k8s::api::core::v1::Endpoints),
-    Pod(kubernetes_proto::k8s::api::core::v1::Pod),
+    Pod(Box<kubernetes_proto::k8s::api::core::v1::Pod>),
     Unknown(kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown),
     Json(serde_json::Value),
 }
 
-impl StoreValue for K8sValue {}
+impl StoreValue for Value {}
 
-impl TryFrom<&[u8]> for K8sValue {
+impl TryFrom<&[u8]> for Value {
     type Error = String;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
@@ -30,7 +29,7 @@ impl TryFrom<&[u8]> for K8sValue {
         let rest = if value.len() >= 4 && &value[0..4] == K8S_PREFIX {
             &value[4..]
         } else if let Ok(val) = serde_json::from_slice(value) {
-            return Ok(K8sValue::Json(val));
+            return Ok(Self::Json(val));
         } else {
             return Err("value doesn't start with k8s prefix and is not JSON".to_owned());
         };
@@ -54,38 +53,38 @@ impl TryFrom<&[u8]> for K8sValue {
                         &unknown.raw.unwrap()[..],
                     );
                     info!("Lease: {:?}", lease);
-                    K8sValue::Lease(lease.expect("Failed decoding Lease resource from raw"))
+                    Self::Lease(lease.expect("Failed decoding Lease resource from raw"))
                 }
                 (Some("v1"), Some("Endpoints")) => {
                     let endpoints = kubernetes_proto::k8s::api::core::v1::Endpoints::decode(
                         &unknown.raw.unwrap()[..],
                     );
                     info!("Endpoints: {:?}", endpoints);
-                    K8sValue::Endpoints(
-                        endpoints.expect("Failed decoding Endpoints resource from raw"),
-                    )
+                    Self::Endpoints(endpoints.expect("Failed decoding Endpoints resource from raw"))
                 }
                 (Some("v1"), Some("Pod")) => {
                     let pod = kubernetes_proto::k8s::api::core::v1::Pod::decode(
                         &unknown.raw.unwrap()[..],
                     );
                     info!("Pod: {:?}", pod);
-                    K8sValue::Pod(pod.expect("Failed decoding Pod resource from raw"))
+                    Self::Pod(Box::new(
+                        pod.expect("Failed decoding Pod resource from raw"),
+                    ))
                 }
                 (api_version, kind) => {
                     warn!("Unknown api_version {:?} and kind {:?}", api_version, kind);
-                    K8sValue::Unknown(unknown)
+                    Self::Unknown(unknown)
                 }
             }
         } else {
             warn!("No type_meta attribute");
-            K8sValue::Unknown(unknown)
+            Self::Unknown(unknown)
         };
         Ok(val)
     }
 }
 
-impl TryFrom<&Vec<u8>> for K8sValue {
+impl TryFrom<&Vec<u8>> for Value {
     type Error = String;
 
     fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
@@ -93,7 +92,7 @@ impl TryFrom<&Vec<u8>> for K8sValue {
     }
 }
 
-impl TryFrom<Vec<u8>> for K8sValue {
+impl TryFrom<Vec<u8>> for Value {
     type Error = String;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
@@ -101,22 +100,22 @@ impl TryFrom<Vec<u8>> for K8sValue {
     }
 }
 
-impl From<K8sValue> for Vec<u8> {
-    fn from(val: K8sValue) -> Self {
+impl From<Value> for Vec<u8> {
+    fn from(val: Value) -> Self {
         Self::from(&val)
     }
 }
 
-impl From<&K8sValue> for Vec<u8> {
-    fn from(val: &K8sValue) -> Self {
-        let mut bytes = if let K8sValue::Json(_) = val {
-            Vec::new()
+impl From<&Value> for Vec<u8> {
+    fn from(val: &Value) -> Self {
+        let mut bytes = if let Value::Json(_) = val {
+            Self::new()
         } else {
             K8S_PREFIX.to_vec()
         };
         match val {
-            K8sValue::Lease(lease) => {
-                let mut raw_bytes = Vec::new();
+            Value::Lease(lease) => {
+                let mut raw_bytes = Self::new();
                 lease.encode(&mut raw_bytes).unwrap();
                 let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
                     type_meta: Some(
@@ -131,8 +130,8 @@ impl From<&K8sValue> for Vec<u8> {
                 };
                 unknown.encode(&mut bytes).unwrap()
             }
-            K8sValue::Endpoints(endpoints) => {
-                let mut raw_bytes = Vec::new();
+            Value::Endpoints(endpoints) => {
+                let mut raw_bytes = Self::new();
                 endpoints.encode(&mut raw_bytes).unwrap();
                 let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
                     type_meta: Some(
@@ -147,8 +146,8 @@ impl From<&K8sValue> for Vec<u8> {
                 };
                 unknown.encode(&mut bytes).unwrap()
             }
-            K8sValue::Pod(pod) => {
-                let mut raw_bytes = Vec::new();
+            Value::Pod(pod) => {
+                let mut raw_bytes = Self::new();
                 pod.encode(&mut raw_bytes).unwrap();
                 let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
                     type_meta: Some(
@@ -163,8 +162,8 @@ impl From<&K8sValue> for Vec<u8> {
                 };
                 unknown.encode(&mut bytes).unwrap()
             }
-            K8sValue::Unknown(unknown) => unknown.encode(&mut bytes).unwrap(),
-            K8sValue::Json(json) => serde_json::to_writer(&mut bytes, &json).unwrap(),
+            Value::Unknown(unknown) => unknown.encode(&mut bytes).unwrap(),
+            Value::Json(json) => serde_json::to_writer(&mut bytes, &json).unwrap(),
         };
         bytes
     }
@@ -174,16 +173,16 @@ impl From<&K8sValue> for Vec<u8> {
 mod tests {
     use std::num::NonZeroU64;
 
+    use ecetcd::store::{IValue, Revision, SnapshotValue};
     use pretty_assertions::assert_eq;
 
     use super::*;
-    use crate::store::{Revision, SnapshotValue, Value};
 
     #[allow(clippy::too_many_lines)]
     #[test]
     fn historic_value() {
-        let mut v = Value::<K8sValue>::default();
-        assert_eq!(Value::new(), v);
+        let mut v = IValue::<Value>::default();
+        assert_eq!(IValue::new(), v);
         assert_eq!(
             None,
             v.value_at_revision(Revision::new(1).unwrap(), Vec::new().into()),
@@ -317,45 +316,44 @@ mod tests {
 
     #[test]
     fn k8svalue_unknown_serde() {
-        let val = K8sValue::Unknown(
-            kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown::default(),
-        );
+        let val =
+            Value::Unknown(kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown::default());
         let buf: Vec<u8> = (&val).into();
-        let val_back = K8sValue::try_from(buf).unwrap();
+        let val_back = Value::try_from(buf).unwrap();
         assert_eq!(val, val_back);
     }
 
     #[test]
     fn k8svalue_lease_serde() {
-        let val = K8sValue::Lease(kubernetes_proto::k8s::api::coordination::v1::Lease::default());
+        let val = Value::Lease(kubernetes_proto::k8s::api::coordination::v1::Lease::default());
         let buf: Vec<u8> = (&val).into();
-        let val_back = K8sValue::try_from(buf).unwrap();
+        let val_back = Value::try_from(buf).unwrap();
         assert_eq!(val, val_back);
     }
 
     #[test]
     fn k8svalue_endpoints_serde() {
         let inner = kubernetes_proto::k8s::api::core::v1::Endpoints::default();
-        let val = K8sValue::Endpoints(inner);
+        let val = Value::Endpoints(inner);
         let buf: Vec<u8> = (&val).into();
-        let val_back = K8sValue::try_from(buf).unwrap();
+        let val_back = Value::try_from(buf).unwrap();
         assert_eq!(val, val_back);
     }
 
     #[test]
     fn k8svalue_pod_serde() {
         let inner = kubernetes_proto::k8s::api::core::v1::Pod::default();
-        let val = K8sValue::Pod(inner);
+        let val = Value::Pod(inner);
         let buf: Vec<u8> = (&val).into();
-        let val_back = K8sValue::try_from(buf).unwrap();
+        let val_back = Value::try_from(buf).unwrap();
         assert_eq!(val, val_back);
     }
 
     #[test]
     fn k8svalue_json_serde() {
-        let val = K8sValue::Json(serde_json::Value::default());
+        let val = Value::Json(serde_json::Value::default());
         let buf: Vec<u8> = (&val).into();
-        let val_back = K8sValue::try_from(buf).unwrap();
+        let val_back = Value::try_from(buf).unwrap();
         assert_eq!(val, val_back);
     }
 }

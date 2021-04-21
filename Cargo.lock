@@ -213,7 +213,7 @@ dependencies = [
 [[package]]
 name = "automergeable"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#1fd453d01a8e4c5136f55e523f6c47dd65871bea"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#85533d806f6b2254972651d5939d7aa83b9876d3"
 dependencies = [
  "automerge",
  "automerge-frontend",
@@ -228,7 +228,7 @@ dependencies = [
 [[package]]
 name = "automergeable-derive"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#1fd453d01a8e4c5136f55e523f6c47dd65871bea"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#85533d806f6b2254972651d5939d7aa83b9876d3"
 dependencies = [
  "automerge",
  "automergeable-traits",
@@ -240,7 +240,7 @@ dependencies = [
 [[package]]
 name = "automergeable-traits"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#1fd453d01a8e4c5136f55e523f6c47dd65871bea"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#85533d806f6b2254972651d5939d7aa83b9876d3"
 dependencies = [
  "automerge",
  "automerge-protocol",
@@ -261,6 +261,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "ecetcd",
  "eckd",
  "etcd-proto",
  "futures",
@@ -790,7 +791,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "eckd"
+name = "ecetcd"
 version = "0.1.0"
 dependencies = [
  "automerge-persistent",
@@ -801,7 +802,6 @@ dependencies = [
  "futures",
  "futures-core",
  "hyper",
- "kubernetes-proto",
  "num_cpus",
  "pretty_assertions",
  "prost",
@@ -820,6 +820,23 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+]
+
+[[package]]
+name = "eckd"
+version = "0.1.0"
+dependencies = [
+ "automergeable",
+ "ecetcd",
+ "kubernetes-proto",
+ "pretty_assertions",
+ "prost",
+ "serde",
+ "serde_json",
+ "structopt",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "eckd",
+  "ecetcd",
   "etcd-proto",
   "bencher",
   "kubernetes-proto",

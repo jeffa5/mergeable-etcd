@@ -6,7 +6,7 @@ use tonic::Status;
 use tracing::{debug, warn};
 
 use crate::{
-    store::{value::Value, Key, Revision, Server, SnapshotValue},
+    store::{value::IValue, Key, Revision, Server, SnapshotValue},
     StoreValue,
 };
 
@@ -19,7 +19,7 @@ impl Watcher {
     pub(super) fn new<T>(
         id: i64,
         prev_kv: bool,
-        mut changes: Receiver<(Server, Vec<(Key, Value<T>)>)>,
+        mut changes: Receiver<(Server, Vec<(Key, IValue<T>)>)>,
         tx: Sender<Result<WatchResponse, Status>>,
     ) -> Self
     where
@@ -49,7 +49,7 @@ async fn handle_event<T>(
     prev_kv: bool,
     tx: &Sender<Result<WatchResponse, Status>>,
     server: Server,
-    changes: Vec<(Key, Value<T>)>,
+    changes: Vec<(Key, IValue<T>)>,
 ) -> bool
 where
     T: StoreValue,

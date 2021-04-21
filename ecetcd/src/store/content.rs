@@ -12,7 +12,7 @@ use etcd_proto::etcdserverpb::{
 };
 
 use crate::{
-    store::{Key, Revision, Server, SnapshotValue, Ttl, Value},
+    store::{IValue, Key, Revision, Server, SnapshotValue, Ttl},
     StoreValue,
 };
 
@@ -21,7 +21,7 @@ pub struct StoreContents<T>
 where
     T: StoreValue,
 {
-    pub values: BTreeMap<Key, Value<T>>,
+    pub values: BTreeMap<Key, IValue<T>>,
     pub server: Server,
     pub leases: HashMap<i64, Ttl>,
 }
@@ -70,7 +70,7 @@ where
             v.insert(revision, value);
             prev
         } else {
-            let mut v = Value::default();
+            let mut v = IValue::default();
             v.insert(revision, value);
             self.values.insert(key, v);
             None

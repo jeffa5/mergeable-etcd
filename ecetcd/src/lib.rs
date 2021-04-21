@@ -8,8 +8,8 @@ use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 
 pub use address::Address;
 use derive_builder::Builder;
+pub use store::StoreValue;
 use store::{BackendActor, BackendHandle, FrontendHandle};
-pub use store::{K8sValue, StoreValue};
 use tokio::{runtime::Builder, task::LocalSet};
 use tonic::transport::Identity;
 use tracing::info;
@@ -20,7 +20,7 @@ use crate::{
 };
 
 #[derive(Debug, Builder)]
-pub struct Eckd<T>
+pub struct Ecetcd<T>
 where
     T: StoreValue,
 {
@@ -36,7 +36,7 @@ where
     _data: PhantomData<T>,
 }
 
-impl<T> Eckd<T>
+impl<T> Ecetcd<T>
 where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,

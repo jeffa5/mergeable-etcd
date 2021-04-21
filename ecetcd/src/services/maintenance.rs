@@ -1,6 +1,5 @@
 use std::{convert::TryFrom, pin::Pin};
 
-use automergeable::Automergeable;
 use etcd_proto::etcdserverpb::{
     maintenance_server::Maintenance as MaintenanceTrait, AlarmRequest, AlarmResponse,
     DefragmentRequest, DefragmentResponse, HashKvRequest, HashKvResponse, HashRequest,

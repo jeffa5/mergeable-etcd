@@ -1,12 +1,10 @@
-mod k8s;
 #[cfg(feature = "value-lww")]
 mod lww;
 
 use etcd_proto::mvccpb::KeyValue;
-pub use k8s::K8sValue;
-pub use lww::StoreValue;
 #[cfg(feature = "value-lww")]
-pub use lww::Value;
+pub use lww::IValue;
+pub use lww::StoreValue;
 
 use crate::store::{Key, Revision, Version};
 
@@ -41,7 +39,7 @@ impl SnapshotValue {
             key: self.key.into(),
             lease: 0,
             mod_revision: self.mod_revision.get() as i64,
-            value: self.value.unwrap_or_default().into(),
+            value: self.value.unwrap_or_default(),
             version: self.version.map(|n| n.get() as i64).unwrap_or(0),
         }
     }
