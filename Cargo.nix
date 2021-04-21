@@ -49,6 +49,16 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
+    "ecetcd" = rec {
+      packageId = "ecetcd";
+      build = internal.buildRustCrateWithFeatures {
+        packageId = "ecetcd";
+      };
+
+      # Debug support which might change between releases.
+      # File a bug if you depend on any for non-debug work!
+      debug = internal.debugCrate { inherit packageId; };
+    };
     "eckd" = rec {
       packageId = "eckd";
       build = internal.buildRustCrateWithFeatures {
@@ -388,8 +398,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "fc45ff09a325b2c369fed8a5540612fa57403789";
-          sha256 = "0462s46dn853iryd5zi7b5487hnq3j8hylk4jhhmj4iig77ziafq";
+          rev = "c9ba656c0c7947c948b83a6d9432eb93e26c825b";
+          sha256 = "0ybjdy7f095g5g70y76r3h3lk7rh66xi6vsg7rayhk8i0hv64qb4";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -431,8 +441,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "fc45ff09a325b2c369fed8a5540612fa57403789";
-          sha256 = "0462s46dn853iryd5zi7b5487hnq3j8hylk4jhhmj4iig77ziafq";
+          rev = "c9ba656c0c7947c948b83a6d9432eb93e26c825b";
+          sha256 = "0ybjdy7f095g5g70y76r3h3lk7rh66xi6vsg7rayhk8i0hv64qb4";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -516,8 +526,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "fc45ff09a325b2c369fed8a5540612fa57403789";
-          sha256 = "0462s46dn853iryd5zi7b5487hnq3j8hylk4jhhmj4iig77ziafq";
+          rev = "c9ba656c0c7947c948b83a6d9432eb93e26c825b";
+          sha256 = "0ybjdy7f095g5g70y76r3h3lk7rh66xi6vsg7rayhk8i0hv64qb4";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -656,8 +666,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-rs";
-          rev = "fc45ff09a325b2c369fed8a5540612fa57403789";
-          sha256 = "0462s46dn853iryd5zi7b5487hnq3j8hylk4jhhmj4iig77ziafq";
+          rev = "c9ba656c0c7947c948b83a6d9432eb93e26c825b";
+          sha256 = "0ybjdy7f095g5g70y76r3h3lk7rh66xi6vsg7rayhk8i0hv64qb4";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -691,8 +701,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "f948758b63b4143472ed6361ec42794ee4529e35";
-          sha256 = "0q99sj7cqmc9757idn323c5fky1ypgl5zsfqbx7xmmfap0v1bb0n";
+          rev = "85533d806f6b2254972651d5939d7aa83b9876d3";
+          sha256 = "1k9whby7xdvzjgd2hc1fcwfk15q9g0d7n5dill48386v788w66x1";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -750,8 +760,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "f948758b63b4143472ed6361ec42794ee4529e35";
-          sha256 = "0q99sj7cqmc9757idn323c5fky1ypgl5zsfqbx7xmmfap0v1bb0n";
+          rev = "85533d806f6b2254972651d5939d7aa83b9876d3";
+          sha256 = "1k9whby7xdvzjgd2hc1fcwfk15q9g0d7n5dill48386v788w66x1";
         };
         procMacro = true;
         authors = [
@@ -788,8 +798,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "f948758b63b4143472ed6361ec42794ee4529e35";
-          sha256 = "0q99sj7cqmc9757idn323c5fky1ypgl5zsfqbx7xmmfap0v1bb0n";
+          rev = "85533d806f6b2254972651d5939d7aa83b9876d3";
+          sha256 = "1k9whby7xdvzjgd2hc1fcwfk15q9g0d7n5dill48386v788w66x1";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -856,8 +866,8 @@ rec {
             packageId = "chrono";
           }
           {
-            name = "eckd";
-            packageId = "eckd";
+            name = "ecetcd";
+            packageId = "ecetcd";
           }
           {
             name = "etcd-proto";
@@ -2228,14 +2238,11 @@ rec {
           "serde_serialization" = [ "serde" "serde_derive" ];
         };
       };
-      "eckd" = rec {
-        crateName = "eckd";
+      "ecetcd" = rec {
+        crateName = "ecetcd";
         version = "0.1.0";
         edition = "2018";
-        crateBin = [
-          { name = "eckd"; path = "src/main.rs"; }
-        ];
-        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./eckd; };
+        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./ecetcd; };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
         ];
@@ -2271,10 +2278,6 @@ rec {
           {
             name = "hyper";
             packageId = "hyper";
-          }
-          {
-            name = "kubernetes-proto";
-            packageId = "kubernetes-proto";
           }
           {
             name = "num_cpus";
@@ -2362,6 +2365,69 @@ rec {
           "default" = [ "value-lww" ];
         };
         resolvedDefaultFeatures = [ "default" "value-lww" ];
+      };
+      "eckd" = rec {
+        crateName = "eckd";
+        version = "0.1.0";
+        edition = "2018";
+        crateBin = [
+          { name = "eckd"; path = "src/main.rs"; }
+        ];
+        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./eckd; };
+        authors = [
+          "Andrew Jeffery <dev@jeffas.io>"
+        ];
+        dependencies = [
+          {
+            name = "automergeable";
+            packageId = "automergeable";
+          }
+          {
+            name = "ecetcd";
+            packageId = "ecetcd";
+          }
+          {
+            name = "kubernetes-proto";
+            packageId = "kubernetes-proto";
+          }
+          {
+            name = "prost";
+            packageId = "prost";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "structopt";
+            packageId = "structopt";
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+          {
+            name = "tracing-subscriber";
+            packageId = "tracing-subscriber";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "pretty_assertions";
+            packageId = "pretty_assertions";
+          }
+        ];
+
       };
       "either" = rec {
         crateName = "either";

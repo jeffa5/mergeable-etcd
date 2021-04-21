@@ -44,6 +44,8 @@
           packages = {
             eckd = cargoNix.workspaceMembers.eckd.build;
 
+            ecetcd = cargoNix.workspaceMembers.ecetcd.build;
+
             experiments = cargoNix.workspaceMembers.experiments.build;
 
             bencher = cargoNix.workspaceMembers.bencher.build;
@@ -120,6 +122,7 @@
 
           checks = {
             eckd = cargoNix.workspaceMembers.eckd.build;
+            ecetcd = cargoNix.workspaceMembers.ecetcd.build;
 
             experiments = cargoNix.workspaceMembers.experiments.build;
 
