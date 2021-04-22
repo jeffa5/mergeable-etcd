@@ -7,11 +7,6 @@ description = "An eventually consistent etcd"
 readme = "README.md"
 repository = "https://gitlab.developers.cam.ac.uk/apj39/eckd-rs"
 
-[features]
-default = ["value-lww"]
-
-value-lww = []
-
 [dependencies]
 sled = "0.34.6"
 tonic = { version = "0.4.0", features = ["transport", "tls"] }

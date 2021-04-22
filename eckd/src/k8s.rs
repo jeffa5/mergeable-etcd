@@ -343,7 +343,7 @@ mod tests {
     #[test]
     fn k8svalue_pod_serde() {
         let inner = kubernetes_proto::k8s::api::core::v1::Pod::default();
-        let val = Value::Pod(inner);
+        let val = Value::Pod(Box::new(inner));
         let buf: Vec<u8> = (&val).into();
         let val_back = Value::try_from(buf).unwrap();
         assert_eq!(val, val_back);
