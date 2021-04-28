@@ -31,10 +31,10 @@ impl exp::Experiment for Experiment {
             );
             for delay in (0..=50).step_by(10) {
                 for (bench_type, mut bench_args) in vec![
-                    // (
-                    //     BenchType::PutSingle,
-                    //     vec!["put-single".to_owned(), "bench".to_owned()],
-                    // ),
+                    (
+                        BenchType::PutSingle,
+                        vec!["put-single".to_owned(), "bench".to_owned()],
+                    ),
                     (BenchType::PutRange, vec!["put-range".to_owned()]),
                 ] {
                     let mut args = vec!["--clients=100".to_owned(), "--iterations=10".to_owned()];
