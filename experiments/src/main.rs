@@ -1,4 +1,4 @@
-use std::{path::PathBuf, time::Duration};
+use std::{collections::HashSet, path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
 use clap::Clap;
@@ -163,7 +163,7 @@ struct CliOptions {
     experiments: Vec<ExperimentChoice>,
 }
 
-#[derive(Clap, Debug)]
+#[derive(Clap, Debug, PartialEq, Eq, Hash)]
 enum ExperimentChoice {
     /// old etcd cluster latency benchmark using etcdbenchmark
     ClusterLatency,
@@ -182,6 +182,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let experiments = opts
         .experiments
+        .into_iter()
+        .collect::<HashSet<_>>()
         .into_iter()
         .map(|e| match e {
             ExperimentChoice::KubernetesStartup => {
