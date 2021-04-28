@@ -2422,8 +2422,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/exp";
-          rev = "8585e4f20801f24170f82747225d7f3ecbc9c689";
-          sha256 = "10ykq149xkny6g6zp2kzq4zsnnsb8qnxd3vwgd7yqvxngw5wayix";
+          rev = "36741634e50860a386ddbb1d0bb5ae596a2e906e";
+          sha256 = "1hccxsnm4a5jbbbvmq1q08lzmmc24cqij8vl9aiid1wfmvq3qhcw";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -2519,6 +2519,10 @@ rec {
           {
             name = "bencher";
             packageId = "bencher";
+          }
+          {
+            name = "bollard";
+            packageId = "bollard";
           }
           {
             name = "chrono";

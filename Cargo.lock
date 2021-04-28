@@ -836,7 +836,7 @@ dependencies = [
 [[package]]
 name = "exp"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/exp?branch=main#8585e4f20801f24170f82747225d7f3ecbc9c689"
+source = "git+https://github.com/jeffa5/exp?branch=main#36741634e50860a386ddbb1d0bb5ae596a2e906e"
 dependencies = [
  "async-trait",
  "bollard",
@@ -867,6 +867,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bencher",
+ "bollard",
  "chrono",
  "clap 3.0.0-beta.2",
  "clap_derive",

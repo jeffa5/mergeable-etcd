@@ -11,7 +11,7 @@ use exp::{
     docker_runner::{ContainerConfig, Logs, Runner, Stats, Tops},
     Environment, ExperimentConfiguration,
 };
-use futures::StreamExt;
+use futures::{future::ready, StreamExt};
 use plotters::data::fitting_range;
 use serde::{Deserialize, Serialize};
 
@@ -23,39 +23,42 @@ impl exp::Experiment for Experiment {
 
     fn configurations(&self) -> Vec<Self::Configuration> {
         let mut confs = Vec::new();
-        let repeats = 2;
-        for cluster_size in (1..=3).step_by(2) {
+        let repeats = 1;
+        for cluster_size in (1..=7).step_by(2) {
             let description = format!(
                 "Test etcd cluster latency and throughput at {} nodes",
                 cluster_size
             );
-            for (bench_type, mut bench_args) in vec![
-                (
-                    BenchType::PutSingle,
-                    vec!["put-single".to_owned(), "bench".to_owned()],
-                ),
-                (BenchType::PutRange, vec!["put-range".to_owned()]),
-            ] {
-                let mut args = vec!["--clients=100".to_owned(), "--iterations=10".to_owned()];
-                args.append(&mut bench_args);
-                confs.push(Config {
-                    repeats,
-                    description: description.clone(),
-                    cluster_size,
-                    bench_type: bench_type.clone(),
-                    bench_args: args.clone(),
-                    image_name: "quay.io/coreos/etcd".to_owned(),
-                    image_tag: "v3.4.13".to_owned(),
-                });
-                confs.push(Config {
-                    repeats,
-                    description: description.clone(),
-                    cluster_size,
-                    bench_type,
-                    bench_args: args,
-                    image_name: "jeffas/etcd".to_owned(),
-                    image_tag: "latest".to_owned(),
-                });
+            for delay in (0..=50).step_by(10) {
+                for (bench_type, mut bench_args) in vec![
+                    // (
+                    //     BenchType::PutSingle,
+                    //     vec!["put-single".to_owned(), "bench".to_owned()],
+                    // ),
+                    (BenchType::PutRange, vec!["put-range".to_owned()]),
+                ] {
+                    let mut args = vec!["--clients=100".to_owned(), "--iterations=10".to_owned()];
+                    args.append(&mut bench_args);
+                    confs.push(Config {
+                        repeats,
+                        description: description.clone(),
+                        cluster_size,
+                        bench_type: bench_type.clone(),
+                        bench_args: args.clone(),
+                        image_name: "quay.io/coreos/etcd".to_owned(),
+                        image_tag: "v3.4.13".to_owned(),
+                        delay,
+                    });
+                    // confs.push(Config {
+                    //     repeats,
+                    //     description: description.clone(),
+                    //     cluster_size,
+                    //     bench_type,
+                    //     bench_args: args,
+                    //     image_name: "jeffas/etcd".to_owned(),
+                    //     image_tag: "latest".to_owned(),
+                    // });
+                }
             }
         }
         confs
@@ -111,7 +114,7 @@ impl exp::Experiment for Experiment {
             ];
             runner
                 .add_container(&ContainerConfig {
-                    name,
+                    name: name.clone(),
                     image_name: configuration.image_name.clone(),
                     image_tag: configuration.image_tag.clone(),
                     command: Some(cmd),
@@ -121,8 +124,40 @@ impl exp::Experiment for Experiment {
                         (client_port.to_string(), client_port.to_string()),
                         (peer_port.to_string(), peer_port.to_string()),
                     ]),
+                    capabilities: Some(vec!["NET_ADMIN".to_owned()]),
                 })
+                .await;
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            let exec = runner
+                .docker_client()
+                .create_exec(
+                    &name,
+                    bollard::exec::CreateExecOptions {
+                        cmd: Some(vec![
+                            "tc",
+                            "qdisc",
+                            "add",
+                            "dev",
+                            "eth0",
+                            "root",
+                            "netem",
+                            "delay",
+                            &format!("{}ms", configuration.delay),
+                        ]),
+                        ..Default::default()
+                    },
+                )
                 .await
+                .unwrap();
+            runner
+                .docker_client()
+                .start_exec(&exec.id, None)
+                .for_each(|l| {
+                    l.unwrap();
+                    ready(())
+                })
+                .await;
+            tokio::time::sleep(Duration::from_millis(10)).await;
         }
         tokio::time::sleep(Duration::from_secs(5)).await;
 
@@ -140,6 +175,7 @@ impl exp::Experiment for Experiment {
                 network: Some(network_name.clone()),
                 network_subnet: Some("172.18.0.0/16".to_owned()),
                 ports: None,
+                capabilities: None,
             })
             .await;
 
@@ -247,6 +283,10 @@ fn plot_latency(
         BLUE.mix(0.5).filled(),
         RED.mix(0.5).filled(),
         GREEN.mix(0.5).filled(),
+        YELLOW.mix(0.5).filled(),
+        CYAN.mix(0.5).filled(),
+        MAGENTA.mix(0.5).filled(),
+        BLACK.mix(0.5).filled(),
     ];
 
     for (i, rs) in bench_results.iter() {
@@ -261,7 +301,7 @@ fn plot_latency(
                 .enumerate()
                 .map(|(i, m)| (m, i))
                 .collect::<HashMap<_, _>>();
-            let latency_plot = plots_path.join(format!("latency-{}-{}.svg", i, r));
+            let latency_plot = plots_path.join(format!("latency-c{}-r{}.svg", i, r));
             println!("Creating plot {:?}", latency_plot);
             let root = SVGBackend::new(&latency_plot, (640, 480)).into_drawing_area();
             root.fill(&WHITE).unwrap();
@@ -269,11 +309,12 @@ fn plot_latency(
             let mut chart = ChartBuilder::on(&root)
                 .caption(
                     format!(
-                        "request latency {} {}x{} {:?}",
+                        "latency {} {}x{} {:?} {}ms",
                         date,
                         configs[i].0.cluster_size,
                         configs[i].0.image_name,
-                        configs[i].0.bench_type
+                        configs[i].0.bench_type,
+                        configs[i].0.delay,
                     ),
                     ("Times", 20).into_font(),
                 )
@@ -350,6 +391,7 @@ pub struct Config {
     pub bench_args: Vec<String>,
     pub image_name: String,
     pub image_tag: String,
+    pub delay: u32,
 }
 
 impl ExperimentConfiguration for Config {

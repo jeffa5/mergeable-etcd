@@ -125,6 +125,7 @@ impl exp::Experiment for Experiment {
                         (client_port.to_string(), client_port.to_string()),
                         (peer_port.to_string(), peer_port.to_string()),
                     ]),
+                    capabilities: None,
                 })
                 .await
         }
@@ -144,6 +145,7 @@ impl exp::Experiment for Experiment {
                 network: Some(network_name.clone()),
                 network_subnet: Some("172.18.0.0/16".to_owned()),
                 ports: None,
+                capabilities: None,
             })
             .await;
 
