@@ -2214,10 +2214,6 @@ rec {
             packageId = "sled";
           }
           {
-            name = "structopt";
-            packageId = "structopt";
-          }
-          {
             name = "thiserror";
             packageId = "thiserror";
           }
