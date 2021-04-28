@@ -7,7 +7,6 @@ pub mod store;
 use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 
 pub use address::Address;
-use derive_builder::Builder;
 pub use store::StoreValue;
 use store::{BackendActor, BackendHandle, FrontendHandle};
 use tokio::{runtime::Builder, task::LocalSet};
@@ -19,21 +18,21 @@ use crate::{
     store::FrontendActor,
 };
 
-#[derive(Debug, Builder)]
+#[derive(Debug)]
 pub struct Ecetcd<T>
 where
     T: StoreValue,
 {
-    name: String,
-    data_dir: PathBuf,
-    listen_peer_urls: Vec<Address>,
-    listen_client_urls: Vec<Address>,
-    initial_advertise_peer_urls: Vec<Address>,
-    initial_cluster: Vec<NamedAddress>,
-    advertise_client_urls: Vec<Address>,
-    cert_file: Option<PathBuf>,
-    key_file: Option<PathBuf>,
-    _data: PhantomData<T>,
+    pub name: String,
+    pub data_dir: PathBuf,
+    pub listen_peer_urls: Vec<Address>,
+    pub listen_client_urls: Vec<Address>,
+    pub initial_advertise_peer_urls: Vec<Address>,
+    pub initial_cluster: Vec<NamedAddress>,
+    pub advertise_client_urls: Vec<Address>,
+    pub cert_file: Option<PathBuf>,
+    pub key_file: Option<PathBuf>,
+    pub _data: PhantomData<T>,
 }
 
 impl<T> Ecetcd<T>

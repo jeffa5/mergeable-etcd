@@ -1970,93 +1970,6 @@ rec {
         features = {
         };
       };
-      "derive_builder" = rec {
-        crateName = "derive_builder";
-        version = "0.10.0";
-        edition = "2015";
-        sha256 = "0wrm3x369ykk2snhyx6b1q1vyjn900b71517gma0q3czbirjbvvq";
-        authors = [
-          "Colin Kiegel <kiegel@gmx.de>"
-          "Pascal Hertleif <killercup@gmail.com>"
-          "Jan-Erik Rediger <janerik@fnordig.de>"
-          "Ted Driggs <ted.driggs@outlook.com>"
-        ];
-        dependencies = [
-          {
-            name = "derive_builder_core";
-            packageId = "derive_builder_core";
-          }
-          {
-            name = "derive_builder_macro";
-            packageId = "derive_builder_macro";
-          }
-        ];
-        features = {
-          "clippy" = [ "derive_builder_macro/clippy" "derive_builder_core/clippy" ];
-          "default" = [ "std" ];
-        };
-        resolvedDefaultFeatures = [ "default" "std" ];
-      };
-      "derive_builder_core" = rec {
-        crateName = "derive_builder_core";
-        version = "0.10.0";
-        edition = "2015";
-        sha256 = "0mz417mbmzb89aa4wqsgr7bgfr63gx405dzfsfcpp1028vlg2l1i";
-        authors = [
-          "Colin Kiegel <kiegel@gmx.de>"
-          "Pascal Hertleif <killercup@gmail.com>"
-          "Jan-Erik Rediger <janerik@fnordig.de>"
-          "Ted Driggs <ted.driggs@outlook.com>"
-        ];
-        dependencies = [
-          {
-            name = "darling";
-            packageId = "darling";
-          }
-          {
-            name = "proc-macro2";
-            packageId = "proc-macro2";
-          }
-          {
-            name = "quote";
-            packageId = "quote";
-          }
-          {
-            name = "syn";
-            packageId = "syn";
-            features = [ "full" "extra-traits" ];
-          }
-        ];
-        features = {
-        };
-      };
-      "derive_builder_macro" = rec {
-        crateName = "derive_builder_macro";
-        version = "0.10.0";
-        edition = "2015";
-        sha256 = "0p7hfz2ikzjizfld3d31y853k17kjixv5bilwz8hip7gvn5h18aw";
-        procMacro = true;
-        authors = [
-          "Colin Kiegel <kiegel@gmx.de>"
-          "Pascal Hertleif <killercup@gmail.com>"
-          "Jan-Erik Rediger <janerik@fnordig.de>"
-          "Ted Driggs <ted.driggs@outlook.com>"
-        ];
-        dependencies = [
-          {
-            name = "derive_builder_core";
-            packageId = "derive_builder_core";
-          }
-          {
-            name = "syn";
-            packageId = "syn";
-            features = [ "full" "extra-traits" ];
-          }
-        ];
-        features = {
-          "clippy" = [ "derive_builder_core/clippy" ];
-        };
-      };
       "diff" = rec {
         crateName = "diff";
         version = "0.1.12";
@@ -2260,10 +2173,6 @@ rec {
             packageId = "automergeable";
           }
           {
-            name = "derive_builder";
-            packageId = "derive_builder";
-          }
-          {
             name = "etcd-proto";
             packageId = "etcd-proto";
           }
@@ -2361,10 +2270,7 @@ rec {
             features = [ "trace" ];
           }
         ];
-        features = {
-          "default" = [ "value-lww" ];
-        };
-        resolvedDefaultFeatures = [ "default" "value-lww" ];
+
       };
       "eckd" = rec {
         crateName = "eckd";

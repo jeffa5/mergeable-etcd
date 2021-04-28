@@ -2,11 +2,11 @@
 #![warn(clippy::nursery)]
 #![warn(clippy::cargo)]
 
-use std::{convert::TryFrom, path::PathBuf};
+use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 
 use ecetcd::{
     address::{Address, NamedAddress},
-    EcetcdBuilder,
+    Ecetcd,
 };
 use structopt::StructOpt;
 use tracing::{debug, info, Level};
@@ -106,18 +106,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     debug!("{:#?}", options);
 
-    let mut server_builder = EcetcdBuilder::<Value>::default();
-    server_builder
-        .name(options.name)
-        .data_dir(options.data_dir)
-        .listen_peer_urls(options.listen_peer_urls)
-        .listen_client_urls(options.listen_client_urls)
-        .initial_advertise_peer_urls(options.initial_advertise_peer_urls)
-        .initial_cluster(options.initial_cluster)
-        .advertise_client_urls(options.advertise_client_urls)
-        .cert_file(options.cert_file)
-        .key_file(options.key_file);
-    let server = server_builder.build()?;
+    let server = Ecetcd {
+        name: options.name,
+        data_dir: options.data_dir,
+        listen_peer_urls: options.listen_peer_urls,
+        listen_client_urls: options.listen_client_urls,
+        initial_advertise_peer_urls: options.initial_advertise_peer_urls,
+        initial_cluster: options.initial_cluster,
+        advertise_client_urls: options.advertise_client_urls,
+        cert_file: options.cert_file,
+        key_file: options.key_file,
+        _data: PhantomData::<Value>,
+    };
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(());
 
