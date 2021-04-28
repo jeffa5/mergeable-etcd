@@ -21,7 +21,7 @@ struct Options {
     name: String,
 
     /// Path to the data directory.
-    #[structopt(long, default_value = "default.ecetcd")]
+    #[structopt(long, default_value = "default.eckd")]
     data_dir: PathBuf,
 
     /// List of URLs to listen on for peer traffic.
