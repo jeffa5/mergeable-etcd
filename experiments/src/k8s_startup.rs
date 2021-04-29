@@ -194,6 +194,13 @@ impl exp::Experiment for Experiment {
                                 event.message.clone().unwrap().strip_prefix("Created pod: ")
                             {
                                 timings.entry(pod.to_owned()).or_default()
+                            } else if let Some(pod) = event
+                                .message
+                                .clone()
+                                .unwrap()
+                                .strip_prefix("(combined from similar events): Created pod: ")
+                            {
+                                timings.entry(pod.to_owned()).or_default()
                             } else {
                                 continue;
                             }
@@ -214,11 +221,14 @@ impl exp::Experiment for Experiment {
 
                 for (i, (n, timing)) in timings.iter().enumerate() {
                     println!("{}", n);
-                    println!(
-                        "{: >5}ms for scheduling the pod to a node",
-                        (timing.pod_scheduled.unwrap() - timing.pod_created.unwrap())
-                            .num_milliseconds()
-                    );
+                    if let Some(created) = timing.pod_created {
+                        println!(
+                            "{: >5}ms for scheduling the pod to a node",
+                            (timing.pod_scheduled.unwrap() - created).num_milliseconds()
+                        );
+                    } else {
+                        println!("missing pod creation time");
+                    }
                     println!(
                         "{: >5}ms for the pod to be recognised and setup started at the node",
                         (timing.pull_started.unwrap() - timing.pod_scheduled.unwrap())
@@ -273,7 +283,11 @@ fn plot_timings_scatter(
         .flatten()
         .map(|t| {
             vec![
-                (t.pod_scheduled.unwrap() - t.pod_created.unwrap()).num_milliseconds() as u32,
+                if let Some(created) = t.pod_created {
+                    (t.pod_scheduled.unwrap() - created).num_milliseconds() as u32
+                } else {
+                    0
+                },
                 (t.pull_started.unwrap() - t.pod_scheduled.unwrap()).num_milliseconds() as u32,
                 (t.pull_finished.unwrap() - t.pull_started.unwrap()).num_milliseconds() as u32,
                 (t.container_created.unwrap() - t.pull_finished.unwrap()).num_milliseconds() as u32,
