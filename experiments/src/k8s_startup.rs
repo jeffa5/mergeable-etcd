@@ -330,9 +330,13 @@ fn plot_timings_scatter(
 
     chart
         .draw_series(data.iter().flat_map(|v| {
-            v.iter()
-                .enumerate()
-                .map(|(i, t)| Cross::new((i as i32 + 1, *t as u32), 3, BLUE.mix(0.5).filled()))
+            v.iter().enumerate().map(|(i, t)| {
+                if *t == 0 {
+                    Cross::new((i as i32 + 1, 0), 3, RED.mix(0.5).filled())
+                } else {
+                    Cross::new((i as i32 + 1, *t as u32), 3, BLUE.mix(0.5).filled())
+                }
+            })
         }))
         .unwrap();
 }
