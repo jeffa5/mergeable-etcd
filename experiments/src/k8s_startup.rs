@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     fs::{create_dir_all, File},
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
@@ -182,9 +182,14 @@ impl exp::Experiment for Experiment {
                     }
                 }
 
-                let mut timings: HashMap<String, Timings> = HashMap::new();
+                let mut timings: BTreeMap<String, Timings> = BTreeMap::new();
 
                 for (datetime, event) in &events {
+                    println!(
+                        "{:?} {:?}",
+                        datetime,
+                        event.first_timestamp.as_ref().unwrap()
+                    );
                     let t = match event.involved_object.kind.as_ref().unwrap().as_ref() {
                         "Pod" => timings
                             .entry(event.involved_object.name.clone().unwrap())
@@ -224,7 +229,9 @@ impl exp::Experiment for Experiment {
                     if let Some(created) = timing.pod_created {
                         println!(
                             "{: >5}ms for scheduling the pod to a node",
-                            (timing.pod_scheduled.unwrap() - created).num_milliseconds()
+                            (timing.pod_scheduled.unwrap() - created)
+                                .num_milliseconds()
+                                .abs()
                         );
                     } else {
                         println!("missing pod creation time");
@@ -233,21 +240,25 @@ impl exp::Experiment for Experiment {
                         "{: >5}ms for the pod to be recognised and setup started at the node",
                         (timing.pull_started.unwrap() - timing.pod_scheduled.unwrap())
                             .num_milliseconds()
+                            .abs()
                     );
                     println!(
                         "{: >5}ms for pulling the image",
                         (timing.pull_finished.unwrap() - timing.pull_started.unwrap())
                             .num_milliseconds()
+                            .abs()
                     );
                     println!(
                         "{: >5}ms for creating the container",
                         (timing.container_created.unwrap() - timing.pull_finished.unwrap())
                             .num_milliseconds()
+                            .abs()
                     );
                     println!(
                         "{: >5}ms for starting the container",
                         (timing.container_started.unwrap() - timing.container_created.unwrap())
                             .num_milliseconds()
+                            .abs()
                     );
                     if i < timings.len() - 1 {
                         println!();
@@ -270,7 +281,7 @@ impl exp::Experiment for Experiment {
 fn plot_timings_scatter(
     date: chrono::DateTime<chrono::Utc>,
     plots_path: &Path,
-    timings: &[HashMap<String, Timings>],
+    timings: &[BTreeMap<String, Timings>],
 ) {
     use plotters::prelude::*;
     let latency_plot = plots_path.join("timings.svg");
@@ -284,15 +295,24 @@ fn plot_timings_scatter(
         .map(|t| {
             vec![
                 if let Some(created) = t.pod_created {
-                    (t.pod_scheduled.unwrap() - created).num_milliseconds() as u32
+                    (t.pod_scheduled.unwrap() - created)
+                        .num_milliseconds()
+                        .abs() as u32
                 } else {
                     0
                 },
-                (t.pull_started.unwrap() - t.pod_scheduled.unwrap()).num_milliseconds() as u32,
-                (t.pull_finished.unwrap() - t.pull_started.unwrap()).num_milliseconds() as u32,
-                (t.container_created.unwrap() - t.pull_finished.unwrap()).num_milliseconds() as u32,
-                (t.container_started.unwrap() - t.container_created.unwrap()).num_milliseconds()
-                    as u32,
+                (t.pull_started.unwrap() - t.pod_scheduled.unwrap())
+                    .num_milliseconds()
+                    .abs() as u32,
+                (t.pull_finished.unwrap() - t.pull_started.unwrap())
+                    .num_milliseconds()
+                    .abs() as u32,
+                (t.container_created.unwrap() - t.pull_finished.unwrap())
+                    .num_milliseconds()
+                    .abs() as u32,
+                (t.container_started.unwrap() - t.container_created.unwrap())
+                    .num_milliseconds()
+                    .abs() as u32,
             ]
         })
         .collect::<Vec<_>>();
