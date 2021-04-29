@@ -158,6 +158,8 @@ struct CliOptions {
     /// Analyse all the experiments
     #[clap(long)]
     analyse: bool,
+    #[clap(long)]
+    date: Option<chrono::DateTime<chrono::Utc>>,
     /// experiments to run
     #[clap(arg_enum)]
     experiments: Vec<ExperimentChoice>,
@@ -207,7 +209,7 @@ async fn main() -> Result<(), anyhow::Error> {
     if opts.analyse {
         let conf = exp::AnalyseConfig {
             output_dir: PathBuf::from("experiments-results"),
-            date: None,
+            date: opts.date,
         };
         exp::analyse(&experiments, &conf).await?;
     }
