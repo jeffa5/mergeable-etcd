@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::{create_dir_all, File},
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
@@ -58,7 +59,7 @@ impl exp::Experiment for Experiment {
 
     fn configurations(&self) -> Vec<Self::Configuration> {
         vec![Self::Configuration {
-            repeats: 3,
+            repeats: 1,
             description: "kind startup events".to_owned(),
         }]
     }
@@ -86,11 +87,6 @@ impl exp::Experiment for Experiment {
             loop {
                 if let Ok(event) = ew.try_next().await {
                     if let Some(event) = event {
-                        println!(
-                            "event: {} {}",
-                            chrono::Utc::now().to_rfc3339(),
-                            event.message.as_ref().unwrap()
-                        );
                         writeln!(
                             events_file,
                             "{} {}",
@@ -133,7 +129,7 @@ impl exp::Experiment for Experiment {
 
         println!("scaling deployment up");
         Command::new("kubectl")
-            .args(&["scale", "deployment", "exp-latency", "--replicas", "2"])
+            .args(&["scale", "deployment", "exp-latency", "--replicas", "10"])
             .status()
             .unwrap();
         Command::new("kubectl")
@@ -144,7 +140,7 @@ impl exp::Experiment for Experiment {
 
         println!("scaling deployment up");
         Command::new("kubectl")
-            .args(&["scale", "deployment", "exp-latency", "--replicas", "3"])
+            .args(&["scale", "deployment", "exp-latency", "--replicas", "30"])
             .status()
             .unwrap();
         Command::new("kubectl")
@@ -186,52 +182,62 @@ impl exp::Experiment for Experiment {
                     }
                 }
 
-                let mut timings = Vec::new();
-                for chunk in events.chunks(7) {
-                    let mut t = Timings {
-                        pod_scheduled: chrono::Utc::now(),
-                        pod_created: chrono::Utc::now(),
-                        deployment_scaled: chrono::Utc::now(),
-                        pull_started: chrono::Utc::now(),
-                        pull_finished: chrono::Utc::now(),
-                        container_created: chrono::Utc::now(),
-                        container_started: chrono::Utc::now(),
-                    };
-                    for (datetime, event) in chunk {
-                        match event.reason.as_ref().map(|s| s.as_ref()).unwrap() {
-                            "Scheduled" => t.pod_scheduled = *datetime,
-                            "SuccessfulCreate" => t.pod_created = *datetime,
-                            "ScalingReplicaSet" => t.deployment_scaled = *datetime,
-                            "Pulling" => t.pull_started = *datetime,
-                            "Pulled" => t.pull_finished = *datetime,
-                            "Created" => t.container_created = *datetime,
-                            "Started" => t.container_started = *datetime,
-                            r => println!("unhandled event with reason: {}", r),
+                let mut timings: HashMap<String, Timings> = HashMap::new();
+
+                for (datetime, event) in &events {
+                    let t = match event.involved_object.kind.as_ref().unwrap().as_ref() {
+                        "Pod" => timings
+                            .entry(event.involved_object.name.clone().unwrap())
+                            .or_default(),
+                        "ReplicaSet" => {
+                            if let Some(pod) =
+                                event.message.clone().unwrap().strip_prefix("Created pod: ")
+                            {
+                                timings.entry(pod.to_owned()).or_default()
+                            } else {
+                                continue;
+                            }
                         }
+                        _ => continue,
+                    };
+                    match event.reason.as_ref().map(|s| s.as_ref()).unwrap() {
+                        "Scheduled" => t.pod_scheduled = Some(*datetime),
+                        "SuccessfulCreate" => t.pod_created = Some(*datetime),
+                        "ScalingReplicaSet" => t.deployment_scaled = Some(*datetime),
+                        "Pulling" => t.pull_started = Some(*datetime),
+                        "Pulled" => t.pull_finished = Some(*datetime),
+                        "Created" => t.container_created = Some(*datetime),
+                        "Started" => t.container_started = Some(*datetime),
+                        r => println!("unhandled event with reason: {}", r),
                     }
-                    timings.push(t);
                 }
 
-                for (i, timing) in timings.iter().enumerate() {
+                for (i, (n, timing)) in timings.iter().enumerate() {
+                    println!("{}", n);
                     println!(
                         "{: >5}ms for scheduling the pod to a node",
-                        (timing.pod_scheduled - timing.pod_created).num_milliseconds()
+                        (timing.pod_scheduled.unwrap() - timing.pod_created.unwrap())
+                            .num_milliseconds()
                     );
                     println!(
                         "{: >5}ms for the pod to be recognised and setup started at the node",
-                        (timing.pull_started - timing.pod_scheduled).num_milliseconds()
+                        (timing.pull_started.unwrap() - timing.pod_scheduled.unwrap())
+                            .num_milliseconds()
                     );
                     println!(
                         "{: >5}ms for pulling the image",
-                        (timing.pull_finished - timing.pull_started).num_milliseconds()
+                        (timing.pull_finished.unwrap() - timing.pull_started.unwrap())
+                            .num_milliseconds()
                     );
                     println!(
                         "{: >5}ms for creating the container",
-                        (timing.container_created - timing.pull_finished).num_milliseconds()
+                        (timing.container_created.unwrap() - timing.pull_finished.unwrap())
+                            .num_milliseconds()
                     );
                     println!(
                         "{: >5}ms for starting the container",
-                        (timing.container_started - timing.container_created).num_milliseconds()
+                        (timing.container_started.unwrap() - timing.container_created.unwrap())
+                            .num_milliseconds()
                     );
                     if i < timings.len() - 1 {
                         println!();
@@ -254,7 +260,7 @@ impl exp::Experiment for Experiment {
 fn plot_timings_scatter(
     date: chrono::DateTime<chrono::Utc>,
     plots_path: &Path,
-    timings: &[Vec<Timings>],
+    timings: &[HashMap<String, Timings>],
 ) {
     use plotters::prelude::*;
     let latency_plot = plots_path.join("timings.svg");
@@ -263,14 +269,16 @@ fn plot_timings_scatter(
 
     let data = timings
         .iter()
+        .map(|m| m.values())
         .flatten()
         .map(|t| {
             vec![
-                (t.pod_scheduled - t.pod_created).num_milliseconds() as u32,
-                (t.pull_started - t.pod_scheduled).num_milliseconds() as u32,
-                (t.pull_finished - t.pull_started).num_milliseconds() as u32,
-                (t.container_created - t.pull_finished).num_milliseconds() as u32,
-                (t.container_started - t.container_created).num_milliseconds() as u32,
+                (t.pod_scheduled.unwrap() - t.pod_created.unwrap()).num_milliseconds() as u32,
+                (t.pull_started.unwrap() - t.pod_scheduled.unwrap()).num_milliseconds() as u32,
+                (t.pull_finished.unwrap() - t.pull_started.unwrap()).num_milliseconds() as u32,
+                (t.container_created.unwrap() - t.pull_finished.unwrap()).num_milliseconds() as u32,
+                (t.container_started.unwrap() - t.container_created.unwrap()).num_milliseconds()
+                    as u32,
             ]
         })
         .collect::<Vec<_>>();
@@ -315,22 +323,22 @@ fn plot_timings_scatter(
         .unwrap();
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Timings {
     // scaled up replica set _ to _
-    deployment_scaled: chrono::DateTime<chrono::Utc>,
+    deployment_scaled: Option<chrono::DateTime<chrono::Utc>>,
     // created pod: _
-    pod_created: chrono::DateTime<chrono::Utc>,
+    pod_created: Option<chrono::DateTime<chrono::Utc>>,
     // successfully assigned _ to _
-    pod_scheduled: chrono::DateTime<chrono::Utc>,
+    pod_scheduled: Option<chrono::DateTime<chrono::Utc>>,
     // pulling image _
-    pull_started: chrono::DateTime<chrono::Utc>,
+    pull_started: Option<chrono::DateTime<chrono::Utc>>,
     // successfully pulled image _ in _s
-    pull_finished: chrono::DateTime<chrono::Utc>,
+    pull_finished: Option<chrono::DateTime<chrono::Utc>>,
     // created container _
-    container_created: chrono::DateTime<chrono::Utc>,
+    container_created: Option<chrono::DateTime<chrono::Utc>>,
     // started container _
-    container_started: chrono::DateTime<chrono::Utc>,
+    container_started: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
