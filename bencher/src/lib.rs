@@ -12,6 +12,7 @@ pub struct Output {
     pub client: u32,
     pub iteration: u32,
     pub member_id: u64,
+    pub raft_term: u64,
 }
 
 impl Output {
@@ -23,11 +24,13 @@ impl Output {
             client,
             iteration,
             member_id: 0,
+            raft_term: 0,
         }
     }
 
-    pub fn stop(&mut self, member_id: u64) {
+    pub fn stop(&mut self, member_id: u64, raft_term: u64) {
         self.member_id = member_id;
+        self.raft_term = raft_term;
         self.end = SystemTime::now();
     }
 }
@@ -79,9 +82,11 @@ pub async fn put_range(
         ignore_lease: false,
     };
     let mut output = Output::start(client, iteration);
-    let response = kv_client.put(request).await?;
-    let member_id = response.into_inner().header.unwrap().member_id;
-    output.stop(member_id);
+    let response = kv_client.put(request).await?.into_inner();
+    let header = response.header.unwrap();
+    let member_id = header.member_id;
+    let raft_term = header.raft_term;
+    output.stop(member_id, raft_term);
     Ok(output)
 }
 
@@ -101,8 +106,10 @@ pub async fn put_single(
         ignore_lease: false,
     };
     let mut output = Output::start(client, iteration);
-    let response = kv_client.put(request).await?;
-    let member_id = response.into_inner().header.unwrap().member_id;
-    output.stop(member_id);
+    let response = kv_client.put(request).await?.into_inner();
+    let header = response.header.unwrap();
+    let member_id = header.member_id;
+    let raft_term = header.raft_term;
+    output.stop(member_id, raft_term);
     Ok(output)
 }
