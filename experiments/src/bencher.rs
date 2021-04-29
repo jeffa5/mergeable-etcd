@@ -48,6 +48,7 @@ impl exp::Experiment for Experiment {
                         image_name: "quay.io/coreos/etcd".to_owned(),
                         image_tag: "v3.4.13".to_owned(),
                         delay,
+                        delay_variation: 0.1, // 10%
                     });
                     // confs.push(Config {
                     //     repeats,
@@ -143,6 +144,11 @@ impl exp::Experiment for Experiment {
                             "netem",
                             "delay",
                             &format!("{}ms", configuration.delay),
+                            &format!(
+                                "{}ms",
+                                (configuration.delay as f64 * configuration.delay_variation) as u32
+                            ),
+                            "25%", // correlation with previous delay
                         ]),
                         ..Default::default()
                     },
@@ -392,6 +398,7 @@ pub struct Config {
     pub image_name: String,
     pub image_tag: String,
     pub delay: u32,
+    pub delay_variation: f64,
 }
 
 impl ExperimentConfiguration for Config {
