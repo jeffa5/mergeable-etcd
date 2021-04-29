@@ -297,6 +297,13 @@ fn plot_latency(
 
     for (i, rs) in bench_results.iter() {
         for (r, res) in rs.iter() {
+            let term_changes = res
+                .outputs
+                .windows(2)
+                .filter(|w| w[1].raft_term != w[0].raft_term)
+                .collect::<Vec<_>>();
+            dbg!(&term_changes);
+
             let members = res
                 .outputs
                 .iter()
