@@ -1421,8 +1421,6 @@ dependencies = [
 [[package]]
 name = "k8s-openapi"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcc1f973542059e6d5a6d63de6a9539d0ec784f82b2327f3c1915d33200bc6a4"
 dependencies = [
  "base64",
  "bytes",
@@ -1438,8 +1436,6 @@ dependencies = [
 [[package]]
 name = "kube"
 version = "0.52.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65b2fbe85ad92f8435a0f52072f55bd7f0843e082c8e461e56d1ce29440554c8"
 dependencies = [
  "base64",
  "bytes",
@@ -1454,6 +1450,7 @@ dependencies = [
  "jsonpath_lib",
  "k8s-openapi",
  "log",
+ "once_cell",
  "openssl",
  "pem",
  "pin-project 1.0.7",
@@ -1473,8 +1470,6 @@ dependencies = [
 [[package]]
 name = "kube-runtime"
 version = "0.52.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdbf7b51e6a4984e929dab0bd13b61592b750a3385e298aaa9100c4830205a12"
 dependencies = [
  "dashmap",
  "derivative",
