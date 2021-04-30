@@ -104,6 +104,8 @@ impl exp::Experiment for Experiment {
             }
         });
 
+        sleep(Duration::from_millis(100)).await;
+
         println!("creating deployment");
         Command::new("kubectl")
             .args(&[
