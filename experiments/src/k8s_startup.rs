@@ -30,7 +30,7 @@ impl Kind {
                 "create",
                 "cluster",
                 "--image",
-                "kindest/node:v1.19.1",
+                "kindest/node:latest", // relies on having built the kind node-image from local kubernetes
                 "--wait",
                 "5m",
             ])
@@ -169,27 +169,19 @@ impl exp::Experiment for Experiment {
                 for line in events_file.lines() {
                     let line = line.unwrap();
                     let parts = line.splitn(2, ' ').collect::<Vec<_>>();
-                    if let [datetime, json] = parts[..] {
-                        let datetime = chrono::DateTime::parse_from_rfc3339(datetime)
-                            .unwrap()
-                            .with_timezone(&chrono::Utc);
+                    if let Some(json) = parts.get(1) {
                         let event: Event = serde_json::from_str(json).unwrap();
                         if event.message.as_ref().unwrap().contains("busybox")
                             || event.message.as_ref().unwrap().contains("exp-latency")
                         {
-                            events.push((datetime, event));
+                            events.push(event);
                         }
                     }
                 }
 
                 let mut timings: BTreeMap<String, Timings> = BTreeMap::new();
 
-                for (datetime, event) in &events {
-                    println!(
-                        "{:?} {:?}",
-                        datetime,
-                        event.first_timestamp.as_ref().unwrap()
-                    );
+                for event in &events {
                     let t = match event.involved_object.kind.as_ref().unwrap().as_ref() {
                         "Pod" => timings
                             .entry(event.involved_object.name.clone().unwrap())
@@ -212,14 +204,15 @@ impl exp::Experiment for Experiment {
                         }
                         _ => continue,
                     };
+                    let timestamp = event.first_timestamp.as_ref().unwrap().0;
                     match event.reason.as_ref().map(|s| s.as_ref()).unwrap() {
-                        "Scheduled" => t.pod_scheduled = Some(*datetime),
-                        "SuccessfulCreate" => t.pod_created = Some(*datetime),
-                        "ScalingReplicaSet" => t.deployment_scaled = Some(*datetime),
-                        "Pulling" => t.pull_started = Some(*datetime),
-                        "Pulled" => t.pull_finished = Some(*datetime),
-                        "Created" => t.container_created = Some(*datetime),
-                        "Started" => t.container_started = Some(*datetime),
+                        "Scheduled" => t.pod_scheduled = Some(timestamp),
+                        "SuccessfulCreate" => t.pod_created = Some(timestamp),
+                        "ScalingReplicaSet" => t.deployment_scaled = Some(timestamp),
+                        "Pulling" => t.pull_started = Some(timestamp),
+                        "Pulled" => t.pull_finished = Some(timestamp),
+                        "Created" => t.container_created = Some(timestamp),
+                        "Started" => t.container_started = Some(timestamp),
                         r => println!("unhandled event with reason: {}", r),
                     }
                 }
