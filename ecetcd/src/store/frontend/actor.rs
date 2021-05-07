@@ -186,7 +186,7 @@ where
         let values = self
             .document
             .get()
-            .map(|doc| doc.unwrap().get_inner(key, range_end, revision))
+            .map(|doc| doc.get_inner(key, range_end, revision))
             .unwrap_or_default();
         Ok((server, values))
     }
@@ -206,7 +206,7 @@ where
             Ok((server, prev))
         })?;
 
-        let doc = self.document.get().unwrap().unwrap();
+        let doc = self.document.get().unwrap();
         let value = doc.values.get(&key).unwrap();
         for (range, sender) in &self.watchers {
             if range.contains(&key) {
@@ -239,7 +239,7 @@ where
         })?;
 
         // TODO: handle range
-        let doc = self.document.get().unwrap().unwrap();
+        let doc = self.document.get().unwrap();
         let value = doc.values.get(&key).unwrap();
         for (range, sender) in &self.watchers {
             if range.contains(&key) {
@@ -274,7 +274,7 @@ where
         } else {
             dup_request.failure
         };
-        let doc = self.document.get().unwrap().unwrap();
+        let doc = self.document.get().unwrap();
         for request_op in iter {
             match request_op.request.unwrap() {
                 Request::RequestRange(_) => {
@@ -332,7 +332,7 @@ where
 
     #[tracing::instrument(skip(self), fields(frontend = self.id))]
     fn current_server(&self) -> Server {
-        self.document.get().unwrap().unwrap().server
+        self.document.get().unwrap().server
     }
 
     #[tracing::instrument(skip(self))]

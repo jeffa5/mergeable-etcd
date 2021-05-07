@@ -36,11 +36,14 @@ where
         let db = config.open().unwrap();
         let changes_tree = db.open_tree("changes").unwrap();
         let document_tree = db.open_tree("document").unwrap();
+        let sync_states_tree = db.open_tree("syncstates").unwrap();
         let sled_perst = automerge_persistent_sled::SledPersister::new(
             changes_tree,
             document_tree,
+            sync_states_tree,
             String::new(),
-        );
+        )
+        .unwrap();
         let backend = automerge_persistent::PersistentBackend::load(sled_perst).unwrap();
         tracing::info!("Created backend actor");
 
@@ -70,7 +73,7 @@ where
     async fn handle_message(&mut self, msg: BackendMessage) {
         match msg {
             BackendMessage::ApplyLocalChange { change } => {
-                let (patch, _) = self.apply_local_change(change).unwrap();
+                let patch = self.apply_local_change(change).unwrap();
 
                 let frontends = self.frontends.clone();
                 tokio::spawn(async move {
@@ -103,7 +106,7 @@ where
     fn apply_local_change(
         &mut self,
         change: UncompressedChange,
-    ) -> Result<(Patch, Change), PersistentBackendError<SledPersisterError>> {
+    ) -> Result<Patch, PersistentBackendError<SledPersisterError>> {
         self.backend.apply_local_change(change)
     }
 
