@@ -131,27 +131,24 @@ impl exp::Experiment for Experiment {
 
         sleep(Duration::from_secs(5)).await;
 
-        println!("scaling deployment up");
-        Command::new("kubectl")
-            .args(&["scale", "deployment", "exp-latency", "--replicas", "10"])
-            .status()
-            .unwrap();
-        Command::new("kubectl")
-            .args(&["rollout", "status", "deployments/exp-latency", "--watch"])
-            .status()
-            .unwrap();
-        sleep(Duration::from_secs(5)).await;
-
-        println!("scaling deployment up");
-        Command::new("kubectl")
-            .args(&["scale", "deployment", "exp-latency", "--replicas", "30"])
-            .status()
-            .unwrap();
-        Command::new("kubectl")
-            .args(&["rollout", "status", "deployments/exp-latency", "--watch"])
-            .status()
-            .unwrap();
-        sleep(Duration::from_secs(5)).await;
+        for i in 2..30 {
+            println!("scaling deployment up to {}", i);
+            Command::new("kubectl")
+                .args(&[
+                    "scale",
+                    "deployment",
+                    "exp-latency",
+                    "--replicas",
+                    &i.to_string(),
+                ])
+                .status()
+                .unwrap();
+            Command::new("kubectl")
+                .args(&["rollout", "status", "deployments/exp-latency", "--watch"])
+                .status()
+                .unwrap();
+            sleep(Duration::from_secs(1)).await;
+        }
     }
 
     async fn post_run(&self, _configuration: &Self::Configuration) {}
