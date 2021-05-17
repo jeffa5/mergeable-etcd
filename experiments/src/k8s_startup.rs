@@ -300,14 +300,12 @@ fn plot_timings_scatter(
                         .abs() as u32,
                 ))
             };
-            if let Some(pull_started) = t.pull_started {
-                items.push((
-                    2,
-                    (pull_started - t.pod_scheduled.unwrap())
-                        .num_milliseconds()
-                        .abs() as u32,
-                ))
-            };
+            items.push((
+                2,
+                (t.container_created.unwrap() - t.pod_scheduled.unwrap())
+                    .num_milliseconds()
+                    .abs() as u32,
+            ));
 
             items.push((
                 3,
