@@ -131,7 +131,7 @@ impl exp::Experiment for Experiment {
 
         sleep(Duration::from_secs(5)).await;
 
-        for i in 2..30 {
+        for i in 2..=30 {
             println!("scaling deployment up to {}", i);
             Command::new("kubectl")
                 .args(&[
@@ -291,35 +291,37 @@ fn plot_timings_scatter(
         .map(|m| m.values())
         .flatten()
         .map(|t| {
-            vec![
-                if let Some(created) = t.pod_created {
+            let mut items = Vec::new();
+            if let Some(created) = t.pod_created {
+                items.push((
+                    1,
                     (t.pod_scheduled.unwrap() - created)
                         .num_milliseconds()
-                        .abs() as u32
-                } else {
-                    0
-                },
-                if let Some(pull_started) = t.pull_started {
+                        .abs() as u32,
+                ))
+            };
+            if let Some(pull_started) = t.pull_started {
+                items.push((
+                    2,
                     (pull_started - t.pod_scheduled.unwrap())
                         .num_milliseconds()
-                        .abs() as u32
-                } else {
-                    0
-                },
-                if let Some(pull_started) = t.pull_started {
-                    (t.pull_finished.unwrap() - pull_started)
-                        .num_milliseconds()
-                        .abs() as u32
-                } else {
-                    0
-                },
+                        .abs() as u32,
+                ))
+            };
+
+            items.push((
+                3,
                 (t.container_created.unwrap() - t.pull_finished.unwrap())
                     .num_milliseconds()
                     .abs() as u32,
+            ));
+            items.push((
+                4,
                 (t.container_started.unwrap() - t.container_created.unwrap())
                     .num_milliseconds()
                     .abs() as u32,
-            ]
+            ));
+            items
         })
         .collect::<Vec<_>>();
 
@@ -333,8 +335,8 @@ fn plot_timings_scatter(
         .x_label_area_size(40)
         .y_label_area_size(40)
         .build_cartesian_2d(
-            (1..5).with_key_points(vec![1, 2, 3, 4, 5]),
-            (fitting_range(data.iter().flatten())).log_scale(),
+            (1..4).with_key_points(vec![1, 2, 3, 4]),
+            (fitting_range(data.iter().flatten().map(|(_, i)| i))).log_scale(),
         )
         .unwrap();
 
@@ -346,9 +348,8 @@ fn plot_timings_scatter(
         .x_label_formatter(&|x| match x {
             1 => "Pod scheduling".to_owned(),
             2 => "Pod to node".to_owned(),
-            3 => "Container pull".to_owned(),
-            4 => "Container creation".to_owned(),
-            5 => "Container start".to_owned(),
+            3 => "Container creation".to_owned(),
+            4 => "Container start".to_owned(),
             _ => "".to_owned(),
         })
         .draw()
@@ -356,13 +357,8 @@ fn plot_timings_scatter(
 
     chart
         .draw_series(data.iter().flat_map(|v| {
-            v.iter().enumerate().map(|(i, t)| {
-                if *t == 0 {
-                    Cross::new((i as i32 + 1, 0), 3, RED.mix(0.5).filled())
-                } else {
-                    Cross::new((i as i32 + 1, *t as u32), 3, BLUE.mix(0.5).filled())
-                }
-            })
+            v.iter()
+                .map(|(i, t)| Cross::new((*i, *t as u32), 3, BLUE.mix(0.5).filled()))
         }))
         .unwrap();
 }
