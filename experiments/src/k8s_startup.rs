@@ -83,6 +83,18 @@ impl exp::Experiment for Experiment {
 
         let mut events_file = File::create(repeat_dir.join("events")).unwrap();
 
+        Command::new("docker")
+            .args(&[
+                "exec",
+                "kind-control-plane",
+                "--",
+                "docker",
+                "pull",
+                "busybox",
+            ])
+            .output()
+            .unwrap();
+
         tokio::spawn(async move {
             loop {
                 if let Ok(event) = ew.try_next().await {
@@ -230,13 +242,14 @@ impl exp::Experiment for Experiment {
                     } else {
                         println!("missing pod creation time");
                     }
+                    println!(
+                        "{: >5}ms for the pod to be recognised and setup started at the node",
+                        (timing.container_created.unwrap() - timing.pod_scheduled.unwrap())
+                            .num_milliseconds()
+                            .abs()
+                    );
+
                     if let Some(pull_started) = timing.pull_started {
-                        println!(
-                            "{: >5}ms for the pod to be recognised and setup started at the node",
-                            (pull_started - timing.pod_scheduled.unwrap())
-                                .num_milliseconds()
-                                .abs()
-                        );
                         println!(
                             "{: >5}ms for pulling the image",
                             (timing.pull_finished.unwrap() - pull_started)
