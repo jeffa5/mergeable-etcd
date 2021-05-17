@@ -3,7 +3,7 @@ use std::{
     fs::{create_dir_all, File},
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
     time::Duration,
 };
 
@@ -107,21 +107,23 @@ impl exp::Experiment for Experiment {
         sleep(Duration::from_millis(100)).await;
 
         println!("creating deployment");
-        Command::new("kubectl")
-            .args(&[
-                "create",
-                "deployment",
-                "exp-latency",
-                "--image",
-                "busybox",
-                "--replicas",
-                "1",
-                "--",
-                "sleep",
-                "1000000",
-            ])
-            .status()
+        let mut apply = Command::new("kubectl")
+            .args(&["apply", "-f", "-"])
+            .stdin(Stdio::piped())
+            .spawn()
             .unwrap();
+
+        apply
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(include_bytes!("deployment.yaml"))
+            .expect("Failed to write to kubectl apply child");
+
+        apply
+            .wait()
+            .expect("Failed to wait for the kubectl apply child");
+
         Command::new("kubectl")
             .args(&["rollout", "status", "deployments/exp-latency", "--watch"])
             .status()
@@ -231,18 +233,22 @@ impl exp::Experiment for Experiment {
                     } else {
                         println!("missing pod creation time");
                     }
-                    println!(
-                        "{: >5}ms for the pod to be recognised and setup started at the node",
-                        (timing.pull_started.unwrap() - timing.pod_scheduled.unwrap())
-                            .num_milliseconds()
-                            .abs()
-                    );
-                    println!(
-                        "{: >5}ms for pulling the image",
-                        (timing.pull_finished.unwrap() - timing.pull_started.unwrap())
-                            .num_milliseconds()
-                            .abs()
-                    );
+                    if let Some(pull_started) = timing.pull_started {
+                        println!(
+                            "{: >5}ms for the pod to be recognised and setup started at the node",
+                            (pull_started - timing.pod_scheduled.unwrap())
+                                .num_milliseconds()
+                                .abs()
+                        );
+                        println!(
+                            "{: >5}ms for pulling the image",
+                            (timing.pull_finished.unwrap() - pull_started)
+                                .num_milliseconds()
+                                .abs()
+                        );
+                    } else {
+                        println!("missing pull started time")
+                    }
                     println!(
                         "{: >5}ms for creating the container",
                         (timing.container_created.unwrap() - timing.pull_finished.unwrap())
@@ -296,12 +302,20 @@ fn plot_timings_scatter(
                 } else {
                     0
                 },
-                (t.pull_started.unwrap() - t.pod_scheduled.unwrap())
-                    .num_milliseconds()
-                    .abs() as u32,
-                (t.pull_finished.unwrap() - t.pull_started.unwrap())
-                    .num_milliseconds()
-                    .abs() as u32,
+                if let Some(pull_started) = t.pull_started {
+                    (pull_started - t.pod_scheduled.unwrap())
+                        .num_milliseconds()
+                        .abs() as u32
+                } else {
+                    0
+                },
+                if let Some(pull_started) = t.pull_started {
+                    (t.pull_finished.unwrap() - pull_started)
+                        .num_milliseconds()
+                        .abs() as u32
+                } else {
+                    0
+                },
                 (t.container_created.unwrap() - t.pull_finished.unwrap())
                     .num_milliseconds()
                     .abs() as u32,
