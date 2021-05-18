@@ -49,7 +49,8 @@ where
 
         let mut frontends = Vec::new();
         let mut local_futures = Vec::new();
-        for i in 0..num_cpus::get() {
+        let num_frontends = 1; // TODO: once multiple frontends with a single backend is safe use num_cpus::get()
+        for i in 0..num_frontends {
             let (f_sender, f_receiver) = tokio::sync::mpsc::channel(1);
             let shutdown_clone = shutdown.clone();
             let backend_clone = backend.clone();
