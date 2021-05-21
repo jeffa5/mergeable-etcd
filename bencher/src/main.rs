@@ -16,8 +16,6 @@ use structopt::StructOpt;
 use tokio::time::sleep;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 
-const TIMEOUT_DURATION: Duration = Duration::from_secs(5);
-
 #[derive(StructOpt, Debug, Clone)]
 struct Options {
     #[structopt(long, default_value = "10")]
@@ -38,6 +36,10 @@ struct Options {
     /// The file to write data to, stdout if not specified
     #[structopt(short, long)]
     out_file: Option<PathBuf>,
+
+    /// The timeout to apply to requests, in milliseconds
+    #[structopt(long, default_value = "5000")]
+    timeout: u64,
 
     #[structopt(subcommand)]
     scenario: Scenario,
@@ -81,7 +83,9 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let endpoints = endpoints.into_iter().map(|e| e.timeout(TIMEOUT_DURATION));
+    let endpoints = endpoints
+        .into_iter()
+        .map(|e| e.timeout(Duration::from_millis(options.timeout)));
 
     let channel = Channel::balance_list(endpoints);
 
