@@ -16,6 +16,8 @@ use structopt::StructOpt;
 use tokio::time::sleep;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 
+const TIMEOUT_DURATION: Duration = Duration::from_secs(5);
+
 #[derive(StructOpt, Debug, Clone)]
 struct Options {
     #[structopt(long, default_value = "10")]
@@ -79,7 +81,9 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let channel = Channel::balance_list(endpoints.into_iter());
+    let endpoints = endpoints.into_iter().map(|e| e.timeout(TIMEOUT_DURATION));
+
+    let channel = Channel::balance_list(endpoints);
 
     let mut client_tasks = Vec::new();
     let out_writer = Arc::new(Mutex::new(BufWriter::new(
