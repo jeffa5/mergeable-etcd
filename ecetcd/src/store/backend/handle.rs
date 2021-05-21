@@ -1,9 +1,7 @@
-use automerge_persistent::PersistentBackendError;
+use automerge::Change;
+use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
-use automergeable::{
-    automerge::Change,
-    automerge_protocol::{Patch, UncompressedChange},
-};
+use automerge_protocol::{Patch, UncompressedChange};
 use tokio::sync::{mpsc, oneshot};
 
 use super::BackendMessage;
@@ -28,7 +26,9 @@ impl BackendHandle {
         let _ = self.sender.send(msg).await;
     }
 
-    pub async fn get_patch(&self) -> Result<Patch, PersistentBackendError<SledPersisterError>> {
+    pub async fn get_patch(
+        &self,
+    ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
         let (send, recv) = oneshot::channel();
         let msg = BackendMessage::GetPatch { ret: send };
 

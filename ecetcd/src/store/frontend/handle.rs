@@ -1,4 +1,4 @@
-use automergeable::automerge_protocol::Patch;
+use automerge_protocol::Patch;
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, oneshot};
 

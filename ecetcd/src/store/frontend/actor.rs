@@ -1,6 +1,6 @@
 use std::{collections::HashMap, convert::TryFrom, ops::Range, thread};
 
-use automerge_persistent::PersistentBackendError;
+use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, watch};
@@ -17,7 +17,7 @@ pub struct FrontendActor<T>
 where
     T: StoreValue,
 {
-    document: automergeable::Document<StoreContents<T>>,
+    document: automergeable::Document<StoreContents<T>, automerge::Frontend>,
     backend: BackendHandle,
     watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>>,
     receiver: mpsc::Receiver<FrontendMessage<T>>,
@@ -51,7 +51,7 @@ where
         shutdown: watch::Receiver<()>,
         id: usize,
     ) -> Result<Self, FrontendError> {
-        let mut document = automergeable::Document::new();
+        let mut document = automergeable::Document::new(automerge::Frontend::new());
         let patch = backend.get_patch().await?;
         document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
@@ -89,7 +89,7 @@ where
         match msg {
             FrontendMessage::CurrentServer { ret } => {
                 let server = self.current_server();
-                let _ = ret.send(server);
+                let _ = ret.send(server.clone());
                 Ok(())
             }
             FrontendMessage::Get {
@@ -164,7 +164,7 @@ where
 
                     // FIXME: we shouldn't get MismatchedSequenceNumber errors but this is a
                     // temporary workaround
-                    let mut document = automergeable::Document::new();
+                    let mut document = automergeable::Document::new(automerge::Frontend::new());
                     let patch = self.backend.get_patch().await?;
                     document.apply_patch(patch).unwrap();
                     self.document = document;
@@ -183,12 +183,8 @@ where
     ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
         let server = self.current_server();
         let revision = revision.unwrap_or(server.revision);
-        let values = self
-            .document
-            .get()
-            .map(|doc| doc.get_inner(key, range_end, revision))
-            .unwrap_or_default();
-        Ok((server, values))
+        let values = self.document.get().get_inner(key, range_end, revision);
+        Ok((server.clone(), values))
     }
 
     #[tracing::instrument(skip(self, value), fields(key = %key, frontend = self.id))]
@@ -206,7 +202,7 @@ where
             Ok((server, prev))
         })?;
 
-        let doc = self.document.get().unwrap();
+        let doc = self.document.get();
         let value = doc.values.get(&key).unwrap();
         for (range, sender) in &self.watchers {
             if range.contains(&key) {
@@ -239,7 +235,7 @@ where
         })?;
 
         // TODO: handle range
-        let doc = self.document.get().unwrap();
+        let doc = self.document.get();
         let value = doc.values.get(&key).unwrap();
         for (range, sender) in &self.watchers {
             if range.contains(&key) {
@@ -274,7 +270,7 @@ where
         } else {
             dup_request.failure
         };
-        let doc = self.document.get().unwrap();
+        let doc = self.document.get();
         for request_op in iter {
             match request_op.request.unwrap() {
                 Request::RequestRange(_) => {
@@ -331,8 +327,8 @@ where
     }
 
     #[tracing::instrument(skip(self), fields(frontend = self.id))]
-    fn current_server(&self) -> Server {
-        self.document.get().unwrap().server
+    fn current_server(&self) -> &Server {
+        &self.document.get().server
     }
 
     #[tracing::instrument(skip(self))]
@@ -407,7 +403,7 @@ pub enum FrontendError {
     #[error(transparent)]
     SledUnabortableTransactionError(#[from] sled::transaction::UnabortableTransactionError),
     #[error(transparent)]
-    BackendError(#[from] PersistentBackendError<SledPersisterError>),
+    BackendError(#[from] Error<SledPersisterError, automerge_backend::AutomergeError>),
     #[error(transparent)]
     AutomergeDocumentChangeError(#[from] automergeable::DocumentChangeError),
 }

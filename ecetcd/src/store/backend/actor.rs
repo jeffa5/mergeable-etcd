@@ -1,9 +1,7 @@
-use automerge_persistent::PersistentBackendError;
+use automerge::Change;
+use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
-use automergeable::{
-    automerge::Change,
-    automerge_protocol::{Patch, UncompressedChange},
-};
+use automerge_protocol::{Patch, UncompressedChange};
 use futures::future::join_all;
 use tokio::sync::{mpsc, watch};
 use tracing::info;
@@ -17,7 +15,10 @@ where
     T: StoreValue,
 {
     db: sled::Db,
-    backend: automerge_persistent::PersistentBackend<automerge_persistent_sled::SledPersister>,
+    backend: automerge_persistent::PersistentBackend<
+        automerge_persistent_sled::SledPersister,
+        automerge::Backend,
+    >,
     receiver: mpsc::Receiver<BackendMessage>,
     shutdown: watch::Receiver<()>,
     frontends: Vec<FrontendHandle<T>>,
@@ -106,18 +107,20 @@ where
     fn apply_local_change(
         &mut self,
         change: UncompressedChange,
-    ) -> Result<Patch, PersistentBackendError<SledPersisterError>> {
+    ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
         self.backend.apply_local_change(change)
     }
 
     fn apply_changes(
         &mut self,
         changes: Vec<Change>,
-    ) -> Result<Patch, PersistentBackendError<SledPersisterError>> {
+    ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
         self.backend.apply_changes(changes)
     }
 
-    fn get_patch(&self) -> Result<Patch, PersistentBackendError<SledPersisterError>> {
+    fn get_patch(
+        &self,
+    ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
         self.backend.get_patch()
     }
 }

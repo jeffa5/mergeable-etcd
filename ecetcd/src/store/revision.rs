@@ -51,10 +51,8 @@ impl ToString for Revision {
 
 #[cfg(test)]
 mod tests {
-    use automergeable::{
-        automerge::{Primitive, Value},
-        FromAutomerge, ToAutomerge,
-    };
+    use automerge::{Primitive, Value};
+    use automergeable::{FromAutomerge, ToAutomerge};
     use pretty_assertions::assert_eq;
 
     use super::*;

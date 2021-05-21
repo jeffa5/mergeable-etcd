@@ -2,7 +2,7 @@ mod actor;
 mod handle;
 
 pub use actor::{FrontendActor, FrontendError};
-use automergeable::automerge_protocol::Patch;
+use automerge_protocol::Patch;
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 pub use handle::FrontendHandle;
 use tokio::sync::{mpsc, oneshot};

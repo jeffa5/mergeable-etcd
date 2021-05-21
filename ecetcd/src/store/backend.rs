@@ -2,12 +2,10 @@ mod actor;
 mod handle;
 
 pub use actor::BackendActor;
-use automerge_persistent::PersistentBackendError;
+use automerge::Change;
+use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
-use automergeable::{
-    automerge::Change,
-    automerge_protocol::{Patch, UncompressedChange},
-};
+use automerge_protocol::{Patch, UncompressedChange};
 pub use handle::BackendHandle;
 use tokio::sync::oneshot;
 
@@ -20,6 +18,8 @@ pub enum BackendMessage {
         changes: Vec<Change>,
     },
     GetPatch {
-        ret: oneshot::Sender<Result<Patch, PersistentBackendError<SledPersisterError>>>,
+        ret: oneshot::Sender<
+            Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>>,
+        >,
     },
 }
