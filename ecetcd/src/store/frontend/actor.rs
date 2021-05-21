@@ -159,16 +159,9 @@ where
                 Ok(())
             }
             FrontendMessage::ApplyPatch { patch } => {
-                if let Err(e) = self.document.apply_patch(patch) {
-                    tracing::error!(error=?e, "apply patch failed");
-
-                    // FIXME: we shouldn't get MismatchedSequenceNumber errors but this is a
-                    // temporary workaround
-                    let mut document = automergeable::Document::new(automerge::Frontend::new());
-                    let patch = self.backend.get_patch().await?;
-                    document.apply_patch(patch).unwrap();
-                    self.document = document;
-                }
+                self.document
+                    .apply_patch(patch)
+                    .expect("Failed to apply patch");
                 Ok(())
             }
         }
