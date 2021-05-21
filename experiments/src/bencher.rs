@@ -302,7 +302,6 @@ fn plot_latency(
                 .windows(2)
                 .filter(|w| w[1].raft_term != w[0].raft_term)
                 .collect::<Vec<_>>();
-            dbg!(&term_changes);
 
             let members = res
                 .outputs
