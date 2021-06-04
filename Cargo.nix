@@ -375,9 +375,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "d5dfefb7043b12935e398d67c241d858456d22e1";
-          sha256 = "0chx1y5liaiya4cfdyjmp1ickcyi7x0ryiyxyilb0rzindqk8xkk";
+          url = "https://github.com/jeffa5/automerge-rs";
+          rev = "f2e65c94a15b5d382a37017b854fe3241923a12b";
+          sha256 = "1sxp7zvi7m9cnnbdj8mi62qdh3bqigc8w0d2ddaqzchkh5j70l84";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -418,9 +418,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "d5dfefb7043b12935e398d67c241d858456d22e1";
-          sha256 = "0chx1y5liaiya4cfdyjmp1ickcyi7x0ryiyxyilb0rzindqk8xkk";
+          url = "https://github.com/jeffa5/automerge-rs";
+          rev = "f2e65c94a15b5d382a37017b854fe3241923a12b";
+          sha256 = "1sxp7zvi7m9cnnbdj8mi62qdh3bqigc8w0d2ddaqzchkh5j70l84";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -457,6 +457,10 @@ rec {
           {
             name = "maplit";
             packageId = "maplit";
+          }
+          {
+            name = "nonzero_ext";
+            packageId = "nonzero_ext";
           }
           {
             name = "rand";
@@ -503,9 +507,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "d5dfefb7043b12935e398d67c241d858456d22e1";
-          sha256 = "0chx1y5liaiya4cfdyjmp1ickcyi7x0ryiyxyilb0rzindqk8xkk";
+          url = "https://github.com/jeffa5/automerge-rs";
+          rev = "f2e65c94a15b5d382a37017b854fe3241923a12b";
+          sha256 = "1sxp7zvi7m9cnnbdj8mi62qdh3bqigc8w0d2ddaqzchkh5j70l84";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -575,8 +579,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "c11c9dcc46aa6633f4b1d7d5ef3e943e2aaf69b9";
-          sha256 = "1h8x5gb0slm5r13cs4f7qisz8fa08pxr7aqb3wafh6j7r9fdsv4i";
+          rev = "de0a68ca814b3d4d9138906e0447af086b935ec9";
+          sha256 = "0vwabpvlv43c2wi2nxcnm5lbmjn15h1jrklbxn5n7rfgm7c2p9pp";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -608,8 +612,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "c11c9dcc46aa6633f4b1d7d5ef3e943e2aaf69b9";
-          sha256 = "1h8x5gb0slm5r13cs4f7qisz8fa08pxr7aqb3wafh6j7r9fdsv4i";
+          rev = "de0a68ca814b3d4d9138906e0447af086b935ec9";
+          sha256 = "0vwabpvlv43c2wi2nxcnm5lbmjn15h1jrklbxn5n7rfgm7c2p9pp";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -644,9 +648,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "d5dfefb7043b12935e398d67c241d858456d22e1";
-          sha256 = "0chx1y5liaiya4cfdyjmp1ickcyi7x0ryiyxyilb0rzindqk8xkk";
+          url = "https://github.com/jeffa5/automerge-rs";
+          rev = "f2e65c94a15b5d382a37017b854fe3241923a12b";
+          sha256 = "1sxp7zvi7m9cnnbdj8mi62qdh3bqigc8w0d2ddaqzchkh5j70l84";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -682,8 +686,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "3686022ca9cb81dc8d1a88a5a6459e0b140022a5";
-          sha256 = "1lxgrh5lv5wi2zrnvi8dd6ysad17n0km8z4mpbpgczb6gd04xv11";
+          rev = "1817f740c18fbcd3deab9cdb94500d46e400e03b";
+          sha256 = "1zc1z6cj8j8v085frp7qxxx96vd4kkrhdnld7l4hm9rk36qfvjab";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -742,8 +746,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "3686022ca9cb81dc8d1a88a5a6459e0b140022a5";
-          sha256 = "1lxgrh5lv5wi2zrnvi8dd6ysad17n0km8z4mpbpgczb6gd04xv11";
+          rev = "1817f740c18fbcd3deab9cdb94500d46e400e03b";
+          sha256 = "1zc1z6cj8j8v085frp7qxxx96vd4kkrhdnld7l4hm9rk36qfvjab";
         };
         procMacro = true;
         authors = [
@@ -780,8 +784,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "3686022ca9cb81dc8d1a88a5a6459e0b140022a5";
-          sha256 = "1lxgrh5lv5wi2zrnvi8dd6ysad17n0km8z4mpbpgczb6gd04xv11";
+          rev = "1817f740c18fbcd3deab9cdb94500d46e400e03b";
+          sha256 = "1zc1z6cj8j8v085frp7qxxx96vd4kkrhdnld7l4hm9rk36qfvjab";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -2508,7 +2512,7 @@ rec {
           {
             name = "k8s-openapi";
             packageId = "k8s-openapi";
-            features = [ "v1_20" ];
+            features = [ "v1_19" ];
           }
           {
             name = "kube";
@@ -4095,7 +4099,7 @@ rec {
         crateName = "k8s-openapi";
         version = "0.11.0";
         edition = "2018";
-        src = lib.cleanSourceWith { filter = sourceFilter;  src = ../k8s-openapi; };
+        sha256 = "19661ch36pciq7rjf8rbz22cf3lxaflycgfnlvaycn90airzkhdw";
         authors = [
           "Arnavion <me@arnavion.dev>"
         ];
@@ -4145,13 +4149,13 @@ rec {
           "api" = [ "http" "percent-encoding" "url" ];
           "default" = [ "api" ];
         };
-        resolvedDefaultFeatures = [ "api" "default" "http" "percent-encoding" "url" "v1_20" ];
+        resolvedDefaultFeatures = [ "api" "default" "http" "percent-encoding" "url" "v1_19" ];
       };
       "kube" = rec {
         crateName = "kube";
         version = "0.52.0";
         edition = "2018";
-        src = lib.cleanSourceWith { filter = sourceFilter;  src = ../kube-rs/kube; };
+        sha256 = "1j2l0m22kkniaqg4d3ic10z89w6pbgsp487ml0sq8byrbblgpck5";
         authors = [
           "clux <sszynrae@gmail.com>"
           "Teo Klestrup Röijezon <teo@nullable.se>"
@@ -4214,10 +4218,6 @@ rec {
           {
             name = "log";
             packageId = "log";
-          }
-          {
-            name = "once_cell";
-            packageId = "once_cell";
           }
           {
             name = "openssl";
@@ -4296,7 +4296,6 @@ rec {
           }
         ];
         features = {
-          "admission" = [ "json-patch" ];
           "default" = [ "native-tls" ];
           "derive" = [ "kube-derive" ];
           "gzip" = [ "async-compression" ];
@@ -4312,7 +4311,7 @@ rec {
         crateName = "kube-runtime";
         version = "0.52.0";
         edition = "2018";
-        src = lib.cleanSourceWith { filter = sourceFilter;  src = ../kube-rs/kube-runtime; };
+        sha256 = "04js40q4h30hm6m9iql56c57aasrc4xx22xbkn94x654wr8ppgzx";
         authors = [
           "Teo Klestrup Röijezon <teo@nullable.se>"
           "clux <sszynrae@gmail.com>"
@@ -4826,6 +4825,19 @@ rec {
           }
         ];
 
+      };
+      "nonzero_ext" = rec {
+        crateName = "nonzero_ext";
+        version = "0.2.0";
+        edition = "2015";
+        sha256 = "0i7lhlzfv62756q2zwsqiqr3wdh37yy0rbv0x9ivmfpak43jk8a4";
+        authors = [
+          "Andreas Fuchs <asf@boinkor.net>"
+        ];
+        features = {
+          "default" = [ "std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "ntapi" = rec {
         crateName = "ntapi";

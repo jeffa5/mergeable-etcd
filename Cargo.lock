@@ -114,7 +114,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#d5dfefb7043b12935e398d67c241d858456d22e1"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=rework-statetree#f2e65c94a15b5d382a37017b854fe3241923a12b"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
@@ -127,7 +127,7 @@ dependencies = [
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#d5dfefb7043b12935e398d67c241d858456d22e1"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=rework-statetree#f2e65c94a15b5d382a37017b854fe3241923a12b"
 dependencies = [
  "automerge-protocol",
  "flate2",
@@ -137,6 +137,7 @@ dependencies = [
  "js-sys",
  "leb128",
  "maplit",
+ "nonzero_ext",
  "rand 0.7.3",
  "serde",
  "serde_json",
@@ -150,7 +151,7 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#d5dfefb7043b12935e398d67c241d858456d22e1"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=rework-statetree#f2e65c94a15b5d382a37017b854fe3241923a12b"
 dependencies = [
  "automerge-protocol",
  "futures",
@@ -167,7 +168,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#c11c9dcc46aa6633f4b1d7d5ef3e943e2aaf69b9"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=performance#de0a68ca814b3d4d9138906e0447af086b935ec9"
 dependencies = [
  "automerge",
  "automerge-backend",
@@ -178,7 +179,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent-sled"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#c11c9dcc46aa6633f4b1d7d5ef3e943e2aaf69b9"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=performance#de0a68ca814b3d4d9138906e0447af086b935ec9"
 dependencies = [
  "automerge",
  "automerge-persistent",
@@ -190,7 +191,7 @@ dependencies = [
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#d5dfefb7043b12935e398d67c241d858456d22e1"
+source = "git+https://github.com/jeffa5/automerge-rs?branch=rework-statetree#f2e65c94a15b5d382a37017b854fe3241923a12b"
 dependencies = [
  "hex",
  "serde",
@@ -201,7 +202,7 @@ dependencies = [
 [[package]]
 name = "automergeable"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#3686022ca9cb81dc8d1a88a5a6459e0b140022a5"
+source = "git+https://github.com/jeffa5/automergeable?branch=performance#1817f740c18fbcd3deab9cdb94500d46e400e03b"
 dependencies = [
  "automerge",
  "automerge-frontend",
@@ -216,7 +217,7 @@ dependencies = [
 [[package]]
 name = "automergeable-derive"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#3686022ca9cb81dc8d1a88a5a6459e0b140022a5"
+source = "git+https://github.com/jeffa5/automergeable?branch=performance#1817f740c18fbcd3deab9cdb94500d46e400e03b"
 dependencies = [
  "automerge",
  "automergeable-traits",
@@ -228,7 +229,7 @@ dependencies = [
 [[package]]
 name = "automergeable-traits"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#3686022ca9cb81dc8d1a88a5a6459e0b140022a5"
+source = "git+https://github.com/jeffa5/automergeable?branch=performance#1817f740c18fbcd3deab9cdb94500d46e400e03b"
 dependencies = [
  "automerge",
  "automerge-protocol",
@@ -1398,6 +1399,8 @@ dependencies = [
 [[package]]
 name = "k8s-openapi"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bcc1f973542059e6d5a6d63de6a9539d0ec784f82b2327f3c1915d33200bc6a4"
 dependencies = [
  "base64",
  "bytes",
@@ -1413,6 +1416,8 @@ dependencies = [
 [[package]]
 name = "kube"
 version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65b2fbe85ad92f8435a0f52072f55bd7f0843e082c8e461e56d1ce29440554c8"
 dependencies = [
  "base64",
  "bytes",
@@ -1427,7 +1432,6 @@ dependencies = [
  "jsonpath_lib",
  "k8s-openapi",
  "log",
- "once_cell",
  "openssl",
  "pem",
  "pin-project 1.0.7",
@@ -1447,6 +1451,8 @@ dependencies = [
 [[package]]
 name = "kube-runtime"
 version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdbf7b51e6a4984e929dab0bd13b61592b750a3385e298aaa9100c4830205a12"
 dependencies = [
  "dashmap",
  "derivative",
@@ -1633,6 +1639,12 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
 ]
+
+[[package]]
+name = "nonzero_ext"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44a1290799eababa63ea60af0cbc3f03363e328e58f32fb0294798ed3e85f444"
 
 [[package]]
 name = "ntapi"

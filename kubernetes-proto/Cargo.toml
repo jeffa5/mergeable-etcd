@@ -11,8 +11,8 @@ repository = "https://gitlab.developers.cam.ac.uk/apj39/eckd-rs"
 tonic = "0.4.0"
 prost = "0.7.0"
 serde = { version = "1.0.123", features = ["derive"] }
-automergeable = { git = "https://github.com/jeffa5/automergeable", branch = "main" }
-automerge = { git = "https://github.com/automerge/automerge-rs", branch = "main" }
+automergeable = { git = "https://github.com/jeffa5/automergeable", branch = "performance" }
+automerge = { git = "https://github.com/jeffa5/automerge-rs", branch = "rework-statetree" }
 
 [build-dependencies]
 tonic-build = "0.4.0"
