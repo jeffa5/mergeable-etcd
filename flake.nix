@@ -137,10 +137,13 @@
               cargo-edit
               cargo-watch
               cargo-udeps
+              cargo-flamegraph
               protobuf
               crate2nix
               kubectl
               k9s
+
+              linuxPackages.perf
 
               cmake
               pkgconfig

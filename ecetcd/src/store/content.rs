@@ -1,9 +1,11 @@
 use std::{
     collections::{BTreeMap, HashMap},
     convert::{TryFrom, TryInto},
+    marker::PhantomData,
 };
 
-use automergeable::Automergeable;
+use automerge::{MapType, Path, Value};
+use automergeable::{Automergeable, FromAutomerge, FromAutomergeError, ToAutomerge};
 use etcd_proto::etcdserverpb::{
     compare::{CompareResult, CompareTarget, TargetUnion},
     request_op::Request,
@@ -16,24 +18,198 @@ use crate::{
     StoreValue,
 };
 
-#[derive(Debug, Clone, Default, Automergeable)]
-pub struct StoreContents<T>
+const VALUES_KEY: &str = "values";
+const SERVER_KEY: &str = "server";
+const LEASES_KEY: &str = "leases";
+
+type Values<T> = BTreeMap<Key, IValue<T>>;
+
+#[derive(Debug, Clone)]
+pub struct StoreContents<'a, T>
 where
     T: StoreValue,
 {
-    pub values: BTreeMap<Key, IValue<T>>,
-    pub server: Server,
-    pub leases: HashMap<i64, Ttl>,
+    frontend: &'a automerge::Frontend,
+    values: Option<BTreeMap<Key, IValue<T>>>,
+    server: Option<Server>,
+    leases: Option<HashMap<i64, Ttl>>,
+    _type: PhantomData<T>,
 }
 
-impl<T> StoreContents<T>
+impl<'a, T> StoreContents<'a, T>
+where
+    T: StoreValue,
+{
+    pub fn new(frontend: &'a automerge::Frontend) -> Self {
+        Self {
+            frontend,
+            values: None,
+            server: None,
+            leases: None,
+            _type: PhantomData::default(),
+        }
+    }
+
+    pub fn init(&mut self) {
+        self.values = Some(BTreeMap::new());
+        self.server = Some(Server::default());
+        self.leases = Some(HashMap::new());
+    }
+
+    fn insert_value(&mut self, key: Key, value: IValue<T>) {
+        if let Some(values) = self.values.as_mut() {
+            values.insert(key, value);
+        } else {
+            let mut bm = BTreeMap::new();
+            bm.insert(key, value);
+            self.values = Some(bm)
+        }
+    }
+
+    pub fn insert_lease(&mut self, id: i64, ttl: Ttl) {
+        if let Some(leases) = self.leases.as_mut() {
+            leases.insert(id, ttl);
+        } else {
+            let mut hm = HashMap::new();
+            hm.insert(id, ttl);
+            self.leases = Some(hm)
+        }
+    }
+
+    pub fn value(&mut self, key: &Key) -> Option<Result<&IValue<T>, FromAutomergeError>> {
+        if self.values.as_ref().and_then(|v| v.get(key)).is_some() {
+            // already in the cache so do nothing
+        } else {
+            let v = self
+                .frontend
+                .get_value(&Path::root().key(VALUES_KEY).key(key.to_string()))
+                .as_ref()
+                .map(|v| IValue::from_automerge(v));
+            match v {
+                Some(Ok(value)) => {
+                    if let Some(values) = self.values.as_mut() {
+                        values.insert(key.clone(), value);
+                    } else {
+                        let mut bm = BTreeMap::new();
+                        bm.insert(key.clone(), value);
+                        self.values = Some(bm)
+                    }
+                }
+                Some(Err(e)) => return Some(Err(e)),
+                None => return None,
+            }
+        }
+        Some(Ok(self.values.as_ref().unwrap().get(key).as_ref().unwrap()))
+    }
+
+    pub fn value_mut(&mut self, key: &Key) -> Option<Result<&mut IValue<T>, FromAutomergeError>> {
+        if self.values.as_mut().and_then(|v| v.get_mut(key)).is_some() {
+            // already cached so do nothing
+        } else {
+            let v = self
+                .frontend
+                .get_value(&Path::root().key(VALUES_KEY).key(key.to_string()))
+                .as_ref()
+                .map(|v| IValue::from_automerge(v));
+            match v {
+                Some(Ok(value)) => {
+                    if let Some(values) = self.values.as_mut() {
+                        values.insert(key.clone(), value);
+                    } else {
+                        let mut bm = BTreeMap::new();
+                        bm.insert(key.clone(), value);
+                        self.values = Some(bm)
+                    }
+                }
+                Some(Err(e)) => return Some(Err(e)),
+                None => return None,
+            }
+        }
+        Some(Ok(self.values.as_mut().unwrap().get_mut(key).unwrap()))
+    }
+
+    pub fn lease(&mut self, id: &i64) -> Option<Result<&Ttl, FromAutomergeError>> {
+        if self.leases.as_ref().and_then(|v| v.get(id)).is_some() {
+            // already in the cache, do nothing
+        } else {
+            let v = self
+                .frontend
+                .get_value(&Path::root().key(LEASES_KEY).key(id.to_string()))
+                .as_ref()
+                .map(|v| Ttl::from_automerge(v));
+            match v {
+                Some(Ok(ttl)) => {
+                    if let Some(leases) = self.leases.as_mut() {
+                        leases.insert(*id, ttl);
+                    } else {
+                        let mut hm = HashMap::new();
+                        hm.insert(*id, ttl);
+                        self.leases = Some(hm)
+                    }
+                }
+                Some(Err(e)) => return Some(Err(e)),
+                None => return None,
+            }
+        }
+        Some(Ok(self.leases.as_ref().unwrap().get(id).as_ref().unwrap()))
+    }
+
+    pub fn server(&mut self) -> Result<&Server, FromAutomergeError> {
+        if let Some(ref server) = self.server {
+            Ok(server)
+        } else {
+            let v = self
+                .frontend
+                .get_value(&Path::root().key(SERVER_KEY))
+                .as_ref()
+                .map(|v| Server::from_automerge(v));
+            match v {
+                Some(Ok(server)) => self.server = Some(server),
+                Some(Err(e)) => return Err(e),
+                None => self.server = Some(Server::default()),
+            }
+            Ok(self.server.as_ref().unwrap())
+        }
+    }
+
+    pub fn server_mut(&mut self) -> Result<&mut Server, FromAutomergeError> {
+        if let Some(ref mut server) = self.server {
+            Ok(server)
+        } else {
+            let v = self
+                .frontend
+                .get_value(&Path::root().key(SERVER_KEY))
+                .as_ref()
+                .map(|v| Server::from_automerge(v));
+            match v {
+                Some(Ok(server)) => self.server = Some(server),
+                Some(Err(e)) => return Err(e),
+                None => self.server = Some(Server::default()),
+            }
+            Ok(self.server.as_mut().unwrap())
+        }
+    }
+
+    pub fn changes(&self) -> HashMap<Path, Value> {
+        let mut hm = HashMap::new();
+        if let Some(server) = self.server.as_ref() {
+            hm.insert(Path::root().key(SERVER_KEY), server.to_automerge());
+        }
+        if let Some(values) = self.values.as_ref() {
+            hm.insert(Path::root().key(VALUES_KEY), values.to_automerge());
+        }
+        hm
+    }
+}
+
+impl<'a, T> StoreContents<'a, T>
 where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {
     #[tracing::instrument(skip(self, range_end), fields(key = %key))]
     pub(crate) fn get_inner(
-        &self,
+        &mut self,
         key: Key,
         range_end: Option<Key>,
         revision: Revision,
@@ -41,12 +217,19 @@ where
         tracing::info!("getting");
         let mut values = Vec::new();
         if let Some(range_end) = range_end {
-            for (key, value) in self.values.range(key..range_end) {
-                if let Some(value) = value.value_at_revision(revision, key.clone()) {
-                    values.push(value);
+            let vals = self
+                .frontend
+                .get_value(&Path::root().key(VALUES_KEY))
+                .unwrap_or_else(|| Value::Map(HashMap::new(), MapType::Map));
+
+            if let Ok(vals) = Values::<T>::from_automerge(&vals) {
+                for (key, value) in vals.range(key..range_end) {
+                    if let Some(value) = value.value_at_revision(revision, key.clone()) {
+                        values.push(value);
+                    }
                 }
             }
-        } else if let Some(value) = self.values.get(&key) {
+        } else if let Some(Ok(value)) = self.value(&key) {
             if let Some(value) = value.value_at_revision(revision, key) {
                 values.push(value);
             }
@@ -63,17 +246,21 @@ where
     ) -> Option<SnapshotValue> {
         tracing::debug!("inserting");
 
-        let v = self.values.get_mut(&key);
+        let v = self.value_mut(&key);
 
-        if let Some(v) = v {
-            let prev = v.value_at_revision(revision, key);
-            v.insert(revision, value);
-            prev
-        } else {
-            let mut v = IValue::default();
-            v.insert(revision, value);
-            self.values.insert(key, v);
-            None
+        match v {
+            Some(Ok(v)) => {
+                let prev = v.value_at_revision(revision, key);
+                v.insert(revision, value);
+                prev
+            }
+            Some(Err(_)) => None,
+            None => {
+                let mut v = IValue::default();
+                v.insert(revision, value);
+                self.insert_value(key, v);
+                None
+            }
         }
     }
 
@@ -85,30 +272,32 @@ where
         revision: Revision,
     ) -> Vec<SnapshotValue> {
         tracing::info!("removing");
-        let mut values = Vec::new();
-        if let Some(range_end) = range_end {
-            for (key, value) in self.values.range_mut(key..range_end) {
-                let prev = value.value_at_revision(revision, key.clone());
-                value.delete(revision);
-                if let Some(prev) = prev {
-                    values.push(prev)
-                }
-            }
-        } else if let Some(value) = self.values.get_mut(&key) {
-            let prev = value.value_at_revision(revision, key);
-            value.delete(revision);
-            if let Some(prev) = prev {
-                values.push(prev)
-            }
-        }
-        values
+        todo!();
+        // let mut values = Vec::new();
+        // if let Some(range_end) = range_end {
+        //     for (key, value) in self.values.range_mut(key..range_end) {
+        //         let prev = value.value_at_revision(revision, key.clone());
+        //         value.delete(revision);
+        //         if let Some(prev) = prev {
+        //             values.push(prev)
+        //         }
+        //     }
+        // } else if let Some(value) = self.values.get_mut(&key) {
+        //     let prev = value.value_at_revision(revision, key);
+        //     value.delete(revision);
+        //     if let Some(prev) = prev {
+        //         values.push(prev)
+        //     }
+        // }
+        // values
     }
 
     #[tracing::instrument(skip(self, request))]
     pub(crate) fn transaction_inner(&mut self, request: TxnRequest) -> (bool, Vec<ResponseOp>) {
         tracing::info!("transacting");
+        let server = self.server().unwrap().clone();
         let success = request.compare.iter().all(|compare| {
-            let values = self.get_inner(compare.key.clone().into(), None, self.server.revision);
+            let values = self.get_inner(compare.key.clone().into(), None, server.revision);
             let value = values.first();
             match (compare.target(), compare.target_union.as_ref()) {
                 (CompareTarget::Version, Some(TargetUnion::Version(version))) => comp(
@@ -154,13 +343,13 @@ where
                             Some(request.range_end.clone().into())
                         },
                         Revision::new(request.revision.try_into().unwrap())
-                            .unwrap_or(self.server.revision),
+                            .unwrap_or(server.revision),
                     );
                     let kvs: Vec<_> = kv.into_iter().map(|kv| kv.key_value()).collect();
                     let count = kvs.len() as i64;
 
                     let response = etcd_proto::etcdserverpb::RangeResponse {
-                        header: Some(self.server.header()),
+                        header: Some(server.header()),
                         kvs,
                         count,
                         more: false,
@@ -173,7 +362,7 @@ where
                     let prev_kv = self.insert_inner(
                         request.key.clone().into(),
                         request.value.clone(),
-                        self.server.revision,
+                        server.revision,
                     );
                     let prev_kv = if request.prev_kv {
                         prev_kv.map(|sv| sv.key_value())
@@ -181,7 +370,7 @@ where
                         None
                     };
                     let reply = etcd_proto::etcdserverpb::PutResponse {
-                        header: Some(self.server.header()),
+                        header: Some(server.header()),
                         prev_kv,
                     };
                     ResponseOp {
@@ -196,7 +385,7 @@ where
                         } else {
                             Some(request.range_end.clone().into())
                         },
-                        self.server.revision,
+                        server.revision,
                     );
                     let prev_kvs = if request.prev_kv {
                         prev_kvs.into_iter().map(SnapshotValue::key_value).collect()
@@ -204,7 +393,7 @@ where
                         Vec::new()
                     };
                     let reply = etcd_proto::etcdserverpb::DeleteRangeResponse {
-                        header: Some(self.server.header()),
+                        header: Some(server.header()),
                         deleted: 1,
                         prev_kvs,
                     };

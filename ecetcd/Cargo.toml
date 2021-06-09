@@ -27,6 +27,7 @@ serde_json = "1.0.62"
 rand = "0.8.3"
 automerge = { git = "https://github.com/jeffa5/automerge-rs", branch = "rework-statetree" }
 automerge-backend = { git = "https://github.com/jeffa5/automerge-rs", branch = "rework-statetree" }
+automerge-frontend = { git = "https://github.com/jeffa5/automerge-rs", branch = "rework-statetree" }
 automerge-protocol = { git = "https://github.com/jeffa5/automerge-rs", branch = "rework-statetree" }
 automergeable = { git = "https://github.com/jeffa5/automergeable", branch = "performance" }
 automerge-persistent = { git = "https://github.com/jeffa5/automerge-persistent", branch = "performance" }

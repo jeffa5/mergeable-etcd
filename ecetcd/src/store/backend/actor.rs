@@ -19,7 +19,7 @@ where
         automerge_persistent_sled::SledPersister,
         automerge::Backend,
     >,
-    receiver: mpsc::Receiver<BackendMessage>,
+    receiver: mpsc::UnboundedReceiver<BackendMessage>,
     shutdown: watch::Receiver<()>,
     frontends: Vec<FrontendHandle<T>>,
 }
@@ -31,7 +31,7 @@ where
     pub fn new(
         config: &sled::Config,
         frontends: Vec<FrontendHandle<T>>,
-        receiver: mpsc::Receiver<BackendMessage>,
+        receiver: mpsc::UnboundedReceiver<BackendMessage>,
         shutdown: watch::Receiver<()>,
     ) -> Self {
         let db = config.open().unwrap();
@@ -77,13 +77,11 @@ where
                 let patch = self.apply_local_change(change).unwrap();
 
                 let frontends = self.frontends.clone();
-                tokio::spawn(async move {
-                    let apply_patches = frontends
-                        .iter()
-                        .map(|f| f.apply_patch(patch.clone()))
-                        .collect::<Vec<_>>();
-                    join_all(apply_patches).await;
-                });
+                let apply_patches = frontends
+                    .iter()
+                    .map(|f| f.apply_patch(patch.clone()))
+                    .collect::<Vec<_>>();
+                join_all(apply_patches).await;
             }
             BackendMessage::ApplyChanges { changes } => {
                 let patch = self.apply_changes(changes).unwrap();

@@ -44,14 +44,16 @@ where
         &self,
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (b_sender, b_receiver) = tokio::sync::mpsc::channel(1);
+        let (b_sender, b_receiver) = tokio::sync::mpsc::unbounded_channel();
         let backend = BackendHandle::new(b_sender);
 
         let mut frontends = Vec::new();
+        let mut frontends_for_backend = Vec::new();
         let mut local_futures = Vec::new();
         let num_frontends = 1; // TODO: once multiple frontends with a single backend is safe use num_cpus::get()
         for i in 0..num_frontends {
             let (f_sender, f_receiver) = tokio::sync::mpsc::channel(1);
+            let (f_sender_from_backend, f_receiver_from_backend) = tokio::sync::mpsc::channel(1);
             let shutdown_clone = shutdown.clone();
             let backend_clone = backend.clone();
 
@@ -61,10 +63,15 @@ where
                 let local = LocalSet::new();
 
                 local.block_on(&rt, async move {
-                    let mut actor =
-                        FrontendActor::<T>::new(backend_clone, f_receiver, shutdown_clone, i)
-                            .await
-                            .unwrap();
+                    let mut actor = FrontendActor::<T>::new(
+                        backend_clone,
+                        f_receiver,
+                        f_receiver_from_backend,
+                        shutdown_clone,
+                        i,
+                    )
+                    .await
+                    .unwrap();
                     actor.run().await.unwrap();
                 });
 
@@ -72,14 +79,15 @@ where
             });
 
             frontends.push(FrontendHandle::new(f_sender));
+            frontends_for_backend.push(FrontendHandle::new(f_sender_from_backend));
             local_futures.push(recv);
         }
 
         let shutdown_clone = shutdown.clone();
         let config = sled::Config::new().path(&self.data_dir);
-        let frontends_clone = frontends.clone();
         tokio::spawn(async move {
-            let mut actor = BackendActor::new(&config, frontends_clone, b_receiver, shutdown_clone);
+            let mut actor =
+                BackendActor::new(&config, frontends_for_backend, b_receiver, shutdown_clone);
             actor.run().await;
         });
 
