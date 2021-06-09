@@ -2006,6 +2006,10 @@ rec {
             packageId = "automerge-backend";
           }
           {
+            name = "automerge-frontend";
+            packageId = "automerge-frontend";
+          }
+          {
             name = "automerge-persistent";
             packageId = "automerge-persistent";
           }
