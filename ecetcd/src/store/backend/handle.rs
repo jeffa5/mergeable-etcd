@@ -21,7 +21,10 @@ impl BackendHandle {
         let _ = self.sender.send(msg);
     }
 
-    pub async fn apply_local_change_sync(&self, change: UncompressedChange) -> Patch {
+    /// Like [`apply_local_change`] but waits for the backend to process the change.
+    ///
+    /// The patch still comes back asynchronously
+    pub async fn apply_local_change_sync(&self, change: UncompressedChange) {
         let (send, recv) = oneshot::channel();
         let msg = BackendMessage::ApplyLocalChangeSync { change, ret: send };
 

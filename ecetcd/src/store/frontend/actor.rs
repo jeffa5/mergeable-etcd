@@ -76,8 +76,7 @@ where
     document: Document<T>,
     backend: BackendHandle,
     watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>>,
-    receiver: mpsc::Receiver<FrontendMessage<T>>,
-    receiver_from_backend: mpsc::Receiver<FrontendMessage<T>>,
+    receiver: mpsc::UnboundedReceiver<FrontendMessage<T>>,
     shutdown: watch::Receiver<()>,
     id: usize,
     sync: bool,
@@ -105,8 +104,7 @@ where
 {
     pub async fn new(
         backend: BackendHandle,
-        receiver: mpsc::Receiver<FrontendMessage<T>>,
-        receiver_from_backend: mpsc::Receiver<FrontendMessage<T>>,
+        receiver: mpsc::UnboundedReceiver<FrontendMessage<T>>,
         shutdown: watch::Receiver<()>,
         id: usize,
         actor_id: uuid::Uuid,
@@ -123,7 +121,8 @@ where
                 Ok(())
             })
             .unwrap();
-        let patch = backend.apply_local_change_sync(change.unwrap()).await;
+        backend.apply_local_change_sync(change.unwrap()).await;
+        let patch = backend.get_patch().await.unwrap();
         document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
         tracing::info!(
@@ -136,7 +135,6 @@ where
             backend,
             watchers,
             receiver,
-            receiver_from_backend,
             shutdown,
             id,
             sync,
@@ -151,9 +149,6 @@ where
         loop {
             tokio::select! {
                 Some(msg) = self.receiver.recv() => {
-                    self.handle_message(msg).await?;
-                }
-                Some(msg) = self.receiver_from_backend.recv() => {
                     self.handle_message(msg).await?;
                 }
                 _ = self.shutdown.changed() => {
@@ -249,14 +244,11 @@ where
 
     async fn apply_local_change(&mut self, change: UncompressedChange) {
         if self.sync {
-            let patch = self.backend.apply_local_change_sync(change).await;
-            self.document
-                .apply_patch(patch)
-                .expect("Failed to apply patch in insert")
+            self.backend.apply_local_change_sync(change).await;
         } else {
             self.backend.apply_local_change(change).await;
-            // patch gets sent back asynchronously and we don't wait for it
         }
+        // patch gets sent back asynchronously and we don't wait for it
     }
 
     #[tracing::instrument(skip(self), fields(key = %key, frontend = self.id))]

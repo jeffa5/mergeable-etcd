@@ -84,24 +84,16 @@ where
                 join_all(apply_patches).await;
             }
             BackendMessage::ApplyLocalChangeSync { change, ret } => {
-                let change_actor = change.actor_id.clone();
                 let patch = self.apply_local_change(change).unwrap();
 
-                // send back to the originating frontend
-                let _ = ret.send(patch.clone());
+                // notify the frontend that the change has been processed
+                let _ = ret.send(());
 
-                // send patch to all other frontends
+                // send patch to all frontends
                 let apply_patches = self
                     .frontends
                     .iter()
-                    .filter_map(|f| {
-                        // we have already sent the patch back to the producer of the change
-                        if change_actor != f.actor_id {
-                            Some(f.apply_patch(patch.clone()))
-                        } else {
-                            None
-                        }
-                    })
+                    .map(|f| f.apply_patch(patch.clone()))
                     .collect::<Vec<_>>();
                 join_all(apply_patches).await;
             }
