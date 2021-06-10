@@ -5,7 +5,7 @@ use std::{
 };
 
 use automerge::{MapType, Path, Value};
-use automergeable::{Automergeable, FromAutomerge, FromAutomergeError, ToAutomerge};
+use automergeable::{FromAutomerge, FromAutomergeError, ToAutomerge};
 use etcd_proto::etcdserverpb::{
     compare::{CompareResult, CompareTarget, TargetUnion},
     request_op::Request,
@@ -196,7 +196,12 @@ where
             hm.insert(Path::root().key(SERVER_KEY), server.to_automerge());
         }
         if let Some(values) = self.values.as_ref() {
-            hm.insert(Path::root().key(VALUES_KEY), values.to_automerge());
+            for (k, v) in values {
+                hm.insert(
+                    Path::root().key(VALUES_KEY).key(k.to_string()),
+                    v.to_automerge(),
+                );
+            }
         }
         hm
     }
