@@ -1,6 +1,7 @@
-use std::time::SystemTime;
+use std::{collections::HashMap, time::SystemTime};
 
 use etcd_proto::etcdserverpb::{kv_client::KvClient, PutRequest};
+use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 use tonic::transport::Channel;
@@ -72,7 +73,16 @@ pub async fn put_range(
     iteration: u32,
     key: u32,
 ) -> Result<Output, tonic::Status> {
-    let value = format!(r#"{{"{}":""}}"#, key).as_bytes().to_vec();
+    let mut m = HashMap::new();
+    for i in 0..rand::thread_rng().gen_range(5..20) {
+        let s: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(10)
+            .map(char::from)
+            .collect();
+        m.insert(i.to_string(), s);
+    }
+    let value = serde_json::to_vec(&m).unwrap();
     let request = PutRequest {
         key: key.to_string().into_bytes(),
         value,

@@ -17,3 +17,4 @@ chrono = "0.4.19"
 anyhow = "1.0.40"
 futures = "0.3.12"
 ecetcd = { path = "../ecetcd" }
+rand = "0.8.3"
