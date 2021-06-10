@@ -4,7 +4,7 @@ use automerge::{Path, Primitive, Value};
 use automerge_frontend::InvalidPatch;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
-use automerge_protocol::{Patch, UncompressedChange};
+use automerge_protocol::{ActorId, Patch, UncompressedChange};
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, watch};
 use tracing::{error, info, warn};
@@ -80,6 +80,7 @@ where
     receiver_from_backend: mpsc::Receiver<FrontendMessage<T>>,
     shutdown: watch::Receiver<()>,
     id: usize,
+    sync: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -108,8 +109,10 @@ where
         receiver_from_backend: mpsc::Receiver<FrontendMessage<T>>,
         shutdown: watch::Receiver<()>,
         id: usize,
+        actor_id: uuid::Uuid,
+        sync: bool,
     ) -> Result<Self, FrontendError> {
-        let f = automerge::Frontend::new();
+        let f = automerge::Frontend::new_with_actor_id(actor_id);
         let mut document = Document::new(f);
         // fill in the default structure
         //
@@ -120,8 +123,7 @@ where
                 Ok(())
             })
             .unwrap();
-        backend.apply_local_change(change.unwrap()).await;
-        let patch = backend.get_patch().await?;
+        let patch = backend.apply_local_change_sync(change.unwrap()).await;
         document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
         tracing::info!(
@@ -137,7 +139,12 @@ where
             receiver_from_backend,
             shutdown,
             id,
+            sync,
         })
+    }
+
+    pub fn actor_id(&self) -> &ActorId {
+        &self.document.frontend.actor_id
     }
 
     pub async fn run(&mut self) -> Result<(), FrontendError> {
@@ -240,6 +247,18 @@ where
         }
     }
 
+    async fn apply_local_change(&mut self, change: UncompressedChange) {
+        if self.sync {
+            let patch = self.backend.apply_local_change_sync(change).await;
+            self.document
+                .apply_patch(patch)
+                .expect("Failed to apply patch in insert")
+        } else {
+            self.backend.apply_local_change(change).await;
+            // patch gets sent back asynchronously and we don't wait for it
+        }
+    }
+
     #[tracing::instrument(skip(self), fields(key = %key, frontend = self.id))]
     fn get(
         &self,
@@ -283,8 +302,7 @@ where
         }
 
         if let Some(change) = change {
-            self.backend.apply_local_change(change).await;
-            // patch comes back asynchronously
+            self.apply_local_change(change).await;
         }
 
         Ok((server, prev))
@@ -320,8 +338,7 @@ where
         }
 
         if let Some(change) = change {
-            self.backend.apply_local_change(change).await;
-            // patch comes back asynchronously
+            self.apply_local_change(change).await;
         }
 
         Ok((server, prev))
@@ -386,8 +403,7 @@ where
         }
 
         if let Some(change) = change {
-            self.backend.apply_local_change(change).await;
-            // patch comes back asynchronously
+            self.apply_local_change(change).await;
         }
 
         Ok((server, success, results))
@@ -433,8 +449,7 @@ where
             .unwrap();
 
         if let Some(change) = change {
-            self.backend.apply_local_change(change).await;
-            // patch comes back asynchronously
+            self.apply_local_change(change).await;
         }
 
         Ok(result)
@@ -455,8 +470,7 @@ where
             .unwrap();
 
         if let Some(change) = change {
-            self.backend.apply_local_change(change).await;
-            // patch comes back asynchronously
+            self.apply_local_change(change).await;
         }
 
         Ok(result)
@@ -480,8 +494,7 @@ where
             .unwrap();
 
         if let Some(change) = change {
-            self.backend.apply_local_change(change).await;
-            // patch comes back asynchronously
+            self.apply_local_change(change).await
         }
 
         Ok(result)

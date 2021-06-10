@@ -7,6 +7,7 @@ pub mod store;
 use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 
 pub use address::Address;
+use automerge_protocol::ActorId;
 pub use store::StoreValue;
 use store::{BackendActor, BackendHandle, FrontendHandle};
 use tokio::{runtime::Builder, task::LocalSet};
@@ -32,6 +33,8 @@ where
     pub advertise_client_urls: Vec<Address>,
     pub cert_file: Option<PathBuf>,
     pub key_file: Option<PathBuf>,
+    /// Whether to wait for the patch to be applied to the frontend before returning
+    pub sync_changes: bool,
     pub _data: PhantomData<T>,
 }
 
@@ -59,6 +62,8 @@ where
 
             let (send, recv) = tokio::sync::oneshot::channel();
             let rt = Builder::new_current_thread().enable_all().build().unwrap();
+            let uuid = uuid::Uuid::new_v4();
+            let sync_changes = self.sync_changes;
             std::thread::spawn(move || {
                 let local = LocalSet::new();
 
@@ -69,6 +74,8 @@ where
                         f_receiver_from_backend,
                         shutdown_clone,
                         i,
+                        uuid,
+                        sync_changes,
                     )
                     .await
                     .unwrap();
@@ -78,8 +85,9 @@ where
                 send.send(())
             });
 
-            frontends.push(FrontendHandle::new(f_sender));
-            frontends_for_backend.push(FrontendHandle::new(f_sender_from_backend));
+            let actor_id = ActorId::from_bytes(uuid.as_bytes());
+            frontends.push(FrontendHandle::new(f_sender, actor_id.clone()));
+            frontends_for_backend.push(FrontendHandle::new(f_sender_from_backend, actor_id));
             local_futures.push(recv);
         }
 

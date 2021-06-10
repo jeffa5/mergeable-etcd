@@ -14,6 +14,10 @@ pub enum BackendMessage {
     ApplyLocalChange {
         change: UncompressedChange,
     },
+    ApplyLocalChangeSync {
+        change: UncompressedChange,
+        ret: oneshot::Sender<Patch>,
+    },
     ApplyChanges {
         changes: Vec<Change>,
     },

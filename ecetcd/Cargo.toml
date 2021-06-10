@@ -33,6 +33,7 @@ automergeable = { git = "https://github.com/jeffa5/automergeable", branch = "per
 automerge-persistent = { git = "https://github.com/jeffa5/automerge-persistent", branch = "performance" }
 automerge-persistent-sled = { git = "https://github.com/jeffa5/automerge-persistent", branch = "performance" }
 num_cpus = "1.13.0"
+uuid = "0.8.2"
 
 [build-dependencies]
 tonic-build = "0.4.0"

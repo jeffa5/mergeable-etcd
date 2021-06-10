@@ -21,6 +21,14 @@ impl BackendHandle {
         let _ = self.sender.send(msg);
     }
 
+    pub async fn apply_local_change_sync(&self, change: UncompressedChange) -> Patch {
+        let (send, recv) = oneshot::channel();
+        let msg = BackendMessage::ApplyLocalChangeSync { change, ret: send };
+
+        let _ = self.sender.send(msg);
+        recv.await.expect("Backend actor has been killed")
+    }
+
     pub async fn apply_changes(&self, changes: Vec<Change>) {
         let msg = BackendMessage::ApplyChanges { changes };
         let _ = self.sender.send(msg);

@@ -89,6 +89,10 @@ struct Options {
     /// enable debug-level logging for etcd.
     #[structopt(long)]
     debug: bool,
+
+    /// Whether to require changes be applied before returning.
+    #[structopt(long)]
+    sync: bool,
 }
 
 #[tokio::main]
@@ -116,6 +120,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         advertise_client_urls: options.advertise_client_urls,
         cert_file: options.cert_file,
         key_file: options.key_file,
+        sync_changes: options.sync,
         _data: PhantomData::<Value>,
     };
 

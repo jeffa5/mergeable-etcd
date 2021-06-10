@@ -2100,6 +2100,10 @@ rec {
             name = "url";
             packageId = "url";
           }
+          {
+            name = "uuid";
+            packageId = "uuid";
+          }
         ];
         buildDependencies = [
           {

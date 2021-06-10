@@ -50,6 +50,20 @@ impl exp::Experiment for Experiment {
                         delay,
                         delay_variation: 0.1, // 10%
                     });
+                    // without sync changes
+                    confs.push(Config {
+                        repeats,
+                        description: description.clone(),
+                        cluster_size,
+                        bench_type,
+                        bench_args: args,
+                        image_name: "jeffas/etcd".to_owned(),
+                        image_tag: "latest".to_owned(),
+                        delay,
+                        delay_variation: 0.1,
+                    });
+                    // with sync changes
+                    args.push("--sync".to_owned());
                     confs.push(Config {
                         repeats,
                         description: description.clone(),

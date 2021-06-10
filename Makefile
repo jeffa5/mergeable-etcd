@@ -10,6 +10,11 @@ run-eckd: $(SERVER_KEYS)
 	rm -rf default.eckd
 	nix run .#eckd -- --cert-file $(CERTS_DIR)/server.crt --key-file $(CERTS_DIR)/server.key $(RUN_ARGS) --listen-client-urls 'https://localhost:2379' --advertise-client-urls 'https://localhost:2379'
 
+.PHONY: run-eckd-sync
+run-eckd-sync: $(SERVER_KEYS)
+	rm -rf default.eckd
+	nix run .#eckd -- --cert-file $(CERTS_DIR)/server.crt --key-file $(CERTS_DIR)/server.key $(RUN_ARGS) --listen-client-urls 'https://localhost:2379' --advertise-client-urls 'https://localhost:2379' --sync
+
 .PHONY: run-etcd
 run-etcd: $(SERVER_KEYS)
 	rm -rf default.etcd

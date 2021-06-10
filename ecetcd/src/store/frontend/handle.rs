@@ -1,4 +1,4 @@
-use automerge_protocol::Patch;
+use automerge_protocol::{ActorId, Patch};
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, oneshot};
 
@@ -14,14 +14,15 @@ where
     T: StoreValue,
 {
     sender: mpsc::Sender<FrontendMessage<T>>,
+    pub actor_id: ActorId,
 }
 
 impl<T> FrontendHandle<T>
 where
     T: StoreValue,
 {
-    pub fn new(sender: mpsc::Sender<FrontendMessage<T>>) -> Self {
-        Self { sender }
+    pub fn new(sender: mpsc::Sender<FrontendMessage<T>>, actor_id: ActorId) -> Self {
+        Self { sender, actor_id }
     }
 
     pub async fn current_server(&self) -> Server {
