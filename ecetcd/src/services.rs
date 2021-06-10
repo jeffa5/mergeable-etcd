@@ -7,6 +7,7 @@ use std::{
     convert::TryFrom,
     net::SocketAddr,
     task::{Context, Poll},
+    time::Duration,
 };
 
 use etcd_proto::etcdserverpb::{
@@ -49,6 +50,7 @@ where
     }
 
     server
+        .timeout(Duration::from_secs(5))
         .add_service(CatchAllService {})
         .add_service(kv_service)
         .add_service(maintenance_service)
