@@ -4,7 +4,7 @@ use std::{
     marker::PhantomData,
 };
 
-use automerge::{MapType, Path, Value};
+use automerge::{LocalChange, MapType, Path, Value};
 use automergeable::{FromAutomerge, FromAutomergeError, ToAutomerge};
 use etcd_proto::etcdserverpb::{
     compare::{CompareResult, CompareTarget, TargetUnion},
@@ -50,10 +50,21 @@ where
         }
     }
 
-    pub fn init(&mut self) {
-        self.values = Some(BTreeMap::new());
-        self.server = Some(Server::default());
-        self.leases = Some(HashMap::new());
+    pub fn init() -> Vec<LocalChange> {
+        vec![
+            LocalChange::set(
+                Path::root().key(VALUES_KEY),
+                Value::Map(HashMap::new(), MapType::Map),
+            ),
+            LocalChange::set(
+                Path::root().key(SERVER_KEY),
+                Value::Map(HashMap::new(), MapType::Map),
+            ),
+            LocalChange::set(
+                Path::root().key(LEASES_KEY),
+                Value::Map(HashMap::new(), MapType::Map),
+            ),
+        ]
     }
 
     fn insert_value(&mut self, key: Key, value: IValue<T>) {

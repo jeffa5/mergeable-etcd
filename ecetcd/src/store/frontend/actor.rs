@@ -116,8 +116,11 @@ where
         //
         // TODO: find a better way of doing this when multiple peers are around
         let (_, change) = document
-            .change::<_, _, std::convert::Infallible>(|sc| {
-                sc.init();
+            .frontend
+            .change::<_, _, std::convert::Infallible>(None, |sc| {
+                for c in StoreContents::<T>::init() {
+                    sc.add_change(c).unwrap()
+                }
                 Ok(())
             })
             .unwrap();
