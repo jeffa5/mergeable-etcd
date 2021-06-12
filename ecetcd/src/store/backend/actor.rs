@@ -43,6 +43,7 @@ where
             document_tree,
             sync_states_tree,
             String::new(),
+            true, // enable flushing
         )
         .unwrap();
         let backend = automerge_persistent::PersistentBackend::load(sled_perst).unwrap();
