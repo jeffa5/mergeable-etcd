@@ -10,3 +10,9 @@ members = [
 
 [profile.release]
 debug = true
+
+[patch."https://github.com/automerge/automerge-rs"]
+automerge = { git = "https://github.com/automerge//automerge-rs", branch = "mutation-tracker-rollback" }
+automerge-protocol = { git = "https://github.com/automerge//automerge-rs", branch = "mutation-tracker-rollback" }
+automerge-backend = { git = "https://github.com/automerge//automerge-rs", branch = "mutation-tracker-rollback" }
+automerge-frontend = { git = "https://github.com/automerge//automerge-rs", branch = "mutation-tracker-rollback" }
