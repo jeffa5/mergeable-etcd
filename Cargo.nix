@@ -218,9 +218,9 @@ rec {
       };
       "anyhow" = rec {
         crateName = "anyhow";
-        version = "1.0.40";
+        version = "1.0.41";
         edition = "2018";
-        sha256 = "0fq6qxlzp3bwrjbs3wp4i470k8vsvlkpx3q2wpl79gawvf9cvci8";
+        sha256 = "0qaa0vgsa7ybq7wqk57508l52l1lr3sbx49vk9hf43w9yql2dbqm";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -357,8 +357,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "f0a78a08288e8ab8903e4a4ae8c187377fb60ca3";
-          sha256 = "0839wfzd8xyzhzwfasvnd8iacq07kvk63yh6rdrvxlh8rx6w95gh";
+          rev = "ce831690dfb63e7c63fb943d12c6d85b0169527e";
+          sha256 = "106mw1f947l4blya5af9wfsjp5iw92za7amqmv9iqfd9vijn82h4";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -400,8 +400,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "f0a78a08288e8ab8903e4a4ae8c187377fb60ca3";
-          sha256 = "0839wfzd8xyzhzwfasvnd8iacq07kvk63yh6rdrvxlh8rx6w95gh";
+          rev = "ce831690dfb63e7c63fb943d12c6d85b0169527e";
+          sha256 = "106mw1f947l4blya5af9wfsjp5iw92za7amqmv9iqfd9vijn82h4";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -489,8 +489,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "f0a78a08288e8ab8903e4a4ae8c187377fb60ca3";
-          sha256 = "0839wfzd8xyzhzwfasvnd8iacq07kvk63yh6rdrvxlh8rx6w95gh";
+          rev = "ce831690dfb63e7c63fb943d12c6d85b0169527e";
+          sha256 = "106mw1f947l4blya5af9wfsjp5iw92za7amqmv9iqfd9vijn82h4";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -560,8 +560,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "c11c9dcc46aa6633f4b1d7d5ef3e943e2aaf69b9";
-          sha256 = "1h8x5gb0slm5r13cs4f7qisz8fa08pxr7aqb3wafh6j7r9fdsv4i";
+          rev = "05a44661ab1e0adb023c1b67d24db642bd90dc92";
+          sha256 = "1bzsgpifqk8k1yvnpi1fgx44bdyahs4svm52zvbrr7aw7c8996kk";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -593,8 +593,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "c11c9dcc46aa6633f4b1d7d5ef3e943e2aaf69b9";
-          sha256 = "1h8x5gb0slm5r13cs4f7qisz8fa08pxr7aqb3wafh6j7r9fdsv4i";
+          rev = "05a44661ab1e0adb023c1b67d24db642bd90dc92";
+          sha256 = "1bzsgpifqk8k1yvnpi1fgx44bdyahs4svm52zvbrr7aw7c8996kk";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -630,8 +630,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "f0a78a08288e8ab8903e4a4ae8c187377fb60ca3";
-          sha256 = "0839wfzd8xyzhzwfasvnd8iacq07kvk63yh6rdrvxlh8rx6w95gh";
+          rev = "ce831690dfb63e7c63fb943d12c6d85b0169527e";
+          sha256 = "106mw1f947l4blya5af9wfsjp5iw92za7amqmv9iqfd9vijn82h4";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -1129,9 +1129,9 @@ rec {
       };
       "bytemuck" = rec {
         crateName = "bytemuck";
-        version = "1.5.1";
+        version = "1.7.0";
         edition = "2018";
-        sha256 = "0n6zqqjkk80j0vyck95gr627anjkrql6cdl3iyx86fsnj0h7xmdy";
+        sha256 = "0dc4i6s9l86h2wb2h4r4njp80lm3a5i3k860p9fph3sdf6mx4rlr";
         authors = [
           "Lokathor <zefria@gmail.com>"
         ];
@@ -4329,9 +4329,9 @@ rec {
       };
       "libc" = rec {
         crateName = "libc";
-        version = "0.2.96";
+        version = "0.2.97";
         edition = "2015";
-        sha256 = "1z5l4rdk44sx1vaq69x1mbwi5zh75q46p2hkl90ihhn5xzkb802n";
+        sha256 = "1dlgdziv6nkabx287jjmghnlgc5dqv6fgpvh9n7ibpr0synsvf0j";
         authors = [
           "The Rust Project Developers"
         ];
@@ -4511,9 +4511,9 @@ rec {
       };
       "mio" = rec {
         crateName = "mio";
-        version = "0.7.11";
+        version = "0.7.13";
         edition = "2018";
-        sha256 = "0mi9ah60l270761sz6qdhhn0hkn5msc8689b53bhnkmk0glx706g";
+        sha256 = "05mvlrn3r2vqps4fflmknw15r0rs8xld4g99sdf8647c2iixnawc";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Thomas de Zeeuw <thomasdezeeuw@gmail.com>"
@@ -4860,9 +4860,9 @@ rec {
       };
       "once_cell" = rec {
         crateName = "once_cell";
-        version = "1.7.2";
+        version = "1.8.0";
         edition = "2018";
-        sha256 = "18qmpyfigg4ibdhjy5mwcjhzk9adwlgfaqv7nj430ivm86q0i2xg";
+        sha256 = "0mkbbxg6416z11r2yzsq91cqrkj9w1iyx5hakq15h5sbnriwnbv9";
         authors = [
           "Aleksey Kladov <aleksey.kladov@gmail.com>"
         ];
@@ -5939,7 +5939,7 @@ rec {
           }
           {
             name = "rand_chacha";
-            packageId = "rand_chacha 0.3.0";
+            packageId = "rand_chacha 0.3.1";
             optional = true;
             usesDefaultFeatures = false;
             target = { target, features }: (!(target."os" == "emscripten"));
@@ -6000,11 +6000,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "std" ];
       };
-      "rand_chacha 0.3.0" = rec {
+      "rand_chacha 0.3.1" = rec {
         crateName = "rand_chacha";
-        version = "0.3.0";
+        version = "0.3.1";
         edition = "2018";
-        sha256 = "03df2xh5nbdvwr17qm3sviaxa95r8yhm1nil2pr0pqf90p7ka9z1";
+        sha256 = "123x2adin558xbhvqb8w4f6syjsdkmqff8cxwhmjacpsl1ihmhg6";
         authors = [
           "The Rand Project Developers"
           "The Rust Project Developers"
@@ -6024,6 +6024,7 @@ rec {
         ];
         features = {
           "default" = [ "std" ];
+          "serde1" = [ "serde" ];
           "std" = [ "ppv-lite86/std" ];
         };
         resolvedDefaultFeatures = [ "std" ];
@@ -6761,9 +6762,9 @@ rec {
       };
       "serde_with" = rec {
         crateName = "serde_with";
-        version = "1.9.2";
+        version = "1.9.3";
         edition = "2018";
-        sha256 = "1xc75bvf74fxcdg6s5zkdmsvz3gks4x0h40vifn4mdyg06yk4c9y";
+        sha256 = "0l68pzxkd2n929m6655y3gfzgipwp575is6gvhzmslgxljdkffva";
         authors = [
           "Jonas Bushart"
           "Marcin Kaźmierczak"
@@ -7298,9 +7299,9 @@ rec {
       };
       "syn" = rec {
         crateName = "syn";
-        version = "1.0.72";
+        version = "1.0.73";
         edition = "2018";
-        sha256 = "10mb1cqmq2vpl5v6qjgqqyvhgs9yf9xv9f0dbskababrzfzcvs51";
+        sha256 = "1ixw4lscc7009ibaic8g5bvnc94hdcr62ksjk3jjl38363zqj57p";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -8461,9 +8462,9 @@ rec {
       };
       "ttf-parser" = rec {
         crateName = "ttf-parser";
-        version = "0.12.1";
+        version = "0.12.2";
         edition = "2018";
-        sha256 = "1x13sxfzg2x78vdn8gkrlgzzkwh2fc484kqqbnjh61ypx911girg";
+        sha256 = "0l3wzhhvcp58phz53rcc9cx4x7adr3srkpvy6hznmhmf71vhjmhw";
         authors = [
           "Evgeniy Reizner <razrfalcon@gmail.com>"
         ];

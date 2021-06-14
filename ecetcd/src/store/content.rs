@@ -4,7 +4,7 @@ use std::{
     marker::PhantomData,
 };
 
-use automerge::{LocalChange, MapType, Path, Value};
+use automerge::{LocalChange, Path, Value};
 use automergeable::{FromAutomerge, FromAutomergeError, ToAutomerge};
 use etcd_proto::etcdserverpb::{
     compare::{CompareResult, CompareTarget, TargetUnion},
@@ -52,18 +52,9 @@ where
 
     pub fn init() -> Vec<LocalChange> {
         vec![
-            LocalChange::set(
-                Path::root().key(VALUES_KEY),
-                Value::Map(HashMap::new(), MapType::Map),
-            ),
-            LocalChange::set(
-                Path::root().key(SERVER_KEY),
-                Value::Map(HashMap::new(), MapType::Map),
-            ),
-            LocalChange::set(
-                Path::root().key(LEASES_KEY),
-                Value::Map(HashMap::new(), MapType::Map),
-            ),
+            LocalChange::set(Path::root().key(VALUES_KEY), Value::Map(HashMap::new())),
+            LocalChange::set(Path::root().key(SERVER_KEY), Value::Map(HashMap::new())),
+            LocalChange::set(Path::root().key(LEASES_KEY), Value::Map(HashMap::new())),
         ]
     }
 
@@ -236,7 +227,7 @@ where
             let vals = self
                 .frontend
                 .get_value(&Path::root().key(VALUES_KEY))
-                .unwrap_or_else(|| Value::Map(HashMap::new(), MapType::Map));
+                .unwrap_or_else(|| Value::Map(HashMap::new()));
 
             if let Ok(vals) = Values::<T>::from_automerge(&vals) {
                 for (key, value) in vals.range(key..range_end) {

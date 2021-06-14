@@ -105,7 +105,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com/automerge//automerge-rs?branch=mutation-tracker-rollback#f0a78a08288e8ab8903e4a4ae8c187377fb60ca3"
+source = "git+https://github.com/automerge//automerge-rs?branch=mutation-tracker-rollback#7f2bd1df6a9d7f6d3c6de444d5954e0cd1e09f0f"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
@@ -118,7 +118,7 @@ dependencies = [
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com/automerge//automerge-rs?branch=mutation-tracker-rollback#f0a78a08288e8ab8903e4a4ae8c187377fb60ca3"
+source = "git+https://github.com/automerge//automerge-rs?branch=mutation-tracker-rollback#7f2bd1df6a9d7f6d3c6de444d5954e0cd1e09f0f"
 dependencies = [
  "automerge-protocol",
  "flate2",
@@ -142,7 +142,7 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com/automerge//automerge-rs?branch=mutation-tracker-rollback#f0a78a08288e8ab8903e4a4ae8c187377fb60ca3"
+source = "git+https://github.com/automerge//automerge-rs?branch=mutation-tracker-rollback#7f2bd1df6a9d7f6d3c6de444d5954e0cd1e09f0f"
 dependencies = [
  "automerge-protocol",
  "futures",
@@ -182,7 +182,7 @@ dependencies = [
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com/automerge//automerge-rs?branch=mutation-tracker-rollback#f0a78a08288e8ab8903e4a4ae8c187377fb60ca3"
+source = "git+https://github.com/automerge//automerge-rs?branch=mutation-tracker-rollback#7f2bd1df6a9d7f6d3c6de444d5954e0cd1e09f0f"
 dependencies = [
  "hex",
  "serde",
@@ -193,7 +193,7 @@ dependencies = [
 [[package]]
 name = "automergeable"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#371c7263f993539a4a24c1c9a355ec66e4d2b706"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#18dedb2878c7c61a031d62c184035deeeb6ae64e"
 dependencies = [
  "automerge",
  "automerge-frontend",
@@ -208,7 +208,7 @@ dependencies = [
 [[package]]
 name = "automergeable-derive"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#371c7263f993539a4a24c1c9a355ec66e4d2b706"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#18dedb2878c7c61a031d62c184035deeeb6ae64e"
 dependencies = [
  "automerge",
  "automergeable-traits",
@@ -220,7 +220,7 @@ dependencies = [
 [[package]]
 name = "automergeable-traits"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#371c7263f993539a4a24c1c9a355ec66e4d2b706"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#18dedb2878c7c61a031d62c184035deeeb6ae64e"
 dependencies = [
  "automerge",
  "automerge-protocol",
@@ -346,9 +346,9 @@ checksum = "e3b5ca7a04898ad4bcd41c90c5285445ff5b791899bb1b0abdd2a2aa791211d7"
 
 [[package]]
 name = "bytemuck"
-version = "1.6.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d45b1d46ddf3b55b8746d56cac01e05a156fa3719616f5483683662834ee43a"
+checksum = "9966d2ab714d0f785dbac0a0396251a35280aeb42413281617d0209ab4898435"
 
 [[package]]
 name = "byteorder"
@@ -1517,9 +1517,9 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.7.11"
+version = "0.7.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf80d3e903b34e0bd7282b218398aec54e082c840d9baf8339e0080a0c542956"
+checksum = "8c2bdb6314ec10835cd3293dd268473a835c02b7b352e788be788b3c6ca6bb16"
 dependencies = [
  "libc",
  "log",
@@ -1641,9 +1641,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.7.2"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af8b08b04175473088b46763e51ee54da5f9a164bc162f615b91bc179dbf15a3"
+checksum = "692fcb63b64b1758029e0a96ee63e049ce8c5948587f2f7208df04625e5f6b56"
 
 [[package]]
 name = "opaque-debug"
@@ -2368,9 +2368,9 @@ dependencies = [
 
 [[package]]
 name = "serde_with"
-version = "1.9.2"
+version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e3132bd01cfb74aac8b1b10083ad1f38dbf756df3176d5e63dd91e3f62a87f5"
+checksum = "6a3b379ba4fd515d3fdccfe8584eb9fcc6f7dd1bbe14636a12c98a36fbbfc850"
 dependencies = [
  "rustversion",
  "serde",
