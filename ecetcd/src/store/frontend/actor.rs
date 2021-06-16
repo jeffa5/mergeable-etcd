@@ -4,7 +4,7 @@ use automerge::{Path, Primitive, Value};
 use automerge_frontend::InvalidPatch;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
-use automerge_protocol::{ActorId, Patch, UncompressedChange};
+use automerge_protocol::{ActorId, Patch};
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, watch};
 use tracing::{error, info, warn};
@@ -40,7 +40,10 @@ where
         StoreContents::new(&self.frontend)
     }
 
-    fn change<F, O, E>(&mut self, change_closure: F) -> Result<(O, Option<UncompressedChange>), E>
+    fn change<F, O, E>(
+        &mut self,
+        change_closure: F,
+    ) -> Result<(O, Option<automerge_protocol::Change>), E>
     where
         E: std::error::Error,
         F: FnOnce(&mut StoreContents<T>) -> Result<O, E>,
@@ -245,7 +248,7 @@ where
         }
     }
 
-    async fn apply_local_change(&mut self, change: UncompressedChange) {
+    async fn apply_local_change(&mut self, change: automerge_protocol::Change) {
         if self.sync {
             self.backend.apply_local_change_sync(change).await;
         } else {

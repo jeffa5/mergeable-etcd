@@ -2,7 +2,7 @@ fn main() {
     tonic_build::configure()
         .type_attribute(
             ".",
-            "#[derive(serde::Serialize, serde::Deserialize, automergeable::Automergeable)]",
+            "#[derive(serde::Serialize, serde::Deserialize, automergeable::Automergeable, arbitrary::Arbitrary)]",
         )
         .compile(
             &[

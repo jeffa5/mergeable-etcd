@@ -1,7 +1,7 @@
 use automerge::Change;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
-use automerge_protocol::{Patch, UncompressedChange};
+use automerge_protocol::Patch;
 use futures::future::join_all;
 use tokio::sync::{mpsc, watch};
 use tracing::info;
@@ -119,7 +119,7 @@ where
 
     fn apply_local_change(
         &mut self,
-        change: UncompressedChange,
+        change: automerge_protocol::Change,
     ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
         self.backend.apply_local_change(change)
     }

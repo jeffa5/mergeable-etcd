@@ -1,7 +1,11 @@
 use std::{collections::HashMap, time::SystemTime};
 
+use arbitrary::{Arbitrary, Unstructured};
 use etcd_proto::etcdserverpb::{kv_client::KvClient, PutRequest};
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{
+    distributions::{Alphanumeric, Standard},
+    Rng,
+};
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 use tonic::transport::Channel;
@@ -73,16 +77,14 @@ pub async fn put_range(
     iteration: u32,
     key: u32,
 ) -> Result<Output, tonic::Status> {
-    let mut m = HashMap::new();
-    for i in 0..rand::thread_rng().gen_range(5..20) {
-        let s: String = rand::thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(10)
-            .map(char::from)
-            .collect();
-        m.insert(i.to_string(), s);
-    }
-    let value = serde_json::to_vec(&m).unwrap();
+    let raw: Vec<u8> = rand::thread_rng()
+        .sample_iter(&Standard)
+        .take(100)
+        .collect();
+    let mut unstructured = Unstructured::new(&raw);
+    let pod = kubernetes_proto::k8s::api::core::v1::Pod::arbitrary(&mut unstructured).unwrap();
+    // TODO: use protobuf encoding
+    let value = serde_json::to_vec(&pod).unwrap();
     let request = PutRequest {
         key: key.to_string().into_bytes(),
         value,

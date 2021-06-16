@@ -1,7 +1,7 @@
 use automerge::Change;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
-use automerge_protocol::{Patch, UncompressedChange};
+use automerge_protocol::Patch;
 use tokio::sync::{mpsc, oneshot};
 
 use super::BackendMessage;
@@ -16,7 +16,7 @@ impl BackendHandle {
         Self { sender }
     }
 
-    pub async fn apply_local_change(&self, change: UncompressedChange) {
+    pub async fn apply_local_change(&self, change: automerge_protocol::Change) {
         let msg = BackendMessage::ApplyLocalChange { change };
         let _ = self.sender.send(msg);
     }
@@ -24,7 +24,7 @@ impl BackendHandle {
     /// Like [`apply_local_change`] but waits for the backend to process the change.
     ///
     /// The patch still comes back asynchronously
-    pub async fn apply_local_change_sync(&self, change: UncompressedChange) {
+    pub async fn apply_local_change_sync(&self, change: automerge_protocol::Change) {
         let (send, recv) = oneshot::channel();
         let msg = BackendMessage::ApplyLocalChangeSync { change, ret: send };
 

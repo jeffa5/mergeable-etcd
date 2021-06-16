@@ -229,6 +229,31 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
+      "arbitrary" = rec {
+        crateName = "arbitrary";
+        version = "1.0.1";
+        edition = "2018";
+        sha256 = "14a6r7q9b1kf1m7810p8bcl51q11mrwc5z7fjkz0lx6kdvyk0x13";
+        authors = [
+          "The Rust-Fuzz Project Developers"
+          "Nick Fitzgerald <fitzgen@gmail.com>"
+          "Manish Goregaokar <manishsmail@gmail.com>"
+          "Simonas Kazlauskas <arbitrary@kazlauskas.me>"
+          "Brian L. Troutwine <brian@troutwine.us>"
+          "Corey Farwell <coreyf@rwell.org>"
+        ];
+        dependencies = [
+          {
+            name = "derive_arbitrary";
+            packageId = "derive_arbitrary";
+            optional = true;
+          }
+        ];
+        features = {
+          "derive" = [ "derive_arbitrary" ];
+        };
+        resolvedDefaultFeatures = [ "derive" "derive_arbitrary" ];
+      };
       "array_tool" = rec {
         crateName = "array_tool";
         version = "1.0.3";
@@ -356,9 +381,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge//automerge-rs";
-          rev = "ce831690dfb63e7c63fb943d12c6d85b0169527e";
-          sha256 = "106mw1f947l4blya5af9wfsjp5iw92za7amqmv9iqfd9vijn82h4";
+          url = "https://github.com/automerge/automerge-rs";
+          rev = "98dbd6150e05966a32c47c8a7c9d539be724ec54";
+          sha256 = "1300q0j6xzvm0kw98lw8vdrl8adgw3mvsznnc6p9wic20sfvplh2";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -399,9 +424,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge//automerge-rs";
-          rev = "ce831690dfb63e7c63fb943d12c6d85b0169527e";
-          sha256 = "106mw1f947l4blya5af9wfsjp5iw92za7amqmv9iqfd9vijn82h4";
+          url = "https://github.com/automerge/automerge-rs";
+          rev = "98dbd6150e05966a32c47c8a7c9d539be724ec54";
+          sha256 = "1300q0j6xzvm0kw98lw8vdrl8adgw3mvsznnc6p9wic20sfvplh2";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -488,9 +513,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge//automerge-rs";
-          rev = "ce831690dfb63e7c63fb943d12c6d85b0169527e";
-          sha256 = "106mw1f947l4blya5af9wfsjp5iw92za7amqmv9iqfd9vijn82h4";
+          url = "https://github.com/automerge/automerge-rs";
+          rev = "98dbd6150e05966a32c47c8a7c9d539be724ec54";
+          sha256 = "1300q0j6xzvm0kw98lw8vdrl8adgw3mvsznnc6p9wic20sfvplh2";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -560,8 +585,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "05a44661ab1e0adb023c1b67d24db642bd90dc92";
-          sha256 = "1bzsgpifqk8k1yvnpi1fgx44bdyahs4svm52zvbrr7aw7c8996kk";
+          rev = "d903369265a77369f8919f44e8141ebde2a0c1f8";
+          sha256 = "061hb8lr1842zvqlh1shzfm1gss50j913ryb720r48z1vw75g99g";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -593,8 +618,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "05a44661ab1e0adb023c1b67d24db642bd90dc92";
-          sha256 = "1bzsgpifqk8k1yvnpi1fgx44bdyahs4svm52zvbrr7aw7c8996kk";
+          rev = "d903369265a77369f8919f44e8141ebde2a0c1f8";
+          sha256 = "061hb8lr1842zvqlh1shzfm1gss50j913ryb720r48z1vw75g99g";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -629,9 +654,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge//automerge-rs";
-          rev = "ce831690dfb63e7c63fb943d12c6d85b0169527e";
-          sha256 = "106mw1f947l4blya5af9wfsjp5iw92za7amqmv9iqfd9vijn82h4";
+          url = "https://github.com/automerge/automerge-rs";
+          rev = "98dbd6150e05966a32c47c8a7c9d539be724ec54";
+          sha256 = "1300q0j6xzvm0kw98lw8vdrl8adgw3mvsznnc6p9wic20sfvplh2";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -667,8 +692,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "371c7263f993539a4a24c1c9a355ec66e4d2b706";
-          sha256 = "0fm5h8a13pz42mj18r702il7m74y89sdwp07gdnq7900w6qa0q6c";
+          rev = "fecda80df061bda24a9a0958aa15ae1403fb192d";
+          sha256 = "1q9dr4x7ri6krwmbx2w95fcykf7772rqgl5nzrbdycnnn7ibdb9b";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -727,8 +752,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "371c7263f993539a4a24c1c9a355ec66e4d2b706";
-          sha256 = "0fm5h8a13pz42mj18r702il7m74y89sdwp07gdnq7900w6qa0q6c";
+          rev = "fecda80df061bda24a9a0958aa15ae1403fb192d";
+          sha256 = "1q9dr4x7ri6krwmbx2w95fcykf7772rqgl5nzrbdycnnn7ibdb9b";
         };
         procMacro = true;
         authors = [
@@ -765,8 +790,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "371c7263f993539a4a24c1c9a355ec66e4d2b706";
-          sha256 = "0fm5h8a13pz42mj18r702il7m74y89sdwp07gdnq7900w6qa0q6c";
+          rev = "fecda80df061bda24a9a0958aa15ae1403fb192d";
+          sha256 = "1q9dr4x7ri6krwmbx2w95fcykf7772rqgl5nzrbdycnnn7ibdb9b";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -829,6 +854,10 @@ rec {
             packageId = "anyhow";
           }
           {
+            name = "arbitrary";
+            packageId = "arbitrary";
+          }
+          {
             name = "chrono";
             packageId = "chrono";
           }
@@ -849,8 +878,12 @@ rec {
             packageId = "hyper";
           }
           {
+            name = "kubernetes-proto";
+            packageId = "kubernetes-proto";
+          }
+          {
             name = "rand";
-            packageId = "rand 0.8.3";
+            packageId = "rand 0.8.4";
           }
           {
             name = "serde";
@@ -1859,6 +1892,36 @@ rec {
         features = {
         };
       };
+      "derive_arbitrary" = rec {
+        crateName = "derive_arbitrary";
+        version = "1.0.1";
+        edition = "2018";
+        sha256 = "0nig0iydva7a9h9i9qyi6an9w5qjafmn3qlzvdqqiw0x2kp824jz";
+        procMacro = true;
+        authors = [
+          "The Rust-Fuzz Project Developers"
+          "Nick Fitzgerald <fitzgen@gmail.com>"
+          "Manish Goregaokar <manishsmail@gmail.com>"
+          "Andre Bogus <bogusandre@gmail.com>"
+          "Corey Farwell <coreyf@rwell.org>"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn";
+            features = [ "derive" ];
+          }
+        ];
+
+      };
       "diff" = rec {
         crateName = "diff";
         version = "0.1.12";
@@ -2055,7 +2118,7 @@ rec {
           }
           {
             name = "rand";
-            packageId = "rand 0.8.3";
+            packageId = "rand 0.8.4";
           }
           {
             name = "serde";
@@ -4273,6 +4336,11 @@ rec {
         ];
         dependencies = [
           {
+            name = "arbitrary";
+            packageId = "arbitrary";
+            features = [ "derive" ];
+          }
+          {
             name = "automerge";
             packageId = "automerge";
           }
@@ -5920,11 +5988,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "alloc" "default" "getrandom" "getrandom_package" "libc" "rand_pcg" "small_rng" "std" ];
       };
-      "rand 0.8.3" = rec {
+      "rand 0.8.4" = rec {
         crateName = "rand";
-        version = "0.8.3";
+        version = "0.8.4";
         edition = "2018";
-        sha256 = "0zldxfx4gi551n2fna4zz9ab22zsnzw1mj5hzi5nfs24dgkfgy8f";
+        sha256 = "1n5wska2fbfj4dsfz8mc0pd0dgjlrb6c9anpk5mwym345rip6x9f";
         authors = [
           "The Rand Project Developers"
           "The Rust Project Developers"
@@ -5946,11 +6014,11 @@ rec {
           }
           {
             name = "rand_core";
-            packageId = "rand_core 0.6.2";
+            packageId = "rand_core 0.6.3";
           }
           {
             name = "rand_hc";
-            packageId = "rand_hc 0.3.0";
+            packageId = "rand_hc 0.3.1";
             optional = true;
             target = { target, features }: (target."os" == "emscripten");
           }
@@ -5958,14 +6026,14 @@ rec {
         devDependencies = [
           {
             name = "rand_hc";
-            packageId = "rand_hc 0.3.0";
+            packageId = "rand_hc 0.3.1";
           }
         ];
         features = {
           "alloc" = [ "rand_core/alloc" ];
           "default" = [ "std" "std_rng" ];
           "getrandom" = [ "rand_core/getrandom" ];
-          "serde1" = [ "serde" ];
+          "serde1" = [ "serde" "rand_core/serde1" ];
           "simd_support" = [ "packed_simd" ];
           "std" = [ "rand_core/std" "rand_chacha/std" "alloc" "getrandom" "libc" ];
           "std_rng" = [ "rand_chacha" "rand_hc" ];
@@ -6019,7 +6087,7 @@ rec {
           }
           {
             name = "rand_core";
-            packageId = "rand_core 0.6.2";
+            packageId = "rand_core 0.6.3";
           }
         ];
         features = {
@@ -6051,11 +6119,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "alloc" "getrandom" "std" ];
       };
-      "rand_core 0.6.2" = rec {
+      "rand_core 0.6.3" = rec {
         crateName = "rand_core";
-        version = "0.6.2";
+        version = "0.6.3";
         edition = "2018";
-        sha256 = "1rvas1afjvd2827b8mf2ilg78h3ksl9npkrdds3wbw9x33mndkrl";
+        sha256 = "1rxlxc3bpzgwphcg9c9yasvv9idipcg2z2y4j0vlb52jyl418kyk";
         authors = [
           "The Rand Project Developers"
           "The Rust Project Developers"
@@ -6089,18 +6157,18 @@ rec {
         ];
 
       };
-      "rand_hc 0.3.0" = rec {
+      "rand_hc 0.3.1" = rec {
         crateName = "rand_hc";
-        version = "0.3.0";
+        version = "0.3.1";
         edition = "2018";
-        sha256 = "0wra6ar22zdjkry9dsq1mg620m4h3qb9s8rfykkz4im4crqfz41i";
+        sha256 = "1rwpykyvhkxs4jvqdja3mzp9dqaqamzn113cxaigs9z2dmcry7nm";
         authors = [
           "The Rand Project Developers"
         ];
         dependencies = [
           {
             name = "rand_core";
-            packageId = "rand_core 0.6.2";
+            packageId = "rand_core 0.6.3";
           }
         ];
 
@@ -6143,9 +6211,9 @@ rec {
       };
       "redox_syscall" = rec {
         crateName = "redox_syscall";
-        version = "0.2.8";
+        version = "0.2.9";
         edition = "2018";
-        sha256 = "1z27f6rzm0lcpszbr2dmfyna7qmpmx4yb98yhzg1956l3kj3j9vl";
+        sha256 = "1vpyfnfrw5ki262720yks8m7vn1a2mg89s4rqi5ir7izvyx9md2s";
         libName = "syscall";
         authors = [
           "Jeremy Soller <jackpot51@gmail.com>"
@@ -7353,7 +7421,7 @@ rec {
           }
           {
             name = "rand";
-            packageId = "rand 0.8.3";
+            packageId = "rand 0.8.4";
           }
           {
             name = "redox_syscall";
@@ -7574,9 +7642,9 @@ rec {
       };
       "tokio" = rec {
         crateName = "tokio";
-        version = "1.6.1";
+        version = "1.7.0";
         edition = "2018";
-        sha256 = "0xd935ik81xp4lfxlxyxlqjx4prpv494rah0mmxfviiig0fx6f0a";
+        sha256 = "13hi5bb3r5za7626fwf8n3hxb9rqik1szmkdpbv5scrpqc1sd6y7";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -7652,7 +7720,7 @@ rec {
           "full" = [ "fs" "io-util" "io-std" "macros" "net" "parking_lot" "process" "rt" "rt-multi-thread" "signal" "sync" "time" ];
           "io-util" = [ "memchr" "bytes" ];
           "macros" = [ "tokio-macros" ];
-          "net" = [ "libc" "mio/os-poll" "mio/os-util" "mio/tcp" "mio/udp" "mio/uds" ];
+          "net" = [ "libc" "mio/os-poll" "mio/os-util" "mio/tcp" "mio/udp" "mio/uds" "winapi/namedpipeapi" ];
           "process" = [ "bytes" "once_cell" "libc" "mio/os-poll" "mio/os-util" "mio/uds" "signal-hook-registry" "winapi/threadpoollegacyapiset" ];
           "rt-multi-thread" = [ "num_cpus" "rt" ];
           "signal" = [ "once_cell" "libc" "mio/os-poll" "mio/uds" "mio/os-util" "signal-hook-registry" "winapi/consoleapi" ];
@@ -8066,7 +8134,7 @@ rec {
           }
           {
             name = "rand";
-            packageId = "rand 0.8.3";
+            packageId = "rand 0.8.4";
             optional = true;
             features = [ "small_rng" ];
           }

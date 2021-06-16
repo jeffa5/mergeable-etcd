@@ -13,6 +13,7 @@ prost = "0.7.0"
 serde = { version = "1.0.123", features = ["derive"] }
 automergeable = { git = "https://github.com/jeffa5/automergeable", branch = "main" }
 automerge = { git = "https://github.com/automerge/automerge-rs", branch = "main" }
+arbitrary = { version = "1.0.1", features = ["derive"] }
 
 [build-dependencies]
 tonic-build = "0.4.0"
