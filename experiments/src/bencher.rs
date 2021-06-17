@@ -37,7 +37,12 @@ impl exp::Experiment for Experiment {
                     ),
                     (BenchType::PutRange, vec!["put-range".to_owned()]),
                 ] {
-                    let mut args = vec!["--clients=100".to_owned(), "--iterations=10".to_owned()];
+                    let clients = 100;
+                    let iterations = 100;
+                    let mut args = vec![
+                        format!("--clients={}", clients),
+                        format!("--iterations={}", iterations),
+                    ];
                     args.append(&mut bench_args);
                     confs.push(Config {
                         repeats,
