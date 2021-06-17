@@ -49,6 +49,7 @@ impl exp::Experiment for Experiment {
                         image_tag: "v3.4.13".to_owned(),
                         delay,
                         delay_variation: 0.1, // 10%
+                        extra_args: Vec::new(),
                     });
                     // without sync changes
                     confs.push(Config {
@@ -61,9 +62,9 @@ impl exp::Experiment for Experiment {
                         image_tag: "latest".to_owned(),
                         delay,
                         delay_variation: 0.1,
+                        extra_args: Vec::new(),
                     });
                     // with sync changes
-                    args.push("--sync".to_owned());
                     confs.push(Config {
                         repeats,
                         description: description.clone(),
@@ -74,6 +75,7 @@ impl exp::Experiment for Experiment {
                         image_tag: "latest".to_owned(),
                         delay,
                         delay_variation: 0.1,
+                        extra_args: vec!["--sync".to_owned()],
                     });
                 }
             }
@@ -112,7 +114,7 @@ impl exp::Experiment for Experiment {
             let client_port = 2379 + ((i - 1) * 10);
             let peer_port = 2380 + ((i - 1) * 10);
             let name = format!("node{}", i);
-            let cmd = vec![
+            let mut cmd = vec![
                 "etcd".to_owned(),
                 "--name".to_owned(),
                 name.clone(),
@@ -129,6 +131,7 @@ impl exp::Experiment for Experiment {
                 "--data-dir".to_owned(),
                 format!("/data/{}.etcd", name),
             ];
+            cmd.extend_from_slice(configuration.extra_args.as_slice());
             runner
                 .add_container(&ContainerConfig {
                     name: name.clone(),
@@ -337,12 +340,13 @@ fn plot_latency(
             let mut chart = ChartBuilder::on(&root)
                 .caption(
                     format!(
-                        "latency {} {}x{} {:?} {}ms",
+                        "latency {} {}x{} {:?} {}ms {}",
                         date,
                         configs[i].0.cluster_size,
                         configs[i].0.image_name,
                         configs[i].0.bench_type,
                         configs[i].0.delay,
+                        configs[i].0.extra_args.join(" "),
                     ),
                     ("Times", 20).into_font(),
                 )
@@ -421,6 +425,7 @@ pub struct Config {
     pub image_tag: String,
     pub delay: u32,
     pub delay_variation: f64,
+    pub extra_args: Vec<String>,
 }
 
 impl ExperimentConfiguration for Config {
