@@ -168,7 +168,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#d903369265a77369f8919f44e8141ebde2a0c1f8"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#f94d9348710569d7bd6c98c3fbe5fe6a528ae887"
 dependencies = [
  "automerge",
  "automerge-backend",
@@ -179,7 +179,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent-sled"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#d903369265a77369f8919f44e8141ebde2a0c1f8"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#f94d9348710569d7bd6c98c3fbe5fe6a528ae887"
 dependencies = [
  "automerge",
  "automerge-persistent",

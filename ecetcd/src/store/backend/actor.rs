@@ -43,7 +43,6 @@ where
             document_tree,
             sync_states_tree,
             String::new(),
-            true, // enable flushing
         )
         .unwrap();
         let backend = automerge_persistent::PersistentBackend::load(sled_perst).unwrap();
@@ -86,6 +85,8 @@ where
             }
             BackendMessage::ApplyLocalChangeSync { change, ret } => {
                 let patch = self.apply_local_change(change).unwrap();
+                // ensure that the change is in disk
+                self.backend.flush().unwrap();
 
                 // notify the frontend that the change has been processed
                 let _ = ret.send(());
