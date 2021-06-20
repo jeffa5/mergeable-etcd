@@ -38,7 +38,7 @@ struct Options {
     out_file: Option<PathBuf>,
 
     /// The timeout to apply to requests, in milliseconds
-    #[structopt(long, default_value = "5000")]
+    #[structopt(long, default_value = "60000")]
     timeout: u64,
 
     #[structopt(subcommand)]
