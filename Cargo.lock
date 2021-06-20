@@ -114,7 +114,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#885a763766472cfa7dd83cef68d20c6bc525eae3"
+source = "git+https://github.com/automerge//automerge-rs?branch=rust-1.53-fixes#74c33f54bb4e049ee8fb0ee292f5e06655cf8b9d"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
@@ -127,7 +127,7 @@ dependencies = [
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#885a763766472cfa7dd83cef68d20c6bc525eae3"
+source = "git+https://github.com/automerge//automerge-rs?branch=rust-1.53-fixes#74c33f54bb4e049ee8fb0ee292f5e06655cf8b9d"
 dependencies = [
  "automerge-protocol",
  "flate2",
@@ -152,7 +152,7 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#885a763766472cfa7dd83cef68d20c6bc525eae3"
+source = "git+https://github.com/automerge//automerge-rs?branch=rust-1.53-fixes#74c33f54bb4e049ee8fb0ee292f5e06655cf8b9d"
 dependencies = [
  "automerge-protocol",
  "futures",
@@ -193,7 +193,7 @@ dependencies = [
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#885a763766472cfa7dd83cef68d20c6bc525eae3"
+source = "git+https://github.com/automerge//automerge-rs?branch=rust-1.53-fixes#74c33f54bb4e049ee8fb0ee292f5e06655cf8b9d"
 dependencies = [
  "hex",
  "serde",
@@ -792,7 +792,7 @@ dependencies = [
 [[package]]
 name = "exp"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/exp?branch=main#14b767379ad5956e8f7df300f4680d6f8f15d6fd"
+source = "git+https://github.com/jeffa5/exp?branch=main#df1a302570b166e42b3c81ec9893c7e1839b60a0"
 dependencies = [
  "async-trait",
  "bollard",

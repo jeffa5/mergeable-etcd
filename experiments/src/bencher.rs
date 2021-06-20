@@ -8,7 +8,7 @@ use std::{
 use async_trait::async_trait;
 use bencher::Output;
 use exp::{
-    docker_runner::{ContainerConfig, Logs, Runner, Stats, Tops},
+    docker_runner::{self, ContainerConfig, Logs, Runner, Stats, Tops},
     Environment, ExperimentConfiguration,
 };
 use futures::{future::ready, StreamExt};
@@ -16,6 +16,11 @@ use plotters::data::fitting_range;
 use serde::{Deserialize, Serialize};
 
 pub struct Experiment;
+
+const ETCD_IMAGE: &str = "quay.io/coreos/etcd";
+const ETCD_TAG: &str = "v3.4.13";
+const ECKD_IMAGE: &str = "jeffas/etcd";
+const ECKD_TAG: &str = "latest";
 
 #[async_trait]
 impl exp::Experiment for Experiment {
@@ -29,12 +34,12 @@ impl exp::Experiment for Experiment {
                 "Test etcd cluster latency and throughput at {} nodes",
                 cluster_size
             );
-            for delay in (0..=50).step_by(10) {
+            for delay in (0..=0).step_by(10) {
                 for (bench_type, mut bench_args) in vec![
-                    (
-                        BenchType::PutSingle,
-                        vec!["put-single".to_owned(), "bench".to_owned()],
-                    ),
+                    // (
+                    //     BenchType::PutSingle,
+                    //     vec!["put-single".to_owned(), "bench".to_owned()],
+                    // ),
                     (BenchType::PutRange, vec!["put-range".to_owned()]),
                 ] {
                     let clients = 100;
@@ -50,8 +55,8 @@ impl exp::Experiment for Experiment {
                         cluster_size,
                         bench_type: bench_type.clone(),
                         bench_args: args.clone(),
-                        image_name: "quay.io/coreos/etcd".to_owned(),
-                        image_tag: "v3.4.13".to_owned(),
+                        image_name: ETCD_IMAGE.to_owned(),
+                        image_tag: ETCD_TAG.to_owned(),
                         delay,
                         delay_variation: 0.1, // 10%
                         extra_args: Vec::new(),
@@ -63,8 +68,8 @@ impl exp::Experiment for Experiment {
                         cluster_size,
                         bench_type: bench_type.clone(),
                         bench_args: args.clone(),
-                        image_name: "jeffas/etcd".to_owned(),
-                        image_tag: "latest".to_owned(),
+                        image_name: ECKD_IMAGE.to_owned(),
+                        image_tag: ECKD_TAG.to_owned(),
                         delay,
                         delay_variation: 0.1,
                         extra_args: Vec::new(),
@@ -76,8 +81,8 @@ impl exp::Experiment for Experiment {
                         cluster_size,
                         bench_type,
                         bench_args: args,
-                        image_name: "jeffas/etcd".to_owned(),
-                        image_tag: "latest".to_owned(),
+                        image_name: ECKD_IMAGE.to_owned(),
+                        image_tag: ECKD_TAG.to_owned(),
                         delay,
                         delay_variation: 0.1,
                         extra_args: vec!["--sync".to_owned()],
@@ -93,6 +98,12 @@ impl exp::Experiment for Experiment {
     }
 
     async fn pre_run(&self, configuration: &Self::Configuration) {
+        docker_runner::pull_image(ETCD_IMAGE, ETCD_TAG)
+            .await
+            .unwrap();
+        docker_runner::pull_image(ECKD_IMAGE, ECKD_TAG)
+            .await
+            .unwrap();
         println!("Running bencher experiment: {:?}", configuration);
     }
 
@@ -142,6 +153,7 @@ impl exp::Experiment for Experiment {
                     name: name.clone(),
                     image_name: configuration.image_name.clone(),
                     image_tag: configuration.image_tag.clone(),
+                    pull: false,
                     command: Some(cmd),
                     network: Some(network_name.clone()),
                     network_subnet: Some("172.18.0.0/16".to_owned()),
@@ -201,6 +213,7 @@ impl exp::Experiment for Experiment {
                 name: bench_name.to_owned(),
                 image_name: "jeffas/bencher".to_owned(),
                 image_tag: "latest".to_owned(),
+                pull: false,
                 command: Some(bench_cmd),
                 network: Some(network_name.clone()),
                 network_subnet: Some("172.18.0.0/16".to_owned()),
@@ -281,6 +294,7 @@ impl exp::Experiment for Experiment {
         let plots_path = exp_dir.join("plots");
         create_dir_all(&plots_path).unwrap();
         plot_latency(date, &plots_path, &configs, &bench_results);
+        plot_latency_cdf(date, &plots_path, &configs, &bench_results);
     }
 }
 
@@ -408,6 +422,111 @@ fn plot_latency(
                         })
                         .collect::<Vec<_>>(),
                 )
+                .unwrap();
+        }
+    }
+}
+
+fn plot_latency_cdf(
+    date: chrono::DateTime<chrono::Utc>,
+    plots_path: &Path,
+    configs: &BTreeMap<
+        usize,
+        (
+            Config,
+            BTreeMap<
+                usize,
+                (
+                    HashMap<String, Logs>,
+                    HashMap<String, Stats>,
+                    HashMap<String, Tops>,
+                ),
+            >,
+        ),
+    >,
+    bench_results: &BTreeMap<usize, BTreeMap<usize, BenchResults>>,
+) {
+    use plotters::prelude::*;
+    let colours = vec![
+        BLUE.mix(0.5).filled(),
+        RED.mix(0.5).filled(),
+        GREEN.mix(0.5).filled(),
+        YELLOW.mix(0.5).filled(),
+        CYAN.mix(0.5).filled(),
+        MAGENTA.mix(0.5).filled(),
+        BLACK.mix(0.5).filled(),
+    ];
+
+    for (i, rs) in bench_results.iter() {
+        for (r, res) in rs.iter() {
+            let members = res
+                .outputs
+                .iter()
+                .map(|o| o.member_id)
+                .collect::<HashSet<_>>();
+            let members = members
+                .iter()
+                .enumerate()
+                .map(|(i, m)| (m, i))
+                .collect::<HashMap<_, _>>();
+            let latency_plot = plots_path.join(format!("latcdf-c{}-r{}.svg", i, r));
+            println!("Creating plot {:?}", latency_plot);
+            let root = SVGBackend::new(&latency_plot, (640, 480)).into_drawing_area();
+            root.fill(&WHITE).unwrap();
+            let mut latencies = res
+                .outputs
+                .iter()
+                .map(|output| output.end.duration_since(output.start).unwrap().as_micros())
+                .collect::<Vec<_>>();
+            latencies.sort_unstable();
+            let mut cumulative_latencies = Vec::new();
+            let mut total = 0;
+            for x in &latencies {
+                total += x;
+                cumulative_latencies.push(total);
+            }
+            let max = *cumulative_latencies.iter().max().unwrap();
+
+            let normalised = cumulative_latencies.iter().map(|&x| x as f64 / max as f64);
+            let points = latencies
+                .iter()
+                .map(|&x| x as f64 / 1000.)
+                .zip(normalised)
+                .collect::<Vec<_>>();
+
+            let mut chart = ChartBuilder::on(&root)
+                .caption(
+                    format!(
+                        "lat cdf {} {}x{} {:?} {}ms {}",
+                        date,
+                        configs[i].0.cluster_size,
+                        configs[i].0.image_name,
+                        configs[i].0.bench_type,
+                        configs[i].0.delay,
+                        configs[i].0.extra_args.join(" "),
+                    ),
+                    ("Times", 20).into_font(),
+                )
+                .margin(10)
+                .x_label_area_size(40)
+                .y_label_area_size(50)
+                .build_cartesian_2d(
+                    fitting_range(points.iter().map(|(x, _)| x)),
+                    fitting_range(points.iter().map(|(_, y)| y)),
+                )
+                .unwrap();
+
+            chart
+                .configure_mesh()
+                .x_desc("request duration (ms)")
+                .label_style(("Times", 14).into_font())
+                .axis_desc_style(("Times", 15).into_font())
+                .y_desc("Probability")
+                .draw()
+                .unwrap();
+
+            chart
+                .draw_series(LineSeries::new(points, colours[0].clone()))
                 .unwrap();
         }
     }

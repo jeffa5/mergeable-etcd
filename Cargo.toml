@@ -10,3 +10,15 @@ members = [
 
 [profile.release]
 debug = true
+
+# [patch."https://github.com/automerge/automerge-rs"]
+# automerge = { git = "https://github.com/automerge//automerge-rs", branch = "actorid-tinyvec" }
+# automerge-protocol = { git = "https://github.com/automerge//automerge-rs", branch = "actorid-tinyvec" }
+# automerge-backend = { git = "https://github.com/automerge//automerge-rs", branch = "actorid-tinyvec" }
+# automerge-frontend = { git = "https://github.com/automerge//automerge-rs", branch = "actorid-tinyvec" }
+
+[patch."https://github.com/automerge/automerge-rs"]
+automerge = { git = "https://github.com/automerge//automerge-rs", branch = "rust-1.53-fixes" }
+automerge-protocol = { git = "https://github.com/automerge//automerge-rs", branch = "rust-1.53-fixes" }
+automerge-backend = { git = "https://github.com/automerge//automerge-rs", branch = "rust-1.53-fixes" }
+automerge-frontend = { git = "https://github.com/automerge//automerge-rs", branch = "rust-1.53-fixes" }

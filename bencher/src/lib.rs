@@ -1,11 +1,8 @@
-use std::{collections::HashMap, time::SystemTime};
+use std::time::SystemTime;
 
 use arbitrary::{Arbitrary, Unstructured};
 use etcd_proto::etcdserverpb::{kv_client::KvClient, PutRequest};
-use rand::{
-    distributions::{Alphanumeric, Standard},
-    Rng,
-};
+use rand::{distributions::Standard, Rng};
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 use tonic::transport::Channel;
