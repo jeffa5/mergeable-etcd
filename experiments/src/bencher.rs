@@ -286,7 +286,7 @@ impl exp::Experiment for Experiment {
                         .lines
                         .iter()
                         .map(|(_, l)| {
-                            let output: Output = serde_json::from_str(&l).unwrap();
+                            let output: Output = serde_json::from_str(l).unwrap();
                             output
                         })
                         .collect();
@@ -339,12 +339,6 @@ fn plot_latency(
 
     for (i, rs) in bench_results.iter() {
         for (r, res) in rs.iter() {
-            let term_changes = res
-                .outputs
-                .windows(2)
-                .filter(|w| w[1].raft_term != w[0].raft_term)
-                .collect::<Vec<_>>();
-
             let members = res
                 .outputs
                 .iter()
@@ -463,16 +457,6 @@ fn plot_latency_cdf(
 
     for (i, rs) in bench_results.iter() {
         for (r, res) in rs.iter() {
-            let members = res
-                .outputs
-                .iter()
-                .map(|o| o.member_id)
-                .collect::<HashSet<_>>();
-            let members = members
-                .iter()
-                .enumerate()
-                .map(|(i, m)| (m, i))
-                .collect::<HashMap<_, _>>();
             let latency_plot = plots_path.join(format!("latcdf-c{}-r{}.svg", i, r));
             println!("Creating plot {:?}", latency_plot);
             let root = SVGBackend::new(&latency_plot, (640, 480)).into_drawing_area();
