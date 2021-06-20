@@ -114,7 +114,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#98dbd6150e05966a32c47c8a7c9d539be724ec54"
+source = "git+https://github.com/automerge/automerge-rs?branch=main#13830680641a82cd5793662ac6d24360f0afe771"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
@@ -127,7 +127,7 @@ dependencies = [
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#98dbd6150e05966a32c47c8a7c9d539be724ec54"
+source = "git+https://github.com/automerge/automerge-rs?branch=main#13830680641a82cd5793662ac6d24360f0afe771"
 dependencies = [
  "automerge-protocol",
  "flate2",
@@ -142,6 +142,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "smol_str",
  "thiserror",
  "tracing",
  "wasm-bindgen",
@@ -151,7 +152,7 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#98dbd6150e05966a32c47c8a7c9d539be724ec54"
+source = "git+https://github.com/automerge/automerge-rs?branch=main#13830680641a82cd5793662ac6d24360f0afe771"
 dependencies = [
  "automerge-protocol",
  "futures",
@@ -160,6 +161,7 @@ dependencies = [
  "maplit",
  "serde",
  "serde_json",
+ "smol_str",
  "thiserror",
  "unicode-segmentation",
  "uuid",
@@ -168,7 +170,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#f94d9348710569d7bd6c98c3fbe5fe6a528ae887"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#f6d50e50d666061cf9c9560ad0229cbd0b150fb9"
 dependencies = [
  "automerge",
  "automerge-backend",
@@ -179,7 +181,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent-sled"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#f94d9348710569d7bd6c98c3fbe5fe6a528ae887"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#f6d50e50d666061cf9c9560ad0229cbd0b150fb9"
 dependencies = [
  "automerge",
  "automerge-persistent",
@@ -191,10 +193,11 @@ dependencies = [
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#98dbd6150e05966a32c47c8a7c9d539be724ec54"
+source = "git+https://github.com/automerge/automerge-rs?branch=main#13830680641a82cd5793662ac6d24360f0afe771"
 dependencies = [
  "hex",
  "serde",
+ "smol_str",
  "thiserror",
  "uuid",
 ]
@@ -202,13 +205,14 @@ dependencies = [
 [[package]]
 name = "automergeable"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#fecda80df061bda24a9a0958aa15ae1403fb192d"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#6f2c590877a496815c3f706a37c09ac961247044"
 dependencies = [
  "automerge",
  "automerge-frontend",
  "automerge-protocol",
  "automergeable-derive",
  "automergeable-traits",
+ "smol_str",
  "thiserror",
  "unicode-segmentation",
  "uuid",
@@ -217,7 +221,7 @@ dependencies = [
 [[package]]
 name = "automergeable-derive"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#fecda80df061bda24a9a0958aa15ae1403fb192d"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#6f2c590877a496815c3f706a37c09ac961247044"
 dependencies = [
  "automerge",
  "automergeable-traits",
@@ -229,11 +233,12 @@ dependencies = [
 [[package]]
 name = "automergeable-traits"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#fecda80df061bda24a9a0958aa15ae1403fb192d"
+source = "git+https://github.com/jeffa5/automergeable?branch=main#6f2c590877a496815c3f706a37c09ac961247044"
 dependencies = [
  "automerge",
  "automerge-protocol",
  "serde_json",
+ "smol_str",
  "thiserror",
  "unicode-segmentation",
 ]
@@ -1676,9 +1681,9 @@ checksum = "2839e79665f131bdb5782e51f2c6c9599c133c6098982a54c794358bf432529c"
 
 [[package]]
 name = "openssl"
-version = "0.10.34"
+version = "0.10.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d7830286ad6a3973c0f1d9b73738f69c76b739301d0229c4b96501695cbe4c8"
+checksum = "549430950c79ae24e6d02e0b7404534ecf311d94cc9f861e9e4020187d13d885"
 dependencies = [
  "bitflags",
  "cfg-if",
@@ -1696,9 +1701,9 @@ checksum = "28988d872ab76095a6e6ac88d99b54fd267702734fd7ffe610ca27f533ddb95a"
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.63"
+version = "0.9.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6b0d6fb7d80f877617dfcb014e605e2b5ab2fb0afdf27935219bb6bd984cb98"
+checksum = "209efc2fe0e980c8849efacdb567f975a1c80245c4f6980d6f012733bfa851af"
 dependencies = [
  "autocfg",
  "cc",
@@ -2391,9 +2396,9 @@ dependencies = [
 
 [[package]]
 name = "serde_with"
-version = "1.9.3"
+version = "1.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a3b379ba4fd515d3fdccfe8584eb9fcc6f7dd1bbe14636a12c98a36fbbfc850"
+checksum = "1ad9fdbb69badc8916db738c25efd04f0a65297d26c2f8de4b62e57b8c12bc72"
 dependencies = [
  "rustversion",
  "serde",
@@ -2512,6 +2517,15 @@ name = "smallvec"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe0f37c9e8f3c5a4a66ad655a93c74daac4ad00c441533bf5c6e7990bb42604e"
+
+[[package]]
+name = "smol_str"
+version = "0.1.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ca0f7ce3a29234210f0f4f0b56f8be2e722488b95cb522077943212da3b32eb"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "snafu"
@@ -2714,9 +2728,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.7.0"
+version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c79ba603c337335df6ba6dd6afc38c38a7d5e1b0c871678439ea973cd62a118e"
+checksum = "5fb2ed024293bb19f7a5dc54fe83bf86532a44c12a2bb8ba40d64a4509395ca2"
 dependencies = [
  "autocfg",
  "bytes",
@@ -3049,9 +3063,9 @@ dependencies = [
 
 [[package]]
 name = "vcpkg"
-version = "0.2.13"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "025ce40a007e1907e58d5bc1a594def78e5573bb0b1160bc389634e8f12e4faa"
+checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "vec_map"
