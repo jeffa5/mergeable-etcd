@@ -162,6 +162,8 @@ impl exp::Experiment for Experiment {
                         (peer_port.to_string(), peer_port.to_string()),
                     ]),
                     capabilities: Some(vec!["NET_ADMIN".to_owned()]),
+                    cpus: Some(1.0),
+                    memory: None,
                 })
                 .await;
             tokio::time::sleep(Duration::from_millis(10)).await;
@@ -219,6 +221,8 @@ impl exp::Experiment for Experiment {
                 network_subnet: Some("172.18.0.0/16".to_owned()),
                 ports: None,
                 capabilities: None,
+                cpus: None,
+                memory: None,
             })
             .await;
 
