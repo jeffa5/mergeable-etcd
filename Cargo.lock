@@ -114,7 +114,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#13830680641a82cd5793662ac6d24360f0afe771"
+source = "git+https://github.com/automerge/automerge-rs?branch=main#885a763766472cfa7dd83cef68d20c6bc525eae3"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
@@ -127,7 +127,7 @@ dependencies = [
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#13830680641a82cd5793662ac6d24360f0afe771"
+source = "git+https://github.com/automerge/automerge-rs?branch=main#885a763766472cfa7dd83cef68d20c6bc525eae3"
 dependencies = [
  "automerge-protocol",
  "flate2",
@@ -152,7 +152,7 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#13830680641a82cd5793662ac6d24360f0afe771"
+source = "git+https://github.com/automerge/automerge-rs?branch=main#885a763766472cfa7dd83cef68d20c6bc525eae3"
 dependencies = [
  "automerge-protocol",
  "futures",
@@ -193,7 +193,7 @@ dependencies = [
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#13830680641a82cd5793662ac6d24360f0afe771"
+source = "git+https://github.com/automerge/automerge-rs?branch=main#885a763766472cfa7dd83cef68d20c6bc525eae3"
 dependencies = [
  "hex",
  "serde",

@@ -382,8 +382,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge/automerge-rs";
-          rev = "98dbd6150e05966a32c47c8a7c9d539be724ec54";
-          sha256 = "1300q0j6xzvm0kw98lw8vdrl8adgw3mvsznnc6p9wic20sfvplh2";
+          rev = "885a763766472cfa7dd83cef68d20c6bc525eae3";
+          sha256 = "0l9aqbkb8gxx9y5qcmj7wbxmxzvay4iwg80k1py4vx6qq89ppdni";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -425,8 +425,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge/automerge-rs";
-          rev = "98dbd6150e05966a32c47c8a7c9d539be724ec54";
-          sha256 = "1300q0j6xzvm0kw98lw8vdrl8adgw3mvsznnc6p9wic20sfvplh2";
+          rev = "885a763766472cfa7dd83cef68d20c6bc525eae3";
+          sha256 = "0l9aqbkb8gxx9y5qcmj7wbxmxzvay4iwg80k1py4vx6qq89ppdni";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -487,6 +487,10 @@ rec {
             packageId = "sha2";
           }
           {
+            name = "smol_str";
+            packageId = "smol_str";
+          }
+          {
             name = "thiserror";
             packageId = "thiserror";
           }
@@ -514,8 +518,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge/automerge-rs";
-          rev = "98dbd6150e05966a32c47c8a7c9d539be724ec54";
-          sha256 = "1300q0j6xzvm0kw98lw8vdrl8adgw3mvsznnc6p9wic20sfvplh2";
+          rev = "885a763766472cfa7dd83cef68d20c6bc525eae3";
+          sha256 = "0l9aqbkb8gxx9y5qcmj7wbxmxzvay4iwg80k1py4vx6qq89ppdni";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -553,6 +557,10 @@ rec {
             packageId = "serde_json";
           }
           {
+            name = "smol_str";
+            packageId = "smol_str";
+          }
+          {
             name = "thiserror";
             packageId = "thiserror";
           }
@@ -585,8 +593,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "f94d9348710569d7bd6c98c3fbe5fe6a528ae887";
-          sha256 = "1in702zik8gnavlk2a6z3ahs5zzfasr51gc04zzrfckgz5ay4i39";
+          rev = "f6d50e50d666061cf9c9560ad0229cbd0b150fb9";
+          sha256 = "0sx583ghmlpqbrr63kna2fn8wk4lidlr6gp9542vbbm27ll04vk4";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -618,8 +626,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "f94d9348710569d7bd6c98c3fbe5fe6a528ae887";
-          sha256 = "1in702zik8gnavlk2a6z3ahs5zzfasr51gc04zzrfckgz5ay4i39";
+          rev = "f6d50e50d666061cf9c9560ad0229cbd0b150fb9";
+          sha256 = "0sx583ghmlpqbrr63kna2fn8wk4lidlr6gp9542vbbm27ll04vk4";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -655,8 +663,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge/automerge-rs";
-          rev = "98dbd6150e05966a32c47c8a7c9d539be724ec54";
-          sha256 = "1300q0j6xzvm0kw98lw8vdrl8adgw3mvsznnc6p9wic20sfvplh2";
+          rev = "885a763766472cfa7dd83cef68d20c6bc525eae3";
+          sha256 = "0l9aqbkb8gxx9y5qcmj7wbxmxzvay4iwg80k1py4vx6qq89ppdni";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -670,6 +678,11 @@ rec {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "smol_str";
+            packageId = "smol_str";
+            features = [ "serde" ];
           }
           {
             name = "thiserror";
@@ -692,8 +705,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "fecda80df061bda24a9a0958aa15ae1403fb192d";
-          sha256 = "1q9dr4x7ri6krwmbx2w95fcykf7772rqgl5nzrbdycnnn7ibdb9b";
+          rev = "6f2c590877a496815c3f706a37c09ac961247044";
+          sha256 = "1awil943nmc55dl4p7l77hbbkmxgrygih8ap32vwbbxvpcpiq9bp";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -718,6 +731,10 @@ rec {
           {
             name = "automergeable-traits";
             packageId = "automergeable-traits";
+          }
+          {
+            name = "smol_str";
+            packageId = "smol_str";
           }
           {
             name = "thiserror";
@@ -752,8 +769,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "fecda80df061bda24a9a0958aa15ae1403fb192d";
-          sha256 = "1q9dr4x7ri6krwmbx2w95fcykf7772rqgl5nzrbdycnnn7ibdb9b";
+          rev = "6f2c590877a496815c3f706a37c09ac961247044";
+          sha256 = "1awil943nmc55dl4p7l77hbbkmxgrygih8ap32vwbbxvpcpiq9bp";
         };
         procMacro = true;
         authors = [
@@ -790,8 +807,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "fecda80df061bda24a9a0958aa15ae1403fb192d";
-          sha256 = "1q9dr4x7ri6krwmbx2w95fcykf7772rqgl5nzrbdycnnn7ibdb9b";
+          rev = "6f2c590877a496815c3f706a37c09ac961247044";
+          sha256 = "1awil943nmc55dl4p7l77hbbkmxgrygih8ap32vwbbxvpcpiq9bp";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -808,6 +825,10 @@ rec {
           {
             name = "serde_json";
             packageId = "serde_json";
+          }
+          {
+            name = "smol_str";
+            packageId = "smol_str";
           }
           {
             name = "thiserror";
@@ -4953,9 +4974,9 @@ rec {
       };
       "openssl" = rec {
         crateName = "openssl";
-        version = "0.10.34";
+        version = "0.10.35";
         edition = "2018";
-        sha256 = "1j74rfaicl4n9ff25l01jdrnpiv9ixrp76qx1wy9g8ynd8l30y3d";
+        sha256 = "11fq2dyih820kqg8d7ycjhfk3ksfac2782rfs3k29bkr1jak152l";
         authors = [
           "Steven Fackler <sfackler@gmail.com>"
         ];
@@ -5002,9 +5023,9 @@ rec {
       };
       "openssl-sys" = rec {
         crateName = "openssl-sys";
-        version = "0.9.63";
+        version = "0.9.64";
         edition = "2015";
-        sha256 = "166bhkcnpfqraa9jgpxgn0pspdg20pk19c7wgmhpgy40gpxxdc5n";
+        sha256 = "1bsim2zk69q1dw6rixn48l1ci8bmz5kvbkgsks2ci079w0pzr7i0";
         build = "build/main.rs";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
@@ -6830,9 +6851,9 @@ rec {
       };
       "serde_with" = rec {
         crateName = "serde_with";
-        version = "1.9.3";
+        version = "1.9.4";
         edition = "2018";
-        sha256 = "0l68pzxkd2n929m6655y3gfzgipwp575is6gvhzmslgxljdkffva";
+        sha256 = "0wmw2a67prb29gggihi6gllna2jgs3pjb33kvcb8kp5sd6xzvn8s";
         authors = [
           "Jonas Bushart"
           "Marcin Kaźmierczak"
@@ -7154,6 +7175,33 @@ rec {
         ];
         features = {
         };
+      };
+      "smol_str" = rec {
+        crateName = "smol_str";
+        version = "0.1.17";
+        edition = "2018";
+        sha256 = "1srj7gd14cllfwh55jwmid425rz2idpvbw7ly08448r97b7gg83c";
+        authors = [
+          "Aleksey Kladov <aleksey.kladov@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "serde";
+            packageId = "serde";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+        ];
+        devDependencies = [
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+        ];
+
+        resolvedDefaultFeatures = [ "serde" ];
       };
       "snafu" = rec {
         crateName = "snafu";
@@ -7642,9 +7690,9 @@ rec {
       };
       "tokio" = rec {
         crateName = "tokio";
-        version = "1.7.0";
+        version = "1.7.1";
         edition = "2018";
-        sha256 = "13hi5bb3r5za7626fwf8n3hxb9rqik1szmkdpbv5scrpqc1sd6y7";
+        sha256 = "18jw744lajnn82xbharaq522llw6py1zwm6wlpvikfwk881fvcjz";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -8725,9 +8773,9 @@ rec {
       };
       "vcpkg" = rec {
         crateName = "vcpkg";
-        version = "0.2.13";
+        version = "0.2.15";
         edition = "2015";
-        sha256 = "1ajg5vqyhd4n72y6048bpdrmb3ppvsaabhavipjhf6by005f8p02";
+        sha256 = "09i4nf5y8lig6xgj3f7fyrvzd3nlaw4znrihw8psidvv5yk4xkdc";
         authors = [
           "Jim McGrath <jimmc2@gmail.com>"
         ];
