@@ -9,11 +9,37 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
+enum Sender<T>
+where
+    T: StoreValue,
+{
+    Bounded(mpsc::Sender<FrontendMessage<T>>),
+    Unbounded(mpsc::UnboundedSender<FrontendMessage<T>>),
+}
+
+impl<T> Sender<T>
+where
+    T: StoreValue,
+{
+    // call send on the underlying sender
+    #[inline]
+    async fn send(
+        &self,
+        value: FrontendMessage<T>,
+    ) -> Result<(), tokio::sync::mpsc::error::SendError<FrontendMessage<T>>> {
+        match self {
+            Self::Bounded(b) => b.send(value).await,
+            Self::Unbounded(u) => u.send(value),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct FrontendHandle<T>
 where
     T: StoreValue,
 {
-    sender: mpsc::UnboundedSender<FrontendMessage<T>>,
+    sender: Sender<T>,
     pub actor_id: ActorId,
 }
 
@@ -21,15 +47,28 @@ impl<T> FrontendHandle<T>
 where
     T: StoreValue,
 {
-    pub fn new(sender: mpsc::UnboundedSender<FrontendMessage<T>>, actor_id: ActorId) -> Self {
-        Self { sender, actor_id }
+    pub fn new(sender: mpsc::Sender<FrontendMessage<T>>, actor_id: ActorId) -> Self {
+        Self {
+            sender: Sender::Bounded(sender),
+            actor_id,
+        }
+    }
+
+    pub fn new_unbounded(
+        sender: mpsc::UnboundedSender<FrontendMessage<T>>,
+        actor_id: ActorId,
+    ) -> Self {
+        Self {
+            sender: Sender::Unbounded(sender),
+            actor_id,
+        }
     }
 
     pub async fn current_server(&self) -> Server {
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::CurrentServer { ret: send };
 
-        let _ = self.sender.send(msg).unwrap();
+        let _ = self.sender.send(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -47,7 +86,7 @@ where
             ret: send,
         };
 
-        let _ = self.sender.send(msg).unwrap();
+        let _ = self.sender.send(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -65,7 +104,7 @@ where
             ret: send,
         };
 
-        let _ = self.sender.send(msg).unwrap();
+        let _ = self.sender.send(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -81,7 +120,7 @@ where
             ret: send,
         };
 
-        let _ = self.sender.send(msg).unwrap();
+        let _ = self.sender.send(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -92,7 +131,7 @@ where
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::Txn { request, ret: send };
 
-        let _ = self.sender.send(msg).unwrap();
+        let _ = self.sender.send(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -108,7 +147,7 @@ where
             tx_events,
         };
 
-        let _ = self.sender.send(msg).unwrap();
+        let _ = self.sender.send(msg).await.unwrap();
     }
 
     pub async fn create_lease(
@@ -119,7 +158,7 @@ where
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::CreateLease { id, ttl, ret: send };
 
-        let _ = self.sender.send(msg).unwrap();
+        let _ = self.sender.send(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -127,7 +166,7 @@ where
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::RefreshLease { id, ret: send };
 
-        let _ = self.sender.send(msg).unwrap();
+        let _ = self.sender.send(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -135,12 +174,12 @@ where
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::RevokeLease { id, ret: send };
 
-        let _ = self.sender.send(msg).unwrap();
+        let _ = self.sender.send(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
     pub async fn apply_patch(&self, patch: Patch) {
         let msg = FrontendMessage::ApplyPatch { patch };
-        let _ = self.sender.send(msg).unwrap();
+        let _ = self.sender.send(msg).await.unwrap();
     }
 }

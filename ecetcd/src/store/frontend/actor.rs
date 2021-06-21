@@ -79,7 +79,10 @@ where
     document: Document<T>,
     backend: BackendHandle,
     watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>>,
-    receiver: mpsc::UnboundedReceiver<FrontendMessage<T>>,
+    // receiver for requests from clients
+    client_receiver: mpsc::Receiver<FrontendMessage<T>>,
+    // receiver for requests from the backend
+    backend_receiver: mpsc::UnboundedReceiver<FrontendMessage<T>>,
     shutdown: watch::Receiver<()>,
     id: usize,
     sync: bool,
@@ -107,7 +110,8 @@ where
 {
     pub async fn new(
         backend: BackendHandle,
-        receiver: mpsc::UnboundedReceiver<FrontendMessage<T>>,
+        client_receiver: mpsc::Receiver<FrontendMessage<T>>,
+        backend_receiver: mpsc::UnboundedReceiver<FrontendMessage<T>>,
         shutdown: watch::Receiver<()>,
         id: usize,
         actor_id: uuid::Uuid,
@@ -140,7 +144,8 @@ where
             document,
             backend,
             watchers,
-            receiver,
+            client_receiver,
+            backend_receiver,
             shutdown,
             id,
             sync,
@@ -154,12 +159,20 @@ where
     pub async fn run(&mut self) -> Result<(), FrontendError> {
         loop {
             tokio::select! {
-                Some(msg) = self.receiver.recv() => {
-                    self.handle_message(msg).await?;
-                }
+                biased;
+
+                // poll for shutdown first
                 _ = self.shutdown.changed() => {
                     info!("frontend {} shutting down", self.id);
                     break
+                }
+                // then services backend requests to aim to reduce latency
+                Some(msg) = self.backend_receiver.recv() => {
+                    self.handle_message(msg).await?;
+                }
+                // then handle new things from clients
+                Some(msg) = self.client_receiver.recv() => {
+                    self.handle_message(msg).await?;
                 }
             }
         }
