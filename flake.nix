@@ -143,6 +143,8 @@
               kubectl
               k9s
 
+              jupyter
+
               linuxPackages.perf
 
               cmake
