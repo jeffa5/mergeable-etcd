@@ -29,7 +29,7 @@ impl exp::Experiment for Experiment {
     fn configurations(&self) -> Vec<Self::Configuration> {
         let mut confs = Vec::new();
         let repeats = 1;
-        for cluster_size in (1..=7).step_by(2) {
+        for cluster_size in (1..=1).step_by(2) {
             let description = format!(
                 "Test etcd cluster latency and throughput at {} nodes",
                 cluster_size
@@ -162,7 +162,7 @@ impl exp::Experiment for Experiment {
                         (peer_port.to_string(), peer_port.to_string()),
                     ]),
                     capabilities: Some(vec!["NET_ADMIN".to_owned()]),
-                    cpus: Some(2.0),
+                    cpus: None,
                     memory: None,
                 })
                 .await;
@@ -397,7 +397,7 @@ fn plot_latency(
                 .x_desc("milliseconds from start")
                 .label_style(("Times", 14).into_font())
                 .axis_desc_style(("Times", 15).into_font())
-                .y_desc("request duration (ms)")
+                .y_desc("Request duration (ms)")
                 .draw()
                 .unwrap();
 
@@ -506,7 +506,7 @@ fn plot_latency_cdf(
 
             chart
                 .configure_mesh()
-                .x_desc("request duration (ms)")
+                .x_desc("Request duration (ms)")
                 .label_style(("Times", 14).into_font())
                 .axis_desc_style(("Times", 15).into_font())
                 .y_desc("Probability")
