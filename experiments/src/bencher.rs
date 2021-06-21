@@ -162,7 +162,7 @@ impl exp::Experiment for Experiment {
                         (peer_port.to_string(), peer_port.to_string()),
                     ]),
                     capabilities: Some(vec!["NET_ADMIN".to_owned()]),
-                    cpus: Some(1.0),
+                    cpus: Some(2.0),
                     memory: None,
                 })
                 .await;
