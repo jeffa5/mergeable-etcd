@@ -144,6 +144,11 @@
               k9s
 
               jupyter
+              python3Packages.numpy
+              python3Packages.matplotlib
+              # for the latex font bits
+              pkgs.texlive.combined.scheme-full
+
 
               linuxPackages.perf
 
