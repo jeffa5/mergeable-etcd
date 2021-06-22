@@ -6,6 +6,7 @@ members = [
   "bencher",
   "kubernetes-proto",
   "experiments",
+  "experiments/bencher",
 ]
 
 [profile.release]

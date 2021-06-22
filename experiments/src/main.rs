@@ -5,14 +5,12 @@ use clap::Clap;
 use exp::{Environment, ExperimentConfiguration};
 use serde::{Deserialize, Serialize};
 
-mod bencher;
 mod cluster_latency;
 mod k8s_startup;
 
 enum Experiments {
     ClusterLatency(cluster_latency::Experiment),
     KubernetesStartup(k8s_startup::Experiment),
-    Bencher(bencher::Experiment),
 }
 
 #[async_trait]
@@ -23,7 +21,6 @@ impl exp::Experiment for Experiments {
         match self {
             Self::ClusterLatency(c) => c.name(),
             Self::KubernetesStartup(c) => c.name(),
-            Self::Bencher(c) => c.name(),
         }
     }
 
@@ -39,11 +36,6 @@ impl exp::Experiment for Experiments {
                 .into_iter()
                 .map(Config::KubernetesStartup)
                 .collect(),
-            Self::Bencher(c) => c
-                .configurations()
-                .into_iter()
-                .map(Config::Bencher)
-                .collect(),
         }
     }
 
@@ -51,7 +43,6 @@ impl exp::Experiment for Experiments {
         match (self, configuration) {
             (Self::ClusterLatency(c), Config::ClusterLatency(conf)) => c.pre_run(conf).await,
             (Self::KubernetesStartup(c), Config::KubernetesStartup(conf)) => c.pre_run(conf).await,
-            (Self::Bencher(c), Config::Bencher(conf)) => c.pre_run(conf).await,
             (_, _) => panic!("unmatched experiment and configuration"),
         }
     }
@@ -62,7 +53,6 @@ impl exp::Experiment for Experiments {
             (Self::KubernetesStartup(c), Config::KubernetesStartup(conf)) => {
                 c.run(conf, data_dir).await
             }
-            (Self::Bencher(c), Config::Bencher(conf)) => c.run(conf, data_dir).await,
             (_, _) => panic!("unmatched experiment and configuration"),
         }
         tokio::time::sleep(Duration::from_secs(10)).await
@@ -72,7 +62,6 @@ impl exp::Experiment for Experiments {
         match (self, configuration) {
             (Self::ClusterLatency(c), Config::ClusterLatency(conf)) => c.post_run(conf).await,
             (Self::KubernetesStartup(c), Config::KubernetesStartup(conf)) => c.post_run(conf).await,
-            (Self::Bencher(c), Config::Bencher(conf)) => c.post_run(conf).await,
             (_, _) => panic!("unmatched experiment and configuration"),
         }
     }
@@ -90,7 +79,7 @@ impl exp::Experiment for Experiments {
                     .into_iter()
                     .map(|(c, p)| match c {
                         Config::ClusterLatency(a) => (a, p),
-                        Config::KubernetesStartup(_) | Config::Bencher(_) => {
+                        Config::KubernetesStartup(_) => {
                             panic!("found wrong config type for analysis")
                         }
                     })
@@ -101,22 +90,10 @@ impl exp::Experiment for Experiments {
                 let confs = configurations
                     .into_iter()
                     .map(|(c, p)| match c {
-                        Config::ClusterLatency(_) | Config::Bencher(_) => {
+                        Config::ClusterLatency(_) => {
                             panic!("found wrong config type for analysis")
                         }
                         Config::KubernetesStartup(a) => (a, p),
-                    })
-                    .collect::<Vec<_>>();
-                c.analyse(exp_dir, date, environment, confs)
-            }
-            Self::Bencher(c) => {
-                let confs = configurations
-                    .into_iter()
-                    .map(|(c, p)| match c {
-                        Config::ClusterLatency(_) | Config::KubernetesStartup(_) => {
-                            panic!("found wrong config type for analysis")
-                        }
-                        Config::Bencher(a) => (a, p),
                     })
                     .collect::<Vec<_>>();
                 c.analyse(exp_dir, date, environment, confs)
@@ -129,7 +106,6 @@ impl exp::Experiment for Experiments {
 enum Config {
     ClusterLatency(cluster_latency::Config),
     KubernetesStartup(k8s_startup::Config),
-    Bencher(bencher::Config),
 }
 
 impl ExperimentConfiguration for Config {
@@ -137,7 +113,6 @@ impl ExperimentConfiguration for Config {
         match self {
             Self::ClusterLatency(c) => c.repeats(),
             Self::KubernetesStartup(c) => c.repeats(),
-            Self::Bencher(c) => c.repeats(),
         }
     }
 
@@ -145,7 +120,6 @@ impl ExperimentConfiguration for Config {
         match self {
             Self::ClusterLatency(c) => c.description(),
             Self::KubernetesStartup(c) => c.description(),
-            Self::Bencher(c) => c.description(),
         }
     }
 }
@@ -171,8 +145,6 @@ enum ExperimentChoice {
     ClusterLatency,
     /// measuring Kubernetes startup latency
     KubernetesStartup,
-    /// new etcd cluster latency benchmark using bencher
-    BencherLatency,
 }
 
 #[tokio::main]
@@ -194,7 +166,6 @@ async fn main() -> Result<(), anyhow::Error> {
             ExperimentChoice::ClusterLatency => {
                 Experiments::ClusterLatency(cluster_latency::Experiment)
             }
-            ExperimentChoice::BencherLatency => Experiments::Bencher(bencher::Experiment),
         })
         .collect::<Vec<_>>();
 
