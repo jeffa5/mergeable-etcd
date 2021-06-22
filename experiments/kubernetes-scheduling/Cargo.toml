@@ -1,7 +1,6 @@
 [package]
-name = "experiments"
+name = "kubernetes-scheduling-experiment"
 version = "0.1.0"
-authors = ["Andrew Jeffery <dev@jeffas.io>"]
 edition = "2018"
 
 [dependencies]
@@ -19,5 +18,5 @@ plotters = "0.3.0"
 kube = { git = "https://github.com/jeffa5/kube-rs", branch = "nano-time" }
 kube-runtime = { git = "https://github.com/jeffa5/kube-rs", branch = "nano-time" }
 k8s-openapi = { git = "https://github.com/jeffa5/k8s-openapi", branch = "nano-time", features = ["v1_20"] }
-bencher = { path = "../bencher" }
+bencher = { path = "../../bencher" }
 bollard = "0.10.1"

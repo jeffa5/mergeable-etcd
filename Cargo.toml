@@ -5,8 +5,9 @@ members = [
   "etcd-proto",
   "bencher",
   "kubernetes-proto",
-  "experiments",
   "experiments/bencher",
+  "experiments/kubernetes-scheduling",
+  "experiments/etcd-bencher",
 ]
 
 [profile.release]

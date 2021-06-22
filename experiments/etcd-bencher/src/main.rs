@@ -7,6 +7,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use clap::Clap;
 use exp::{
     docker_runner::{ContainerConfig, Logs, Runner, Stats, Tops},
     Environment, ExperimentConfiguration,
@@ -462,4 +463,43 @@ impl ExperimentConfiguration for Config {
     fn description(&self) -> &str {
         &self.description
     }
+}
+
+#[derive(Clap)]
+struct CliOptions {
+    /// Run all the experiments
+    #[clap(long)]
+    run: bool,
+    /// Analyse all the experiments
+    #[clap(long)]
+    analyse: bool,
+    #[clap(long)]
+    date: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[tokio::main]
+async fn main() -> Result<(), anyhow::Error> {
+    let opts = CliOptions::parse();
+    if !opts.run && !opts.analyse {
+        anyhow::bail!("Neither run nor analyse specified");
+    }
+
+    const RESULTS_DIR: &str = "experiments/etcd-bencher/results";
+
+    if opts.run {
+        let conf = exp::RunConfig {
+            results_dir: PathBuf::from(RESULTS_DIR),
+        };
+
+        exp::run(&Experiment, &conf).await?;
+    }
+
+    if opts.analyse {
+        let conf = exp::AnalyseConfig {
+            results_dir: PathBuf::from(RESULTS_DIR),
+            date: opts.date,
+        };
+        exp::analyse(&Experiment, &conf).await?;
+    }
+    Ok(())
 }
