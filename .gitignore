@@ -11,3 +11,8 @@ certs/*.crt
 certs/*.key
 experiments-results/
 *.svg
+
+**/results/
+**/.ipynb_checkpoints/
+perf.data
+perf.data.old
