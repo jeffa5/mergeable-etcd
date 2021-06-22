@@ -49,6 +49,16 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
+    "bencher-experiment" = rec {
+      packageId = "bencher-experiment";
+      build = internal.buildRustCrateWithFeatures {
+        packageId = "bencher-experiment";
+      };
+
+      # Debug support which might change between releases.
+      # File a bug if you depend on any for non-debug work!
+      debug = internal.debugCrate { inherit packageId; };
+    };
     "ecetcd" = rec {
       packageId = "ecetcd";
       build = internal.buildRustCrateWithFeatures {
@@ -69,6 +79,16 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
+    "etcd-bencher-experiment" = rec {
+      packageId = "etcd-bencher-experiment";
+      build = internal.buildRustCrateWithFeatures {
+        packageId = "etcd-bencher-experiment";
+      };
+
+      # Debug support which might change between releases.
+      # File a bug if you depend on any for non-debug work!
+      debug = internal.debugCrate { inherit packageId; };
+    };
     "etcd-proto" = rec {
       packageId = "etcd-proto";
       build = internal.buildRustCrateWithFeatures {
@@ -79,20 +99,20 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
-    "experiments" = rec {
-      packageId = "experiments";
+    "kubernetes-proto" = rec {
+      packageId = "kubernetes-proto";
       build = internal.buildRustCrateWithFeatures {
-        packageId = "experiments";
+        packageId = "kubernetes-proto";
       };
 
       # Debug support which might change between releases.
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
-    "kubernetes-proto" = rec {
-      packageId = "kubernetes-proto";
+    "kubernetes-scheduling-experiment" = rec {
+      packageId = "kubernetes-scheduling-experiment";
       build = internal.buildRustCrateWithFeatures {
-        packageId = "kubernetes-proto";
+        packageId = "kubernetes-scheduling-experiment";
       };
 
       # Debug support which might change between releases.
@@ -932,6 +952,72 @@ rec {
           {
             name = "tower";
             packageId = "tower";
+          }
+        ];
+
+      };
+      "bencher-experiment" = rec {
+        crateName = "bencher-experiment";
+        version = "0.1.0";
+        edition = "2018";
+        crateBin = [
+          { name = "bencher-experiment"; path = "src/main.rs"; }
+        ];
+        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./experiments/bencher; };
+        dependencies = [
+          {
+            name = "anyhow";
+            packageId = "anyhow";
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "bencher";
+            packageId = "bencher";
+          }
+          {
+            name = "bollard";
+            packageId = "bollard";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+          }
+          {
+            name = "clap";
+            packageId = "clap 3.0.0-beta.2";
+          }
+          {
+            name = "clap_derive";
+            packageId = "clap_derive";
+          }
+          {
+            name = "exp";
+            packageId = "exp";
+          }
+          {
+            name = "futures";
+            packageId = "futures";
+          }
+          {
+            name = "plotters";
+            packageId = "plotters";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
           }
         ];
 
@@ -2333,6 +2419,68 @@ rec {
         };
         resolvedDefaultFeatures = [ "atty" "default" "humantime" "regex" "termcolor" ];
       };
+      "etcd-bencher-experiment" = rec {
+        crateName = "etcd-bencher-experiment";
+        version = "0.1.0";
+        edition = "2018";
+        crateBin = [
+          { name = "etcd-bencher-experiment"; path = "src/main.rs"; }
+        ];
+        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./experiments/etcd-bencher; };
+        dependencies = [
+          {
+            name = "anyhow";
+            packageId = "anyhow";
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "bollard";
+            packageId = "bollard";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+          }
+          {
+            name = "clap";
+            packageId = "clap 3.0.0-beta.2";
+          }
+          {
+            name = "clap_derive";
+            packageId = "clap_derive";
+          }
+          {
+            name = "exp";
+            packageId = "exp";
+          }
+          {
+            name = "futures";
+            packageId = "futures";
+          }
+          {
+            name = "plotters";
+            packageId = "plotters";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
+          }
+        ];
+
+      };
       "etcd-proto" = rec {
         crateName = "etcd-proto";
         version = "0.1.0";
@@ -2371,8 +2519,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/exp";
-          rev = "ce6a66ea1f05f7687226e7e4c1c6d7e7b29407fc";
-          sha256 = "106ii8by9ncbhidndm2ph3q3ryixphvknk0vnmx02skn755z8fhy";
+          rev = "90bb97aaa09cdf562e44cc0edd9c21e78552531f";
+          sha256 = "10h4ybx2hs03524hjg1fjkx56glpz5rh516krncsdb25rv0gfnmq";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -2441,88 +2589,6 @@ rec {
           {
             name = "pkg-config";
             packageId = "pkg-config";
-          }
-        ];
-
-      };
-      "experiments" = rec {
-        crateName = "experiments";
-        version = "0.1.0";
-        edition = "2018";
-        crateBin = [
-          { name = "experiments"; path = "src/main.rs"; }
-        ];
-        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./experiments; };
-        authors = [
-          "Andrew Jeffery <dev@jeffas.io>"
-        ];
-        dependencies = [
-          {
-            name = "anyhow";
-            packageId = "anyhow";
-          }
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "bencher";
-            packageId = "bencher";
-          }
-          {
-            name = "bollard";
-            packageId = "bollard";
-          }
-          {
-            name = "chrono";
-            packageId = "chrono";
-          }
-          {
-            name = "clap";
-            packageId = "clap 3.0.0-beta.2";
-          }
-          {
-            name = "clap_derive";
-            packageId = "clap_derive";
-          }
-          {
-            name = "exp";
-            packageId = "exp";
-          }
-          {
-            name = "futures";
-            packageId = "futures";
-          }
-          {
-            name = "k8s-openapi";
-            packageId = "k8s-openapi";
-            features = [ "v1_20" ];
-          }
-          {
-            name = "kube";
-            packageId = "kube";
-          }
-          {
-            name = "kube-runtime";
-            packageId = "kube-runtime";
-          }
-          {
-            name = "plotters";
-            packageId = "plotters";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
           }
         ];
 
@@ -4391,6 +4457,81 @@ rec {
         ];
 
       };
+      "kubernetes-scheduling-experiment" = rec {
+        crateName = "kubernetes-scheduling-experiment";
+        version = "0.1.0";
+        edition = "2018";
+        crateBin = [
+          { name = "kubernetes-scheduling-experiment"; path = "src/main.rs"; }
+        ];
+        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./experiments/kubernetes-scheduling; };
+        dependencies = [
+          {
+            name = "anyhow";
+            packageId = "anyhow";
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "bollard";
+            packageId = "bollard";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+          }
+          {
+            name = "clap";
+            packageId = "clap 3.0.0-beta.2";
+          }
+          {
+            name = "clap_derive";
+            packageId = "clap_derive";
+          }
+          {
+            name = "exp";
+            packageId = "exp";
+          }
+          {
+            name = "futures";
+            packageId = "futures";
+          }
+          {
+            name = "k8s-openapi";
+            packageId = "k8s-openapi";
+            features = [ "v1_20" ];
+          }
+          {
+            name = "kube";
+            packageId = "kube";
+          }
+          {
+            name = "kube-runtime";
+            packageId = "kube-runtime";
+          }
+          {
+            name = "plotters";
+            packageId = "plotters";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
+          }
+        ];
+
+      };
       "lazy_static" = rec {
         crateName = "lazy_static";
         version = "1.4.0";
@@ -5023,9 +5164,9 @@ rec {
       };
       "openssl-sys" = rec {
         crateName = "openssl-sys";
-        version = "0.9.64";
+        version = "0.9.65";
         edition = "2015";
-        sha256 = "1bsim2zk69q1dw6rixn48l1ci8bmz5kvbkgsks2ci079w0pzr7i0";
+        sha256 = "07dw7y2w3xgz32inrvf1yvw0klb3dk5xz7100m8vi2x0pzihfybs";
         build = "build/main.rs";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
