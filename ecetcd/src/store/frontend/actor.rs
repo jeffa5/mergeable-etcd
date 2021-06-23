@@ -159,18 +159,13 @@ where
     pub async fn run(&mut self) -> Result<(), FrontendError> {
         loop {
             tokio::select! {
-                biased;
-
-                // poll for shutdown first
                 _ = self.shutdown.changed() => {
                     info!("frontend {} shutting down", self.id);
                     break
                 }
-                // then services backend requests to aim to reduce latency
                 Some(msg) = self.backend_receiver.recv() => {
                     self.handle_message(msg).await?;
                 }
-                // then handle new things from clients
                 Some(msg) = self.client_receiver.recv() => {
                     self.handle_message(msg).await?;
                 }
