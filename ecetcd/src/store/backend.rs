@@ -1,6 +1,8 @@
 mod actor;
 mod handle;
 
+use std::fmt::Display;
+
 pub use actor::BackendActor;
 use automerge::Change;
 use automerge_persistent::Error;
@@ -26,4 +28,16 @@ pub enum BackendMessage {
             Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>>,
         >,
     },
+}
+
+impl Display for BackendMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        let s = match self {
+            BackendMessage::ApplyLocalChange { .. } => "apply_local_change",
+            BackendMessage::ApplyLocalChangeSync { .. } => "apply_local_change_sync",
+            BackendMessage::ApplyChanges { .. } => "apply_changes",
+            BackendMessage::GetPatch { .. } => "get_patch",
+        };
+        write!(f, "{}", s)
+    }
 }

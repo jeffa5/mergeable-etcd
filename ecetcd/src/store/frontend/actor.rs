@@ -1,10 +1,10 @@
 use std::{collections::HashMap, convert::TryFrom, marker::PhantomData, ops::Range, thread};
 
-use automerge::{Path, Primitive, Value};
+use automerge::{LocalChange, Path, Primitive, Value};
 use automerge_frontend::InvalidPatch;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
-use automerge_protocol::{ActorId, Patch};
+use automerge_protocol::{ActorId, Change, Patch};
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, watch};
 use tracing::{error, info, warn, Instrument, Span};
@@ -41,7 +41,7 @@ where
         StoreContents::new(&self.frontend)
     }
 
-    #[tracing::instrument(skip(self, change_closure))]
+    #[tracing::instrument(skip(self, change_closure), err)]
     fn change<F, O, E>(
         &mut self,
         change_closure: F,
@@ -52,7 +52,14 @@ where
     {
         let mut sc = StoreContents::new(&self.frontend);
         let result = change_closure(&mut sc)?;
-        let kvs = sc.changes();
+        let changes = self.extract_changes(sc);
+        let change = self.apply_changes(changes);
+        Ok((result, change))
+    }
+
+    #[tracing::instrument(skip(self, store_contents))]
+    fn extract_changes(&self, store_contents: StoreContents<T>) -> Vec<LocalChange> {
+        let kvs = store_contents.changes();
         let mut changes = Vec::new();
         for (path, value) in kvs {
             let old = self.frontend.get_value(&path);
@@ -60,6 +67,11 @@ where
                 automergeable::diff_with_path(Some(&value), old.as_ref(), path).unwrap();
             changes.append(&mut local_changes);
         }
+        changes
+    }
+
+    #[tracing::instrument(skip(self, changes))]
+    fn apply_changes(&mut self, changes: Vec<LocalChange>) -> Option<Change> {
         let ((), change) = self
             .frontend
             .change::<_, _, std::convert::Infallible>(None, |d| {
@@ -69,7 +81,7 @@ where
                 Ok(())
             })
             .unwrap();
-        Ok((result, change))
+        change
     }
 }
 
@@ -166,18 +178,21 @@ where
                     break
                 }
                 Some((msg, span)) = self.backend_receiver.recv() => {
-                    self.handle_message(msg).instrument(span).await?;
+                    self.handle_frontend_message(msg).instrument(span).await?;
                 }
                 Some((msg,span)) = self.client_receiver.recv() => {
-                    self.handle_message(msg).instrument(span).await?;
+                    self.handle_frontend_message(msg).instrument(span).await?;
                 }
             }
         }
         Ok(())
     }
 
-    #[tracing::instrument(skip(self, msg))]
-    async fn handle_message(&mut self, msg: FrontendMessage<T>) -> Result<(), FrontendError> {
+    #[tracing::instrument(skip(self, msg), fields(%msg))]
+    async fn handle_frontend_message(
+        &mut self,
+        msg: FrontendMessage<T>,
+    ) -> Result<(), FrontendError> {
         match msg {
             FrontendMessage::CurrentServer { ret } => {
                 let server = self.current_server();

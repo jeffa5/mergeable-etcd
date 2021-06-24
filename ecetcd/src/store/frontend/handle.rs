@@ -25,7 +25,7 @@ where
     // call send on the underlying sender
     #[tracing::instrument(skip(self, value))]
     #[inline]
-    async fn send(
+    async fn send_to_frontend(
         &self,
         value: FrontendMessage<T>,
     ) -> Result<(), tokio::sync::mpsc::error::SendError<(FrontendMessage<T>, Span)>> {
@@ -71,7 +71,7 @@ where
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::CurrentServer { ret: send };
 
-        let _ = self.sender.send(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -90,7 +90,7 @@ where
             ret: send,
         };
 
-        let _ = self.sender.send(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -109,7 +109,7 @@ where
             ret: send,
         };
 
-        let _ = self.sender.send(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -126,7 +126,7 @@ where
             ret: send,
         };
 
-        let _ = self.sender.send(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -137,7 +137,7 @@ where
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::Txn { request, ret: send };
 
-        let _ = self.sender.send(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -153,7 +153,7 @@ where
             tx_events,
         };
 
-        let _ = self.sender.send(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await.unwrap();
     }
 
     pub async fn create_lease(
@@ -164,7 +164,7 @@ where
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::CreateLease { id, ttl, ret: send };
 
-        let _ = self.sender.send(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -172,7 +172,7 @@ where
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::RefreshLease { id, ret: send };
 
-        let _ = self.sender.send(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -180,13 +180,13 @@ where
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::RevokeLease { id, ret: send };
 
-        let _ = self.sender.send(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
     #[tracing::instrument(skip(self, patch))]
     pub async fn apply_patch(&self, patch: Patch) {
         let msg = FrontendMessage::ApplyPatch { patch };
-        let _ = self.sender.send(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await.unwrap();
     }
 }

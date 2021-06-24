@@ -3,7 +3,7 @@ use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::Patch;
 use futures::future::join_all;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{mpsc, oneshot, watch};
 use tracing::{info, Instrument, Span};
 
 use super::BackendMessage;
@@ -61,7 +61,7 @@ where
         loop {
             tokio::select! {
                 Some((msg,span)) = self.receiver.recv() => {
-                    self.handle_message(msg).instrument(span).await;
+                    self.handle_backend_message(msg).instrument(span).await;
                 }
                 _ = self.shutdown.changed() => {
                     info!("backend shutting down");
@@ -71,34 +71,14 @@ where
         }
     }
 
-    #[tracing::instrument(skip(self, msg))]
-    async fn handle_message(&mut self, msg: BackendMessage) {
+    #[tracing::instrument(skip(self, msg), fields(%msg))]
+    async fn handle_backend_message(&mut self, msg: BackendMessage) {
         match msg {
             BackendMessage::ApplyLocalChange { change } => {
-                let patch = self.apply_local_change(change).unwrap();
-
-                let apply_patches = self
-                    .frontends
-                    .iter()
-                    .map(|f| f.apply_patch(patch.clone()))
-                    .collect::<Vec<_>>();
-                join_all(apply_patches).await;
+                self.apply_local_change_async(change).await.unwrap()
             }
             BackendMessage::ApplyLocalChangeSync { change, ret } => {
-                let patch = self.apply_local_change(change).unwrap();
-                // ensure that the change is in disk
-                self.backend.flush().unwrap();
-
-                // notify the frontend that the change has been processed
-                let _ = ret.send(());
-
-                // send patch to all frontends
-                let apply_patches = self
-                    .frontends
-                    .iter()
-                    .map(|f| f.apply_patch(patch.clone()))
-                    .collect::<Vec<_>>();
-                join_all(apply_patches).await;
+                self.apply_local_change_sync(change, ret).await.unwrap()
             }
             BackendMessage::ApplyChanges { changes } => {
                 let patch = self.apply_changes(changes).unwrap();
@@ -125,6 +105,52 @@ where
         change: automerge_protocol::Change,
     ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
         self.backend.apply_local_change(change)
+    }
+
+    #[tracing::instrument(skip(self, change))]
+    async fn apply_local_change_async(
+        &mut self,
+        change: automerge_protocol::Change,
+    ) -> Result<(), Error<SledPersisterError, automerge_backend::AutomergeError>> {
+        let patch = self.apply_local_change(change)?;
+
+        self.apply_patch_to_frontends(patch).await;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self, change))]
+    async fn apply_local_change_sync(
+        &mut self,
+        change: automerge_protocol::Change,
+        ret: oneshot::Sender<()>,
+    ) -> Result<(), Error<SledPersisterError, automerge_backend::AutomergeError>> {
+        let patch = self.apply_local_change(change)?;
+
+        // ensure that the change is in disk
+        self.flush().await;
+
+        // notify the frontend that the change has been processed
+        let _ = ret.send(());
+
+        self.apply_patch_to_frontends(patch).await;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn flush(&mut self) {
+        self.backend.flush().unwrap();
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn apply_patch_to_frontends(&mut self, patch: Patch) {
+        let apply_patches = self
+            .frontends
+            .iter()
+            .map(|f| f.apply_patch(patch.clone()))
+            .collect::<Vec<_>>();
+        join_all(apply_patches).await;
     }
 
     fn apply_changes(

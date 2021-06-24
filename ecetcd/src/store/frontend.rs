@@ -1,6 +1,8 @@
 mod actor;
 mod handle;
 
+use std::fmt::Display;
+
 pub use actor::{FrontendActor, FrontendError};
 use automerge_protocol::Patch;
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
@@ -63,4 +65,25 @@ where
     ApplyPatch {
         patch: Patch,
     },
+}
+
+impl<T> Display for FrontendMessage<T>
+where
+    T: StoreValue,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        let s = match self {
+            FrontendMessage::CurrentServer { .. } => "current_server",
+            FrontendMessage::Get { .. } => "get",
+            FrontendMessage::Insert { .. } => "insert",
+            FrontendMessage::Remove { .. } => "remove",
+            FrontendMessage::Txn { .. } => "txn",
+            FrontendMessage::WatchRange { .. } => "watch_range",
+            FrontendMessage::CreateLease { .. } => "create_lease",
+            FrontendMessage::RefreshLease { .. } => "refresh_lease",
+            FrontendMessage::RevokeLease { .. } => "revoke_lease",
+            FrontendMessage::ApplyPatch { .. } => "apply_patch",
+        };
+        write!(f, "{}", s)
+    }
 }

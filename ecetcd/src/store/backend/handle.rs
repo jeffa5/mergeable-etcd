@@ -16,7 +16,7 @@ impl Sender {
     // call send on the underlying sender
     #[tracing::instrument(skip(self, value))]
     #[inline]
-    async fn send(
+    async fn send_to_backend(
         &self,
         value: BackendMessage,
     ) -> Result<(), tokio::sync::mpsc::error::SendError<(BackendMessage, Span)>> {
@@ -40,7 +40,7 @@ impl BackendHandle {
     #[tracing::instrument(skip(self, change))]
     pub async fn apply_local_change(&self, change: automerge_protocol::Change) {
         let msg = BackendMessage::ApplyLocalChange { change };
-        let _ = self.sender.send(msg).await;
+        let _ = self.sender.send_to_backend(msg).await;
     }
 
     /// Like [`apply_local_change`] but waits for the backend to process the change.
@@ -51,13 +51,13 @@ impl BackendHandle {
         let (send, recv) = oneshot::channel();
         let msg = BackendMessage::ApplyLocalChangeSync { change, ret: send };
 
-        let _ = self.sender.send(msg).await;
+        let _ = self.sender.send_to_backend(msg).await;
         recv.await.expect("Backend actor has been killed");
     }
 
     pub async fn apply_changes(&self, changes: Vec<Change>) {
         let msg = BackendMessage::ApplyChanges { changes };
-        let _ = self.sender.send(msg).await;
+        let _ = self.sender.send_to_backend(msg).await;
     }
 
     pub async fn get_patch(
@@ -66,7 +66,7 @@ impl BackendHandle {
         let (send, recv) = oneshot::channel();
         let msg = BackendMessage::GetPatch { ret: send };
 
-        let _ = self.sender.send(msg).await;
+        let _ = self.sender.send_to_backend(msg).await;
         recv.await.expect("Actor task has been killed")
     }
 }
