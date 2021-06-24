@@ -1732,6 +1732,32 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
+      "crossbeam-channel" = rec {
+        crateName = "crossbeam-channel";
+        version = "0.5.1";
+        edition = "2018";
+        sha256 = "1d1dnp61g51gnmc45cb4vpjsr5n62wz22an2y3q6avgifzhjgv86";
+        authors = [
+          "The Crossbeam Project Developers"
+        ];
+        dependencies = [
+          {
+            name = "cfg-if";
+            packageId = "cfg-if";
+          }
+          {
+            name = "crossbeam-utils";
+            packageId = "crossbeam-utils";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "std" = [ "crossbeam-utils/std" ];
+        };
+        resolvedDefaultFeatures = [ "crossbeam-utils" "default" "std" ];
+      };
       "crossbeam-epoch" = rec {
         crateName = "crossbeam-epoch";
         version = "0.9.5";
@@ -2220,6 +2246,10 @@ rec {
             packageId = "num_cpus";
           }
           {
+            name = "opentelemetry";
+            packageId = "opentelemetry 0.15.0";
+          }
+          {
             name = "prost";
             packageId = "prost";
           }
@@ -2328,6 +2358,14 @@ rec {
             packageId = "kubernetes-proto";
           }
           {
+            name = "opentelemetry";
+            packageId = "opentelemetry 0.15.0";
+          }
+          {
+            name = "opentelemetry-jaeger";
+            packageId = "opentelemetry-jaeger";
+          }
+          {
             name = "prost";
             packageId = "prost";
           }
@@ -2352,6 +2390,10 @@ rec {
           {
             name = "tracing";
             packageId = "tracing";
+          }
+          {
+            name = "tracing-opentelemetry";
+            packageId = "tracing-opentelemetry";
           }
           {
             name = "tracing-subscriber";
@@ -4006,6 +4048,19 @@ rec {
           "wasm-bindgen" = [ "js-sys" "wasm-bindgen_rs" "web-sys" ];
         };
       };
+      "integer-encoding" = rec {
+        crateName = "integer-encoding";
+        version = "1.1.7";
+        edition = "2018";
+        sha256 = "0vxmsfxwsf8dclppdmikjklzh84w341crl0lb3bpydwv18c53p28";
+        authors = [
+          "Lewin Bormann <lbo@spheniscida.de>"
+        ];
+        features = {
+          "futures_async" = [ "futures-util" "async-trait" ];
+          "tokio_async" = [ "tokio" "async-trait" ];
+        };
+      };
       "itertools" = rec {
         crateName = "itertools";
         version = "0.9.0";
@@ -5201,7 +5256,211 @@ rec {
           "vendored" = [ "openssl-src" ];
         };
       };
-      "ordered-float" = rec {
+      "opentelemetry 0.14.0" = rec {
+        crateName = "opentelemetry";
+        version = "0.14.0";
+        edition = "2018";
+        sha256 = "0yjl3mc9ky95r9v70sxgw6azcxap5i740fs4w2fpy6zi8zzlha29";
+        authors = [
+          "OpenTelemetry Authors <cncf-opentelemetry-contributors@lists.cncf.io>"
+        ];
+        dependencies = [
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+            optional = true;
+          }
+          {
+            name = "crossbeam-channel";
+            packageId = "crossbeam-channel";
+            optional = true;
+          }
+          {
+            name = "futures";
+            packageId = "futures";
+          }
+          {
+            name = "js-sys";
+            packageId = "js-sys";
+            target = { target, features }: (target."arch" == "wasm32");
+          }
+          {
+            name = "lazy_static";
+            packageId = "lazy_static";
+          }
+          {
+            name = "percent-encoding";
+            packageId = "percent-encoding";
+            optional = true;
+          }
+          {
+            name = "pin-project";
+            packageId = "pin-project 1.0.7";
+            optional = true;
+          }
+          {
+            name = "rand";
+            packageId = "rand 0.8.4";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "std" "std_rng" ];
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+        ];
+        features = {
+          "default" = [ "trace" ];
+          "metrics" = [ "dashmap" "fnv" ];
+          "rt-async-std" = [ "async-std" ];
+          "rt-tokio" = [ "tokio" "tokio-stream" ];
+          "rt-tokio-current-thread" = [ "tokio" "tokio-stream" ];
+          "serialize" = [ "serde" ];
+          "testing" = [ "trace" "metrics" "rt-async-std" "rt-tokio" "rt-tokio-current-thread" ];
+          "trace" = [ "crossbeam-channel" "rand" "pin-project" "async-trait" "percent-encoding" ];
+        };
+        resolvedDefaultFeatures = [ "async-trait" "crossbeam-channel" "percent-encoding" "pin-project" "rand" "trace" ];
+      };
+      "opentelemetry 0.15.0" = rec {
+        crateName = "opentelemetry";
+        version = "0.15.0";
+        edition = "2018";
+        sha256 = "0rrapyiwsj6y6gvfjyhza2q9319x23596rlkajc7nbj360zb69zz";
+        authors = [
+          "OpenTelemetry Authors <cncf-opentelemetry-contributors@lists.cncf.io>"
+        ];
+        dependencies = [
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+            optional = true;
+          }
+          {
+            name = "crossbeam-channel";
+            packageId = "crossbeam-channel";
+            optional = true;
+          }
+          {
+            name = "futures";
+            packageId = "futures";
+          }
+          {
+            name = "js-sys";
+            packageId = "js-sys";
+            target = { target, features }: (target."arch" == "wasm32");
+          }
+          {
+            name = "lazy_static";
+            packageId = "lazy_static";
+          }
+          {
+            name = "percent-encoding";
+            packageId = "percent-encoding";
+            optional = true;
+          }
+          {
+            name = "pin-project";
+            packageId = "pin-project 1.0.7";
+            optional = true;
+          }
+          {
+            name = "rand";
+            packageId = "rand 0.8.4";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "std" "std_rng" ];
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+        ];
+        features = {
+          "default" = [ "trace" ];
+          "metrics" = [ "dashmap" "fnv" ];
+          "rt-async-std" = [ "async-std" ];
+          "rt-tokio" = [ "tokio" "tokio-stream" ];
+          "rt-tokio-current-thread" = [ "tokio" "tokio-stream" ];
+          "serialize" = [ "serde" ];
+          "testing" = [ "trace" "metrics" "rt-async-std" "rt-tokio" "rt-tokio-current-thread" "tokio/macros" "tokio/rt-multi-thread" ];
+          "trace" = [ "crossbeam-channel" "rand" "pin-project" "async-trait" "percent-encoding" ];
+        };
+        resolvedDefaultFeatures = [ "async-trait" "crossbeam-channel" "default" "percent-encoding" "pin-project" "rand" "trace" ];
+      };
+      "opentelemetry-jaeger" = rec {
+        crateName = "opentelemetry-jaeger";
+        version = "0.13.0";
+        edition = "2018";
+        sha256 = "0is6klrp9m0fcx3k327xbml2a2c91nx24xdipya073i09z9rxzcp";
+        authors = [
+          "OpenTelemetry Authors <cncf-opentelemetry-contributors@lists.cncf.io>"
+        ];
+        dependencies = [
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "lazy_static";
+            packageId = "lazy_static";
+          }
+          {
+            name = "opentelemetry";
+            packageId = "opentelemetry 0.14.0";
+            usesDefaultFeatures = false;
+            features = [ "trace" ];
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+          {
+            name = "thrift";
+            packageId = "thrift";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "opentelemetry";
+            packageId = "opentelemetry 0.14.0";
+            usesDefaultFeatures = false;
+            features = [ "trace" "testing" ];
+          }
+        ];
+        features = {
+          "collector_client" = [ "http" "opentelemetry-http" ];
+          "isahc_collector_client" = [ "isahc" "opentelemetry-http/isahc" ];
+          "reqwest_blocking_collector_client" = [ "reqwest/blocking" "collector_client" "headers" "opentelemetry-http/reqwest" ];
+          "reqwest_collector_client" = [ "reqwest" "collector_client" "headers" "opentelemetry-http/reqwest" ];
+          "surf_collector_client" = [ "surf" "collector_client" "opentelemetry-http/surf" ];
+          "wasm_collector_client" = [ "base64" "futures-util" "http" "js-sys" "pin-project" "wasm-bindgen" "wasm-bindgen-futures" "web-sys" ];
+        };
+        resolvedDefaultFeatures = [ "default" ];
+      };
+      "ordered-float 1.1.1" = rec {
+        crateName = "ordered-float";
+        version = "1.1.1";
+        edition = "2015";
+        sha256 = "1drp3v9jsm1mn0wqp4p5y19j3bmz3w5rw4yxzi39zlld4wssy19k";
+        authors = [
+          "Jonathan Reem <jonathan.reem@gmail.com>"
+          "Matt Brubeck <mbrubeck@limpet.net>"
+        ];
+        dependencies = [
+          {
+            name = "num-traits";
+            packageId = "num-traits";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "std" = [ "num-traits/std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "ordered-float 2.5.1" = rec {
         crateName = "ordered-float";
         version = "2.5.1";
         edition = "2018";
@@ -6887,7 +7146,7 @@ rec {
         dependencies = [
           {
             name = "ordered-float";
-            packageId = "ordered-float";
+            packageId = "ordered-float 2.5.1";
           }
           {
             name = "serde";
@@ -7765,6 +8024,56 @@ rec {
         ];
 
       };
+      "threadpool" = rec {
+        crateName = "threadpool";
+        version = "1.8.1";
+        edition = "2015";
+        sha256 = "1amgfyzvynbm8pacniivzq9r0fh3chhs7kijic81j76l6c5ycl6h";
+        authors = [
+          "The Rust Project Developers"
+          "Corey Farwell <coreyf@rwell.org>"
+          "Stefan Schindler <dns2utf8@estada.ch>"
+        ];
+        dependencies = [
+          {
+            name = "num_cpus";
+            packageId = "num_cpus";
+          }
+        ];
+
+      };
+      "thrift" = rec {
+        crateName = "thrift";
+        version = "0.13.0";
+        edition = "2015";
+        sha256 = "0nvbrflb5fw6hmayqppkp97dh63vs2znww92dlkcfz4laia9cv8c";
+        authors = [
+          "Apache Thrift Developers <dev@thrift.apache.org>"
+        ];
+        dependencies = [
+          {
+            name = "byteorder";
+            packageId = "byteorder";
+          }
+          {
+            name = "integer-encoding";
+            packageId = "integer-encoding";
+          }
+          {
+            name = "log";
+            packageId = "log";
+          }
+          {
+            name = "ordered-float";
+            packageId = "ordered-float 1.1.1";
+          }
+          {
+            name = "threadpool";
+            packageId = "threadpool";
+          }
+        ];
+
+      };
       "time" = rec {
         crateName = "time";
         version = "0.1.44";
@@ -8571,6 +8880,50 @@ rec {
           "std" = [ "log/std" ];
         };
         resolvedDefaultFeatures = [ "log-tracer" "std" ];
+      };
+      "tracing-opentelemetry" = rec {
+        crateName = "tracing-opentelemetry";
+        version = "0.13.0";
+        edition = "2018";
+        sha256 = "0qsr5sd3bc2vjvsvll9kk7wjxki8ch2i3fdkf08vma4jgckwpx72";
+        authors = [
+          "Julian Tescher <julian@tescher.me>"
+          "Tokio Contributors <team@tokio.rs>"
+        ];
+        dependencies = [
+          {
+            name = "opentelemetry";
+            packageId = "opentelemetry 0.14.0";
+            usesDefaultFeatures = false;
+            features = [ "trace" ];
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "tracing-core";
+            packageId = "tracing-core";
+          }
+          {
+            name = "tracing-log";
+            packageId = "tracing-log";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "tracing-subscriber";
+            packageId = "tracing-subscriber";
+            usesDefaultFeatures = false;
+            features = [ "registry" ];
+          }
+        ];
+        features = {
+          "default" = [ "tracing-log" ];
+        };
+        resolvedDefaultFeatures = [ "default" "tracing-log" ];
       };
       "tracing-serde" = rec {
         crateName = "tracing-serde";

@@ -1,6 +1,7 @@
 use automerge_protocol::{ActorId, Patch};
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, oneshot};
+use tracing::Span;
 
 use super::{actor::FrontendError, FrontendMessage};
 use crate::{
@@ -13,8 +14,8 @@ enum Sender<T>
 where
     T: StoreValue,
 {
-    Bounded(mpsc::Sender<FrontendMessage<T>>),
-    Unbounded(mpsc::UnboundedSender<FrontendMessage<T>>),
+    Bounded(mpsc::Sender<(FrontendMessage<T>, Span)>),
+    Unbounded(mpsc::UnboundedSender<(FrontendMessage<T>, Span)>),
 }
 
 impl<T> Sender<T>
@@ -22,14 +23,16 @@ where
     T: StoreValue,
 {
     // call send on the underlying sender
+    #[tracing::instrument(skip(self, value))]
     #[inline]
     async fn send(
         &self,
         value: FrontendMessage<T>,
-    ) -> Result<(), tokio::sync::mpsc::error::SendError<FrontendMessage<T>>> {
+    ) -> Result<(), tokio::sync::mpsc::error::SendError<(FrontendMessage<T>, Span)>> {
+        let span = tracing::Span::current();
         match self {
-            Self::Bounded(b) => b.send(value).await,
-            Self::Unbounded(u) => u.send(value),
+            Self::Bounded(b) => b.send((value, span)).await,
+            Self::Unbounded(u) => u.send((value, span)),
         }
     }
 }
@@ -47,7 +50,7 @@ impl<T> FrontendHandle<T>
 where
     T: StoreValue,
 {
-    pub fn new(sender: mpsc::Sender<FrontendMessage<T>>, actor_id: ActorId) -> Self {
+    pub fn new(sender: mpsc::Sender<(FrontendMessage<T>, Span)>, actor_id: ActorId) -> Self {
         Self {
             sender: Sender::Bounded(sender),
             actor_id,
@@ -55,7 +58,7 @@ where
     }
 
     pub fn new_unbounded(
-        sender: mpsc::UnboundedSender<FrontendMessage<T>>,
+        sender: mpsc::UnboundedSender<(FrontendMessage<T>, Span)>,
         actor_id: ActorId,
     ) -> Self {
         Self {
@@ -72,6 +75,7 @@ where
         recv.await.expect("Actor task has been killed")
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get(
         &self,
         key: Key,
@@ -90,6 +94,7 @@ where
         recv.await.expect("Actor task has been killed")
     }
 
+    #[tracing::instrument(skip(self, key, value, prev_kv))]
     pub async fn insert(
         &self,
         key: Key,
@@ -108,6 +113,7 @@ where
         recv.await.expect("Actor task has been killed")
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn remove(
         &self,
         key: Key,
@@ -178,6 +184,7 @@ where
         recv.await.expect("Actor task has been killed")
     }
 
+    #[tracing::instrument(skip(self, patch))]
     pub async fn apply_patch(&self, patch: Patch) {
         let msg = FrontendMessage::ApplyPatch { patch };
         let _ = self.sender.send(msg).await.unwrap();

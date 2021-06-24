@@ -34,6 +34,7 @@ automerge-persistent = { git = "https://github.com/jeffa5/automerge-persistent",
 automerge-persistent-sled = { git = "https://github.com/jeffa5/automerge-persistent", branch = "main" }
 num_cpus = "1.13.0"
 uuid = "0.8.2"
+opentelemetry = "0.15.0"
 
 [build-dependencies]
 tonic-build = "0.4.0"

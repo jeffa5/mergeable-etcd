@@ -4,7 +4,7 @@ use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::Patch;
 use futures::future::join_all;
 use tokio::sync::{mpsc, watch};
-use tracing::info;
+use tracing::{info, Instrument, Span};
 
 use super::BackendMessage;
 use crate::{store::FrontendHandle, StoreValue};
@@ -19,7 +19,7 @@ where
         automerge_persistent_sled::SledPersister,
         automerge::Backend,
     >,
-    receiver: mpsc::UnboundedReceiver<BackendMessage>,
+    receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
     shutdown: watch::Receiver<()>,
     frontends: Vec<FrontendHandle<T>>,
 }
@@ -31,7 +31,7 @@ where
     pub fn new(
         config: &sled::Config,
         frontends: Vec<FrontendHandle<T>>,
-        receiver: mpsc::UnboundedReceiver<BackendMessage>,
+        receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
         shutdown: watch::Receiver<()>,
     ) -> Self {
         let db = config.open().unwrap();
@@ -60,8 +60,8 @@ where
     pub async fn run(&mut self) {
         loop {
             tokio::select! {
-                Some(msg) = self.receiver.recv() => {
-                    self.handle_message(msg).await;
+                Some((msg,span)) = self.receiver.recv() => {
+                    self.handle_message(msg).instrument(span).await;
                 }
                 _ = self.shutdown.changed() => {
                     info!("backend shutting down");
@@ -71,6 +71,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self, msg))]
     async fn handle_message(&mut self, msg: BackendMessage) {
         match msg {
             BackendMessage::ApplyLocalChange { change } => {
@@ -118,6 +119,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self, change))]
     fn apply_local_change(
         &mut self,
         change: automerge_protocol::Change,

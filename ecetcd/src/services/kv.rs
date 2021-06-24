@@ -4,8 +4,9 @@ use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
     PutRequest, PutResponse, RangeRequest, RangeResponse, TxnRequest, TxnResponse,
 };
+use opentelemetry::{propagation::Extractor, trace::Tracer};
 use tonic::{Request, Response, Status};
-use tracing::{debug, info};
+use tracing::{debug, info, Level};
 
 use crate::{
     server::Server,
@@ -115,6 +116,7 @@ where
             header: Some(server.header()),
             prev_kv,
         };
+        tracing::event!(Level::INFO, "finished request");
         Ok(Response::new(reply))
     }
 

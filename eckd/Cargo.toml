@@ -10,7 +10,7 @@ repository = "https://gitlab.developers.cam.ac.uk/apj39/eckd-rs"
 [dependencies]
 ecetcd = { path = "../ecetcd" }
 structopt = "0.3.21"
-tracing = "0.1.23"
+tracing = "0.1.26"
 tracing-subscriber = "0.2.15"
 serde = { version = "1.0.123", features = ["derive"] }
 serde_json = "1.0.62"
@@ -19,6 +19,9 @@ tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread", "fs"
 automergeable = { git = "https://github.com/jeffa5/automergeable", branch = "main" }
 automerge = { git = "https://github.com/automerge/automerge-rs", branch = "main" }
 prost = "0.7.0"
+opentelemetry = { version = "0.15.0", features = [] }
+opentelemetry-jaeger = "0.13.0"
+tracing-opentelemetry = "0.13.0"
 
 [dev-dependencies]
 pretty_assertions = "0.7.1"

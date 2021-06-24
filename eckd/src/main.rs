@@ -9,7 +9,8 @@ use ecetcd::{
     Ecetcd,
 };
 use structopt::StructOpt;
-use tracing::{debug, info, Level};
+use tracing::{debug, info};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
 
 mod k8s;
 use k8s::Value;
@@ -99,14 +100,24 @@ struct Options {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = Options::from_args();
 
-    let collector = tracing_subscriber::fmt()
-        .with_max_level(if options.debug {
-            Level::DEBUG
-        } else {
-            Level::INFO
-        })
-        .finish();
-    tracing::subscriber::set_global_default(collector).unwrap();
+    let tracer = opentelemetry_jaeger::new_pipeline()
+        .with_service_name("eckd")
+        .install_simple()?;
+
+    Registry::default()
+        .with(tracing_subscriber::EnvFilter::new("INFO"))
+        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_opentelemetry::layer().with_tracer(tracer))
+        .init();
+
+    // let collector = tracing_subscriber::fmt()
+    //     .with_max_level(if options.debug {
+    //         Level::DEBUG
+    //     } else {
+    //         Level::INFO
+    //     })
+    //     .finish();
+    // tracing::subscriber::set_global_default(collector).unwrap();
 
     debug!("{:#?}", options);
 

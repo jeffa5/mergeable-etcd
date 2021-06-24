@@ -56,6 +56,7 @@ where
     /// Select a frontend based on the source address.
     ///
     /// This aims to have requests from the same host repeatedly hit the same frontend
+    #[tracing::instrument(skip(self, remote_addr))]
     fn select_frontend(&self, remote_addr: Option<SocketAddr>) -> FrontendHandle<T> {
         let remote_ip = remote_addr.map(|a| a.ip());
         let mut hasher = DefaultHasher::new();
@@ -67,7 +68,7 @@ where
         frontends[index].clone()
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, key, range_end, tx_results, remote_addr))]
     pub fn create_watcher(
         &self,
         key: Vec<u8>,
@@ -173,6 +174,7 @@ where
             .await
     }
 
+    #[tracing::instrument(skip(self, key, value, prev_kv, remote_addr))]
     pub async fn insert(
         &self,
         key: Key,

@@ -50,6 +50,7 @@ where
     }
 
     server
+        .trace_fn(|_| tracing::info_span!(""))
         .timeout(Duration::from_secs(5))
         .add_service(CatchAllService {})
         .add_service(kv_service)

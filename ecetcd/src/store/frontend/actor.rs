@@ -7,7 +7,7 @@ use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::{ActorId, Patch};
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, watch};
-use tracing::{error, info, warn};
+use tracing::{error, info, warn, Instrument, Span};
 
 use super::FrontendMessage;
 use crate::{
@@ -32,6 +32,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self, patch))]
     fn apply_patch(&mut self, patch: Patch) -> Result<(), InvalidPatch> {
         self.frontend.apply_patch(patch)
     }
@@ -40,6 +41,7 @@ where
         StoreContents::new(&self.frontend)
     }
 
+    #[tracing::instrument(skip(self, change_closure))]
     fn change<F, O, E>(
         &mut self,
         change_closure: F,
@@ -80,9 +82,9 @@ where
     backend: BackendHandle,
     watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>>,
     // receiver for requests from clients
-    client_receiver: mpsc::Receiver<FrontendMessage<T>>,
+    client_receiver: mpsc::Receiver<(FrontendMessage<T>, Span)>,
     // receiver for requests from the backend
-    backend_receiver: mpsc::UnboundedReceiver<FrontendMessage<T>>,
+    backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage<T>, Span)>,
     shutdown: watch::Receiver<()>,
     id: usize,
     sync: bool,
@@ -110,8 +112,8 @@ where
 {
     pub async fn new(
         backend: BackendHandle,
-        client_receiver: mpsc::Receiver<FrontendMessage<T>>,
-        backend_receiver: mpsc::UnboundedReceiver<FrontendMessage<T>>,
+        client_receiver: mpsc::Receiver<(FrontendMessage<T>, Span)>,
+        backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage<T>, Span)>,
         shutdown: watch::Receiver<()>,
         id: usize,
         actor_id: uuid::Uuid,
@@ -163,17 +165,18 @@ where
                     info!("frontend {} shutting down", self.id);
                     break
                 }
-                Some(msg) = self.backend_receiver.recv() => {
-                    self.handle_message(msg).await?;
+                Some((msg, span)) = self.backend_receiver.recv() => {
+                    self.handle_message(msg).instrument(span).await?;
                 }
-                Some(msg) = self.client_receiver.recv() => {
-                    self.handle_message(msg).await?;
+                Some((msg,span)) = self.client_receiver.recv() => {
+                    self.handle_message(msg).instrument(span).await?;
                 }
             }
         }
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, msg))]
     async fn handle_message(&mut self, msg: FrontendMessage<T>) -> Result<(), FrontendError> {
         match msg {
             FrontendMessage::CurrentServer { ret } => {
@@ -256,6 +259,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self, change), fields(sync = self.sync))]
     async fn apply_local_change(&mut self, change: automerge_protocol::Change) {
         if self.sync {
             self.backend.apply_local_change_sync(change).await;
@@ -297,13 +301,15 @@ where
             })
             .unwrap();
 
-        let mut doc = self.document.get();
-        let value = doc.value(&key).unwrap().unwrap();
-        for (range, sender) in &self.watchers {
-            if range.contains(&key) {
-                let _ = sender
-                    .send((server.clone(), vec![(key.clone(), value.clone())]))
-                    .await;
+        if !self.watchers.is_empty() {
+            let mut doc = self.document.get();
+            let value = doc.value(&key).unwrap().unwrap();
+            for (range, sender) in &self.watchers {
+                if range.contains(&key) {
+                    let _ = sender
+                        .send((server.clone(), vec![(key.clone(), value.clone())]))
+                        .await;
+                }
             }
         }
 
