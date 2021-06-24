@@ -14,7 +14,7 @@ struct Sender {
 
 impl Sender {
     // call send on the underlying sender
-    #[tracing::instrument(skip(self, value))]
+    #[tracing::instrument(level = "debug", skip(self, value))]
     #[inline]
     async fn send_to_backend(
         &self,
@@ -37,7 +37,7 @@ impl BackendHandle {
         }
     }
 
-    #[tracing::instrument(skip(self, change))]
+    #[tracing::instrument(level = "debug", skip(self, change))]
     pub async fn apply_local_change(&self, change: automerge_protocol::Change) {
         let msg = BackendMessage::ApplyLocalChange { change };
         let _ = self.sender.send_to_backend(msg).await;
@@ -46,7 +46,7 @@ impl BackendHandle {
     /// Like [`apply_local_change`] but waits for the backend to process the change.
     ///
     /// The patch still comes back asynchronously
-    #[tracing::instrument(skip(self, change))]
+    #[tracing::instrument(level = "debug", skip(self, change))]
     pub async fn apply_local_change_sync(&self, change: automerge_protocol::Change) {
         let (send, recv) = oneshot::channel();
         let msg = BackendMessage::ApplyLocalChangeSync { change, ret: send };

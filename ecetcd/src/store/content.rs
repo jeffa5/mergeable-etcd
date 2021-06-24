@@ -214,7 +214,7 @@ where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {
-    #[tracing::instrument(skip(self, range_end), fields(key = %key))]
+    #[tracing::instrument(level="debug",skip(self, range_end), fields(key = %key))]
     pub(crate) fn get_inner(
         &mut self,
         key: Key,
@@ -244,7 +244,7 @@ where
         values
     }
 
-    #[tracing::instrument(skip(self, value), fields(key = %key))]
+    #[tracing::instrument(level="debug",skip(self, value), fields(key = %key))]
     pub(crate) fn insert_inner(
         &mut self,
         key: Key,
@@ -271,7 +271,7 @@ where
         }
     }
 
-    #[tracing::instrument(skip(self), fields(key = %key))]
+    #[tracing::instrument(level="debug",skip(self), fields(key = %key))]
     pub(crate) fn remove_inner(
         &mut self,
         key: Key,
@@ -299,7 +299,7 @@ where
         // values
     }
 
-    #[tracing::instrument(skip(self, request))]
+    #[tracing::instrument(level = "debug", skip(self, request))]
     pub(crate) fn transaction_inner(&mut self, request: TxnRequest) -> (bool, Vec<ResponseOp>) {
         tracing::info!("transacting");
         let server = self.server().unwrap().clone();

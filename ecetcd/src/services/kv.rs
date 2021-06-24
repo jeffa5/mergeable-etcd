@@ -116,7 +116,7 @@ where
             header: Some(server.header()),
             prev_kv,
         };
-        tracing::event!(Level::INFO, "finished request");
+        tracing::event!(Level::DEBUG, "finished request");
         Ok(Response::new(reply))
     }
 

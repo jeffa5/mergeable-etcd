@@ -32,7 +32,7 @@ where
         }
     }
 
-    #[tracing::instrument(skip(self, patch))]
+    #[tracing::instrument(level = "debug", skip(self, patch))]
     fn apply_patch(&mut self, patch: Patch) -> Result<(), InvalidPatch> {
         self.frontend.apply_patch(patch)
     }
@@ -41,7 +41,7 @@ where
         StoreContents::new(&self.frontend)
     }
 
-    #[tracing::instrument(skip(self, change_closure), err)]
+    #[tracing::instrument(level = "debug", skip(self, change_closure), err)]
     fn change<F, O, E>(
         &mut self,
         change_closure: F,
@@ -57,7 +57,7 @@ where
         Ok((result, change))
     }
 
-    #[tracing::instrument(skip(self, store_contents))]
+    #[tracing::instrument(level = "debug", skip(self, store_contents))]
     fn extract_changes(&self, store_contents: StoreContents<T>) -> Vec<LocalChange> {
         let kvs = store_contents.changes();
         let mut changes = Vec::new();
@@ -70,7 +70,7 @@ where
         changes
     }
 
-    #[tracing::instrument(skip(self, changes))]
+    #[tracing::instrument(level = "debug", skip(self, changes))]
     fn apply_changes(&mut self, changes: Vec<LocalChange>) -> Option<Change> {
         let ((), change) = self
             .frontend
@@ -188,7 +188,7 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(skip(self, msg), fields(%msg))]
+    #[tracing::instrument(level="debug",skip(self, msg), fields(%msg))]
     async fn handle_frontend_message(
         &mut self,
         msg: FrontendMessage<T>,
@@ -274,7 +274,7 @@ where
         }
     }
 
-    #[tracing::instrument(skip(self, change), fields(sync = self.sync))]
+    #[tracing::instrument(level="debug",skip(self, change), fields(sync = self.sync))]
     async fn apply_local_change(&mut self, change: automerge_protocol::Change) {
         if self.sync {
             self.backend.apply_local_change_sync(change).await;
@@ -284,7 +284,7 @@ where
         // patch gets sent back asynchronously and we don't wait for it
     }
 
-    #[tracing::instrument(skip(self), fields(key = %key, frontend = self.id))]
+    #[tracing::instrument(level="debug",skip(self), fields(key = %key, frontend = self.id))]
     fn get(
         &self,
         key: Key,
@@ -297,7 +297,7 @@ where
         Ok((server, values))
     }
 
-    #[tracing::instrument(skip(self, value), fields(key = %key, frontend = self.id))]
+    #[tracing::instrument(level="debug",skip(self, value), fields(key = %key, frontend = self.id))]
     async fn insert(
         &mut self,
         key: Key,
@@ -335,7 +335,7 @@ where
         Ok((server, prev))
     }
 
-    #[tracing::instrument(skip(self), fields(key = %key, frontend = self.id))]
+    #[tracing::instrument(level="debug",skip(self), fields(key = %key, frontend = self.id))]
     async fn remove(
         &mut self,
         key: Key,
@@ -371,7 +371,7 @@ where
         Ok((server, prev))
     }
 
-    #[tracing::instrument(skip(self, request), fields(frontend = self.id))]
+    #[tracing::instrument(level="debug",skip(self, request), fields(frontend = self.id))]
     async fn txn(
         &mut self,
         request: TxnRequest,
@@ -450,12 +450,12 @@ where
         }
     }
 
-    #[tracing::instrument(skip(self), fields(frontend = self.id))]
+    #[tracing::instrument(level="debug",skip(self), fields(frontend = self.id))]
     fn current_server(&self) -> Server {
         self.document.get().server().unwrap().clone()
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn create_lease(
         &mut self,
         id: Option<i64>,
@@ -482,7 +482,7 @@ where
         Ok(result)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn refresh_lease(&mut self, id: i64) -> Result<(Server, Ttl), FrontendError> {
         let (result, change) = self
             .document
@@ -503,7 +503,7 @@ where
         Ok(result)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn revoke_lease(&mut self, id: i64) -> Result<Server, FrontendError> {
         let (result, change) = self
             .document

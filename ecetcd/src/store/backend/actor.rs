@@ -71,7 +71,7 @@ where
         }
     }
 
-    #[tracing::instrument(skip(self, msg), fields(%msg))]
+    #[tracing::instrument(level="debug",skip(self, msg), fields(%msg))]
     async fn handle_backend_message(&mut self, msg: BackendMessage) {
         match msg {
             BackendMessage::ApplyLocalChange { change } => {
@@ -99,7 +99,7 @@ where
         }
     }
 
-    #[tracing::instrument(skip(self, change))]
+    #[tracing::instrument(level = "debug", skip(self, change))]
     fn apply_local_change(
         &mut self,
         change: automerge_protocol::Change,
@@ -107,7 +107,7 @@ where
         self.backend.apply_local_change(change)
     }
 
-    #[tracing::instrument(skip(self, change))]
+    #[tracing::instrument(level = "debug", skip(self, change))]
     async fn apply_local_change_async(
         &mut self,
         change: automerge_protocol::Change,
@@ -119,7 +119,7 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(skip(self, change))]
+    #[tracing::instrument(level = "debug", skip(self, change))]
     async fn apply_local_change_sync(
         &mut self,
         change: automerge_protocol::Change,
@@ -138,12 +138,12 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn flush(&mut self) {
         self.backend.flush().unwrap();
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn apply_patch_to_frontends(&mut self, patch: Patch) {
         let apply_patches = self
             .frontends

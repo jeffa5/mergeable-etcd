@@ -26,7 +26,7 @@ where
     type WatchStream =
         Pin<Box<dyn Stream<Item = Result<WatchResponse, Status>> + Send + Sync + 'static>>;
 
-    #[tracing::instrument(skip(self, request))]
+    #[tracing::instrument(level = "debug", skip(self, request))]
     async fn watch(
         &self,
         request: Request<tonic::Streaming<WatchRequest>>,

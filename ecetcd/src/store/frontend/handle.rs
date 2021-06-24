@@ -23,7 +23,7 @@ where
     T: StoreValue,
 {
     // call send on the underlying sender
-    #[tracing::instrument(skip(self, value))]
+    #[tracing::instrument(level = "debug", skip(self, value))]
     #[inline]
     async fn send_to_frontend(
         &self,
@@ -75,7 +75,7 @@ where
         recv.await.expect("Actor task has been killed")
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn get(
         &self,
         key: Key,
@@ -94,7 +94,7 @@ where
         recv.await.expect("Actor task has been killed")
     }
 
-    #[tracing::instrument(skip(self, key, value, prev_kv))]
+    #[tracing::instrument(level = "debug", skip(self, key, value, prev_kv))]
     pub async fn insert(
         &self,
         key: Key,
@@ -113,7 +113,7 @@ where
         recv.await.expect("Actor task has been killed")
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn remove(
         &self,
         key: Key,
@@ -184,7 +184,7 @@ where
         recv.await.expect("Actor task has been killed")
     }
 
-    #[tracing::instrument(skip(self, patch))]
+    #[tracing::instrument(level = "debug", skip(self, patch))]
     pub async fn apply_patch(&self, patch: Patch) {
         let msg = FrontendMessage::ApplyPatch { patch };
         let _ = self.sender.send_to_frontend(msg).await.unwrap();
