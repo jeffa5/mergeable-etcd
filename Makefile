@@ -45,6 +45,8 @@ clean:
 
 .PHONY: docker-eckd
 docker-eckd:
+	nix build .\#eckd-docker-etcd
+	docker load -i result
 	nix build .\#eckd-docker
 	docker load -i result
 
@@ -59,6 +61,7 @@ docker-load: docker-eckd docker-bencher
 .PHONY: docker-push
 docker-push: docker-load
 	docker push jeffas/etcd:latest
+	docker push jeffas/eckd:latest
 	docker push jeffas/bencher:latest
 
 .PHONY: test

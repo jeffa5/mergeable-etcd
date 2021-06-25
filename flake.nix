@@ -68,12 +68,20 @@
               '';
             };
 
-            eckd-docker = pkgs.dockerTools.buildLayeredImage {
+            eckd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
               name = "jeffas/etcd";
               tag = "latest";
               contents = packages.eckd-etcd;
 
               config.Cmd = [ "/bin/etcd" ];
+            };
+
+            eckd-docker = pkgs.dockerTools.buildLayeredImage {
+              name = "jeffas/eckd";
+              tag = "latest";
+              contents = packages.eckd;
+
+              config.Cmd = [ "/bin/eckd" ];
             };
 
             etcd = pkgs.buildGoModule rec {
