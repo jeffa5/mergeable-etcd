@@ -4,7 +4,6 @@ use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
     PutRequest, PutResponse, RangeRequest, RangeResponse, TxnRequest, TxnResponse,
 };
-use opentelemetry::{propagation::Extractor, trace::Tracer};
 use tonic::{Request, Response, Status};
 use tracing::{debug, info, Level};
 

@@ -5,6 +5,7 @@ result-lib
 default.eckd
 default.etcd
 default.ecetcd
+default.recetcd
 certs/*.pem
 certs/*.csr
 certs/*.crt

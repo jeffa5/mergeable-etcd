@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "eckd",
+  "recetcd",
   "ecetcd",
   "etcd-proto",
   "bencher",

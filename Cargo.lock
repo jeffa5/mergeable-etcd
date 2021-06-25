@@ -2277,6 +2277,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "recetcd"
+version = "0.1.0"
+dependencies = [
+ "automerge",
+ "automergeable",
+ "ecetcd",
+ "opentelemetry-jaeger",
+ "serde",
+ "structopt",
+ "tokio",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"

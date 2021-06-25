@@ -50,18 +50,24 @@ docker-eckd:
 	nix build .\#eckd-docker
 	docker load -i result
 
+.PHONY: docker-recetcd
+docker-recetcd:
+	nix build .\#recetcd-docker
+	docker load -i result
+
 .PHONY: docker-bencher
 docker-bencher:
 	nix build .\#bencher-docker
 	docker load -i result
 
 .PHONY: docker-load
-docker-load: docker-eckd docker-bencher
+docker-load: docker-eckd docker-recetcd docker-bencher
 
 .PHONY: docker-push
 docker-push: docker-load
 	docker push jeffas/etcd:latest
 	docker push jeffas/eckd:latest
+	docker push jeffas/recetcd:latest
 	docker push jeffas/bencher:latest
 
 .PHONY: test

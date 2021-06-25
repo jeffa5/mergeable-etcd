@@ -44,6 +44,8 @@
           packages = {
             eckd = cargoNix.workspaceMembers.eckd.build;
 
+            recetcd = cargoNix.workspaceMembers.recetcd.build;
+
             ecetcd = cargoNix.workspaceMembers.ecetcd.build;
 
             experiments = cargoNix.workspaceMembers.experiments.build;
@@ -82,6 +84,14 @@
               contents = packages.eckd;
 
               config.Cmd = [ "/bin/eckd" ];
+            };
+
+            recetcd-docker = pkgs.dockerTools.buildLayeredImage {
+              name = "jeffas/recetcd";
+              tag = "latest";
+              contents = packages.recetcd;
+
+              config.Cmd = [ "/bin/recetcd" ];
             };
 
             etcd = pkgs.buildGoModule rec {

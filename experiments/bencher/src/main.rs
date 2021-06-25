@@ -20,8 +20,10 @@ pub struct Experiment;
 
 const ETCD_IMAGE: &str = "quay.io/coreos/etcd";
 const ETCD_TAG: &str = "v3.4.13";
-const ECKD_IMAGE: &str = "jeffas/etcd";
+const ECKD_IMAGE: &str = "jeffas/eckd";
 const ECKD_TAG: &str = "latest";
+const RECETCD_IMAGE: &str = "jeffas/recetcd";
+const RECETCD_TAG: &str = "latest";
 
 #[async_trait]
 impl exp::Experiment for Experiment {
@@ -58,6 +60,7 @@ impl exp::Experiment for Experiment {
                         bench_args: args.clone(),
                         image_name: ETCD_IMAGE.to_owned(),
                         image_tag: ETCD_TAG.to_owned(),
+                        bin_name: "etcd".to_owned(),
                         delay,
                         delay_variation: 0.1, // 10%
                         extra_args: Vec::new(),
@@ -71,6 +74,7 @@ impl exp::Experiment for Experiment {
                         bench_args: args.clone(),
                         image_name: ECKD_IMAGE.to_owned(),
                         image_tag: ECKD_TAG.to_owned(),
+                        bin_name: "eckd".to_owned(),
                         delay,
                         delay_variation: 0.1,
                         extra_args: Vec::new(),
@@ -80,10 +84,39 @@ impl exp::Experiment for Experiment {
                         repeats,
                         description: description.clone(),
                         cluster_size,
-                        bench_type,
-                        bench_args: args,
+                        bench_type: bench_type.clone(),
+                        bench_args: args.clone(),
                         image_name: ECKD_IMAGE.to_owned(),
                         image_tag: ECKD_TAG.to_owned(),
+                        bin_name: "eckd".to_owned(),
+                        delay,
+                        delay_variation: 0.1,
+                        extra_args: vec!["--sync".to_owned()],
+                    });
+
+                    confs.push(Config {
+                        repeats,
+                        description: description.clone(),
+                        cluster_size,
+                        bench_type: bench_type.clone(),
+                        bench_args: args.clone(),
+                        image_name: RECETCD_IMAGE.to_owned(),
+                        image_tag: RECETCD_TAG.to_owned(),
+                        bin_name: "recetcd".to_owned(),
+                        delay,
+                        delay_variation: 0.1,
+                        extra_args: Vec::new(),
+                    });
+
+                    confs.push(Config {
+                        repeats,
+                        description: description.clone(),
+                        cluster_size,
+                        bench_type: bench_type.clone(),
+                        bench_args: args.clone(),
+                        image_name: RECETCD_IMAGE.to_owned(),
+                        image_tag: RECETCD_TAG.to_owned(),
+                        bin_name: "recetcd".to_owned(),
                         delay,
                         delay_variation: 0.1,
                         extra_args: vec!["--sync".to_owned()],
@@ -103,6 +136,9 @@ impl exp::Experiment for Experiment {
             .await
             .unwrap();
         docker_runner::pull_image(ECKD_IMAGE, ECKD_TAG)
+            .await
+            .unwrap();
+        docker_runner::pull_image(RECETCD_IMAGE, RECETCD_TAG)
             .await
             .unwrap();
         println!("Running bencher experiment: {:?}", configuration);
@@ -132,7 +168,7 @@ impl exp::Experiment for Experiment {
             let peer_port = 2380 + ((i - 1) * 10);
             let name = format!("node{}", i);
             let mut cmd = vec![
-                "etcd".to_owned(),
+                configuration.bin_name.to_owned(),
                 "--name".to_owned(),
                 name.clone(),
                 "--listen-client-urls".to_owned(),
@@ -163,7 +199,7 @@ impl exp::Experiment for Experiment {
                         (peer_port.to_string(), peer_port.to_string()),
                     ]),
                     capabilities: Some(vec!["NET_ADMIN".to_owned()]),
-                    cpus: None,
+                    cpus: Some(2.0),
                     memory: None,
                 })
                 .await;
@@ -536,6 +572,7 @@ pub struct Config {
     pub bench_args: Vec<String>,
     pub image_name: String,
     pub image_tag: String,
+    pub bin_name: String,
     pub delay: u32,
     pub delay_variation: f64,
     pub extra_args: Vec<String>,

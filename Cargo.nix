@@ -119,6 +119,16 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
+    "recetcd" = rec {
+      packageId = "recetcd";
+      build = internal.buildRustCrateWithFeatures {
+        packageId = "recetcd";
+      };
+
+      # Debug support which might change between releases.
+      # File a bug if you depend on any for non-debug work!
+      debug = internal.debugCrate { inherit packageId; };
+    };
   };
 
   # A derivation that joins the outputs of all workspace members together.
@@ -613,13 +623,17 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "f6d50e50d666061cf9c9560ad0229cbd0b150fb9";
-          sha256 = "0sx583ghmlpqbrr63kna2fn8wk4lidlr6gp9542vbbm27ll04vk4";
+          rev = "89e6f0c4481adda2bbc1a80c1e104179be67041f";
+          sha256 = "0i2nwvm36l7s77ryk8g8w8mc5g40p2q4dkgn0d0j2kc2xn8d7d00";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
         ];
         dependencies = [
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
           {
             name = "automerge";
             packageId = "automerge";
@@ -646,13 +660,17 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "f6d50e50d666061cf9c9560ad0229cbd0b150fb9";
-          sha256 = "0sx583ghmlpqbrr63kna2fn8wk4lidlr6gp9542vbbm27ll04vk4";
+          rev = "89e6f0c4481adda2bbc1a80c1e104179be67041f";
+          sha256 = "0i2nwvm36l7s77ryk8g8w8mc5g40p2q4dkgn0d0j2kc2xn8d7d00";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
         ];
         dependencies = [
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
           {
             name = "automerge";
             packageId = "automerge";
@@ -664,6 +682,10 @@ rec {
           {
             name = "automerge-protocol";
             packageId = "automerge-protocol";
+          }
+          {
+            name = "futures";
+            packageId = "futures";
           }
           {
             name = "sled";
@@ -6629,6 +6651,60 @@ rec {
         features = {
           "serde1" = [ "serde" ];
         };
+      };
+      "recetcd" = rec {
+        crateName = "recetcd";
+        version = "0.1.0";
+        edition = "2018";
+        crateBin = [
+          { name = "recetcd"; path = "src/main.rs"; }
+        ];
+        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./recetcd; };
+        dependencies = [
+          {
+            name = "automerge";
+            packageId = "automerge";
+          }
+          {
+            name = "automergeable";
+            packageId = "automergeable";
+          }
+          {
+            name = "ecetcd";
+            packageId = "ecetcd";
+          }
+          {
+            name = "opentelemetry-jaeger";
+            packageId = "opentelemetry-jaeger";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "structopt";
+            packageId = "structopt";
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+          {
+            name = "tracing-opentelemetry";
+            packageId = "tracing-opentelemetry";
+          }
+          {
+            name = "tracing-subscriber";
+            packageId = "tracing-subscriber";
+          }
+        ];
+
       };
       "redox_syscall" = rec {
         crateName = "redox_syscall";
