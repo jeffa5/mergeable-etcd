@@ -21,7 +21,7 @@ debug = true
 # automerge-frontend = { git = "https://github.com/automerge//automerge-rs", branch = "actorid-tinyvec" }
 
 [patch."https://github.com/automerge/automerge-rs"]
-automerge = { git = "https://github.com/automerge//automerge-rs", branch = "rust-1.53-fixes" }
-automerge-protocol = { git = "https://github.com/automerge//automerge-rs", branch = "rust-1.53-fixes" }
-automerge-backend = { git = "https://github.com/automerge//automerge-rs", branch = "rust-1.53-fixes" }
-automerge-frontend = { git = "https://github.com/automerge//automerge-rs", branch = "rust-1.53-fixes" }
+automerge = { git = "https://github.com/automerge//automerge-rs", branch = "reduce-compression" }
+automerge-protocol = { git = "https://github.com/automerge//automerge-rs", branch = "reduce-compression" }
+automerge-backend = { git = "https://github.com/automerge//automerge-rs", branch = "reduce-compression" }
+automerge-frontend = { git = "https://github.com/automerge//automerge-rs", branch = "reduce-compression" }

@@ -412,8 +412,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "74c33f54bb4e049ee8fb0ee292f5e06655cf8b9d";
-          sha256 = "18k1pb193sxqmf6qp16rzpjgk23s405ysihzlnvr2gb86618b3ch";
+          rev = "c49430dbb5c0b3565608c43188c4f565a758d21d";
+          sha256 = "0hyfxbbnmj25hh701dxcj5q1x4ijjd09r7lhnflqifkncrjhiy05";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -455,8 +455,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "74c33f54bb4e049ee8fb0ee292f5e06655cf8b9d";
-          sha256 = "18k1pb193sxqmf6qp16rzpjgk23s405ysihzlnvr2gb86618b3ch";
+          rev = "c49430dbb5c0b3565608c43188c4f565a758d21d";
+          sha256 = "0hyfxbbnmj25hh701dxcj5q1x4ijjd09r7lhnflqifkncrjhiy05";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -548,8 +548,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "74c33f54bb4e049ee8fb0ee292f5e06655cf8b9d";
-          sha256 = "18k1pb193sxqmf6qp16rzpjgk23s405ysihzlnvr2gb86618b3ch";
+          rev = "c49430dbb5c0b3565608c43188c4f565a758d21d";
+          sha256 = "0hyfxbbnmj25hh701dxcj5q1x4ijjd09r7lhnflqifkncrjhiy05";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -705,8 +705,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "74c33f54bb4e049ee8fb0ee292f5e06655cf8b9d";
-          sha256 = "18k1pb193sxqmf6qp16rzpjgk23s405ysihzlnvr2gb86618b3ch";
+          rev = "c49430dbb5c0b3565608c43188c4f565a758d21d";
+          sha256 = "0hyfxbbnmj25hh701dxcj5q1x4ijjd09r7lhnflqifkncrjhiy05";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -1077,45 +1077,16 @@ rec {
       };
       "block-buffer" = rec {
         crateName = "block-buffer";
-        version = "0.7.3";
-        edition = "2015";
-        sha256 = "12v8wizynqin0hqf140kmp9s38q223mp1b0hkqk8j5pk8720v560";
+        version = "0.9.0";
+        edition = "2018";
+        sha256 = "1r4pf90s7d7lj1wdjhlnqa26vvbm6pnc33z138lxpnp9srpi2lj1";
         authors = [
           "RustCrypto Developers"
         ];
         dependencies = [
-          {
-            name = "block-padding";
-            packageId = "block-padding";
-          }
-          {
-            name = "byte-tools";
-            packageId = "byte-tools";
-          }
-          {
-            name = "byteorder";
-            packageId = "byteorder";
-            usesDefaultFeatures = false;
-          }
           {
             name = "generic-array";
             packageId = "generic-array";
-          }
-        ];
-
-      };
-      "block-padding" = rec {
-        crateName = "block-padding";
-        version = "0.1.5";
-        edition = "2015";
-        sha256 = "1xbkmysiz23vimd17rnsjpw9bgjxipwfslwyygqlkx4in3dxwygs";
-        authors = [
-          "RustCrypto Developers"
-        ];
-        dependencies = [
-          {
-            name = "byte-tools";
-            packageId = "byte-tools";
           }
         ];
 
@@ -1278,16 +1249,6 @@ rec {
         features = {
         };
         resolvedDefaultFeatures = [ "default" ];
-      };
-      "byte-tools" = rec {
-        crateName = "byte-tools";
-        version = "0.3.1";
-        edition = "2015";
-        sha256 = "1mqi29wsm8njpl51pfwr31wmpzs5ahlcb40wsjyd92l90ixcmdg3";
-        authors = [
-          "RustCrypto Developers"
-        ];
-
       };
       "bytemuck" = rec {
         crateName = "bytemuck";
@@ -1734,6 +1695,28 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "mountainlion" ];
       };
+      "cpufeatures" = rec {
+        crateName = "cpufeatures";
+        version = "0.1.5";
+        edition = "2018";
+        sha256 = "1vvid867wpnz5wzma3f4x2ijl83fgr6x1fc6shspzpf9ysb9djb6";
+        authors = [
+          "RustCrypto Developers"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+            target = { target, features }: (stdenv.hostPlatform.config == "aarch64-apple-darwin");
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+            target = { target, features }: ((target."arch" == "aarch64") && (target."os" == "linux"));
+          }
+        ];
+
+      };
       "crc32fast" = rec {
         crateName = "crc32fast";
         version = "1.2.1";
@@ -2089,9 +2072,9 @@ rec {
       };
       "digest" = rec {
         crateName = "digest";
-        version = "0.8.1";
-        edition = "2015";
-        sha256 = "1madjl27f3kj5ql7kwgvb9c8b7yb7bv7yfgx7rqzj4i3fp4cil7k";
+        version = "0.9.0";
+        edition = "2018";
+        sha256 = "0rmhvk33rgvd6ll71z8sng91a52rw14p0drjn1da0mqa138n1pfk";
         authors = [
           "RustCrypto Developers"
         ];
@@ -2103,8 +2086,9 @@ rec {
         ];
         features = {
           "dev" = [ "blobby" ];
+          "std" = [ "alloc" ];
         };
-        resolvedDefaultFeatures = [ "std" ];
+        resolvedDefaultFeatures = [ "alloc" "std" ];
       };
       "dirs-next" = rec {
         crateName = "dirs-next";
@@ -2654,16 +2638,6 @@ rec {
             name = "pkg-config";
             packageId = "pkg-config";
           }
-        ];
-
-      };
-      "fake-simd" = rec {
-        crateName = "fake-simd";
-        version = "0.1.2";
-        edition = "2015";
-        sha256 = "1vfylvk4va2ivqx85603lyqqp0zk52cgbs4n5nfbbbqx577qm2p8";
-        authors = [
-          "The Rust-Crypto Project Developers"
         ];
 
       };
@@ -3307,9 +3281,9 @@ rec {
       };
       "generic-array" = rec {
         crateName = "generic-array";
-        version = "0.12.4";
+        version = "0.14.4";
         edition = "2015";
-        sha256 = "1gfpay78vijl9vrwl1k9v7fbvbhkhcmnrk4kfg9l6x24y4s9zpzz";
+        sha256 = "05qqwm9v5asbil9z28wjkmpfvs1c5c99n8n9gwxis3d3r3n6c52h";
         libName = "generic_array";
         authors = [
           "Bartłomiej Kamiński <fizyk20@gmail.com>"
@@ -3321,7 +3295,14 @@ rec {
             packageId = "typenum";
           }
         ];
-
+        buildDependencies = [
+          {
+            name = "version_check";
+            packageId = "version_check";
+          }
+        ];
+        features = {
+        };
       };
       "getrandom 0.1.16" = rec {
         crateName = "getrandom";
@@ -3528,9 +3509,9 @@ rec {
       };
       "hermit-abi" = rec {
         crateName = "hermit-abi";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2018";
-        sha256 = "0p6czgbk1izviwxzm6ypy3vz2wqj1yd3ab03wp82xqjng7klsbrj";
+        sha256 = "0cxcm8093nf5fyn114w8vxbrbcyvv91d4015rdnlgfll7cs6gd32";
         authors = [
           "Stefan Lankes"
         ];
@@ -5182,9 +5163,9 @@ rec {
       };
       "opaque-debug" = rec {
         crateName = "opaque-debug";
-        version = "0.2.3";
-        edition = "2015";
-        sha256 = "172j6bs8ndclqxa2m64qc0y1772rr73g4l9fg2svscgicnbfff98";
+        version = "0.3.0";
+        edition = "2018";
+        sha256 = "1m8kzi4nd6shdqimn0mgb24f0hxslhnqd1whakyq06wcqd086jk2";
         authors = [
           "RustCrypto Developers"
         ];
@@ -7473,9 +7454,9 @@ rec {
       };
       "sha2" = rec {
         crateName = "sha2";
-        version = "0.8.2";
-        edition = "2015";
-        sha256 = "0s9yddvyg6anaikdl86wmwfim25c0d4m0xq0y2ghs34alxpg8mm2";
+        version = "0.9.5";
+        edition = "2018";
+        sha256 = "04lzf4swq6cijvxnc6facr3g72h5v7a5z8lz3xrkf8gxa9bswqmk";
         authors = [
           "RustCrypto Developers"
         ];
@@ -7485,12 +7466,27 @@ rec {
             packageId = "block-buffer";
           }
           {
-            name = "digest";
-            packageId = "digest";
+            name = "cfg-if";
+            packageId = "cfg-if";
           }
           {
-            name = "fake-simd";
-            packageId = "fake-simd";
+            name = "cpufeatures";
+            packageId = "cpufeatures";
+            target = { target, features }: (stdenv.hostPlatform.config == "aarch64-apple-darwin");
+          }
+          {
+            name = "cpufeatures";
+            packageId = "cpufeatures";
+            target = { target, features }: ((target."arch" == "aarch64") && (target."os" == "linux"));
+          }
+          {
+            name = "cpufeatures";
+            packageId = "cpufeatures";
+            target = { target, features }: ((target."arch" == "x86") || (target."arch" == "x86_64"));
+          }
+          {
+            name = "digest";
+            packageId = "digest";
           }
           {
             name = "opaque-debug";
@@ -7506,7 +7502,7 @@ rec {
         ];
         features = {
           "asm" = [ "sha2-asm" ];
-          "asm-aarch64" = [ "asm" "libc" ];
+          "asm-aarch64" = [ "asm" ];
           "default" = [ "std" ];
           "std" = [ "digest/std" ];
         };
