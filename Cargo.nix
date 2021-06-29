@@ -5796,9 +5796,9 @@ rec {
       };
       "pin-project-lite" = rec {
         crateName = "pin-project-lite";
-        version = "0.2.6";
+        version = "0.2.7";
         edition = "2018";
-        sha256 = "01g96zxghb33s1vsjmjpn9l3a2nxdqj7glf9lhq7q5wjkhjiy3nw";
+        sha256 = "0hwl8iyx3h9i3i3jr2vqj07nf4ay1v1w1ga29cbjmdd6d4fd2ccd";
         authors = [
           "Taiki Endo <te316e89@gmail.com>"
         ];
@@ -7650,9 +7650,9 @@ rec {
       };
       "smol_str" = rec {
         crateName = "smol_str";
-        version = "0.1.17";
+        version = "0.1.18";
         edition = "2018";
-        sha256 = "1srj7gd14cllfwh55jwmid425rz2idpvbw7ly08448r97b7gg83c";
+        sha256 = "1c53aiylg3h1b4wfn2xbv8md8cqmf2pwg5qw5hkr8mchj2gff0xj";
         authors = [
           "Aleksey Kladov <aleksey.kladov@gmail.com>"
         ];
@@ -9019,9 +9019,9 @@ rec {
       };
       "tracing-subscriber" = rec {
         crateName = "tracing-subscriber";
-        version = "0.2.18";
+        version = "0.2.19";
         edition = "2018";
-        sha256 = "1mfwc3xz8zzi5kvizhxgcqdx8swj55f0hfs9psf7rfl312zm6mda";
+        sha256 = "0j6yg01c5zir4x6qmz9k491vaa254msjnbf6wf5xk97w86bh2sdb";
         authors = [
           "Eliza Weisman <eliza@buoyant.io>"
           "David Barsky <me@davidbarsky.com>"
@@ -9144,9 +9144,9 @@ rec {
       };
       "ttf-parser" = rec {
         crateName = "ttf-parser";
-        version = "0.12.2";
+        version = "0.12.3";
         edition = "2018";
-        sha256 = "0l3wzhhvcp58phz53rcc9cx4x7adr3srkpvy6hznmhmf71vhjmhw";
+        sha256 = "1rkj90w4k21y88i69rlwb8pyfvv5lnb7x2b8yvdan21gha5gbqks";
         authors = [
           "Evgeniy Reizner <razrfalcon@gmail.com>"
         ];

@@ -16,8 +16,11 @@
               overlays = [ rust-overlay.overlay ];
               system = system;
             };
+          lib = pkgs.lib;
           rust = pkgs.rust-bin.nightly.latest.rust;
-          cargoNix = pkgs.callPackage ./Cargo.nix {
+          makeCargoNix = release: pkgs.callPackage ./Cargo.nix {
+            inherit pkgs release;
+
             defaultCrateOverrides = pkgs.defaultCrateOverrides // {
               etcd-proto = attrs: {
                 buildInputs = [ pkgs.protobuf pkgs.rustfmt ];
@@ -38,79 +41,73 @@
               };
             };
           };
+          cargoNix = makeCargoNix true;
+          debugCargoNix = makeCargoNix false;
         in
         rec
         {
-          packages = {
-            eckd = cargoNix.workspaceMembers.eckd.build;
+          packages =
+            lib.attrsets.mapAttrs (name: value: value.build) cargoNix.workspaceMembers //
+            {
+              bencher-docker = pkgs.dockerTools.buildLayeredImage {
+                name = "jeffas/bencher";
+                tag = "latest";
+                contents = packages.bencher;
 
-            recetcd = cargoNix.workspaceMembers.recetcd.build;
-
-            ecetcd = cargoNix.workspaceMembers.ecetcd.build;
-
-            experiments = cargoNix.workspaceMembers.experiments.build;
-
-            bencher = cargoNix.workspaceMembers.bencher.build;
-
-            bencher-docker = pkgs.dockerTools.buildLayeredImage {
-              name = "jeffas/bencher";
-              tag = "latest";
-              contents = packages.bencher;
-
-              config.Cmd = [ "/bin/bencher" ];
-              config.Entrypoint = [ "/bin/bencher" ];
-            };
-
-            eckd-etcd = pkgs.stdenv.mkDerivation {
-              name = "eckd-etcd";
-              src = packages.eckd;
-              installPhase = ''
-                mkdir -p $out/bin
-                cp $src/bin/eckd $out/bin/etcd
-              '';
-            };
-
-            eckd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
-              name = "jeffas/etcd";
-              tag = "latest";
-              contents = packages.eckd-etcd;
-
-              config.Cmd = [ "/bin/etcd" ];
-            };
-
-            eckd-docker = pkgs.dockerTools.buildLayeredImage {
-              name = "jeffas/eckd";
-              tag = "latest";
-              contents = packages.eckd;
-
-              config.Cmd = [ "/bin/eckd" ];
-            };
-
-            recetcd-docker = pkgs.dockerTools.buildLayeredImage {
-              name = "jeffas/recetcd";
-              tag = "latest";
-              contents = packages.recetcd;
-
-              config.Cmd = [ "/bin/recetcd" ];
-            };
-
-            etcd = pkgs.buildGoModule rec {
-              pname = "etcd";
-              version = "3.4.14";
-
-              src = pkgs.fetchFromGitHub {
-                owner = "etcd-io";
-                repo = "etcd";
-                rev = "v${version}";
-                sha256 = "sha256-LgwJ85UkAQRwpIsILnHDssMw7gXVLO27cU1+5hHj3Wg=";
+                config.Cmd = [ "/bin/bencher" ];
+                config.Entrypoint = [ "/bin/bencher" ];
               };
 
-              doCheck = false;
+              eckd-etcd = pkgs.stdenv.mkDerivation {
+                name = "eckd-etcd";
+                src = packages.eckd;
+                installPhase = ''
+                  mkdir -p $out/bin
+                  cp $src/bin/eckd $out/bin/etcd
+                '';
+              };
 
-              deleteVendor = true;
-              vendorSha256 = "sha256-bBlihD5i7YidtVW9Nz1ChU10RE5zjOsXbEL1hA6Blko=";
+              eckd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
+                name = "jeffas/etcd";
+                tag = "latest";
+                contents = packages.eckd-etcd;
+
+                config.Cmd = [ "/bin/etcd" ];
+              };
+
+              eckd-docker = pkgs.dockerTools.buildLayeredImage {
+                name = "jeffas/eckd";
+                tag = "latest";
+                contents = packages.eckd;
+
+                config.Cmd = [ "/bin/eckd" ];
+              };
+
+              recetcd-docker = pkgs.dockerTools.buildLayeredImage {
+                name = "jeffas/recetcd";
+                tag = "latest";
+                contents = packages.recetcd;
+
+                config.Cmd = [ "/bin/recetcd" ];
+              };
+
+              etcd = pkgs.buildGoModule rec {
+                pname = "etcd";
+                version = "3.4.14";
+
+                src = pkgs.fetchFromGitHub {
+                  owner = "etcd-io";
+                  repo = "etcd";
+                  rev = "v${version}";
+                  sha256 = "sha256-LgwJ85UkAQRwpIsILnHDssMw7gXVLO27cU1+5hHj3Wg=";
+                };
+
+                doCheck = false;
+
+                deleteVendor = true;
+                vendorSha256 = "sha256-bBlihD5i7YidtVW9Nz1ChU10RE5zjOsXbEL1hA6Blko=";
+              };
             };
-          };
 
           defaultPackage = packages.eckd;
 
@@ -138,14 +135,9 @@
 
           defaultApp = apps.eckd;
 
-          checks = {
-            eckd = cargoNix.workspaceMembers.eckd.build;
-            ecetcd = cargoNix.workspaceMembers.ecetcd.build;
-
-            experiments = cargoNix.workspaceMembers.experiments.build;
-
-            bencher = cargoNix.workspaceMembers.bencher.build;
-          };
+          checks = lib.attrsets.mapAttrs
+            (name: value: value.build.override { runTests = true; })
+            debugCargoNix.workspaceMembers;
 
           devShell = pkgs.mkShell {
             buildInputs = with pkgs;[
