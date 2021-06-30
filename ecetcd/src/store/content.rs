@@ -288,7 +288,7 @@ where
         range_end: Option<Key>,
         revision: Revision,
     ) -> Vec<SnapshotValue> {
-        tracing::info!("getting");
+        tracing::debug!("getting");
         let mut values = Vec::new();
         if let Some(range_end) = range_end {
             let vals = self.values(key..range_end);
@@ -342,7 +342,7 @@ where
         range_end: Option<Key>,
         revision: Revision,
     ) -> Vec<SnapshotValue> {
-        tracing::info!("removing");
+        tracing::debug!("removing");
         let mut values = Vec::new();
         if let Some(range_end) = range_end {
             let vals = self.values_mut(key..range_end);
@@ -368,7 +368,7 @@ where
 
     #[tracing::instrument(level = "debug", skip(self, request))]
     pub(crate) fn transaction_inner(&mut self, request: TxnRequest) -> (bool, Vec<ResponseOp>) {
-        tracing::info!("transacting");
+        tracing::debug!("transacting");
         let server = self.server().unwrap().clone();
         let success = request.compare.iter().all(|compare| {
             let values = self.get_inner(compare.key.clone().into(), None, server.revision);
