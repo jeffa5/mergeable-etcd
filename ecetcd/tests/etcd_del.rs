@@ -4,7 +4,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use common::{test_del, test_range};
+use common::{test_del, test_put, test_range};
 use test_env_log::test;
 
 static KEY_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -69,41 +69,55 @@ async fn del_simple_prev_kv() {
 async fn del_simple_different_options() {
     for keys_only in [true, false] {
         for count_only in [true, false] {
-            let key = key();
-            let mut value = HashMap::new();
-            value.insert("v", "hello");
-            let request = etcd_proto::etcdserverpb::DeleteRangeRequest {
-                key: key.clone(),
-                range_end: vec![],
-                prev_kv: true,
-            };
-            test_del(&request).await;
+            for prev_kv in [false, true] {
+                for ignore_value in [false, true] {
+                    let key = key();
+                    let mut value = HashMap::new();
+                    value.insert("v", "hello");
+                    let request = etcd_proto::etcdserverpb::DeleteRangeRequest {
+                        key: key.clone(),
+                        range_end: vec![],
+                        prev_kv,
+                    };
+                    test_del(&request).await;
 
-            let mut value = HashMap::new();
-            value.insert("v", "hello world");
-            let request = etcd_proto::etcdserverpb::DeleteRangeRequest {
-                key: key.clone(),
-                range_end: vec![],
-                prev_kv: true,
-            };
-            test_del(&request).await;
+                    let mut value = HashMap::new();
+                    value.insert("v", "hello world");
+                    let request = etcd_proto::etcdserverpb::PutRequest {
+                        key: key.clone(),
+                        value: serde_json::to_vec(&value).unwrap(),
+                        lease: 0,
+                        prev_kv,
+                        ignore_value,
+                        ignore_lease: false,
+                    };
+                    test_put(&request).await;
 
-            let request = etcd_proto::etcdserverpb::RangeRequest {
-                key,
-                range_end: vec![],
-                limit: 0,
-                revision: 0,
-                sort_order: 0,
-                sort_target: 0,
-                serializable: false,
-                keys_only,
-                count_only,
-                min_mod_revision: 0,
-                max_mod_revision: 0,
-                min_create_revision: 0,
-                max_create_revision: 0,
-            };
-            test_range(&request).await;
+                    let request = etcd_proto::etcdserverpb::DeleteRangeRequest {
+                        key: key.clone(),
+                        range_end: vec![],
+                        prev_kv,
+                    };
+                    test_del(&request).await;
+
+                    let request = etcd_proto::etcdserverpb::RangeRequest {
+                        key,
+                        range_end: vec![],
+                        limit: 0,
+                        revision: 0,
+                        sort_order: 0,
+                        sort_target: 0,
+                        serializable: false,
+                        keys_only,
+                        count_only,
+                        min_mod_revision: 0,
+                        max_mod_revision: 0,
+                        min_create_revision: 0,
+                        max_create_revision: 0,
+                    };
+                    test_range(&request).await;
+                }
+            }
         }
     }
 }
