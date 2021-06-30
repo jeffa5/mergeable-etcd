@@ -925,10 +925,6 @@ rec {
             packageId = "chrono";
           }
           {
-            name = "ecetcd";
-            packageId = "ecetcd";
-          }
-          {
             name = "etcd-proto";
             packageId = "etcd-proto";
           }
@@ -962,6 +958,10 @@ rec {
             packageId = "structopt";
           }
           {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+          {
             name = "tokio";
             packageId = "tokio";
             features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
@@ -974,6 +974,10 @@ rec {
           {
             name = "tower";
             packageId = "tower";
+          }
+          {
+            name = "url";
+            packageId = "url";
           }
         ];
 

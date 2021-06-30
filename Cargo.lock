@@ -259,7 +259,6 @@ dependencies = [
  "anyhow",
  "arbitrary",
  "chrono",
- "ecetcd",
  "etcd-proto",
  "futures",
  "hyper",
@@ -268,9 +267,11 @@ dependencies = [
  "serde",
  "serde_json",
  "structopt",
+ "thiserror",
  "tokio",
  "tonic",
  "tower",
+ "url",
 ]
 
 [[package]]
