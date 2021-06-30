@@ -245,6 +245,20 @@ where
                 };
                 let (sender, receiver) = mpsc::channel(1);
                 self.watchers.insert(range, sender);
+
+                let ((), change) = self
+                    .document
+                    .change::<_, _, std::convert::Infallible>(|store_contents| {
+                        let server = store_contents.server_mut().expect("Failed to get server");
+                        server.increment_revision();
+                        Ok(())
+                    })
+                    .unwrap();
+
+                if let Some(change) = change {
+                    self.apply_local_change(change).await;
+                }
+
                 tokio::task::spawn_local(async move {
                     Self::watch_range(receiver, tx_events).await;
                 });

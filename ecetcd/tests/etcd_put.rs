@@ -4,27 +4,8 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use common::{run_requests, test_range, Response};
+use common::{run_requests, test_put, test_range, Response};
 use test_env_log::test;
-
-async fn test_put(request: &etcd_proto::etcdserverpb::PutRequest) {
-    dbg!(request);
-    run_requests(|mut clients| async move {
-        let response = match clients.kv.put(request.clone()).await {
-            Ok(r) => {
-                let mut r = r.into_inner();
-                r.header = None;
-                Ok(Response::PutResponse(r))
-            }
-            Err(status) => {
-                println!("eckd error: {:?}", status);
-                Err((status.code(), status.message().to_owned()))
-            }
-        };
-        vec![response]
-    })
-    .await
-}
 
 static KEY_COUNT: AtomicUsize = AtomicUsize::new(0);
 

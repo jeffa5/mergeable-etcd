@@ -7,6 +7,7 @@ use std::{
 
 use common::{run_requests, Response};
 use etcd_proto::etcdserverpb::RequestOp;
+use futures::{future, stream};
 use test_env_log::test;
 
 async fn test_txn(request: &etcd_proto::etcdserverpb::TxnRequest) {
@@ -39,7 +40,7 @@ async fn test_txn(request: &etcd_proto::etcdserverpb::TxnRequest) {
             }
         }
         .unwrap();
-        vec![Response::TxnResponse(response)]
+        stream::once(future::ready(Response::TxnResponse(response)))
     })
     .await
 }
