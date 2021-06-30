@@ -59,6 +59,12 @@ where
         ]
     }
 
+    pub fn contains_key(&self, key: &Key) -> bool {
+        self.frontend
+            .get_value(&Path::root().key(VALUES_KEY).key(key.to_string()))
+            .is_some()
+    }
+
     fn insert_value(&mut self, key: Key, value: IValue<T>) {
         if let Some(values) = self.values.as_mut() {
             values.insert(key, value);

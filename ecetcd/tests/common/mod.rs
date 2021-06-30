@@ -90,6 +90,26 @@ pub async fn test_put(request: &etcd_proto::etcdserverpb::PutRequest) {
     .await
 }
 
+pub async fn test_del(request: &etcd_proto::etcdserverpb::DeleteRangeRequest) {
+    dbg!(request);
+    run_requests(|mut clients| async move {
+        let response = match clients.kv.delete_range(request.clone()).await {
+            Ok(r) => {
+                let mut r = r.into_inner();
+                if let Some(h) = r.header.as_mut() {
+                    h.cluster_id = 0;
+                    h.member_id = 0;
+                    h.raft_term = 0;
+                }
+                Ok(Response::DeleteRangeResponse(r))
+            }
+            Err(status) => Err((status.code(), status.message().to_owned())),
+        };
+        stream::once(future::ready(response))
+    })
+    .await
+}
+
 pub async fn test_watch(request: &etcd_proto::etcdserverpb::WatchRequest) {
     dbg!(request);
     run_requests(|mut clients| async move {

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, convert::TryFrom, marker::PhantomData, ops::Range, thread};
 
-use automerge::{LocalChange, Path, Primitive, Value};
+use automerge::LocalChange;
 use automerge_frontend::InvalidPatch;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
@@ -359,30 +359,39 @@ where
         let ((server, prev), change) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
-                let server = store_contents.server_mut().expect("Failed to get server");
-                server.increment_revision();
-                let server = server.clone();
+                let (server, prev) = if store_contents.contains_key(&key) {
+                    let server = store_contents.server_mut().expect("Failed to get server");
+                    server.increment_revision();
+                    let server = server.clone();
 
-                let prev = store_contents.remove_inner(key.clone(), range_end, server.revision);
+                    let prev = store_contents.remove_inner(key.clone(), range_end, server.revision);
+                    (server, prev)
+                } else {
+                    // key does not exist so no changes to make
+                    let server = store_contents.server().expect("Failed to get server");
+                    (server.clone(), Vec::new())
+                };
+
                 Ok((server, prev))
             })
             .unwrap();
 
         // TODO: handle range
         let mut doc = self.document.get();
-        let value = doc.value(&key).unwrap().unwrap();
-        for (range, sender) in &self.watchers {
-            if range.contains(&key) {
-                let _ = sender
-                    .send((server.clone(), vec![(key.clone(), value.clone())]))
-                    .await;
+        if let Some(value) = doc.value(&key) {
+            let value = value.unwrap();
+            for (range, sender) in &self.watchers {
+                if range.contains(&key) {
+                    let _ = sender
+                        .send((server.clone(), vec![(key.clone(), value.clone())]))
+                        .await;
+                }
+            }
+
+            if let Some(change) = change {
+                self.apply_local_change(change).await;
             }
         }
-
-        if let Some(change) = change {
-            self.apply_local_change(change).await;
-        }
-
         Ok((server, prev))
     }
 
