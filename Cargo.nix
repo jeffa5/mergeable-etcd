@@ -412,8 +412,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "c49430dbb5c0b3565608c43188c4f565a758d21d";
-          sha256 = "0hyfxbbnmj25hh701dxcj5q1x4ijjd09r7lhnflqifkncrjhiy05";
+          rev = "41c0872d680f70ce42b9bfe7ad4bdcab097b4161";
+          sha256 = "1c0lhz28plr6m0668igfcgxr6dhgb7ikfd4860is96r8bw194sx7";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -455,8 +455,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "c49430dbb5c0b3565608c43188c4f565a758d21d";
-          sha256 = "0hyfxbbnmj25hh701dxcj5q1x4ijjd09r7lhnflqifkncrjhiy05";
+          rev = "41c0872d680f70ce42b9bfe7ad4bdcab097b4161";
+          sha256 = "1c0lhz28plr6m0668igfcgxr6dhgb7ikfd4860is96r8bw194sx7";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -548,8 +548,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "c49430dbb5c0b3565608c43188c4f565a758d21d";
-          sha256 = "0hyfxbbnmj25hh701dxcj5q1x4ijjd09r7lhnflqifkncrjhiy05";
+          rev = "41c0872d680f70ce42b9bfe7ad4bdcab097b4161";
+          sha256 = "1c0lhz28plr6m0668igfcgxr6dhgb7ikfd4860is96r8bw194sx7";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -612,7 +612,7 @@ rec {
         ];
         features = {
           "default" = [ "std" ];
-          "derive-arbitrary" = [ "arbitrary" ];
+          "derive-arbitrary" = [ "arbitrary" "smol_str/arbitrary" ];
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
@@ -705,8 +705,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "c49430dbb5c0b3565608c43188c4f565a758d21d";
-          sha256 = "0hyfxbbnmj25hh701dxcj5q1x4ijjd09r7lhnflqifkncrjhiy05";
+          rev = "41c0872d680f70ce42b9bfe7ad4bdcab097b4161";
+          sha256 = "1c0lhz28plr6m0668igfcgxr6dhgb7ikfd4860is96r8bw194sx7";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -725,6 +725,11 @@ rec {
             name = "smol_str";
             packageId = "smol_str";
             features = [ "serde" ];
+          }
+          {
+            name = "strum";
+            packageId = "strum";
+            features = [ "derive" ];
           }
           {
             name = "thiserror";
@@ -747,8 +752,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "6f2c590877a496815c3f706a37c09ac961247044";
-          sha256 = "1awil943nmc55dl4p7l77hbbkmxgrygih8ap32vwbbxvpcpiq9bp";
+          rev = "2d3ac711f013e11298981774dce3343799dfecb8";
+          sha256 = "0fjnknw3lfyiidj6q57f30slcg02w3z5j63s7b0wk2l11npzf60y";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -811,8 +816,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "6f2c590877a496815c3f706a37c09ac961247044";
-          sha256 = "1awil943nmc55dl4p7l77hbbkmxgrygih8ap32vwbbxvpcpiq9bp";
+          rev = "2d3ac711f013e11298981774dce3343799dfecb8";
+          sha256 = "0fjnknw3lfyiidj6q57f30slcg02w3z5j63s7b0wk2l11npzf60y";
         };
         procMacro = true;
         authors = [
@@ -849,8 +854,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automergeable";
-          rev = "6f2c590877a496815c3f706a37c09ac961247044";
-          sha256 = "1awil943nmc55dl4p7l77hbbkmxgrygih8ap32vwbbxvpcpiq9bp";
+          rev = "2d3ac711f013e11298981774dce3343799dfecb8";
+          sha256 = "0fjnknw3lfyiidj6q57f30slcg02w3z5j63s7b0wk2l11npzf60y";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -3487,9 +3492,9 @@ rec {
       };
       "hashbrown" = rec {
         crateName = "hashbrown";
-        version = "0.9.1";
+        version = "0.11.2";
         edition = "2018";
-        sha256 = "016dsm9s4xmxlkw2jfikm54qlz6vyk0qr280gab7kzp342jf9byp";
+        sha256 = "0vkjsf5nzs7qcia5ya79j9sq2p1caz4crrncr1675wwyj3ag0pmb";
         authors = [
           "Amanieu d'Antras <amanieu@gmail.com>"
         ];
@@ -4014,9 +4019,9 @@ rec {
       };
       "indexmap" = rec {
         crateName = "indexmap";
-        version = "1.6.2";
+        version = "1.7.0";
         edition = "2018";
-        sha256 = "1wxfh55zlrlpdxfcvvvj6wwc46f23cnb0j9q71190yl9pyh4aj42";
+        sha256 = "19b2zwfajhsfcgny0clv8y4jppy704znfhv8nv2dw9a18l2kcqxw";
         authors = [
           "bluss"
           "Josh Stone <cuviper@gmail.com>"
@@ -5931,9 +5936,9 @@ rec {
       };
       "plotters-backend" = rec {
         crateName = "plotters-backend";
-        version = "0.3.0";
+        version = "0.3.1";
         edition = "2018";
-        sha256 = "1425kzgyimxxq6n85y1wlhmr4y9vy16lxaiwfpga3cqwvk6zyzxh";
+        sha256 = "0gdxivrhr7zfaqx8x3zhd1cwy9rc0pb202qhx8is7j45fh7y32zx";
         authors = [
           "Hao Hou <haohou302@gmail.com>"
         ];
@@ -5975,9 +5980,9 @@ rec {
       };
       "plotters-svg" = rec {
         crateName = "plotters-svg";
-        version = "0.3.0";
+        version = "0.3.1";
         edition = "2018";
-        sha256 = "04fj393irdjb4mavcdwwk1bjnw7gqjp668415a24nq6r7gi052mk";
+        sha256 = "1aavi3i4jrwydw3i6x0zxs3i3c7gki7jlhg9agff35x5ixisj7sj";
         authors = [
           "Hao Hou <haohou302@gmail.com>"
         ];
@@ -7948,6 +7953,62 @@ rec {
         ];
         features = {
         };
+      };
+      "strum" = rec {
+        crateName = "strum";
+        version = "0.21.0";
+        edition = "2018";
+        sha256 = "1qnd2by1zrwgx7li0hmwy7jbzjwz1ky697qjg85nga8zzny6py5a";
+        authors = [
+          "Peter Glotfelty <peter.glotfelty@microsoft.com>"
+        ];
+        dependencies = [
+          {
+            name = "strum_macros";
+            packageId = "strum_macros";
+            optional = true;
+          }
+        ];
+        devDependencies = [
+          {
+            name = "strum_macros";
+            packageId = "strum_macros";
+          }
+        ];
+        features = {
+          "derive" = [ "strum_macros" ];
+        };
+        resolvedDefaultFeatures = [ "derive" "strum_macros" ];
+      };
+      "strum_macros" = rec {
+        crateName = "strum_macros";
+        version = "0.21.1";
+        edition = "2018";
+        sha256 = "1v55b1in7dn07s6vxr8dajqpvxkxjbfq6qamnjgcbnq9x3pawsnh";
+        procMacro = true;
+        authors = [
+          "Peter Glotfelty <peter.glotfelty@microsoft.com>"
+        ];
+        dependencies = [
+          {
+            name = "heck";
+            packageId = "heck";
+          }
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn";
+            features = [ "parsing" "extra-traits" ];
+          }
+        ];
+
       };
       "syn" = rec {
         crateName = "syn";
