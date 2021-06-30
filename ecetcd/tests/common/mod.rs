@@ -1,5 +1,3 @@
-use std::process::Command;
-
 use futures::{future, stream, Future, Stream, StreamExt};
 use pretty_assertions::assert_eq;
 use tonic::{transport::Channel, Request};
@@ -119,6 +117,38 @@ pub async fn test_watch(request: &etcd_proto::etcdserverpb::WatchRequest) {
             Err(_) => panic!("failed to create watch stream"),
         };
         responses
+    })
+    .await
+}
+
+pub async fn test_txn(request: &etcd_proto::etcdserverpb::TxnRequest) {
+    dbg!(request);
+    run_requests(|mut clients| async move {
+        let response = match clients.kv.txn(request.clone()).await {
+            Ok(r) => {
+                let mut r = r.into_inner();
+                r.header = None;
+                for res in &mut r.responses {
+                    match res.response.as_mut().unwrap() {
+                        etcd_proto::etcdserverpb::response_op::Response::ResponsePut(res) => {
+                            res.header = None
+                        }
+                        etcd_proto::etcdserverpb::response_op::Response::ResponseRange(res) => {
+                            res.header = None
+                        }
+                        etcd_proto::etcdserverpb::response_op::Response::ResponseDeleteRange(
+                            res,
+                        ) => res.header = None,
+                        etcd_proto::etcdserverpb::response_op::Response::ResponseTxn(res) => {
+                            res.header = None
+                        }
+                    }
+                }
+                Ok(Response::TxnResponse(r))
+            }
+            Err(status) => Err((status.code(), status.message().to_owned())),
+        };
+        stream::once(future::ready(response))
     })
     .await
 }

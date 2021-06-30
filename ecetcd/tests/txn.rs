@@ -5,45 +5,9 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use common::{run_requests, Response};
+use common::test_txn;
 use etcd_proto::etcdserverpb::RequestOp;
-use futures::{future, stream};
 use test_env_log::test;
-
-async fn test_txn(request: &etcd_proto::etcdserverpb::TxnRequest) {
-    run_requests(|mut clients| async move {
-        let response = match clients.kv.txn(request.clone()).await {
-            Ok(r) => {
-                let mut r = r.into_inner();
-                r.header = None;
-                for res in &mut r.responses {
-                    match res.response.as_mut().unwrap() {
-                        etcd_proto::etcdserverpb::response_op::Response::ResponsePut(res) => {
-                            res.header = None
-                        }
-                        etcd_proto::etcdserverpb::response_op::Response::ResponseRange(res) => {
-                            res.header = None
-                        }
-                        etcd_proto::etcdserverpb::response_op::Response::ResponseDeleteRange(
-                            res,
-                        ) => res.header = None,
-                        etcd_proto::etcdserverpb::response_op::Response::ResponseTxn(res) => {
-                            res.header = None
-                        }
-                    }
-                }
-                Some(r)
-            }
-            Err(status) => {
-                println!("eckd error: {:?}", status);
-                None
-            }
-        }
-        .unwrap();
-        stream::once(future::ready(Response::TxnResponse(response)))
-    })
-    .await
-}
 
 static KEY_COUNT: AtomicUsize = AtomicUsize::new(0);
 
