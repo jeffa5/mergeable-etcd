@@ -1,5 +1,5 @@
 use std::{
-    collections::{btree_map::RangeMut, BTreeMap, HashMap},
+    collections::{btree_map, BTreeMap, HashMap},
     convert::{TryFrom, TryInto},
     marker::PhantomData,
     ops::Range,
@@ -131,10 +131,40 @@ where
         Some(Ok(self.values.as_mut().unwrap().get_mut(key).unwrap()))
     }
 
+    pub fn values(
+        &mut self,
+        range: Range<Key>,
+    ) -> Option<Result<btree_map::Range<Key, IValue<T>>, FromAutomergeError>> {
+        let v = self
+            .frontend
+            .get_value(&Path::root().key(VALUES_KEY))
+            .as_ref()
+            .map(|v| Values::<T>::from_automerge(v));
+
+        match v {
+            Some(Ok(vals)) => {
+                if let Some(values) = self.values.as_mut() {
+                    for (k, v) in vals.range(range.clone()) {
+                        values.insert(k.clone(), v.clone());
+                    }
+                } else {
+                    let mut bm = BTreeMap::new();
+                    for (k, v) in vals.range(range.clone()) {
+                        bm.insert(k.clone(), v.clone());
+                    }
+                    self.values = Some(bm)
+                }
+            }
+            Some(Err(e)) => return Some(Err(e)),
+            None => return None,
+        }
+        Some(Ok(self.values.as_ref().unwrap().range(range)))
+    }
+
     pub fn values_mut(
         &mut self,
         range: Range<Key>,
-    ) -> Option<Result<RangeMut<Key, IValue<T>>, FromAutomergeError>> {
+    ) -> Option<Result<btree_map::RangeMut<Key, IValue<T>>, FromAutomergeError>> {
         let v = self
             .frontend
             .get_value(&Path::root().key(VALUES_KEY))
@@ -255,13 +285,10 @@ where
         tracing::info!("getting");
         let mut values = Vec::new();
         if let Some(range_end) = range_end {
-            let vals = self
-                .frontend
-                .get_value(&Path::root().key(VALUES_KEY))
-                .unwrap_or_else(|| Value::Map(HashMap::new()));
+            let vals = self.values(key..range_end);
 
-            if let Ok(vals) = Values::<T>::from_automerge(&vals) {
-                for (key, value) in vals.range(key..range_end) {
+            if let Some(Ok(vals)) = vals {
+                for (key, value) in vals {
                     if let Some(value) = value.value_at_revision(revision, key.clone()) {
                         values.push(value);
                     }
