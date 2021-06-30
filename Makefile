@@ -71,7 +71,7 @@ docker-push: docker-load
 	docker push jeffas/bencher:latest
 
 .PHONY: test
-test:
+test: docker-load
 	docker rm -f eckd etcd
 	docker run --name eckd --network host -d jeffas/etcd:latest etcd --advertise-client-urls http://127.0.0.1:2389
 	docker run --name etcd --network host -d quay.io/coreos/etcd:v3.4.13 etcd --advertise-client-urls http://127.0.0.1:2379
