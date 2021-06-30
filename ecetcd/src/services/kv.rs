@@ -61,6 +61,12 @@ where
             ));
         }
 
+        // don't return deleted values
+        let kvs = kvs
+            .into_iter()
+            .filter(|v| !v.is_deleted())
+            .collect::<Vec<_>>();
+
         let count = kvs.len() as i64;
         let total_len = kvs.len();
 
@@ -138,6 +144,7 @@ where
             .server
             .remove(request.key.into(), range_end, remote_addr);
         let (server, prev_kvs) = remove_response.await.unwrap();
+        let deleted = prev_kvs.len() as i64;
         let prev_kvs = if request.prev_kv {
             prev_kvs.into_iter().map(SnapshotValue::key_value).collect()
         } else {
@@ -146,7 +153,7 @@ where
 
         let reply = DeleteRangeResponse {
             header: Some(server.header()),
-            deleted: prev_kvs.len() as i64,
+            deleted,
             prev_kvs,
         };
         Ok(Response::new(reply))

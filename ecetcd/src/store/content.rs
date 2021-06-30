@@ -1,7 +1,8 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{btree_map::RangeMut, BTreeMap, HashMap},
     convert::{TryFrom, TryInto},
     marker::PhantomData,
+    ops::Range,
 };
 
 use automerge::{LocalChange, Path, Value};
@@ -128,6 +129,36 @@ where
             }
         }
         Some(Ok(self.values.as_mut().unwrap().get_mut(key).unwrap()))
+    }
+
+    pub fn values_mut(
+        &mut self,
+        range: Range<Key>,
+    ) -> Option<Result<RangeMut<Key, IValue<T>>, FromAutomergeError>> {
+        let v = self
+            .frontend
+            .get_value(&Path::root().key(VALUES_KEY))
+            .as_ref()
+            .map(|v| Values::<T>::from_automerge(v));
+
+        match v {
+            Some(Ok(vals)) => {
+                if let Some(values) = self.values.as_mut() {
+                    for (k, v) in vals.range(range.clone()) {
+                        values.insert(k.clone(), v.clone());
+                    }
+                } else {
+                    let mut bm = BTreeMap::new();
+                    for (k, v) in vals.range(range.clone()) {
+                        bm.insert(k.clone(), v.clone());
+                    }
+                    self.values = Some(bm)
+                }
+            }
+            Some(Err(e)) => return Some(Err(e)),
+            None => return None,
+        }
+        Some(Ok(self.values.as_mut().unwrap().range_mut(range)))
     }
 
     pub fn lease(&mut self, id: &i64) -> Option<Result<&Ttl, FromAutomergeError>> {
@@ -279,24 +310,27 @@ where
         revision: Revision,
     ) -> Vec<SnapshotValue> {
         tracing::info!("removing");
-        todo!();
-        // let mut values = Vec::new();
-        // if let Some(range_end) = range_end {
-        //     for (key, value) in self.values.range_mut(key..range_end) {
-        //         let prev = value.value_at_revision(revision, key.clone());
-        //         value.delete(revision);
-        //         if let Some(prev) = prev {
-        //             values.push(prev)
-        //         }
-        //     }
-        // } else if let Some(value) = self.values.get_mut(&key) {
-        //     let prev = value.value_at_revision(revision, key);
-        //     value.delete(revision);
-        //     if let Some(prev) = prev {
-        //         values.push(prev)
-        //     }
-        // }
-        // values
+        let mut values = Vec::new();
+        if let Some(range_end) = range_end {
+            let vals = self.values_mut(key..range_end);
+
+            if let Some(Ok(vals)) = vals {
+                for (key, value) in vals {
+                    let prev = value.value_at_revision(revision, key.clone());
+                    value.delete(revision);
+                    if let Some(prev) = prev {
+                        values.push(prev)
+                    }
+                }
+            }
+        } else if let Some(Ok(value)) = self.value_mut(&key) {
+            let prev = value.value_at_revision(revision, key);
+            value.delete(revision);
+            if let Some(prev) = prev {
+                values.push(prev)
+            }
+        }
+        values
     }
 
     #[tracing::instrument(level = "debug", skip(self, request))]
