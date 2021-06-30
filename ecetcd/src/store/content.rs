@@ -306,7 +306,7 @@ where
     pub(crate) fn insert_inner(
         &mut self,
         key: Key,
-        value: Vec<u8>,
+        value: Option<Vec<u8>>,
         revision: Revision,
     ) -> Option<SnapshotValue> {
         tracing::debug!("inserting");
@@ -429,7 +429,11 @@ where
                 Some(Request::RequestPut(request)) => {
                     let prev_kv = self.insert_inner(
                         request.key.clone().into(),
-                        request.value.clone(),
+                        if request.ignore_value {
+                            None
+                        } else {
+                            Some(request.value.clone())
+                        },
                         server.revision,
                     );
                     let prev_kv = if request.prev_kv {

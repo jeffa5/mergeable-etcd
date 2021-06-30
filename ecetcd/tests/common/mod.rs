@@ -51,3 +51,22 @@ where
     }
     assert_eq!(etcd_results, eckd_results);
 }
+
+pub async fn test_range(request: &etcd_proto::etcdserverpb::RangeRequest) {
+    dbg!(request);
+    run_requests(|mut clients| async move {
+        let response = match clients.kv.range(request.clone()).await {
+            Ok(r) => {
+                let mut r = r.into_inner();
+                r.header = None;
+                Ok(Response::RangeResponse(r))
+            }
+            Err(status) => {
+                println!("eckd error: {:?}", status);
+                Err((status.code(), status.message().to_owned()))
+            }
+        };
+        vec![response]
+    })
+    .await
+}

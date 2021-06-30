@@ -31,7 +31,7 @@ where
     },
     Insert {
         key: Key,
-        value: Vec<u8>,
+        value: Option<Vec<u8>>,
         prev_kv: bool,
         ret: oneshot::Sender<Result<(Server, Option<SnapshotValue>), FrontendError>>,
     },

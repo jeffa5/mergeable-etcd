@@ -97,9 +97,18 @@ where
     }
 
     /// Insert a new value (or update an existing value) at the given revision
-    pub fn insert(&mut self, revision: Revision, value: Vec<u8>) {
-        let val = T::try_from(value).unwrap();
-        self.revisions.insert(revision, Some(val));
+    ///
+    /// If the value is None then the last value is used and given a new revision.
+    pub fn insert(&mut self, revision: Revision, value: Option<Vec<u8>>) {
+        let value = if let Some(value) = value {
+            T::try_from(value).unwrap()
+        } else if let Some(last) = self.revisions.iter().last() {
+            last.1.as_ref().unwrap().clone()
+        } else {
+            // TODO: probably return an error
+            return;
+        };
+        self.revisions.insert(revision, Some(value));
     }
 
     /// Delete the value with the given revision

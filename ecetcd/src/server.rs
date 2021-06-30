@@ -174,11 +174,15 @@ where
             .await
     }
 
+    /// value is an option for the ignore_value put request field
+    ///
+    /// When the value is None we just update the revision etc of the ivalue and leave the value as
+    /// is.
     #[tracing::instrument(level = "debug", skip(self, key, value, prev_kv, remote_addr))]
     pub async fn insert(
         &self,
         key: Key,
-        value: Vec<u8>,
+        value: Option<Vec<u8>>,
         prev_kv: bool,
         remote_addr: Option<SocketAddr>,
     ) -> Result<(crate::store::Server, Option<SnapshotValue>), FrontendError> {

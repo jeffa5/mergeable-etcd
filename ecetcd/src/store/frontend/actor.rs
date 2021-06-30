@@ -301,7 +301,7 @@ where
     async fn insert(
         &mut self,
         key: Key,
-        value: Vec<u8>,
+        value: Option<Vec<u8>>,
         prev_kv: bool,
     ) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
         let ((server, prev), change) = self
@@ -312,6 +312,7 @@ where
                 let server = server.clone();
 
                 let prev = store_contents.insert_inner(key.clone(), value.clone(), server.revision);
+                let prev = if prev_kv { prev } else { None };
                 Ok((server, prev))
             })
             .unwrap();

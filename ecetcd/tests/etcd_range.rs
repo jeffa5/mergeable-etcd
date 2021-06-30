@@ -1,28 +1,9 @@
 mod common;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use common::{run_requests, Response};
+use common::test_range;
 use etcd_proto::etcdserverpb;
 use test_env_log::test;
-
-async fn test_range(request: &etcd_proto::etcdserverpb::RangeRequest) {
-    run_requests(|mut clients| async move {
-        let response = match clients.kv.range(request.clone()).await {
-            Ok(r) => {
-                let mut r = r.into_inner();
-                r.header = None;
-                Some(r)
-            }
-            Err(status) => {
-                println!("eckd error: {:?}", status);
-                None
-            }
-        }
-        .unwrap();
-        vec![Response::RangeResponse(response)]
-    })
-    .await
-}
 
 static KEY_COUNT: AtomicUsize = AtomicUsize::new(0);
 

@@ -68,7 +68,6 @@ where
             .collect::<Vec<_>>();
 
         let count = kvs.len() as i64;
-        let total_len = kvs.len();
 
         let mut kvs = if request.count_only {
             Vec::new()
@@ -81,6 +80,8 @@ where
                 .map(SnapshotValue::key_value)
                 .collect::<Vec<_>>()
         };
+
+        let total_len = kvs.len();
 
         if request.limit > 0 {
             kvs = kvs
@@ -105,12 +106,20 @@ where
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
         assert_eq!(request.lease, 0);
-        assert!(!request.ignore_value);
         assert!(!request.ignore_lease);
         debug!("put: {:?}", request);
+
+        if !request.value.is_empty() && request.ignore_value {
+            return Err(Status::invalid_argument("etcdserver: value is provided"));
+        }
+
         let insert_response = self.server.insert(
             request.key.into(),
-            request.value,
+            if request.ignore_value {
+                None
+            } else {
+                Some(request.value)
+            },
             request.prev_kv,
             remote_addr,
         );

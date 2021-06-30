@@ -98,7 +98,7 @@ where
     pub async fn insert(
         &self,
         key: Key,
-        value: Vec<u8>,
+        value: Option<Vec<u8>>,
         prev_kv: bool,
     ) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
         let (send, recv) = oneshot::channel();
