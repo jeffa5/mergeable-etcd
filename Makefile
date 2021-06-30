@@ -5,6 +5,12 @@ RUN_ARGS ?=
 DOT_FILES := $(shell find -name '*.dot')
 SVG_FILES := $(patsubst %.dot, %.svg, $(DOT_FILES))
 
+ETCD_IMAGE := quay.io/coreos/etcd:v3.4.13
+ECETCD_IMAGE := jeffas/etcd:latest
+ECKD_IMAGE := jeffas/eckd:latest
+RECETCD_IMAGE := jeffas/recetcd:latest
+BENCHER_IMAGE := jeffas/bencher:latest
+
 .PHONY: run-eckd
 run-eckd: $(SERVER_KEYS)
 	rm -rf default.eckd
@@ -65,16 +71,16 @@ docker-load: docker-eckd docker-recetcd docker-bencher
 
 .PHONY: docker-push
 docker-push: docker-load
-	docker push jeffas/etcd:latest
-	docker push jeffas/eckd:latest
-	docker push jeffas/recetcd:latest
-	docker push jeffas/bencher:latest
+	docker push $(ECETCD_IMAGE)
+	docker push $(ECKD_IMAGE)
+	docker push $(RECETCD_IMAGE)
+	docker push $(BENCHER_IMAGE)
 
 .PHONY: test
 test: docker-load
 	docker rm -f eckd etcd
-	docker run --name eckd --network host -d jeffas/etcd:latest etcd --advertise-client-urls http://127.0.0.1:2389
-	docker run --name etcd --network host -d quay.io/coreos/etcd:v3.4.13 etcd --advertise-client-urls http://127.0.0.1:2379
+	docker run --name eckd --network host -d $(ECETCD_IMAGE) etcd --advertise-client-urls http://127.0.0.1:2389
+	docker run --name etcd --network host -d $(ETCD_IMAGE) etcd --advertise-client-urls http://127.0.0.1:2379
 	sleep 3
 	cargo test
 	docker rm -f eckd etcd
