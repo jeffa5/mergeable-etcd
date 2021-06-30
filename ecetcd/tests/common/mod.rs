@@ -47,6 +47,7 @@ where
     tokio::pin!(results);
     while let Some((etcd_result, recetcd_result)) = results.next().await {
         assert_eq!(etcd_result, recetcd_result);
+        dbg!(etcd_result);
     }
 }
 
@@ -56,11 +57,7 @@ pub async fn test_range(request: &etcd_proto::etcdserverpb::RangeRequest) {
         let response = match clients.kv.range(request.clone()).await {
             Ok(r) => {
                 let mut r = r.into_inner();
-                if let Some(h) = r.header.as_mut() {
-                    h.cluster_id = 0;
-                    h.member_id = 0;
-                    h.raft_term = 0;
-                }
+                r.header = None;
                 Ok(Response::RangeResponse(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
@@ -76,11 +73,7 @@ pub async fn test_put(request: &etcd_proto::etcdserverpb::PutRequest) {
         let response = match clients.kv.put(request.clone()).await {
             Ok(r) => {
                 let mut r = r.into_inner();
-                if let Some(h) = r.header.as_mut() {
-                    h.cluster_id = 0;
-                    h.member_id = 0;
-                    h.raft_term = 0;
-                }
+                r.header = None;
                 Ok(Response::PutResponse(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
@@ -96,11 +89,7 @@ pub async fn test_del(request: &etcd_proto::etcdserverpb::DeleteRangeRequest) {
         let response = match clients.kv.delete_range(request.clone()).await {
             Ok(r) => {
                 let mut r = r.into_inner();
-                if let Some(h) = r.header.as_mut() {
-                    h.cluster_id = 0;
-                    h.member_id = 0;
-                    h.raft_term = 0;
-                }
+                r.header = None;
                 Ok(Response::DeleteRangeResponse(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
@@ -122,11 +111,7 @@ pub async fn test_watch(request: &etcd_proto::etcdserverpb::WatchRequest) {
                 let r = r.into_inner();
                 r.map(|m| match m {
                     Ok(mut m) => {
-                        if let Some(h) = m.header.as_mut() {
-                            h.cluster_id = 0;
-                            h.member_id = 0;
-                            h.raft_term = 0;
-                        }
+                        m.header = None;
                         // watch id depends on the server so ignore it
                         m.watch_id = 0;
                         Ok(m)

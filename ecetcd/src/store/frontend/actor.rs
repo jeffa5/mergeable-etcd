@@ -237,6 +237,7 @@ where
                 key,
                 range_end,
                 tx_events,
+                send_watch_created,
             } => {
                 let range = if let Some(end) = range_end {
                     WatchRange::Range(key..end)
@@ -262,6 +263,9 @@ where
                 tokio::task::spawn_local(async move {
                     Self::watch_range(receiver, tx_events).await;
                 });
+
+                send_watch_created.send(()).unwrap();
+
                 Ok(())
             }
             FrontendMessage::CreateLease { id, ttl, ret } => {

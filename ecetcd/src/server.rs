@@ -7,6 +7,7 @@ use std::{
 };
 
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest, WatchResponse};
+use tokio::sync::oneshot;
 use tonic::Status;
 
 use crate::{
@@ -69,7 +70,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, key, range_end, tx_results, remote_addr))]
-    pub fn create_watcher(
+    pub async fn create_watcher(
         &self,
         key: Vec<u8>,
         range_end: Vec<u8>,
@@ -87,12 +88,14 @@ where
             Some(range_end.into())
         };
         let self_clone = self.clone();
+        let (send_watch_created, recv_watch_created) = oneshot::channel();
         tokio::spawn(async move {
             self_clone
                 .select_frontend(remote_addr)
-                .watch_range(key.into(), range_end, tx_events)
+                .watch_range(key.into(), range_end, tx_events, send_watch_created)
                 .await
         });
+        recv_watch_created.await;
         let watcher = watcher::Watcher::new(id, prev_kv, rx_events, tx_results);
         self.inner.lock().unwrap().watchers.insert(id, watcher);
         id

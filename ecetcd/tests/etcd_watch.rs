@@ -19,41 +19,52 @@ fn key() -> Vec<u8> {
 
 #[test(tokio::test)]
 async fn watch() {
-    let key = key();
-    let watch_create_request = etcd_proto::etcdserverpb::WatchCreateRequest {
-        key: key.clone(),
-        range_end: vec![],
-        start_revision: 0,
-        progress_notify: false,
-        filters: vec![],
-        prev_kv: false,
-        watch_id: 0,
-        fragment: false,
-    };
-
-    tokio::spawn(async {
-        let watch_request = etcd_proto::etcdserverpb::WatchRequest {
-            request_union: Some(
-                etcd_proto::etcdserverpb::watch_request::RequestUnion::CreateRequest(
-                    watch_create_request,
-                ),
-            ),
+    for prev_kv in [false, true] {
+        let key = key();
+        let watch_create_request = etcd_proto::etcdserverpb::WatchCreateRequest {
+            key: key.clone(),
+            range_end: vec![],
+            start_revision: 0,
+            progress_notify: false,
+            filters: vec![],
+            prev_kv,
+            watch_id: 0,
+            fragment: false,
         };
-        test_watch(&watch_request).await
-    });
 
-    tokio::time::sleep(Duration::from_millis(50)).await;
+        let (send, recv) = tokio::sync::oneshot::channel();
 
-    let mut value = HashMap::new();
-    value.insert("v", "h");
-    let value = serde_json::to_vec(&value).unwrap();
-    let request = etcd_proto::etcdserverpb::PutRequest {
-        key: key.clone(),
-        value: value.clone(),
-        lease: 0,
-        prev_kv: false,
-        ignore_value: false,
-        ignore_lease: false,
-    };
-    test_put(&request).await;
+        tokio::spawn(async {
+            let watch_request = etcd_proto::etcdserverpb::WatchRequest {
+                request_union: Some(
+                    etcd_proto::etcdserverpb::watch_request::RequestUnion::CreateRequest(
+                        watch_create_request,
+                    ),
+                ),
+            };
+            let tw = test_watch(&watch_request);
+            tokio::select! {
+                _ = recv => {},
+                _ = tw => {}
+            }
+        });
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        let mut value = HashMap::new();
+        value.insert("v", "h");
+        let value = serde_json::to_vec(&value).unwrap();
+        let request = etcd_proto::etcdserverpb::PutRequest {
+            key: key.clone(),
+            value: value.clone(),
+            lease: 0,
+            prev_kv: false,
+            ignore_value: false,
+            ignore_lease: false,
+        };
+        test_put(&request).await;
+
+        send.send(()).unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
 }

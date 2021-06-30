@@ -48,6 +48,7 @@ where
         key: Key,
         range_end: Option<Key>,
         tx_events: mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>,
+        send_watch_created: oneshot::Sender<()>,
     },
     CreateLease {
         id: Option<i64>,

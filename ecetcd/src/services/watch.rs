@@ -50,19 +50,22 @@ where
                             assert_eq!(create.watch_id, 0);
                             assert_eq!(create.fragment, false);
                             // TODO: implement filters
-                            let id = server_clone.create_watcher(
-                                create.key,
-                                create.range_end,
-                                create.prev_kv,
-                                tx_response.clone(),
-                                remote_addr,
-                            );
+                            let watch_id = server_clone
+                                .create_watcher(
+                                    create.key,
+                                    create.range_end,
+                                    create.prev_kv,
+                                    tx_response.clone(),
+                                    remote_addr,
+                                )
+                                .await;
+
                             let server = server_clone.current_server(remote_addr);
                             let header = server.await.header();
                             if tx_response
                                 .send(Ok(WatchResponse {
                                     header: Some(header),
-                                    watch_id: id,
+                                    watch_id,
                                     created: true,
                                     canceled: false,
                                     compact_revision: 0,
