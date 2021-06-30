@@ -77,13 +77,13 @@ docker-push: docker-load
 	docker push $(BENCHER_IMAGE)
 
 .PHONY: test
-test: docker-load
-	docker rm -f eckd etcd
-	docker run --name eckd --network host -d $(ECETCD_IMAGE) etcd --advertise-client-urls http://127.0.0.1:2389
+test: docker-recetcd
+	docker rm -f recetcd etcd
+	docker run --name recetcd --network host -d $(RECETCD_IMAGE) recetcd --advertise-client-urls http://127.0.0.1:2389
 	docker run --name etcd --network host -d $(ETCD_IMAGE) etcd --advertise-client-urls http://127.0.0.1:2379
 	sleep 3
-	cargo test
-	docker rm -f eckd etcd
+	cargo test -- --test-threads=1
+	docker rm -f recetcd etcd
 
 .PHONY: kind
 kind:
