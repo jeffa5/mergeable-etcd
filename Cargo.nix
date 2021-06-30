@@ -1278,7 +1278,7 @@ rec {
         features = {
           "default" = [ "std" ];
         };
-        resolvedDefaultFeatures = [ "default" "std" ];
+        resolvedDefaultFeatures = [ "default" "i128" "std" ];
       };
       "bytes" = rec {
         crateName = "bytes";
@@ -2571,8 +2571,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/exp";
-          rev = "90bb97aaa09cdf562e44cc0edd9c21e78552531f";
-          sha256 = "10h4ybx2hs03524hjg1fjkx56glpz5rh516krncsdb25rv0gfnmq";
+          rev = "016217d2e950b80074e4e667b35b3abde69ecbd1";
+          sha256 = "0y52z7hvxbfllib2mf5z7518qsd04zpvvplzj4ryf5haf3ayjags";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -2597,6 +2597,11 @@ rec {
           {
             name = "nix";
             packageId = "nix";
+          }
+          {
+            name = "procfs";
+            packageId = "procfs";
+            features = [ "serde" ];
           }
           {
             name = "serde";
@@ -3533,17 +3538,16 @@ rec {
       };
       "hex" = rec {
         crateName = "hex";
-        version = "0.4.3";
+        version = "0.4.2";
         edition = "2018";
-        sha256 = "0w1a4davm1lgzpamwnba907aysmlrnygbqmfis2mqjx5m552a93z";
+        sha256 = "0dbf00j3h3pz0lw8jp245rwypna6i23l4cpvym8gsczin9c92kv4";
         authors = [
           "KokaKiwi <kokakiwi@kokakiwi.net>"
         ];
         features = {
           "default" = [ "std" ];
-          "std" = [ "alloc" ];
         };
-        resolvedDefaultFeatures = [ "alloc" "default" "std" ];
+        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "http" = rec {
         crateName = "http";
@@ -6171,6 +6175,62 @@ rec {
           "default" = [ "proc-macro" ];
         };
         resolvedDefaultFeatures = [ "default" "proc-macro" ];
+      };
+      "procfs" = rec {
+        crateName = "procfs";
+        version = "0.10.0";
+        edition = "2018";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/jeffa5/procfs";
+          rev = "d95e39de7c433c02f93a738ba05b83de5b05069d";
+          sha256 = "04jijrn0axm4ipbnpz3x6ggn874azbnphwihccmq5ir066cafgxl";
+        };
+        authors = [
+          "Andrew Chin <achin@eminence32.net>"
+        ];
+        dependencies = [
+          {
+            name = "bitflags";
+            packageId = "bitflags";
+          }
+          {
+            name = "byteorder";
+            packageId = "byteorder";
+            features = [ "i128" ];
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+            optional = true;
+          }
+          {
+            name = "flate2";
+            packageId = "flate2";
+          }
+          {
+            name = "hex";
+            packageId = "hex";
+          }
+          {
+            name = "lazy_static";
+            packageId = "lazy_static";
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            optional = true;
+            features = [ "derive" ];
+          }
+        ];
+        features = {
+          "default" = [ "chrono" ];
+        };
+        resolvedDefaultFeatures = [ "chrono" "default" "serde" ];
       };
       "prost" = rec {
         crateName = "prost";
