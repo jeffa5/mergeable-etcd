@@ -82,7 +82,7 @@ test: docker-recetcd
 	docker run --name recetcd --network host -d $(RECETCD_IMAGE) recetcd --advertise-client-urls http://127.0.0.1:2389
 	docker run --name etcd --network host -d $(ETCD_IMAGE) etcd --advertise-client-urls http://127.0.0.1:2379
 	sleep 3
-	cargo test -- --test-threads=1
+	cargo test --workspace --exclude kubernetes-proto -- --test-threads=1
 	docker rm -f recetcd etcd
 
 .PHONY: kind
