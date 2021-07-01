@@ -3,15 +3,7 @@ syntax = "proto3";
 
 package pluginregistration;
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-option (gogoproto.goproto_stringer_all) = false;
-option (gogoproto.stringer_all) =  true;
-option (gogoproto.goproto_getters_all) = true;
-option (gogoproto.marshaler_all) = true;
-option (gogoproto.sizer_all) = true;
-option (gogoproto.unmarshaler_all) = true;
-option (gogoproto.goproto_unrecognized_all) = false;
 
 // PluginInfo is the message sent from a plugin to the Kubelet pluginwatcher for plugin registration
 message PluginInfo {
