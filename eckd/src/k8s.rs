@@ -2,9 +2,10 @@ use std::convert::TryFrom;
 
 use automergeable::Automergeable;
 use ecetcd::StoreValue;
+use kubernetes_proto::api::rbac::v1::{ClusterRole, ClusterRoleBinding};
 use prost::Message;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 const K8S_PREFIX: &[u8] = &[b'k', b'8', b's', 0];
 
@@ -13,12 +14,15 @@ const K8S_PREFIX: &[u8] = &[b'k', b'8', b's', 0];
 // https://kubernetes.io/docs/reference/using-api/api-concepts/#protobuf-encoding
 pub enum Value {
     Lease(kubernetes_proto::api::coordination::v1::Lease),
+    Event(kubernetes_proto::api::core::v1::Event),
     Endpoints(kubernetes_proto::api::core::v1::Endpoints),
     Pod(Box<kubernetes_proto::api::core::v1::Pod>),
     Node(kubernetes_proto::api::core::v1::Node),
     Namespace(kubernetes_proto::api::core::v1::Namespace),
     ConfigMap(kubernetes_proto::api::core::v1::ConfigMap),
     RangeAllocation(kubernetes_proto::api::core::v1::RangeAllocation),
+    ClusterRole(ClusterRole),
+    ClusterRoleBinding(ClusterRoleBinding),
     Unknown(kubernetes_proto::apimachinery::pkg::runtime::Unknown),
     Json(serde_json::Value),
 }
@@ -46,7 +50,7 @@ impl TryFrom<&[u8]> for Value {
         } else {
             return Err("failed to decode".to_owned());
         };
-        info!(
+        debug!(
             "unknown content_type {:?} content_encoding {:?}",
             unknown.content_type, unknown.content_encoding
         );
@@ -65,6 +69,12 @@ impl TryFrom<&[u8]> for Value {
                     );
                     debug!("Endpoints: {:?}", endpoints);
                     Self::Endpoints(endpoints.expect("Failed decoding Endpoints resource from raw"))
+                }
+                (Some("v1"), Some("Event")) => {
+                    let event =
+                        kubernetes_proto::api::core::v1::Event::decode(&unknown.raw.unwrap()[..]);
+                    debug!("Event: {:?}", event);
+                    Self::Event(event.expect("Failed decoding Event resource from raw"))
                 }
                 (Some("v1"), Some("Pod")) => {
                     let pod =
@@ -104,6 +114,22 @@ impl TryFrom<&[u8]> for Value {
                     Self::RangeAllocation(
                         range_allocation
                             .expect("Failed decoding RangeAllocation resource from raw"),
+                    )
+                }
+                (Some("rbac.authorization.k8s.io/v1"), Some("ClusterRole")) => {
+                    let cluster_role = ClusterRole::decode(&unknown.raw.unwrap()[..]);
+                    debug!("ClusterRole: {:?}", cluster_role);
+                    Self::ClusterRole(
+                        cluster_role.expect("Failed decoding ClusterRole resource from raw"),
+                    )
+                }
+                (Some("rbac.authorization.k8s.io/v1"), Some("ClusterRoleBinding")) => {
+                    let cluster_role_binding =
+                        ClusterRoleBinding::decode(&unknown.raw.unwrap()[..]);
+                    debug!("ClusterRoleBinding: {:?}", cluster_role_binding);
+                    Self::ClusterRoleBinding(
+                        cluster_role_binding
+                            .expect("Failed decoding ClusterRoleBinding resource from raw"),
                     )
                 }
                 (api_version, kind) => {
@@ -157,6 +183,20 @@ impl From<&Value> for Vec<u8> {
                     type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
                         api_version: Some("coordination.k8s.io/v1beta1".to_owned()),
                         kind: Some("Lease".to_owned()),
+                    }),
+                    raw: Some(raw_bytes),
+                    content_encoding: Some(String::new()),
+                    content_type: Some(String::new()),
+                };
+                unknown.encode(&mut bytes).unwrap();
+            }
+            Value::Event(endpoints) => {
+                let mut raw_bytes = Self::new();
+                endpoints.encode(&mut raw_bytes).unwrap();
+                let unknown = kubernetes_proto::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
+                        api_version: Some("v1".to_owned()),
+                        kind: Some("Event".to_owned()),
                     }),
                     raw: Some(raw_bytes),
                     content_encoding: Some(String::new()),
@@ -241,6 +281,34 @@ impl From<&Value> for Vec<u8> {
                     type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
                         api_version: Some("v1".to_owned()),
                         kind: Some("RangeAllocation".to_owned()),
+                    }),
+                    raw: Some(raw_bytes),
+                    content_encoding: Some(String::new()),
+                    content_type: Some(String::new()),
+                };
+                unknown.encode(&mut bytes).unwrap();
+            }
+            Value::ClusterRole(cluster_role) => {
+                let mut raw_bytes = Self::new();
+                cluster_role.encode(&mut raw_bytes).unwrap();
+                let unknown = kubernetes_proto::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
+                        api_version: Some("rbac.authorization.k8s.io/v1".to_owned()),
+                        kind: Some("ClusterRole".to_owned()),
+                    }),
+                    raw: Some(raw_bytes),
+                    content_encoding: Some(String::new()),
+                    content_type: Some(String::new()),
+                };
+                unknown.encode(&mut bytes).unwrap();
+            }
+            Value::ClusterRoleBinding(cluster_role_binding) => {
+                let mut raw_bytes = Self::new();
+                cluster_role_binding.encode(&mut raw_bytes).unwrap();
+                let unknown = kubernetes_proto::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
+                        api_version: Some("rbac.authorization.k8s.io/v1".to_owned()),
+                        kind: Some("ClusterRoleBinding".to_owned()),
                     }),
                     raw: Some(raw_bytes),
                     content_encoding: Some(String::new()),
