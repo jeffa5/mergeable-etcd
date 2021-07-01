@@ -99,6 +99,8 @@ struct Options {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    std::env::set_var("RUST_BACKTRACE", "1");
+
     let options = Options::from_args();
 
     global::set_error_handler(|error| match error {
