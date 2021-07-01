@@ -14,3 +14,4 @@ automergeable = { git = "https://github.com/jeffa5/automergeable", branch = "mai
 automerge = { git = "https://github.com/automerge/automerge-rs", branch = "main" }
 opentelemetry-jaeger = "0.13.0"
 tracing-opentelemetry = "0.13.0"
+opentelemetry = { version = "0.15.0", features = [] }

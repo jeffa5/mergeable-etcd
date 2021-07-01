@@ -8,6 +8,7 @@ use ecetcd::{
     address::{Address, NamedAddress},
     Ecetcd,
 };
+use opentelemetry::global;
 use structopt::StructOpt;
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
@@ -99,6 +100,22 @@ struct Options {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = Options::from_args();
+
+    global::set_error_handler(|error| match error {
+        global::Error::Trace(error) => {
+            debug!(?error, "trace error");
+        }
+        // global::Error::Metrics(error) => {
+        //     debug!(?error, "metrics error");
+        // }
+        global::Error::Other(error) => {
+            debug!(?error, "other error");
+        }
+        error => {
+            debug!(?error, "unknown error");
+        }
+    })
+    .unwrap();
 
     let tracer = opentelemetry_jaeger::new_pipeline()
         .with_service_name("recetcd")

@@ -2287,6 +2287,7 @@ dependencies = [
  "automerge",
  "automergeable",
  "ecetcd",
+ "opentelemetry 0.15.0",
  "opentelemetry-jaeger",
  "serde",
  "structopt",

@@ -6724,6 +6724,10 @@ rec {
             packageId = "ecetcd";
           }
           {
+            name = "opentelemetry";
+            packageId = "opentelemetry 0.15.0";
+          }
+          {
             name = "opentelemetry-jaeger";
             packageId = "opentelemetry-jaeger";
           }
