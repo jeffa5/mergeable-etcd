@@ -79,7 +79,7 @@ pub async fn put_range(
         .take(100)
         .collect();
     let mut unstructured = Unstructured::new(&raw);
-    let pod = kubernetes_proto::k8s::api::core::v1::Pod::arbitrary(&mut unstructured).unwrap();
+    let pod = kubernetes_proto::api::core::v1::Pod::arbitrary(&mut unstructured).unwrap();
     // TODO: use protobuf encoding
     let value = serde_json::to_vec(&pod).unwrap();
     let request = PutRequest {

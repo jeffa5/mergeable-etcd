@@ -95,7 +95,7 @@ where
                 .watch_range(key.into(), range_end, tx_events, send_watch_created)
                 .await
         });
-        recv_watch_created.await;
+        recv_watch_created.await.unwrap();
         let watcher = watcher::Watcher::new(id, prev_kv, rx_events, tx_results);
         self.inner.lock().unwrap().watchers.insert(id, watcher);
         id

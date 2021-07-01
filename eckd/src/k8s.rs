@@ -12,13 +12,14 @@ const K8S_PREFIX: &[u8] = &[b'k', b'8', b's', 0];
 // A K8s api value, encoded in protobuf format
 // https://kubernetes.io/docs/reference/using-api/api-concepts/#protobuf-encoding
 pub enum Value {
-    Lease(kubernetes_proto::k8s::api::coordination::v1::Lease),
-    Endpoints(kubernetes_proto::k8s::api::core::v1::Endpoints),
-    Pod(Box<kubernetes_proto::k8s::api::core::v1::Pod>),
-    Namespace(kubernetes_proto::k8s::api::core::v1::Namespace),
-    ConfigMap(kubernetes_proto::k8s::api::core::v1::ConfigMap),
-    RangeAllocation(kubernetes_proto::k8s::api::core::v1::RangeAllocation),
-    Unknown(kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown),
+    Lease(kubernetes_proto::api::coordination::v1::Lease),
+    Endpoints(kubernetes_proto::api::core::v1::Endpoints),
+    Pod(Box<kubernetes_proto::api::core::v1::Pod>),
+    Node(kubernetes_proto::api::core::v1::Node),
+    Namespace(kubernetes_proto::api::core::v1::Namespace),
+    ConfigMap(kubernetes_proto::api::core::v1::ConfigMap),
+    RangeAllocation(kubernetes_proto::api::core::v1::RangeAllocation),
+    Unknown(kubernetes_proto::apimachinery::pkg::runtime::Unknown),
     Json(serde_json::Value),
 }
 
@@ -39,7 +40,7 @@ impl TryFrom<&[u8]> for Value {
 
         // parse unknown from protobuf
         let unknown = if let Ok(unknown) =
-            kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown::decode(rest)
+            kubernetes_proto::apimachinery::pkg::runtime::Unknown::decode(rest)
         {
             unknown
         } else {
@@ -52,37 +53,42 @@ impl TryFrom<&[u8]> for Value {
         let val = if let Some(type_meta) = unknown.type_meta.as_ref() {
             match (type_meta.api_version.as_deref(), type_meta.kind.as_deref()) {
                 (Some("coordination.k8s.io/v1beta1"), Some("Lease")) => {
-                    let lease = kubernetes_proto::k8s::api::coordination::v1::Lease::decode(
+                    let lease = kubernetes_proto::api::coordination::v1::Lease::decode(
                         &unknown.raw.unwrap()[..],
                     );
                     debug!("Lease: {:?}", lease);
                     Self::Lease(lease.expect("Failed decoding Lease resource from raw"))
                 }
                 (Some("v1"), Some("Endpoints")) => {
-                    let endpoints = kubernetes_proto::k8s::api::core::v1::Endpoints::decode(
+                    let endpoints = kubernetes_proto::api::core::v1::Endpoints::decode(
                         &unknown.raw.unwrap()[..],
                     );
                     debug!("Endpoints: {:?}", endpoints);
                     Self::Endpoints(endpoints.expect("Failed decoding Endpoints resource from raw"))
                 }
                 (Some("v1"), Some("Pod")) => {
-                    let pod = kubernetes_proto::k8s::api::core::v1::Pod::decode(
-                        &unknown.raw.unwrap()[..],
-                    );
+                    let pod =
+                        kubernetes_proto::api::core::v1::Pod::decode(&unknown.raw.unwrap()[..]);
                     debug!("Pod: {:?}", pod);
                     Self::Pod(Box::new(
                         pod.expect("Failed decoding Pod resource from raw"),
                     ))
                 }
+                (Some("v1"), Some("Node")) => {
+                    let node =
+                        kubernetes_proto::api::core::v1::Node::decode(&unknown.raw.unwrap()[..]);
+                    debug!("Node: {:?}", node);
+                    Self::Node(node.expect("Failed decoding Node resource from raw"))
+                }
                 (Some("v1"), Some("Namespace")) => {
-                    let namespace = kubernetes_proto::k8s::api::core::v1::Namespace::decode(
+                    let namespace = kubernetes_proto::api::core::v1::Namespace::decode(
                         &unknown.raw.unwrap()[..],
                     );
                     debug!("Namespace: {:?}", namespace);
                     Self::Namespace(namespace.expect("Failed decoding Namespace resource from raw"))
                 }
                 (Some("v1"), Some("ConfigMap")) => {
-                    let config_map = kubernetes_proto::k8s::api::core::v1::ConfigMap::decode(
+                    let config_map = kubernetes_proto::api::core::v1::ConfigMap::decode(
                         &unknown.raw.unwrap()[..],
                     );
                     debug!("ConfigMap: {:?}", config_map);
@@ -91,10 +97,9 @@ impl TryFrom<&[u8]> for Value {
                     )
                 }
                 (Some("v1"), Some("RangeAllocation")) => {
-                    let range_allocation =
-                        kubernetes_proto::k8s::api::core::v1::RangeAllocation::decode(
-                            &unknown.raw.unwrap()[..],
-                        );
+                    let range_allocation = kubernetes_proto::api::core::v1::RangeAllocation::decode(
+                        &unknown.raw.unwrap()[..],
+                    );
                     debug!("RangeAllocation: {:?}", range_allocation);
                     Self::RangeAllocation(
                         range_allocation
@@ -148,13 +153,11 @@ impl From<&Value> for Vec<u8> {
             Value::Lease(lease) => {
                 let mut raw_bytes = Self::new();
                 lease.encode(&mut raw_bytes).unwrap();
-                let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
-                    type_meta: Some(
-                        kubernetes_proto::k8s::apimachinery::pkg::runtime::TypeMeta {
-                            api_version: Some("coordination.k8s.io/v1beta1".to_owned()),
-                            kind: Some("Lease".to_owned()),
-                        },
-                    ),
+                let unknown = kubernetes_proto::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
+                        api_version: Some("coordination.k8s.io/v1beta1".to_owned()),
+                        kind: Some("Lease".to_owned()),
+                    }),
                     raw: Some(raw_bytes),
                     content_encoding: Some(String::new()),
                     content_type: Some(String::new()),
@@ -164,13 +167,11 @@ impl From<&Value> for Vec<u8> {
             Value::Endpoints(endpoints) => {
                 let mut raw_bytes = Self::new();
                 endpoints.encode(&mut raw_bytes).unwrap();
-                let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
-                    type_meta: Some(
-                        kubernetes_proto::k8s::apimachinery::pkg::runtime::TypeMeta {
-                            api_version: Some("v1".to_owned()),
-                            kind: Some("Endpoints".to_owned()),
-                        },
-                    ),
+                let unknown = kubernetes_proto::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
+                        api_version: Some("v1".to_owned()),
+                        kind: Some("Endpoints".to_owned()),
+                    }),
                     raw: Some(raw_bytes),
                     content_encoding: Some(String::new()),
                     content_type: Some(String::new()),
@@ -180,13 +181,25 @@ impl From<&Value> for Vec<u8> {
             Value::Pod(pod) => {
                 let mut raw_bytes = Self::new();
                 pod.encode(&mut raw_bytes).unwrap();
-                let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
-                    type_meta: Some(
-                        kubernetes_proto::k8s::apimachinery::pkg::runtime::TypeMeta {
-                            api_version: Some("v1".to_owned()),
-                            kind: Some("Pod".to_owned()),
-                        },
-                    ),
+                let unknown = kubernetes_proto::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
+                        api_version: Some("v1".to_owned()),
+                        kind: Some("Pod".to_owned()),
+                    }),
+                    raw: Some(raw_bytes),
+                    content_encoding: Some(String::new()),
+                    content_type: Some(String::new()),
+                };
+                unknown.encode(&mut bytes).unwrap();
+            }
+            Value::Node(node) => {
+                let mut raw_bytes = Self::new();
+                node.encode(&mut raw_bytes).unwrap();
+                let unknown = kubernetes_proto::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
+                        api_version: Some("v1".to_owned()),
+                        kind: Some("Node".to_owned()),
+                    }),
                     raw: Some(raw_bytes),
                     content_encoding: Some(String::new()),
                     content_type: Some(String::new()),
@@ -196,13 +209,11 @@ impl From<&Value> for Vec<u8> {
             Value::Namespace(namespace) => {
                 let mut raw_bytes = Self::new();
                 namespace.encode(&mut raw_bytes).unwrap();
-                let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
-                    type_meta: Some(
-                        kubernetes_proto::k8s::apimachinery::pkg::runtime::TypeMeta {
-                            api_version: Some("v1".to_owned()),
-                            kind: Some("Namespace".to_owned()),
-                        },
-                    ),
+                let unknown = kubernetes_proto::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
+                        api_version: Some("v1".to_owned()),
+                        kind: Some("Namespace".to_owned()),
+                    }),
                     raw: Some(raw_bytes),
                     content_encoding: Some(String::new()),
                     content_type: Some(String::new()),
@@ -212,13 +223,11 @@ impl From<&Value> for Vec<u8> {
             Value::ConfigMap(config_map) => {
                 let mut raw_bytes = Self::new();
                 config_map.encode(&mut raw_bytes).unwrap();
-                let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
-                    type_meta: Some(
-                        kubernetes_proto::k8s::apimachinery::pkg::runtime::TypeMeta {
-                            api_version: Some("v1".to_owned()),
-                            kind: Some("ConfigMap".to_owned()),
-                        },
-                    ),
+                let unknown = kubernetes_proto::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
+                        api_version: Some("v1".to_owned()),
+                        kind: Some("ConfigMap".to_owned()),
+                    }),
                     raw: Some(raw_bytes),
                     content_encoding: Some(String::new()),
                     content_type: Some(String::new()),
@@ -228,13 +237,11 @@ impl From<&Value> for Vec<u8> {
             Value::RangeAllocation(range_allocation) => {
                 let mut raw_bytes = Self::new();
                 range_allocation.encode(&mut raw_bytes).unwrap();
-                let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
-                    type_meta: Some(
-                        kubernetes_proto::k8s::apimachinery::pkg::runtime::TypeMeta {
-                            api_version: Some("v1".to_owned()),
-                            kind: Some("RangeAllocation".to_owned()),
-                        },
-                    ),
+                let unknown = kubernetes_proto::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(kubernetes_proto::apimachinery::pkg::runtime::TypeMeta {
+                        api_version: Some("v1".to_owned()),
+                        kind: Some("RangeAllocation".to_owned()),
+                    }),
                     raw: Some(raw_bytes),
                     content_encoding: Some(String::new()),
                     content_type: Some(String::new()),
@@ -395,8 +402,7 @@ mod tests {
 
     #[test]
     fn k8svalue_unknown_serde() {
-        let val =
-            Value::Unknown(kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown::default());
+        let val = Value::Unknown(kubernetes_proto::apimachinery::pkg::runtime::Unknown::default());
         let buf: Vec<u8> = (&val).into();
         let val_back = Value::try_from(buf).unwrap();
         assert_eq!(val, val_back);
@@ -404,7 +410,7 @@ mod tests {
 
     #[test]
     fn k8svalue_lease_serde() {
-        let val = Value::Lease(kubernetes_proto::k8s::api::coordination::v1::Lease::default());
+        let val = Value::Lease(kubernetes_proto::api::coordination::v1::Lease::default());
         let buf: Vec<u8> = (&val).into();
         let val_back = Value::try_from(buf).unwrap();
         assert_eq!(val, val_back);
@@ -412,7 +418,7 @@ mod tests {
 
     #[test]
     fn k8svalue_endpoints_serde() {
-        let inner = kubernetes_proto::k8s::api::core::v1::Endpoints::default();
+        let inner = kubernetes_proto::api::core::v1::Endpoints::default();
         let val = Value::Endpoints(inner);
         let buf: Vec<u8> = (&val).into();
         let val_back = Value::try_from(buf).unwrap();
@@ -421,7 +427,7 @@ mod tests {
 
     #[test]
     fn k8svalue_pod_serde() {
-        let inner = kubernetes_proto::k8s::api::core::v1::Pod::default();
+        let inner = kubernetes_proto::api::core::v1::Pod::default();
         let val = Value::Pod(Box::new(inner));
         let buf: Vec<u8> = (&val).into();
         let val_back = Value::try_from(buf).unwrap();
