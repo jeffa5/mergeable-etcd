@@ -4,7 +4,7 @@ use automergeable::Automergeable;
 use ecetcd::StoreValue;
 use prost::Message;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 const K8S_PREFIX: &[u8] = &[b'k', b'8', b's', 0];
 
@@ -15,6 +15,9 @@ pub enum Value {
     Lease(kubernetes_proto::k8s::api::coordination::v1::Lease),
     Endpoints(kubernetes_proto::k8s::api::core::v1::Endpoints),
     Pod(Box<kubernetes_proto::k8s::api::core::v1::Pod>),
+    Namespace(kubernetes_proto::k8s::api::core::v1::Namespace),
+    ConfigMap(kubernetes_proto::k8s::api::core::v1::ConfigMap),
+    RangeAllocation(kubernetes_proto::k8s::api::core::v1::RangeAllocation),
     Unknown(kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown),
     Json(serde_json::Value),
 }
@@ -52,24 +55,51 @@ impl TryFrom<&[u8]> for Value {
                     let lease = kubernetes_proto::k8s::api::coordination::v1::Lease::decode(
                         &unknown.raw.unwrap()[..],
                     );
-                    info!("Lease: {:?}", lease);
+                    debug!("Lease: {:?}", lease);
                     Self::Lease(lease.expect("Failed decoding Lease resource from raw"))
                 }
                 (Some("v1"), Some("Endpoints")) => {
                     let endpoints = kubernetes_proto::k8s::api::core::v1::Endpoints::decode(
                         &unknown.raw.unwrap()[..],
                     );
-                    info!("Endpoints: {:?}", endpoints);
+                    debug!("Endpoints: {:?}", endpoints);
                     Self::Endpoints(endpoints.expect("Failed decoding Endpoints resource from raw"))
                 }
                 (Some("v1"), Some("Pod")) => {
                     let pod = kubernetes_proto::k8s::api::core::v1::Pod::decode(
                         &unknown.raw.unwrap()[..],
                     );
-                    info!("Pod: {:?}", pod);
+                    debug!("Pod: {:?}", pod);
                     Self::Pod(Box::new(
                         pod.expect("Failed decoding Pod resource from raw"),
                     ))
+                }
+                (Some("v1"), Some("Namespace")) => {
+                    let namespace = kubernetes_proto::k8s::api::core::v1::Namespace::decode(
+                        &unknown.raw.unwrap()[..],
+                    );
+                    debug!("Namespace: {:?}", namespace);
+                    Self::Namespace(namespace.expect("Failed decoding Namespace resource from raw"))
+                }
+                (Some("v1"), Some("ConfigMap")) => {
+                    let config_map = kubernetes_proto::k8s::api::core::v1::ConfigMap::decode(
+                        &unknown.raw.unwrap()[..],
+                    );
+                    debug!("ConfigMap: {:?}", config_map);
+                    Self::ConfigMap(
+                        config_map.expect("Failed decoding ConfigMap resource from raw"),
+                    )
+                }
+                (Some("v1"), Some("RangeAllocation")) => {
+                    let range_allocation =
+                        kubernetes_proto::k8s::api::core::v1::RangeAllocation::decode(
+                            &unknown.raw.unwrap()[..],
+                        );
+                    debug!("RangeAllocation: {:?}", range_allocation);
+                    Self::RangeAllocation(
+                        range_allocation
+                            .expect("Failed decoding RangeAllocation resource from raw"),
+                    )
                 }
                 (api_version, kind) => {
                     warn!("Unknown api_version {:?} and kind {:?}", api_version, kind);
@@ -106,6 +136,7 @@ impl From<Value> for Vec<u8> {
     }
 }
 
+#[allow(clippy::fallible_impl_from)]
 impl From<&Value> for Vec<u8> {
     fn from(val: &Value) -> Self {
         let mut bytes = if let Value::Json(_) = val {
@@ -128,7 +159,7 @@ impl From<&Value> for Vec<u8> {
                     content_encoding: Some(String::new()),
                     content_type: Some(String::new()),
                 };
-                unknown.encode(&mut bytes).unwrap()
+                unknown.encode(&mut bytes).unwrap();
             }
             Value::Endpoints(endpoints) => {
                 let mut raw_bytes = Self::new();
@@ -144,7 +175,7 @@ impl From<&Value> for Vec<u8> {
                     content_encoding: Some(String::new()),
                     content_type: Some(String::new()),
                 };
-                unknown.encode(&mut bytes).unwrap()
+                unknown.encode(&mut bytes).unwrap();
             }
             Value::Pod(pod) => {
                 let mut raw_bytes = Self::new();
@@ -160,7 +191,55 @@ impl From<&Value> for Vec<u8> {
                     content_encoding: Some(String::new()),
                     content_type: Some(String::new()),
                 };
-                unknown.encode(&mut bytes).unwrap()
+                unknown.encode(&mut bytes).unwrap();
+            }
+            Value::Namespace(namespace) => {
+                let mut raw_bytes = Self::new();
+                namespace.encode(&mut raw_bytes).unwrap();
+                let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(
+                        kubernetes_proto::k8s::apimachinery::pkg::runtime::TypeMeta {
+                            api_version: Some("v1".to_owned()),
+                            kind: Some("Namespace".to_owned()),
+                        },
+                    ),
+                    raw: Some(raw_bytes),
+                    content_encoding: Some(String::new()),
+                    content_type: Some(String::new()),
+                };
+                unknown.encode(&mut bytes).unwrap();
+            }
+            Value::ConfigMap(config_map) => {
+                let mut raw_bytes = Self::new();
+                config_map.encode(&mut raw_bytes).unwrap();
+                let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(
+                        kubernetes_proto::k8s::apimachinery::pkg::runtime::TypeMeta {
+                            api_version: Some("v1".to_owned()),
+                            kind: Some("ConfigMap".to_owned()),
+                        },
+                    ),
+                    raw: Some(raw_bytes),
+                    content_encoding: Some(String::new()),
+                    content_type: Some(String::new()),
+                };
+                unknown.encode(&mut bytes).unwrap();
+            }
+            Value::RangeAllocation(range_allocation) => {
+                let mut raw_bytes = Self::new();
+                range_allocation.encode(&mut raw_bytes).unwrap();
+                let unknown = kubernetes_proto::k8s::apimachinery::pkg::runtime::Unknown {
+                    type_meta: Some(
+                        kubernetes_proto::k8s::apimachinery::pkg::runtime::TypeMeta {
+                            api_version: Some("v1".to_owned()),
+                            kind: Some("RangeAllocation".to_owned()),
+                        },
+                    ),
+                    raw: Some(raw_bytes),
+                    content_encoding: Some(String::new()),
+                    content_type: Some(String::new()),
+                };
+                unknown.encode(&mut bytes).unwrap();
             }
             Value::Unknown(unknown) => unknown.encode(&mut bytes).unwrap(),
             Value::Json(json) => serde_json::to_writer(&mut bytes, &json).unwrap(),
