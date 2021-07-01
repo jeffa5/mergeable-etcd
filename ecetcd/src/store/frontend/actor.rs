@@ -131,7 +131,7 @@ where
         actor_id: uuid::Uuid,
         sync: bool,
     ) -> Result<Self, FrontendError> {
-        let f = automerge::Frontend::new_with_actor_id(actor_id);
+        let f = automerge::Frontend::new_with_actor_id(actor_id.as_bytes());
         let mut document = Document::new(f);
         // fill in the default structure
         //
