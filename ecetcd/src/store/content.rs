@@ -23,6 +23,25 @@ const VALUES_KEY: &str = "values";
 const SERVER_KEY: &str = "server";
 const LEASES_KEY: &str = "leases";
 
+#[derive(Debug, Clone)]
+pub(crate) enum ValueState<T> {
+    Present(T),
+    Absent,
+}
+
+impl<T> ValueState<T>
+where
+    T: ToAutomerge,
+{
+    /// Convert the value to automerge Value if it is present
+    fn to_automerge(&self) -> ValueState<Value> {
+        match self {
+            Self::Present(v) => ValueState::Present(v.to_automerge()),
+            Self::Absent => ValueState::Absent,
+        }
+    }
+}
+
 type Values<T> = BTreeMap<Key, IValue<T>>;
 
 #[derive(Debug, Clone)]
@@ -33,7 +52,7 @@ where
     frontend: &'a automerge::Frontend,
     values: Option<BTreeMap<Key, IValue<T>>>,
     server: Option<Server>,
-    leases: Option<HashMap<i64, Ttl>>,
+    leases: Option<HashMap<i64, ValueState<Ttl>>>,
     _type: PhantomData<T>,
 }
 
@@ -80,7 +99,7 @@ where
     pub fn insert_lease(&mut self, id: i64, ttl: Ttl) {
         self.leases
             .get_or_insert_with(Default::default)
-            .insert(id, ttl);
+            .insert(id, ValueState::Present(ttl));
     }
 
     pub fn value(&mut self, key: &Key) -> Option<Result<&IValue<T>, FromAutomergeError>> {
@@ -186,13 +205,24 @@ where
                 Some(Ok(ttl)) => {
                     self.leases
                         .get_or_insert_with(Default::default)
-                        .insert(*id, ttl);
+                        .insert(*id, ValueState::Present(ttl));
                 }
                 Some(Err(e)) => return Some(Err(e)),
                 None => return None,
             }
         }
-        Some(Ok(self.leases.as_ref().unwrap().get(id).as_ref().unwrap()))
+        let leases = self.leases.as_ref().unwrap();
+        let vs = leases.get(id).unwrap();
+        match vs {
+            ValueState::Present(v) => Some(Ok(v)),
+            ValueState::Absent => unreachable!("tried to return an absent value"),
+        }
+    }
+
+    pub fn remove_lease(&mut self, id: i64) {
+        self.leases
+            .get_or_insert_with(Default::default)
+            .insert(id, ValueState::Absent);
     }
 
     pub fn server(&mut self) -> Result<&Server, FromAutomergeError> {
@@ -231,16 +261,19 @@ where
         }
     }
 
-    pub fn changes(&self) -> HashMap<Path, Value> {
+    pub(crate) fn changes(&self) -> HashMap<Path, ValueState<Value>> {
         let mut hm = HashMap::new();
         if let Some(server) = self.server.as_ref() {
-            hm.insert(Path::root().key(SERVER_KEY), server.to_automerge());
+            hm.insert(
+                Path::root().key(SERVER_KEY),
+                ValueState::Present(server.to_automerge()),
+            );
         }
         if let Some(values) = self.values.as_ref() {
             for (k, v) in values {
                 hm.insert(
                     Path::root().key(VALUES_KEY).key(k.to_string()),
-                    v.to_automerge(),
+                    ValueState::Present(v.to_automerge()),
                 );
             }
         }

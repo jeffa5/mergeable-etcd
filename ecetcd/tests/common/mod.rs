@@ -10,6 +10,7 @@ pub enum Response {
     TxnResponse(etcd_proto::etcdserverpb::TxnResponse),
     WatchResponse(etcd_proto::etcdserverpb::WatchResponse),
     LeaseGrantResponse(etcd_proto::etcdserverpb::LeaseGrantResponse),
+    LeaseRevokeResponse(etcd_proto::etcdserverpb::LeaseRevokeResponse),
 }
 
 pub struct Clients {
@@ -180,6 +181,22 @@ pub async fn test_lease_grant(request: &etcd_proto::etcdserverpb::LeaseGrantRequ
                     r.id = 1000;
                 }
                 Ok(Response::LeaseGrantResponse(r))
+            }
+            Err(status) => Err((status.code(), status.message().to_owned())),
+        };
+        stream::once(future::ready(response))
+    })
+    .await
+}
+
+pub async fn test_lease_revoke(request: &etcd_proto::etcdserverpb::LeaseRevokeRequest) {
+    dbg!(request);
+    run_requests(|mut clients| async move {
+        let response = match clients.lease.lease_revoke(request.clone()).await {
+            Ok(r) => {
+                let mut r = r.into_inner();
+                r.header = None;
+                Ok(Response::LeaseRevokeResponse(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
         };

@@ -12,7 +12,10 @@ use tracing::{error, info, warn, Instrument, Span};
 
 use super::FrontendMessage;
 use crate::{
-    store::{BackendHandle, IValue, Key, Revision, Server, SnapshotValue, StoreContents, Ttl},
+    store::{
+        content::ValueState, BackendHandle, IValue, Key, Revision, Server, SnapshotValue,
+        StoreContents, Ttl,
+    },
     StoreValue,
 };
 
@@ -64,8 +67,14 @@ where
         let mut changes = Vec::new();
         for (path, value) in kvs {
             let old = self.frontend.get_value(&path);
-            let mut local_changes =
-                automergeable::diff_with_path(Some(&value), old.as_ref(), path).unwrap();
+            let mut local_changes = match value {
+                ValueState::Present(v) => {
+                    automergeable::diff_with_path(Some(&v), old.as_ref(), path).unwrap()
+                }
+                ValueState::Absent => {
+                    vec![LocalChange::delete(path)]
+                }
+            };
             changes.append(&mut local_changes);
         }
         changes
@@ -541,12 +550,10 @@ where
         let (result, change) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
-                let server = store_contents.server_mut().unwrap();
-                server.increment_revision();
-                let server = server.clone();
+                let server = store_contents.server_mut().unwrap().clone();
 
-                todo!();
-                // store_contents.leases.remove(&id);
+                store_contents.remove_lease(id);
+
                 tracing::warn!("revoking lease but not removing kv");
                 // TODO: delete the keys with the associated lease
                 Ok(server)
