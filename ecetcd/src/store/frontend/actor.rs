@@ -1,11 +1,12 @@
 use std::{collections::HashMap, convert::TryFrom, marker::PhantomData, ops::Range, thread};
 
-use automerge::LocalChange;
+use automerge::{LocalChange, Path};
 use automerge_frontend::InvalidPatch;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::{ActorId, Change, Patch};
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
+use rand::random;
 use tokio::sync::{mpsc, watch};
 use tracing::{error, info, warn, Instrument, Span};
 
@@ -491,17 +492,21 @@ where
     ) -> Result<(Server, i64, Ttl), FrontendError> {
         let (result, change) = self
             .document
-            .change::<_, _, std::convert::Infallible>(|store_contents| {
-                // TODO: proper id generation
-                let server = store_contents.server_mut().expect("Failed to get server");
-                server.increment_revision();
-                let server = server.clone();
+            .change::<_, _, FrontendError>(|store_contents| {
+                let server = store_contents
+                    .server_mut()
+                    .expect("Failed to get server")
+                    .clone();
 
-                let id = id.unwrap_or(0);
-                store_contents.insert_lease(id, ttl);
+                let id = id.unwrap_or_else(random);
+
+                if store_contents.contains_lease(id) {
+                    return Err(FrontendError::LeaseAlreadyExists);
+                } else {
+                    store_contents.insert_lease(id, ttl);
+                }
                 Ok((server, id, ttl))
-            })
-            .unwrap();
+            })?;
 
         if let Some(change) = change {
             self.apply_local_change(change).await;
@@ -570,4 +575,6 @@ pub enum FrontendError {
     BackendError(#[from] Error<SledPersisterError, automerge_backend::AutomergeError>),
     #[error(transparent)]
     AutomergeDocumentChangeError(#[from] automergeable::DocumentChangeError),
+    #[error("lease already exists")]
+    LeaseAlreadyExists,
 }

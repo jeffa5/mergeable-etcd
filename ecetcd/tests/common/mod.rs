@@ -9,11 +9,13 @@ pub enum Response {
     DeleteRangeResponse(etcd_proto::etcdserverpb::DeleteRangeResponse),
     TxnResponse(etcd_proto::etcdserverpb::TxnResponse),
     WatchResponse(etcd_proto::etcdserverpb::WatchResponse),
+    LeaseGrantResponse(etcd_proto::etcdserverpb::LeaseGrantResponse),
 }
 
 pub struct Clients {
     pub kv: etcd_proto::etcdserverpb::kv_client::KvClient<Channel>,
     pub watch: etcd_proto::etcdserverpb::watch_client::WatchClient<Channel>,
+    pub lease: etcd_proto::etcdserverpb::lease_client::LeaseClient<Channel>,
 }
 
 pub async fn run_requests<F, FO, FOI>(f: F)
@@ -30,7 +32,11 @@ where
         etcd_proto::etcdserverpb::watch_client::WatchClient::connect("http://127.0.0.1:2389")
             .await
             .unwrap();
-    let recetcd_clients = Clients { kv, watch };
+    let lease =
+        etcd_proto::etcdserverpb::lease_client::LeaseClient::connect("http://127.0.0.1:2389")
+            .await
+            .unwrap();
+    let recetcd_clients = Clients { kv, watch, lease };
     let recetcd_results = f(recetcd_clients).await;
 
     let kv = etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
@@ -40,7 +46,11 @@ where
         etcd_proto::etcdserverpb::watch_client::WatchClient::connect("http://127.0.0.1:2379")
             .await
             .unwrap();
-    let etcd_clients = Clients { kv, watch };
+    let lease =
+        etcd_proto::etcdserverpb::lease_client::LeaseClient::connect("http://127.0.0.1:2379")
+            .await
+            .unwrap();
+    let etcd_clients = Clients { kv, watch, lease };
     let etcd_results = f(etcd_clients).await;
 
     let results = etcd_results.zip(recetcd_results);
@@ -150,6 +160,26 @@ pub async fn test_txn(request: &etcd_proto::etcdserverpb::TxnRequest) {
                     }
                 }
                 Ok(Response::TxnResponse(r))
+            }
+            Err(status) => Err((status.code(), status.message().to_owned())),
+        };
+        stream::once(future::ready(response))
+    })
+    .await
+}
+
+pub async fn test_lease_grant(request: &etcd_proto::etcdserverpb::LeaseGrantRequest) {
+    dbg!(request);
+    run_requests(|mut clients| async move {
+        let response = match clients.lease.lease_grant(request.clone()).await {
+            Ok(r) => {
+                let mut r = r.into_inner();
+                r.header = None;
+                // ids are random if not provided so we should just ignore it
+                if request.id == 0 {
+                    r.id = 1000;
+                }
+                Ok(Response::LeaseGrantResponse(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
         };

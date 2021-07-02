@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, pin::Pin};
+use std::{cmp::max, convert::TryFrom, pin::Pin};
 
 use etcd_proto::etcdserverpb::{
     lease_server::Lease as LeaseTrait, LeaseGrantRequest, LeaseGrantResponse,
@@ -9,7 +9,10 @@ use futures::{Stream, StreamExt};
 use tonic::{Request, Response, Status, Streaming};
 use tracing::info;
 
-use crate::{server::Server, StoreValue};
+use crate::{server::Server, store::FrontendError, StoreValue};
+
+/// at least 2 seconds
+const MINIMUM_LEASE_TTL: i64 = 2;
 
 #[derive(Debug)]
 pub struct Lease<T>
@@ -25,10 +28,12 @@ where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {
+    #[tracing::instrument(skip(self, request))]
     async fn lease_grant(
         &self,
         request: Request<LeaseGrantRequest>,
     ) -> Result<Response<LeaseGrantResponse>, Status> {
+        info!("lease grant");
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
         let id = if request.id == 0 {
@@ -36,8 +41,19 @@ where
         } else {
             Some(request.id)
         };
-        let create_lease_result = self.server.create_lease(id, request.ttl, remote_addr);
-        let (server, id, ttl) = create_lease_result.await;
+
+        // don't allow a zero ttl, at least make it a small value
+        let ttl = max(MINIMUM_LEASE_TTL, request.ttl);
+
+        let (server, id, ttl) = match self.server.create_lease(id, ttl, remote_addr).await {
+            Ok(res) => res,
+            Err(FrontendError::LeaseAlreadyExists) => {
+                return Err(Status::failed_precondition(
+                    "etcdserver: lease already exists",
+                ));
+            }
+            Err(e) => return Err(Status::unknown(e.to_string())),
+        };
         Ok(Response::new(LeaseGrantResponse {
             header: Some(server.header()),
             id,
@@ -46,10 +62,12 @@ where
         }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn lease_revoke(
         &self,
         request: Request<LeaseRevokeRequest>,
     ) -> Result<Response<LeaseRevokeResponse>, Status> {
+        info!("lease revoke");
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
         let server_result = self.server.revoke_lease(request.id, remote_addr);
@@ -62,10 +80,12 @@ where
     type LeaseKeepAliveStream =
         Pin<Box<dyn Stream<Item = Result<LeaseKeepAliveResponse, Status>> + Send + Sync + 'static>>;
 
+    #[tracing::instrument(skip(self, request))]
     async fn lease_keep_alive(
         &self,
         request: Request<Streaming<LeaseKeepAliveRequest>>,
     ) -> Result<Response<Self::LeaseKeepAliveStream>, Status> {
+        info!("lease keep alive");
         let remote_addr = request.remote_addr();
         let (tx, rx) = tokio::sync::mpsc::channel(1);
 
@@ -90,6 +110,7 @@ where
         )))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn lease_time_to_live(
         &self,
         request: Request<LeaseTimeToLiveRequest>,
@@ -99,6 +120,7 @@ where
         todo!()
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn lease_leases(
         &self,
         request: Request<LeaseLeasesRequest>,

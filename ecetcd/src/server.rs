@@ -113,12 +113,11 @@ where
         id: Option<i64>,
         ttl: i64,
         remote_addr: Option<SocketAddr>,
-    ) -> (crate::store::Server, i64, i64) {
+    ) -> Result<(crate::store::Server, i64, i64), FrontendError> {
         let (server, id, ttl) = self
             .select_frontend(remote_addr)
             .create_lease(id, Ttl::new(ttl))
-            .await
-            .unwrap();
+            .await?;
         // spawn task to handle timeouts stuff
         let (tx_timeout, rx_timeout) = tokio::sync::oneshot::channel();
 
@@ -131,7 +130,7 @@ where
 
         let lease_watcher = lease::Lease::new(id, *ttl, tx_timeout);
         self.inner.lock().unwrap().leases.insert(id, lease_watcher);
-        (server, id, *ttl)
+        Ok((server, id, *ttl))
     }
 
     pub async fn refresh_lease(

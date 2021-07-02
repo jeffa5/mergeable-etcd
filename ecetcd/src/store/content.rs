@@ -75,14 +75,16 @@ where
         }
     }
 
+    pub fn contains_lease(&self, id: i64) -> bool {
+        self.frontend
+            .get_value(&Path::root().key(LEASES_KEY).key(id.to_string()))
+            .is_some()
+    }
+
     pub fn insert_lease(&mut self, id: i64, ttl: Ttl) {
-        if let Some(leases) = self.leases.as_mut() {
-            leases.insert(id, ttl);
-        } else {
-            let mut hm = HashMap::new();
-            hm.insert(id, ttl);
-            self.leases = Some(hm)
-        }
+        self.leases
+            .get_or_insert_with(Default::default)
+            .insert(id, ttl);
     }
 
     pub fn value(&mut self, key: &Key) -> Option<Result<&IValue<T>, FromAutomergeError>> {
@@ -268,6 +270,14 @@ where
             for (k, v) in values {
                 hm.insert(
                     Path::root().key(VALUES_KEY).key(k.to_string()),
+                    v.to_automerge(),
+                );
+            }
+        }
+        if let Some(leases) = self.leases.as_ref() {
+            for (k, v) in leases {
+                hm.insert(
+                    Path::root().key(LEASES_KEY).key(k.to_string()),
                     v.to_automerge(),
                 );
             }
