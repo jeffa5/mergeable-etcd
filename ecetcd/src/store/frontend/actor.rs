@@ -1,6 +1,6 @@
 use std::{collections::HashMap, convert::TryFrom, marker::PhantomData, ops::Range, thread};
 
-use automerge::{LocalChange, Path};
+use automerge::LocalChange;
 use automerge_frontend::InvalidPatch;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
@@ -554,13 +554,27 @@ where
         let (result, change) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
-                let server = store_contents.server_mut().unwrap().clone();
+                if let Some(Ok(lease)) = store_contents.lease(&id) {
+                    let keys_to_delete = lease.keys().to_owned();
 
-                store_contents.remove_lease(id);
+                    let server = store_contents.server_mut().unwrap();
+                    if !keys_to_delete.is_empty() {
+                        server.increment_revision();
+                    }
+                    let server = server.clone();
 
-                tracing::warn!("revoking lease but not removing kv");
-                // TODO: delete the keys with the associated lease
-                Ok(server)
+                    store_contents.remove_lease(id);
+
+                    for key in keys_to_delete {
+                        if let Some(Ok(value)) = store_contents.value_mut(&key) {
+                            value.delete(server.revision)
+                        }
+                    }
+
+                    Ok(server)
+                } else {
+                    Ok(store_contents.server().unwrap().clone())
+                }
             })
             .unwrap();
 

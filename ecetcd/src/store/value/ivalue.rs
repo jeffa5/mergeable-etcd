@@ -118,5 +118,6 @@ where
     /// Delete the value with the given revision
     pub fn delete(&mut self, revision: Revision) {
         self.revisions.insert(revision, None);
+        self.lease_id = None;
     }
 }

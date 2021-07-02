@@ -91,6 +91,10 @@ impl Lease {
         }
     }
 
+    pub(crate) fn keys(&self) -> &[Key] {
+        &self.keys
+    }
+
     pub(crate) fn ttl(&self) -> Ttl {
         self.ttl
     }
