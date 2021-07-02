@@ -160,9 +160,10 @@ where
         document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
         tracing::info!(
-            "Created frontend actor {} on thread {:?}",
+            "Created frontend actor {} on thread {:?} with id {}",
             id,
-            thread::current().id()
+            thread::current().id(),
+            actor_id
         );
         Ok(Self {
             document,
