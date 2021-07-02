@@ -100,12 +100,14 @@ where
         key: Key,
         value: Option<Vec<u8>>,
         prev_kv: bool,
+        lease: Option<i64>,
     ) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
         let (send, recv) = oneshot::channel();
         let msg = FrontendMessage::Insert {
             key,
             value,
             prev_kv,
+            lease,
             ret: send,
         };
 

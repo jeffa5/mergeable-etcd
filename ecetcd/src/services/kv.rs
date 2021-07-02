@@ -105,9 +105,14 @@ where
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
-        assert_eq!(request.lease, 0);
         assert!(!request.ignore_lease);
         debug!("put: {:?}", request);
+
+        let lease = if request.lease == 0 {
+            None
+        } else {
+            Some(request.lease)
+        };
 
         if !request.value.is_empty() && request.ignore_value {
             return Err(Status::invalid_argument("etcdserver: value is provided"));
@@ -121,6 +126,7 @@ where
                 Some(request.value)
             },
             request.prev_kv,
+            lease,
             remote_addr,
         );
         let (server, prev_kv) = insert_response.await.unwrap();

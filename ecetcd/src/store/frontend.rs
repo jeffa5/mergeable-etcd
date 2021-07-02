@@ -33,6 +33,7 @@ where
         key: Key,
         value: Option<Vec<u8>>,
         prev_kv: bool,
+        lease: Option<i64>,
         ret: oneshot::Sender<Result<(Server, Option<SnapshotValue>), FrontendError>>,
     },
     Remove {

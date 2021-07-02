@@ -50,6 +50,13 @@ impl<T> ValueState<T> {
         }
     }
 
+    fn as_mut(&mut self) -> ValueState<&mut T> {
+        match self {
+            Self::Present(v) => ValueState::Present(v),
+            Self::Absent => ValueState::Absent,
+        }
+    }
+
     fn unwrap(self) -> T {
         match self {
             Self::Present(v) => v,
@@ -60,6 +67,35 @@ impl<T> ValueState<T> {
 
 type Values<T> = BTreeMap<Key, IValue<T>>;
 
+#[derive(Debug, Clone, Default, automergeable::Automergeable)]
+pub struct Lease {
+    ttl: Ttl,
+    keys: Vec<Key>,
+}
+
+impl Lease {
+    fn new(ttl: Ttl) -> Self {
+        Self {
+            ttl,
+            keys: Vec::new(),
+        }
+    }
+
+    /// Returns true if the key was not in the lease or false if it was
+    pub(crate) fn add_key(&mut self, key: Key) -> bool {
+        if self.keys.contains(&key) {
+            true
+        } else {
+            self.keys.push(key);
+            false
+        }
+    }
+
+    pub(crate) fn ttl(&self) -> Ttl {
+        self.ttl
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct StoreContents<'a, T>
 where
@@ -68,7 +104,7 @@ where
     frontend: &'a automerge::Frontend,
     values: Option<BTreeMap<Key, IValue<T>>>,
     server: Option<Server>,
-    leases: Option<HashMap<i64, ValueState<Ttl>>>,
+    leases: Option<HashMap<i64, ValueState<Lease>>>,
     _type: PhantomData<T>,
 }
 
@@ -115,7 +151,7 @@ where
     pub fn insert_lease(&mut self, id: i64, ttl: Ttl) {
         self.leases
             .get_or_insert_with(Default::default)
-            .insert(id, ValueState::Present(ttl));
+            .insert(id, ValueState::Present(Lease::new(ttl)));
     }
 
     pub fn value(&mut self, key: &Key) -> Option<Result<&IValue<T>, FromAutomergeError>> {
@@ -208,7 +244,7 @@ where
         Some(Ok(self.values.as_mut().unwrap().range_mut(range)))
     }
 
-    pub fn lease(&mut self, id: &i64) -> Option<Result<&Ttl, FromAutomergeError>> {
+    pub fn lease(&mut self, id: &i64) -> Option<Result<&Lease, FromAutomergeError>> {
         if self.leases.as_ref().and_then(|v| v.get(id)).is_some() {
             // already in the cache, do nothing
         } else {
@@ -216,12 +252,12 @@ where
                 .frontend
                 .get_value(&Path::root().key(LEASES_KEY).key(id.to_string()))
                 .as_ref()
-                .map(|v| Ttl::from_automerge(v));
+                .map(|v| Lease::from_automerge(v));
             match v {
-                Some(Ok(ttl)) => {
+                Some(Ok(lease)) => {
                     self.leases
                         .get_or_insert_with(Default::default)
-                        .insert(*id, ValueState::Present(ttl));
+                        .insert(*id, ValueState::Present(lease));
                 }
                 Some(Err(e)) => return Some(Err(e)),
                 None => return None,
@@ -229,6 +265,29 @@ where
         }
         let leases = self.leases.as_ref().unwrap();
         Some(Ok(leases.get(id).unwrap().as_ref().unwrap()))
+    }
+
+    pub fn lease_mut(&mut self, id: &i64) -> Option<Result<&mut Lease, FromAutomergeError>> {
+        if self.leases.as_ref().and_then(|v| v.get(id)).is_some() {
+            // already in the cache, do nothing
+        } else {
+            let v = self
+                .frontend
+                .get_value(&Path::root().key(LEASES_KEY).key(id.to_string()))
+                .as_ref()
+                .map(|v| Lease::from_automerge(v));
+            match v {
+                Some(Ok(lease)) => {
+                    self.leases
+                        .get_or_insert_with(Default::default)
+                        .insert(*id, ValueState::Present(lease));
+                }
+                Some(Err(e)) => return Some(Err(e)),
+                None => return None,
+            }
+        }
+        let leases = self.leases.as_mut().unwrap();
+        Some(Ok(leases.get_mut(id).unwrap().as_mut().unwrap()))
     }
 
     pub fn remove_lease(&mut self, id: i64) {
@@ -339,21 +398,27 @@ where
         key: Key,
         value: Option<Vec<u8>>,
         revision: Revision,
+        lease: Option<i64>,
     ) -> Option<SnapshotValue> {
-        tracing::debug!("inserting");
+        tracing::info!("inserting");
+
+        if let Some(lease_id) = lease {
+            let lease = self.lease_mut(&lease_id).unwrap().unwrap();
+            lease.add_key(key.clone());
+        }
 
         let v = self.value_mut(&key);
 
         match v {
             Some(Ok(v)) => {
                 let prev = v.value_at_revision(revision, key);
-                v.insert(revision, value);
+                v.insert(revision, value, lease);
                 prev
             }
             Some(Err(_)) => None,
             None => {
                 let mut v = IValue::default();
-                v.insert(revision, value);
+                v.insert(revision, value, lease);
                 self.insert_value(key, v);
                 None
             }
@@ -466,6 +531,11 @@ where
                             Some(request.value.clone())
                         },
                         server.revision,
+                        if request.lease == 0 {
+                            None
+                        } else {
+                            Some(request.lease)
+                        },
                     );
                     let prev_kv = if request.prev_kv {
                         prev_kv.map(|sv| sv.key_value())

@@ -343,7 +343,7 @@ mod tests {
             "default 1"
         );
 
-        v.insert(Revision::new(2).unwrap(), Some(b"{}".to_vec()));
+        v.insert(Revision::new(2).unwrap(), Some(b"{}".to_vec()), None);
         assert_eq!(
             None,
             v.value_at_revision(Revision::new(1).unwrap(), Vec::new().into()),
@@ -361,7 +361,7 @@ mod tests {
             "2@2"
         );
 
-        v.insert(Revision::new(4).unwrap(), Some(b"{}".to_vec()));
+        v.insert(Revision::new(4).unwrap(), Some(b"{}".to_vec()), None);
         assert_eq!(
             Some(SnapshotValue {
                 key: Vec::new().into(),
@@ -396,7 +396,7 @@ mod tests {
             "4@7"
         );
 
-        v.insert(Revision::new(5).unwrap(), Some(b"{}".to_vec()));
+        v.insert(Revision::new(5).unwrap(), Some(b"{}".to_vec()), None);
         assert_eq!(
             Some(SnapshotValue {
                 key: Vec::new().into(),
@@ -454,7 +454,7 @@ mod tests {
             "7@8"
         );
 
-        v.insert(Revision::new(9).unwrap(), Some(b"{}".to_vec()));
+        v.insert(Revision::new(9).unwrap(), Some(b"{}".to_vec()), None);
         assert_eq!(
             Some(SnapshotValue {
                 key: Vec::new().into(),

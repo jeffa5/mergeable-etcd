@@ -99,7 +99,7 @@ where
     /// Insert a new value (or update an existing value) at the given revision
     ///
     /// If the value is None then the last value is used and given a new revision.
-    pub fn insert(&mut self, revision: Revision, value: Option<Vec<u8>>) {
+    pub fn insert(&mut self, revision: Revision, value: Option<Vec<u8>>, lease: Option<i64>) {
         let value = if let Some(value) = value {
             T::try_from(value).unwrap()
         } else if let Some(last) = self.revisions.iter().last() {
@@ -109,6 +109,9 @@ where
             return;
         };
         self.revisions.insert(revision, Some(value));
+        if let Some(lease_id) = lease {
+            self.lease_id = lease_id
+        }
     }
 
     /// Delete the value with the given revision

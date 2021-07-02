@@ -11,6 +11,7 @@ use std::ops::Deref;
     Eq,
     Clone,
     Copy,
+    Default,
 )]
 pub struct Ttl(i64);
 

@@ -223,9 +223,10 @@ where
                 key,
                 value,
                 prev_kv,
+                lease,
                 ret,
             } => {
-                let result = self.insert(key, value, prev_kv).await;
+                let result = self.insert(key, value, prev_kv, lease).await;
                 let _ = ret.send(result);
                 Ok(())
             }
@@ -331,6 +332,7 @@ where
         key: Key,
         value: Option<Vec<u8>>,
         prev_kv: bool,
+        lease: Option<i64>,
     ) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
         let ((server, prev), change) = self
             .document
@@ -339,7 +341,8 @@ where
                 server.increment_revision();
                 let server = server.clone();
 
-                let prev = store_contents.insert_inner(key.clone(), value.clone(), server.revision);
+                let prev =
+                    store_contents.insert_inner(key.clone(), value.clone(), server.revision, lease);
                 let prev = if prev_kv { prev } else { None };
                 Ok((server, prev))
             })
@@ -526,15 +529,15 @@ where
 
     #[tracing::instrument(level = "debug", skip(self))]
     async fn refresh_lease(&mut self, id: i64) -> Result<(Server, Ttl), FrontendError> {
-        let (result, change) = self
+        let ((server, ttl), change) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
                 let server = store_contents.server_mut().unwrap();
                 server.increment_revision();
                 let server = server.clone();
 
-                let ttl = store_contents.lease(&id).unwrap().unwrap();
-                Ok((server, *ttl))
+                let ttl = store_contents.lease(&id).unwrap().unwrap().ttl();
+                Ok((server, ttl))
             })
             .unwrap();
 
@@ -542,7 +545,7 @@ where
             self.apply_local_change(change).await;
         }
 
-        Ok(result)
+        Ok((server, ttl))
     }
 
     #[tracing::instrument(level = "debug", skip(self))]

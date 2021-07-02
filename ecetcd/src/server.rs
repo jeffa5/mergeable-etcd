@@ -186,10 +186,11 @@ where
         key: Key,
         value: Option<Vec<u8>>,
         prev_kv: bool,
+        lease: Option<i64>,
         remote_addr: Option<SocketAddr>,
     ) -> Result<(crate::store::Server, Option<SnapshotValue>), FrontendError> {
         self.select_frontend(remote_addr)
-            .insert(key, value, prev_kv)
+            .insert(key, value, prev_kv, lease)
             .await
     }
 
