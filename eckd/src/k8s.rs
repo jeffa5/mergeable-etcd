@@ -503,6 +503,15 @@ mod tests {
     }
 
     #[test]
+    fn k8svalue_node_serde() {
+        let inner = kubernetes_proto::api::core::v1::Node::default();
+        let val = Value::Node(inner);
+        let buf: Vec<u8> = (&val).into();
+        let val_back = Value::try_from(buf).unwrap();
+        assert_eq!(val, val_back);
+    }
+
+    #[test]
     fn k8svalue_json_serde() {
         let val = Value::Json(serde_json::Value::default());
         let buf: Vec<u8> = (&val).into();
