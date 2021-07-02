@@ -66,13 +66,9 @@ where
     }
 
     fn insert_value(&mut self, key: Key, value: IValue<T>) {
-        if let Some(values) = self.values.as_mut() {
-            values.insert(key, value);
-        } else {
-            let mut bm = BTreeMap::new();
-            bm.insert(key, value);
-            self.values = Some(bm)
-        }
+        self.values
+            .get_or_insert_with(Default::default)
+            .insert(key, value);
     }
 
     pub fn contains_lease(&self, id: i64) -> bool {
@@ -98,13 +94,9 @@ where
                 .map(|v| IValue::from_automerge(v));
             match v {
                 Some(Ok(value)) => {
-                    if let Some(values) = self.values.as_mut() {
-                        values.insert(key.clone(), value);
-                    } else {
-                        let mut bm = BTreeMap::new();
-                        bm.insert(key.clone(), value);
-                        self.values = Some(bm)
-                    }
+                    self.values
+                        .get_or_insert_with(Default::default)
+                        .insert(key.clone(), value);
                 }
                 Some(Err(e)) => return Some(Err(e)),
                 None => return None,
@@ -124,13 +116,9 @@ where
                 .map(|v| IValue::from_automerge(v));
             match v {
                 Some(Ok(value)) => {
-                    if let Some(values) = self.values.as_mut() {
-                        values.insert(key.clone(), value);
-                    } else {
-                        let mut bm = BTreeMap::new();
-                        bm.insert(key.clone(), value);
-                        self.values = Some(bm)
-                    }
+                    self.values
+                        .get_or_insert_with(Default::default)
+                        .insert(key.clone(), value);
                 }
                 Some(Err(e)) => return Some(Err(e)),
                 None => return None,
@@ -151,16 +139,9 @@ where
 
         match v {
             Some(Ok(vals)) => {
-                if let Some(values) = self.values.as_mut() {
-                    for (k, v) in vals.range(range.clone()) {
-                        values.insert(k.clone(), v.clone());
-                    }
-                } else {
-                    let mut bm = BTreeMap::new();
-                    for (k, v) in vals.range(range.clone()) {
-                        bm.insert(k.clone(), v.clone());
-                    }
-                    self.values = Some(bm)
+                let values = self.values.get_or_insert_with(Default::default);
+                for (k, v) in vals.range(range.clone()) {
+                    values.insert(k.clone(), v.clone());
                 }
             }
             Some(Err(e)) => return Some(Err(e)),
@@ -181,16 +162,9 @@ where
 
         match v {
             Some(Ok(vals)) => {
-                if let Some(values) = self.values.as_mut() {
-                    for (k, v) in vals.range(range.clone()) {
-                        values.insert(k.clone(), v.clone());
-                    }
-                } else {
-                    let mut bm = BTreeMap::new();
-                    for (k, v) in vals.range(range.clone()) {
-                        bm.insert(k.clone(), v.clone());
-                    }
-                    self.values = Some(bm)
+                let values = self.values.get_or_insert_with(Default::default);
+                for (k, v) in vals.range(range.clone()) {
+                    values.insert(k.clone(), v.clone());
                 }
             }
             Some(Err(e)) => return Some(Err(e)),
@@ -210,13 +184,9 @@ where
                 .map(|v| Ttl::from_automerge(v));
             match v {
                 Some(Ok(ttl)) => {
-                    if let Some(leases) = self.leases.as_mut() {
-                        leases.insert(*id, ttl);
-                    } else {
-                        let mut hm = HashMap::new();
-                        hm.insert(*id, ttl);
-                        self.leases = Some(hm)
-                    }
+                    self.leases
+                        .get_or_insert_with(Default::default)
+                        .insert(*id, ttl);
                 }
                 Some(Err(e)) => return Some(Err(e)),
                 None => return None,
