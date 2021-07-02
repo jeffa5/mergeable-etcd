@@ -44,6 +44,7 @@ impl Server {
         self.member_id
     }
 
+    /// Increment the revision of the server and return the new value.
     pub(super) fn increment_revision(&mut self) -> Revision {
         self.revision = Revision::new(self.revision.get() + 1).unwrap();
         self.revision
