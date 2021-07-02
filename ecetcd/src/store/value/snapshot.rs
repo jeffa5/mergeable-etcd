@@ -20,6 +20,8 @@ pub struct SnapshotValue {
     /// None when this is a deleted value (a tombstone)
     /// Some when it is a valid and active value
     pub value: Option<Vec<u8>>,
+
+    pub lease: Option<i64>,
 }
 
 impl SnapshotValue {
@@ -31,7 +33,7 @@ impl SnapshotValue {
         KeyValue {
             create_revision: self.create_revision.map(|n| n.get() as i64).unwrap_or(0),
             key: self.key.into(),
-            lease: 0,
+            lease: self.lease.unwrap_or(0),
             mod_revision: self.mod_revision.get() as i64,
             value: self.value.unwrap_or_default(),
             version: self.version.map(|n| n.get() as i64).unwrap_or(0),

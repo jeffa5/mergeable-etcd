@@ -355,7 +355,8 @@ mod tests {
                 create_revision: Revision::new(2),
                 mod_revision: Revision::new(2).unwrap(),
                 version: NonZeroU64::new(1),
-                value: Some(b"{}".to_vec())
+                value: Some(b"{}".to_vec()),
+                lease: None,
             }),
             v.value_at_revision(Revision::new(2).unwrap(), Vec::new().into()),
             "2@2"
@@ -368,7 +369,8 @@ mod tests {
                 create_revision: Revision::new(2),
                 mod_revision: Revision::new(2).unwrap(),
                 version: NonZeroU64::new(1),
-                value: Some(b"{}".to_vec())
+                value: Some(b"{}".to_vec()),
+                lease: None,
             }),
             v.value_at_revision(Revision::new(2).unwrap(), Vec::new().into()),
             "4@2"
@@ -379,7 +381,8 @@ mod tests {
                 create_revision: Revision::new(2),
                 mod_revision: Revision::new(4).unwrap(),
                 version: NonZeroU64::new(2),
-                value: Some(b"{}".to_vec())
+                value: Some(b"{}".to_vec()),
+                lease: None,
             }),
             v.value_at_revision(Revision::new(4).unwrap(), Vec::new().into()),
             "4@4"
@@ -390,7 +393,8 @@ mod tests {
                 create_revision: Revision::new(2),
                 mod_revision: Revision::new(4).unwrap(),
                 version: NonZeroU64::new(2),
-                value: Some(b"{}".to_vec())
+                value: Some(b"{}".to_vec()),
+                lease: None,
             }),
             v.value_at_revision(Revision::new(7).unwrap(), Vec::new().into()),
             "4@7"
@@ -403,7 +407,8 @@ mod tests {
                 create_revision: Revision::new(2),
                 mod_revision: Revision::new(4).unwrap(),
                 version: NonZeroU64::new(2),
-                value: Some(b"{}".to_vec())
+                value: Some(b"{}".to_vec()),
+                lease: None,
             }),
             v.value_at_revision(Revision::new(4).unwrap(), Vec::new().into()),
             "5@4"
@@ -414,7 +419,8 @@ mod tests {
                 create_revision: Revision::new(2),
                 mod_revision: Revision::new(5).unwrap(),
                 version: NonZeroU64::new(3),
-                value: Some(b"{}".to_vec())
+                value: Some(b"{}".to_vec()),
+                lease: None,
             }),
             v.value_at_revision(Revision::new(7).unwrap(), Vec::new().into()),
             "5@7"
@@ -426,7 +432,8 @@ mod tests {
                 create_revision: Revision::new(2),
                 mod_revision: Revision::new(4).unwrap(),
                 version: NonZeroU64::new(2),
-                value: Some(b"{}".to_vec())
+                value: Some(b"{}".to_vec()),
+                lease: None,
             }),
             v.value_at_revision(Revision::new(4).unwrap(), Vec::new().into()),
             "7@4"
@@ -437,7 +444,8 @@ mod tests {
                 create_revision: None,
                 mod_revision: Revision::new(7).unwrap(),
                 version: NonZeroU64::new(0),
-                value: None
+                value: None,
+                lease: None,
             }),
             v.value_at_revision(Revision::new(7).unwrap(), Vec::new().into()),
             "7@7"
@@ -449,6 +457,7 @@ mod tests {
                 mod_revision: Revision::new(7).unwrap(),
                 version: NonZeroU64::new(0),
                 value: None,
+                lease: None,
             }),
             v.value_at_revision(Revision::new(8).unwrap(), Vec::new().into()),
             "7@8"
@@ -461,7 +470,8 @@ mod tests {
                 create_revision: Revision::new(9),
                 mod_revision: Revision::new(9).unwrap(),
                 version: NonZeroU64::new(1),
-                value: Some(b"{}".to_vec())
+                value: Some(b"{}".to_vec()),
+                lease: None,
             }),
             v.latest_value(Vec::new().into()),
             "9@9"

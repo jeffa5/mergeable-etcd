@@ -19,7 +19,7 @@ pub trait StoreValue:
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Automergeable)]
 pub struct IValue<T: StoreValue> {
     revisions: BTreeMap<Revision, Option<T>>,
-    lease_id: i64,
+    lease_id: Option<i64>,
 }
 
 impl<T> Default for IValue<T>
@@ -40,7 +40,7 @@ where
     pub fn new() -> Self {
         Self {
             revisions: BTreeMap::new(),
-            lease_id: 0,
+            lease_id: None,
         }
     }
 
@@ -79,6 +79,7 @@ where
                 mod_revision: revision,
                 version,
                 value: value.as_ref().map(|i| i.clone().into()),
+                lease: self.lease_id,
             })
         } else {
             None
@@ -110,7 +111,7 @@ where
         };
         self.revisions.insert(revision, Some(value));
         if let Some(lease_id) = lease {
-            self.lease_id = lease_id
+            self.lease_id = Some(lease_id)
         }
     }
 
