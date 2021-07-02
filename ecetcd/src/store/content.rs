@@ -42,6 +42,22 @@ where
     }
 }
 
+impl<T> ValueState<T> {
+    fn as_ref(&self) -> ValueState<&T> {
+        match self {
+            Self::Present(v) => ValueState::Present(v),
+            Self::Absent => ValueState::Absent,
+        }
+    }
+
+    fn unwrap(self) -> T {
+        match self {
+            Self::Present(v) => v,
+            Self::Absent => unreachable!("tried to return an absent value"),
+        }
+    }
+}
+
 type Values<T> = BTreeMap<Key, IValue<T>>;
 
 #[derive(Debug, Clone)]
@@ -212,11 +228,7 @@ where
             }
         }
         let leases = self.leases.as_ref().unwrap();
-        let vs = leases.get(id).unwrap();
-        match vs {
-            ValueState::Present(v) => Some(Ok(v)),
-            ValueState::Absent => unreachable!("tried to return an absent value"),
-        }
+        Some(Ok(leases.get(id).unwrap().as_ref().unwrap()))
     }
 
     pub fn remove_lease(&mut self, id: i64) {
