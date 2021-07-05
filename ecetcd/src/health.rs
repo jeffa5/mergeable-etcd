@@ -28,7 +28,7 @@ pub async fn health_handler(
     if health_server.is_healthy().await {
         Ok(StatusCode::OK)
     } else {
-        Ok(StatusCode::NOT_FOUND)
+        Ok(StatusCode::SERVICE_UNAVAILABLE)
     }
 }
 
