@@ -1,11 +1,9 @@
 use std::convert::Infallible;
 
-use hyper::{
-    service::{make_service_fn, service_fn},
-    Body, Method, Request, Response, Server, StatusCode,
-};
+use hyper::StatusCode;
 use tokio::sync::watch;
 use tracing::info;
+use warp::Filter;
 
 use crate::address::Address;
 
@@ -15,15 +13,19 @@ pub struct HealthServer {
     backend: watch::Receiver<bool>,
 }
 
-#[tracing::instrument]
-async fn health(req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    info!("http request: {} {}", req.method(), req.uri());
-    if req.method() == Method::GET && req.uri().path() == "/health" {
-        Ok(Response::new(Body::empty()))
+fn with_health_server(
+    health_server: HealthServer,
+) -> impl warp::Filter<Extract = (HealthServer,), Error = Infallible> + Clone {
+    warp::any().map(move || health_server.clone())
+}
+
+pub async fn health_handler(
+    health_server: HealthServer,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    if health_server.is_healthy() {
+        Ok(StatusCode::OK)
     } else {
-        let mut not_found = Response::default();
-        *not_found.status_mut() = StatusCode::NOT_FOUND;
-        Ok(not_found)
+        Ok(StatusCode::NOT_FOUND)
     }
 }
 
@@ -32,16 +34,19 @@ impl HealthServer {
         Self { frontends, backend }
     }
 
+    pub fn is_healthy(&self) -> bool {
+        false
+    }
+
     pub async fn serve(
         &self,
         metrics_url: Address,
         mut shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        use warp::Filter;
-
         let route = warp::get()
             .and(warp::path("health"))
-            .map(|| warp::reply::with_status(warp::reply(), StatusCode::NOT_FOUND));
+            .and(with_health_server(self.clone()))
+            .and_then(health_handler);
 
         let (_, server) = warp::serve(route).bind_with_graceful_shutdown(
             metrics_url.socket_address(),
