@@ -37,25 +37,23 @@ impl HealthServer {
         metrics_url: Address,
         mut shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // For every connection, we must make a `Service` to handle all
-        // incoming HTTP requests on said connection.
-        let make_svc = make_service_fn(|_conn| {
-            // This is the `Service` that will handle the connection.
-            // `service_fn` is a helper to convert a function that
-            // returns a Response into a `Service`.
-            async { Ok::<_, Infallible>(service_fn(health)) }
-        });
+        use warp::Filter;
 
-        let server = Server::bind(&metrics_url.socket_address())
-            .serve(make_svc)
-            .with_graceful_shutdown(async move {
+        let route = warp::get()
+            .and(warp::path("health"))
+            .map(|| warp::reply::with_status(warp::reply(), StatusCode::NOT_FOUND));
+
+        let (_, server) = warp::serve(route).bind_with_graceful_shutdown(
+            metrics_url.socket_address(),
+            async move {
                 shutdown.changed().await.unwrap();
                 info!("Gracefully shutting down metrics server")
-            });
+            },
+        );
 
         info!("Listening for health on {}", metrics_url);
 
-        server.await.unwrap();
+        server.await;
 
         Ok(())
     }
