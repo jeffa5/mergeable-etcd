@@ -176,12 +176,12 @@ where
                 } else {
                     None
                 };
-                let serving = health.serve(
+
+                health.serve(
                     metrics_url.clone(),
                     shutdown.clone(),
-                );
+                )
 
-                serving
             })
             .collect::<Vec<_>>();
 
