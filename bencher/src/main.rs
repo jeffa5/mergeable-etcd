@@ -12,11 +12,14 @@ use anyhow::{bail, Context};
 use bencher::Scenario;
 use chrono::{DateTime, Utc};
 use etcd_proto::etcdserverpb::kv_client::KvClient;
+use hyper::StatusCode;
 use structopt::StructOpt;
 use thiserror::Error;
 use tokio::time::sleep;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use url::Url;
+
+const MAX_HEALTH_RETRIES: u32 = 50;
 
 #[derive(StructOpt, Debug, Clone)]
 struct Options {
@@ -26,6 +29,10 @@ struct Options {
     cacert: Option<PathBuf>,
     #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2379", use_delimiter = true)]
     endpoints: Vec<Address>,
+
+    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2381", use_delimiter = true)]
+    metrics_endpoints: Vec<Address>,
+
     /// Interval between requests (in milliseconds)
     #[structopt(long, default_value = "0")]
     interval: u64,
@@ -125,6 +132,30 @@ async fn main() -> anyhow::Result<()> {
         println!("Starting in {:?}", duration);
 
         sleep(duration).await
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_millis(50))
+        .build()
+        .unwrap();
+
+    for endpoint in &options.metrics_endpoints {
+        println!("Waiting for {} to be ready", endpoint);
+        let mut retries = 0;
+        loop {
+            if retries > MAX_HEALTH_RETRIES {
+                panic!("Gave up waiting for service to be ready")
+            }
+            retries += 1;
+
+            let result = client.get(format!("{}/health", endpoint)).send().await;
+            if let Ok(response) = result {
+                if response.status() == StatusCode::OK {
+                    break;
+                }
+            }
+            sleep(Duration::from_secs(1)).await;
+        }
     }
 
     let mut endpoints = Vec::new();
