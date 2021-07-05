@@ -92,6 +92,10 @@ struct Options {
     #[structopt(long)]
     debug: bool,
 
+    /// Enable reporting trace spans to jaeger.
+    #[structopt(long)]
+    jaeger: bool,
+
     /// Whether to require changes be applied before returning.
     #[structopt(long)]
     sync: bool,
@@ -117,19 +121,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     })
     .unwrap();
 
-    let tracer = opentelemetry_jaeger::new_pipeline()
-        .with_service_name("recetcd")
-        .install_simple()?;
-
-    Registry::default()
+    let registry = Registry::default()
         .with(tracing_subscriber::EnvFilter::new(if options.debug {
             "DEBUG"
         } else {
             "INFO"
         }))
-        .with(tracing_subscriber::fmt::layer())
-        .with(tracing_opentelemetry::layer().with_tracer(tracer))
-        .init();
+        .with(tracing_subscriber::fmt::layer());
+
+    if options.jaeger {
+        let tracer = opentelemetry_jaeger::new_pipeline()
+            .with_service_name("recetcd")
+            .install_simple()?;
+
+        registry
+            .with(tracing_opentelemetry::layer().with_tracer(tracer))
+            .init();
+    } else {
+        registry.init();
+    }
 
     debug!("{:#?}", options);
 
