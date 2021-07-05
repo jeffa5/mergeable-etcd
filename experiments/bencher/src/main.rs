@@ -166,6 +166,7 @@ impl exp::Experiment for Experiment {
             let ip = format!("172.18.0.{}", i + 1);
             let client_port = 2379 + ((i - 1) * 10);
             let peer_port = 2380 + ((i - 1) * 10);
+            let metrics_port = 2381 + ((i - 1) * 10);
             let name = format!("node{}", i);
             let mut cmd = vec![
                 configuration.bin_name.to_owned(),
@@ -181,6 +182,8 @@ impl exp::Experiment for Experiment {
                 format!("http://{}:{}", ip, peer_port),
                 "--listen-peer-urls".to_owned(),
                 format!("http://{}:{}", ip, peer_port),
+                "--listen-metrics-urls".to_owned(),
+                format!("http://{}:{}", ip, metrics_port),
                 "--data-dir".to_owned(),
                 format!("/data/{}.etcd", name),
             ];
