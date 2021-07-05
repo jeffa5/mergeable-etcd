@@ -20,6 +20,7 @@ where
         automerge::Backend,
     >,
     receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
+    health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
     shutdown: watch::Receiver<()>,
     frontends: Vec<FrontendHandle<T>>,
 }
@@ -32,8 +33,8 @@ where
         config: &sled::Config,
         frontends: Vec<FrontendHandle<T>>,
         receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
+        health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
-        health_sender: watch::Sender<bool>,
     ) -> Self {
         let db = config.open().unwrap();
         let changes_tree = db.open_tree("changes").unwrap();
@@ -49,12 +50,11 @@ where
         let backend = automerge_persistent::PersistentBackend::load(sled_perst).unwrap();
         tracing::info!("Created backend actor");
 
-        health_sender.send(true).unwrap();
-
         Self {
             db,
             backend,
             receiver,
+            health_receiver,
             shutdown,
             frontends,
         }
@@ -63,6 +63,9 @@ where
     pub async fn run(&mut self) {
         loop {
             tokio::select! {
+                Some(s) = self.health_receiver.recv() => {
+                    let _ = s.send(());
+                }
                 Some((msg,span)) = self.receiver.recv() => {
                     self.handle_backend_message(msg).instrument(span).await;
                 }

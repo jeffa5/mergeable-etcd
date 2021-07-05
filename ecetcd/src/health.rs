@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 
 use hyper::StatusCode;
-use tokio::sync::watch;
+use tokio::sync::{mpsc, oneshot};
 use tracing::info;
 use warp::Filter;
 
@@ -9,8 +9,8 @@ use crate::address::Address;
 
 #[derive(Debug, Clone)]
 pub struct HealthServer {
-    frontends: Vec<watch::Receiver<bool>>,
-    backend: watch::Receiver<bool>,
+    frontends: Vec<mpsc::Sender<oneshot::Sender<()>>>,
+    backend: mpsc::Sender<oneshot::Sender<()>>,
 }
 
 fn with_health_server(
@@ -30,7 +30,10 @@ pub async fn health_handler(
 }
 
 impl HealthServer {
-    pub fn new(frontends: Vec<watch::Receiver<bool>>, backend: watch::Receiver<bool>) -> Self {
+    pub fn new(
+        frontends: Vec<mpsc::Sender<oneshot::Sender<()>>>,
+        backend: mpsc::Sender<oneshot::Sender<()>>,
+    ) -> Self {
         Self { frontends, backend }
     }
 

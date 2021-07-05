@@ -10,7 +10,7 @@ pub use address::Address;
 use automerge_protocol::ActorId;
 pub use store::StoreValue;
 use store::{BackendActor, BackendHandle, FrontendHandle};
-use tokio::{runtime::Builder, sync::watch, task::LocalSet};
+use tokio::{runtime::Builder, sync::mpsc, task::LocalSet};
 use tonic::transport::Identity;
 use tracing::info;
 
@@ -76,8 +76,8 @@ where
             let uuid = uuid::Uuid::new_v4();
             let sync_changes = self.sync_changes;
 
-            let (frontend_health_sender, frontend_health_receiver) = watch::channel(false);
-            frontend_healths.push(frontend_health_receiver);
+            let (frontend_health_sender, frontend_health_receiver) = mpsc::channel(1);
+            frontend_healths.push(frontend_health_sender);
 
             std::thread::spawn(move || {
                 let local = LocalSet::new();
@@ -87,11 +87,11 @@ where
                         backend_clone,
                         fc_receiver,
                         fb_receiver,
+                        frontend_health_receiver,
                         shutdown_clone,
                         i,
                         uuid,
                         sync_changes,
-                        frontend_health_sender,
                     )
                     .await
                     .unwrap();
@@ -109,19 +109,19 @@ where
 
         let shutdown_clone = shutdown.clone();
         let config = sled::Config::new().path(&self.data_dir);
-        let (backend_health_sender, backend_health_receiver) = watch::channel(false);
+        let (backend_health_sender, backend_health_receiver) = mpsc::channel(1);
         tokio::spawn(async move {
             let mut actor = BackendActor::new(
                 &config,
                 frontends_for_backend,
                 b_receiver,
+                backend_health_receiver,
                 shutdown_clone,
-                backend_health_sender,
             );
             actor.run().await;
         });
 
-        let health = HealthServer::new(frontend_healths, backend_health_receiver);
+        let health = HealthServer::new(frontend_healths, backend_health_sender);
 
         let server = crate::server::Server::new(frontends);
         let client_urls = match (

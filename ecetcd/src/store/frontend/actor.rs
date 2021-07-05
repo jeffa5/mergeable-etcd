@@ -5,7 +5,7 @@ use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::ActorId;
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use rand::random;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{mpsc, oneshot, watch};
 use tracing::{error, info, warn, Instrument, Span};
 
 use super::FrontendMessage;
@@ -29,6 +29,7 @@ where
     client_receiver: mpsc::Receiver<(FrontendMessage<T>, Span)>,
     // receiver for requests from the backend
     backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage<T>, Span)>,
+    health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
     shutdown: watch::Receiver<()>,
     id: usize,
     sync: bool,
@@ -58,11 +59,11 @@ where
         backend: BackendHandle,
         client_receiver: mpsc::Receiver<(FrontendMessage<T>, Span)>,
         backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage<T>, Span)>,
+        health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
         id: usize,
         actor_id: uuid::Uuid,
         sync: bool,
-        health_sender: watch::Sender<bool>,
     ) -> Result<Self, FrontendError> {
         let f = automerge::Frontend::new_with_actor_id(actor_id.as_bytes());
         let mut document = Document::new(f);
@@ -89,14 +90,13 @@ where
             actor_id
         );
 
-        health_sender.send(true).unwrap();
-
         Ok(Self {
             document,
             backend,
             watchers,
             client_receiver,
             backend_receiver,
+            health_receiver,
             shutdown,
             id,
             sync,
@@ -113,6 +113,9 @@ where
                 _ = self.shutdown.changed() => {
                     info!("frontend {} shutting down", self.id);
                     break
+                }
+                Some(s) = self.health_receiver.recv() => {
+                    let _ = s.send(());
                 }
                 Some((msg, span)) = self.backend_receiver.recv() => {
                     self.handle_frontend_message(msg).instrument(span).await?;
