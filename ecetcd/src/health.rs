@@ -1,7 +1,10 @@
-use std::convert::Infallible;
+use std::{convert::Infallible, time::Duration};
 
 use hyper::StatusCode;
-use tokio::sync::{mpsc, oneshot};
+use tokio::{
+    sync::{mpsc, oneshot},
+    time::timeout,
+};
 use tracing::info;
 use warp::Filter;
 
@@ -22,7 +25,7 @@ fn with_health_server(
 pub async fn health_handler(
     health_server: HealthServer,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    if health_server.is_healthy() {
+    if health_server.is_healthy().await {
         Ok(StatusCode::OK)
     } else {
         Ok(StatusCode::NOT_FOUND)
@@ -37,8 +40,22 @@ impl HealthServer {
         Self { frontends, backend }
     }
 
-    pub fn is_healthy(&self) -> bool {
-        false
+    pub async fn is_healthy(&self) -> bool {
+        let (s, r) = oneshot::channel();
+        let _ = self.backend.send(s).await;
+        if timeout(Duration::from_millis(1), r).await.is_err() {
+            return false;
+        }
+
+        for f in &self.frontends {
+            let (s, r) = oneshot::channel();
+            let _ = f.send(s).await;
+            if timeout(Duration::from_millis(1), r).await.is_err() {
+                return false;
+            }
+        }
+
+        true
     }
 
     pub async fn serve(
