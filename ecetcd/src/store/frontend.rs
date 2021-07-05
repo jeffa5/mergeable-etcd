@@ -1,4 +1,5 @@
 mod actor;
+mod document;
 mod handle;
 
 use std::fmt::Display;

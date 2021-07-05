@@ -1,10 +1,8 @@
-use std::{collections::HashMap, convert::TryFrom, marker::PhantomData, ops::Range, thread};
+use std::{collections::HashMap, convert::TryFrom, ops::Range, thread};
 
-use automerge::LocalChange;
-use automerge_frontend::InvalidPatch;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
-use automerge_protocol::{ActorId, Change, Patch};
+use automerge_protocol::ActorId;
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use rand::random;
 use tokio::sync::{mpsc, watch};
@@ -13,87 +11,11 @@ use tracing::{error, info, warn, Instrument, Span};
 use super::FrontendMessage;
 use crate::{
     store::{
-        content::ValueState, BackendHandle, IValue, Key, Revision, Server, SnapshotValue,
+        frontend::document::Document, BackendHandle, IValue, Key, Revision, Server, SnapshotValue,
         StoreContents, Ttl,
     },
     StoreValue,
 };
-
-#[derive(Debug)]
-struct Document<T> {
-    frontend: automerge::Frontend,
-    _type: PhantomData<T>,
-}
-
-impl<T> Document<T>
-where
-    T: StoreValue,
-{
-    fn new(frontend: automerge::Frontend) -> Self {
-        Self {
-            frontend,
-            _type: PhantomData::default(),
-        }
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, patch))]
-    fn apply_patch(&mut self, patch: Patch) -> Result<(), InvalidPatch> {
-        self.frontend.apply_patch(patch)
-    }
-
-    fn get(&self) -> StoreContents<T> {
-        StoreContents::new(&self.frontend)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, change_closure), err)]
-    fn change<F, O, E>(
-        &mut self,
-        change_closure: F,
-    ) -> Result<(O, Option<automerge_protocol::Change>), E>
-    where
-        E: std::error::Error,
-        F: FnOnce(&mut StoreContents<T>) -> Result<O, E>,
-    {
-        let mut sc = StoreContents::new(&self.frontend);
-        let result = change_closure(&mut sc)?;
-        let changes = self.extract_changes(sc);
-        let change = self.apply_changes(changes);
-        Ok((result, change))
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, store_contents))]
-    fn extract_changes(&self, store_contents: StoreContents<T>) -> Vec<LocalChange> {
-        let kvs = store_contents.changes();
-        let mut changes = Vec::new();
-        for (path, value) in kvs {
-            let old = self.frontend.get_value(&path);
-            let mut local_changes = match value {
-                ValueState::Present(v) => {
-                    automergeable::diff_with_path(Some(&v), old.as_ref(), path).unwrap()
-                }
-                ValueState::Absent => {
-                    vec![LocalChange::delete(path)]
-                }
-            };
-            changes.append(&mut local_changes);
-        }
-        changes
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, changes))]
-    fn apply_changes(&mut self, changes: Vec<LocalChange>) -> Option<Change> {
-        let ((), change) = self
-            .frontend
-            .change::<_, _, std::convert::Infallible>(None, |d| {
-                for c in changes {
-                    d.add_change(c).unwrap();
-                }
-                Ok(())
-            })
-            .unwrap();
-        change
-    }
-}
 
 #[derive(Debug)]
 pub struct FrontendActor<T>
