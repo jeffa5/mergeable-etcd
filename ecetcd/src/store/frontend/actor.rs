@@ -62,6 +62,7 @@ where
         id: usize,
         actor_id: uuid::Uuid,
         sync: bool,
+        health_sender: watch::Sender<bool>,
     ) -> Result<Self, FrontendError> {
         let f = automerge::Frontend::new_with_actor_id(actor_id.as_bytes());
         let mut document = Document::new(f);
@@ -87,6 +88,9 @@ where
             thread::current().id(),
             actor_id
         );
+
+        health_sender.send(true).unwrap();
+
         Ok(Self {
             document,
             backend,

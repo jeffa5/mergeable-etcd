@@ -10,12 +10,13 @@ pub use address::Address;
 use automerge_protocol::ActorId;
 pub use store::StoreValue;
 use store::{BackendActor, BackendHandle, FrontendHandle};
-use tokio::{runtime::Builder, task::LocalSet};
+use tokio::{runtime::Builder, sync::watch, task::LocalSet};
 use tonic::transport::Identity;
 use tracing::info;
 
 use crate::{
     address::{NamedAddress, Scheme},
+    health::HealthServer,
     store::FrontendActor,
 };
 
@@ -33,6 +34,7 @@ where
     pub initial_advertise_peer_urls: Vec<Address>,
     pub initial_cluster: Vec<NamedAddress>,
     pub advertise_client_urls: Vec<Address>,
+    pub listen_metrics_urls: Vec<Address>,
     pub cert_file: Option<PathBuf>,
     pub key_file: Option<PathBuf>,
     /// Whether to wait for the patch to be applied to the frontend before returning
@@ -56,6 +58,9 @@ where
         let mut frontends_for_backend = Vec::new();
         let mut local_futures = Vec::new();
         let num_frontends = 1; // TODO: once multiple frontends with a single backend is safe use num_cpus::get()
+
+        let mut frontend_healths = Vec::new();
+
         for i in 0..num_frontends {
             // channel for client requests to reach a frontend
             let (fc_sender, fc_receiver) = tokio::sync::mpsc::channel(WAITING_CLIENTS_PER_FRONTEND);
@@ -70,6 +75,10 @@ where
             let rt = Builder::new_current_thread().enable_all().build().unwrap();
             let uuid = uuid::Uuid::new_v4();
             let sync_changes = self.sync_changes;
+
+            let (frontend_health_sender, frontend_health_receiver) = watch::channel(false);
+            frontend_healths.push(frontend_health_receiver);
+
             std::thread::spawn(move || {
                 let local = LocalSet::new();
 
@@ -82,6 +91,7 @@ where
                         i,
                         uuid,
                         sync_changes,
+                        frontend_health_sender,
                     )
                     .await
                     .unwrap();
@@ -99,11 +109,19 @@ where
 
         let shutdown_clone = shutdown.clone();
         let config = sled::Config::new().path(&self.data_dir);
+        let (backend_health_sender, backend_health_receiver) = watch::channel(false);
         tokio::spawn(async move {
-            let mut actor =
-                BackendActor::new(&config, frontends_for_backend, b_receiver, shutdown_clone);
+            let mut actor = BackendActor::new(
+                &config,
+                frontends_for_backend,
+                b_receiver,
+                shutdown_clone,
+                backend_health_sender,
+            );
             actor.run().await;
         });
+
+        let health = HealthServer::new(frontend_healths, backend_health_receiver);
 
         let server = crate::server::Server::new(frontends);
         let client_urls = match (
@@ -116,7 +134,7 @@ where
             ([], urls) => urls,
             (urls, _) => urls,
         };
-        let servers = client_urls .iter() .map(|client_url| {
+        let client_servers = client_urls.iter().map(|client_url| {
                 let identity = if let Scheme::Https = client_url.scheme {
                     match (self.cert_file.as_ref(), self.key_file.as_ref()) {
                         (Some(cert_file), Some(key_file)) => {
@@ -142,8 +160,38 @@ where
             })
             .collect::<Vec<_>>();
 
+        let metrics_servers = self.listen_metrics_urls.iter().map(|metrics_url| {
+            // TODO: handle identity on metrics urls
+                let _identity = if let Scheme::Https = metrics_url.scheme {
+                    match (self.cert_file.as_ref(), self.key_file.as_ref()) {
+                        (Some(cert_file), Some(key_file)) => {
+                            let cert = std::fs::read(&cert_file).expect("reading server cert");
+                            let key = std::fs::read(&key_file).expect("reading server key");
+                            Some(Identity::from_pem(cert, key))
+                        }
+                        (Some(_), None) => panic!("Requested client_url '{}', but missing --cert-file", metrics_url),
+                        (None, Some(_)) => panic!("Requested client url '{}', but missing --key-file", metrics_url),
+                        (None, None) => panic!("Requested client url '{}', but missing both --cert-file and --key-file", metrics_url),
+                    }
+                } else {
+                    None
+                };
+                let serving = health.serve(
+                    metrics_url.clone(),
+                    shutdown.clone(),
+                );
+                info!("Listening to clients on {}", metrics_url);
+                serving
+            })
+            .collect::<Vec<_>>();
+
         tokio::join![
-            async { futures::future::try_join_all(servers).await.unwrap() },
+            async { futures::future::try_join_all(client_servers).await.unwrap() },
+            async {
+                futures::future::try_join_all(metrics_servers)
+                    .await
+                    .unwrap()
+            },
             async { futures::future::join_all(local_futures).await },
         ];
         Ok(())

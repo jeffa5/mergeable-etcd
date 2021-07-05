@@ -143,6 +143,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         initial_advertise_peer_urls: options.initial_advertise_peer_urls,
         initial_cluster: options.initial_cluster,
         advertise_client_urls: options.advertise_client_urls,
+        listen_metrics_urls: options.listen_metrics_urls,
         cert_file: options.cert_file,
         key_file: options.key_file,
         sync_changes: options.sync,
@@ -158,11 +159,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tokio::signal::ctrl_c().await.unwrap();
         info!("SIGINT received: killing");
         std::process::exit(1)
-    });
-
-    let metrics_urls = options.listen_metrics_urls.clone();
-    tokio::spawn(async move {
-        ecetcd::health::serve(metrics_urls).await.unwrap();
     });
 
     server.serve(shutdown_rx).await?;

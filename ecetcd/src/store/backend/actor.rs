@@ -33,6 +33,7 @@ where
         frontends: Vec<FrontendHandle<T>>,
         receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
         shutdown: watch::Receiver<()>,
+        health_sender: watch::Sender<bool>,
     ) -> Self {
         let db = config.open().unwrap();
         let changes_tree = db.open_tree("changes").unwrap();
@@ -47,6 +48,8 @@ where
         .unwrap();
         let backend = automerge_persistent::PersistentBackend::load(sled_perst).unwrap();
         tracing::info!("Created backend actor");
+
+        health_sender.send(true).unwrap();
 
         Self {
             db,
