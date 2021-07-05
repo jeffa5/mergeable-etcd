@@ -5,7 +5,7 @@ use tokio::{
     sync::{mpsc, oneshot},
     time::timeout,
 };
-use tracing::info;
+use tracing::{info, instrument};
 use warp::Filter;
 
 use crate::address::Address;
@@ -22,14 +22,19 @@ fn with_health_server(
     warp::any().map(move || health_server.clone())
 }
 
-pub async fn health_handler(
+#[instrument(skip(health_server))]
+pub async fn do_health_check(
     health_server: HealthServer,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    if health_server.is_healthy().await {
-        Ok(StatusCode::OK)
+    let status = if health_server.is_healthy().await {
+        StatusCode::OK
     } else {
-        Ok(StatusCode::SERVICE_UNAVAILABLE)
-    }
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    info!(%status);
+
+    Ok(status)
 }
 
 impl HealthServer {
@@ -66,7 +71,7 @@ impl HealthServer {
         let route = warp::get()
             .and(warp::path("health"))
             .and(with_health_server(self.clone()))
-            .and_then(health_handler);
+            .and_then(do_health_check);
 
         let (_, server) = warp::serve(route).bind_with_graceful_shutdown(
             metrics_url.socket_address(),
