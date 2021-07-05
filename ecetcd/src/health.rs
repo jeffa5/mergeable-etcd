@@ -41,21 +41,21 @@ impl HealthServer {
     }
 
     pub async fn is_healthy(&self) -> bool {
+        timeout(Duration::from_millis(5), self.do_checks())
+            .await
+            .is_ok()
+    }
+
+    async fn do_checks(&self) {
         let (s, r) = oneshot::channel();
         let _ = self.backend.send(s).await;
-        if timeout(Duration::from_millis(1), r).await.is_err() {
-            return false;
-        }
+        r.await.unwrap();
 
         for f in &self.frontends {
             let (s, r) = oneshot::channel();
             let _ = f.send(s).await;
-            if timeout(Duration::from_millis(1), r).await.is_err() {
-                return false;
-            }
+            r.await.unwrap()
         }
-
-        true
     }
 
     pub async fn serve(
