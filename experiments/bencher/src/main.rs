@@ -148,6 +148,7 @@ impl exp::Experiment for Experiment {
         let mut runner = Runner::new(repeat_dir).await;
         let mut initial_cluster = "node1=http://172.18.0.2:2380".to_owned();
         let mut client_urls = "http://172.18.0.2:2379".to_owned();
+        let mut metrics_urls = "http://172.18.0.2:2381".to_owned();
         let network_name = "etcd-bench".to_owned();
         for i in 2..=configuration.cluster_size {
             initial_cluster.push_str(&format!(
@@ -160,6 +161,11 @@ impl exp::Experiment for Experiment {
                 ",http://172.18.0.{}:{}",
                 i + 1,
                 2379 + ((i - 1) * 10)
+            ));
+            metrics_urls.push_str(&format!(
+                ",http://172.18.0.{}:{}",
+                i + 1,
+                2381 + ((i - 1) * 10)
             ));
         }
         for i in 1..configuration.cluster_size + 1 {
@@ -246,7 +252,12 @@ impl exp::Experiment for Experiment {
         tokio::time::sleep(Duration::from_secs(5)).await;
 
         let bench_name = "bench";
-        let mut bench_cmd = vec!["--endpoints".to_owned(), client_urls];
+        let mut bench_cmd = vec![
+            "--endpoints".to_owned(),
+            client_urls,
+            "--metrics-endpoints".to_owned(),
+            metrics_urls,
+        ];
         for a in &configuration.bench_args {
             bench_cmd.push(a.clone())
         }
