@@ -20,6 +20,7 @@ where
         automerge::Backend,
     >,
     receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
+    health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
     shutdown: watch::Receiver<()>,
     frontends: Vec<FrontendHandle<T>>,
 }
@@ -32,6 +33,7 @@ where
         config: &sled::Config,
         frontends: Vec<FrontendHandle<T>>,
         receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
+        health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
     ) -> Self {
         let db = config.open().unwrap();
@@ -52,6 +54,7 @@ where
             db,
             backend,
             receiver,
+            health_receiver,
             shutdown,
             frontends,
         }
@@ -60,6 +63,9 @@ where
     pub async fn run(&mut self) {
         loop {
             tokio::select! {
+                Some(s) = self.health_receiver.recv() => {
+                    let _ = s.send(());
+                }
                 Some((msg,span)) = self.receiver.recv() => {
                     self.handle_backend_message(msg).instrument(span).await;
                 }

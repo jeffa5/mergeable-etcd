@@ -1,48 +1,90 @@
-use std::convert::Infallible;
+use std::{convert::Infallible, time::Duration};
 
-use hyper::{
-    service::{make_service_fn, service_fn},
-    Body, Method, Request, Response, Server, StatusCode,
+use hyper::StatusCode;
+use tokio::{
+    sync::{mpsc, oneshot},
+    time::timeout,
 };
-use tracing::info;
+use tracing::{info, instrument};
+use warp::Filter;
 
 use crate::address::Address;
 
-#[tracing::instrument]
-async fn health(req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    info!("http request: {} {}", req.method(), req.uri());
-    if req.method() == Method::GET && req.uri().path() == "/health" {
-        Ok(Response::new(Body::empty()))
-    } else {
-        let mut not_found = Response::default();
-        *not_found.status_mut() = StatusCode::NOT_FOUND;
-        Ok(not_found)
-    }
+#[derive(Debug, Clone)]
+pub struct HealthServer {
+    frontends: Vec<mpsc::Sender<oneshot::Sender<()>>>,
+    backend: mpsc::Sender<oneshot::Sender<()>>,
 }
 
-pub async fn serve(
-    listen_addrs: Vec<Address>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let servers = listen_addrs
-        .iter()
-        .map(|metrics_url| {
-            // For every connection, we must make a `Service` to handle all
-            // incoming HTTP requests on said connection.
-            let make_svc = make_service_fn(|_conn| {
-                // This is the `Service` that will handle the connection.
-                // `service_fn` is a helper to convert a function that
-                // returns a Response into a `Service`.
-                async { Ok::<_, Infallible>(service_fn(health)) }
-            });
+fn with_health_server(
+    health_server: HealthServer,
+) -> impl warp::Filter<Extract = (HealthServer,), Error = Infallible> + Clone {
+    warp::any().map(move || health_server.clone())
+}
 
-            let server = Server::bind(&metrics_url.socket_address()).serve(make_svc);
+#[instrument(skip(health_server))]
+pub async fn do_health_check(
+    health_server: HealthServer,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    let status = if health_server.is_healthy().await {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
 
-            info!("Listening for health on {}", metrics_url);
-            server
-        })
-        .collect::<Vec<_>>();
+    info!(%status);
 
-    futures::future::try_join_all(servers).await?;
+    Ok(status)
+}
 
-    Ok(())
+impl HealthServer {
+    pub fn new(
+        frontends: Vec<mpsc::Sender<oneshot::Sender<()>>>,
+        backend: mpsc::Sender<oneshot::Sender<()>>,
+    ) -> Self {
+        Self { frontends, backend }
+    }
+
+    pub async fn is_healthy(&self) -> bool {
+        timeout(Duration::from_millis(5), self.do_checks())
+            .await
+            .is_ok()
+    }
+
+    async fn do_checks(&self) {
+        let (s, r) = oneshot::channel();
+        let _ = self.backend.send(s).await;
+        r.await.unwrap();
+
+        for f in &self.frontends {
+            let (s, r) = oneshot::channel();
+            let _ = f.send(s).await;
+            r.await.unwrap()
+        }
+    }
+
+    pub async fn serve(
+        &self,
+        metrics_url: Address,
+        mut shutdown: tokio::sync::watch::Receiver<()>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let route = warp::get()
+            .and(warp::path("health"))
+            .and(with_health_server(self.clone()))
+            .and_then(do_health_check);
+
+        let (_, server) = warp::serve(route).bind_with_graceful_shutdown(
+            metrics_url.socket_address(),
+            async move {
+                shutdown.changed().await.unwrap();
+                info!("Gracefully shutting down metrics server")
+            },
+        );
+
+        info!("Listening for health on {}", metrics_url);
+
+        server.await;
+
+        Ok(())
+    }
 }
