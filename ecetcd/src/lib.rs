@@ -180,7 +180,7 @@ where
                     metrics_url.clone(),
                     shutdown.clone(),
                 );
-                info!("Listening to clients on {}", metrics_url);
+
                 serving
             })
             .collect::<Vec<_>>();
