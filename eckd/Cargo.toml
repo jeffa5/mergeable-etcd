@@ -7,39 +7,21 @@ description = "An eventually consistent Kubernetes datastore"
 readme = "README.md"
 repository = "https://gitlab.developers.cam.ac.uk/apj39/eckd-rs"
 
-[features]
-default = ["value-lww"]
-
-value-lww = []
-
 [dependencies]
-sled = "0.34.6"
-tonic = { version = "0.4.0", features = ["transport", "tls"] }
-prost = "0.7.0"
-tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread", "fs", "signal", "sync"] }
-etcd-proto = { path = "../etcd-proto" }
-kubernetes-proto = { path = "../kubernetes-proto" }
-derive_builder = "0.9.0"
+ecetcd = { path = "../ecetcd" }
 structopt = "0.3.21"
-url = "2.2.0"
-thiserror = "1.0.24"
-futures = "0.3.12"
-serde = { version = "1.0.123", features = ["derive"] }
-hyper = "0.14.2"
-tower = "0.4.4"
-tracing = "0.1.23"
+tracing = "0.1.26"
 tracing-subscriber = "0.2.15"
-futures-core = "0.3.12"
-tokio-stream = "0.1.2"
+serde = { version = "1.0.123", features = ["derive"] }
 serde_json = "1.0.62"
-rand = "0.8.3"
+kubernetes-proto = { path = "../kubernetes-proto" }
+tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread", "fs", "signal", "sync"] }
 automergeable = { git = "https://github.com/jeffa5/automergeable", branch = "main" }
-
-[build-dependencies]
-tonic-build = "0.4.0"
+automerge = { git = "https://github.com/automerge/automerge-rs", branch = "main" }
+prost = "0.7.0"
+opentelemetry = { version = "0.15.0", features = [] }
+opentelemetry-jaeger = "0.13.0"
+tracing-opentelemetry = "0.13.0"
 
 [dev-dependencies]
-pretty_assertions = "0.6.1"
-quickcheck = "1.0.3"
-tempfile = "3.2.0"
-test-env-log = { version = "0.2.5", features = ["trace"], default-features = false }
+pretty_assertions = "0.7.1"

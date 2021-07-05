@@ -2,11 +2,19 @@
 #![warn(clippy::nursery)]
 #![warn(clippy::cargo)]
 
-use std::{convert::TryFrom, path::PathBuf};
+use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 
-use eckd::address::{Address, NamedAddress};
+use ecetcd::{
+    address::{Address, NamedAddress},
+    Ecetcd,
+};
+use opentelemetry::global;
 use structopt::StructOpt;
-use tracing::{debug, info, Level};
+use tracing::{debug, info};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
+
+mod k8s;
+use k8s::Value;
 
 #[derive(Debug, StructOpt)]
 struct Options {
@@ -23,7 +31,7 @@ struct Options {
     listen_peer_urls: Vec<Address>,
 
     /// List of URLs to listen on for client traffic.
-    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2379", use_delimiter=true)]
+    #[structopt(long, parse(try_from_str = Address::try_from), use_delimiter=true)]
     listen_client_urls: Vec<Address>,
 
     /// List of URLs to listen on for metrics.
@@ -83,46 +91,79 @@ struct Options {
     /// enable debug-level logging for etcd.
     #[structopt(long)]
     debug: bool,
+
+    /// Whether to require changes be applied before returning.
+    #[structopt(long)]
+    sync: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    std::env::set_var("RUST_BACKTRACE", "1");
+
     let options = Options::from_args();
 
-    let collector = tracing_subscriber::fmt()
-        .with_max_level(if options.debug {
-            Level::DEBUG
+    global::set_error_handler(|error| match error {
+        global::Error::Trace(error) => {
+            debug!(?error, "trace error");
+        }
+        // global::Error::Metrics(error) => {
+        //     debug!(?error, "metrics error");
+        // }
+        global::Error::Other(error) => {
+            debug!(?error, "other error");
+        }
+        error => {
+            debug!(?error, "unknown error");
+        }
+    })
+    .unwrap();
+
+    let tracer = opentelemetry_jaeger::new_pipeline()
+        .with_service_name("eckd")
+        .install_simple()?;
+
+    Registry::default()
+        .with(tracing_subscriber::EnvFilter::new(if options.debug {
+            "DEBUG"
         } else {
-            Level::INFO
-        })
-        .finish();
-    tracing::subscriber::set_global_default(collector).unwrap();
+            "INFO"
+        }))
+        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_opentelemetry::layer().with_tracer(tracer))
+        .init();
 
     debug!("{:#?}", options);
 
-    let mut server_builder = eckd::server::EckdServerBuilder::default();
-    server_builder
-        .name(options.name)
-        .data_dir(options.data_dir)
-        .listen_peer_urls(options.listen_peer_urls)
-        .listen_client_urls(options.listen_client_urls)
-        .initial_advertise_peer_urls(options.initial_advertise_peer_urls)
-        .initial_cluster(options.initial_cluster)
-        .advertise_client_urls(options.advertise_client_urls)
-        .cert_file(options.cert_file)
-        .key_file(options.key_file);
-    let server = server_builder.build()?;
+    let server = Ecetcd {
+        name: options.name,
+        data_dir: options.data_dir,
+        listen_peer_urls: options.listen_peer_urls,
+        listen_client_urls: options.listen_client_urls,
+        initial_advertise_peer_urls: options.initial_advertise_peer_urls,
+        initial_cluster: options.initial_cluster,
+        advertise_client_urls: options.advertise_client_urls,
+        cert_file: options.cert_file,
+        key_file: options.key_file,
+        sync_changes: options.sync,
+        _data: PhantomData::<Value>,
+    };
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(());
 
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.unwrap();
-        info!("SIGINT received: shutting down");
+        info!("SIGINT received: shutting down, send again to force");
         shutdown_tx.send(()).unwrap();
+        tokio::signal::ctrl_c().await.unwrap();
+        info!("SIGINT received: killing");
+        std::process::exit(1)
     });
 
     let metrics_urls = options.listen_metrics_urls.clone();
-    tokio::spawn(async move { eckd::health::serve(metrics_urls).await.unwrap() });
+    tokio::spawn(async move {
+        ecetcd::health::serve(metrics_urls).await.unwrap();
+    });
 
     server.serve(shutdown_rx).await?;
 

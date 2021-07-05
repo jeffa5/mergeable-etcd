@@ -1,6 +1,8 @@
 use std::time::SystemTime;
 
+use arbitrary::{Arbitrary, Unstructured};
 use etcd_proto::etcdserverpb::{kv_client::KvClient, PutRequest};
+use rand::{distributions::Standard, Rng};
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 use tonic::transport::Channel;
@@ -10,27 +12,27 @@ pub struct Output {
     pub start: SystemTime,
     pub end: SystemTime,
     pub client: u32,
+    pub iteration: u32,
     pub member_id: u64,
-}
-
-impl Default for Output {
-    fn default() -> Self {
-        Self::start()
-    }
+    pub raft_term: u64,
 }
 
 impl Output {
-    pub fn start() -> Self {
+    pub fn start(client: u32, iteration: u32) -> Self {
         let now = SystemTime::now();
         Self {
             start: now,
             end: now,
-            client: 0,
+            client,
+            iteration,
             member_id: 0,
+            raft_term: 0,
         }
     }
 
-    pub fn stop(&mut self) {
+    pub fn stop(&mut self, member_id: u64, raft_term: u64) {
+        self.member_id = member_id;
+        self.raft_term = raft_term;
         self.end = SystemTime::now();
     }
 }
@@ -50,9 +52,17 @@ impl Scenario {
         total_iterations: u32,
     ) -> Result<Output, tonic::Status> {
         match self {
-            Scenario::PutSingle { ref key } => put_single(kv_client, iteration, key.clone()).await,
+            Scenario::PutSingle { ref key } => {
+                put_single(kv_client, client_id, iteration, key.clone()).await
+            }
             Scenario::PutRange => {
-                put_range(kv_client, (client_id * total_iterations) + iteration).await
+                put_range(
+                    kv_client,
+                    client_id,
+                    iteration,
+                    (client_id * total_iterations) + iteration,
+                )
+                .await
             }
         }
     }
@@ -60,27 +70,38 @@ impl Scenario {
 
 pub async fn put_range(
     kv_client: &mut KvClient<Channel>,
+    client: u32,
     iteration: u32,
+    key: u32,
 ) -> Result<Output, tonic::Status> {
-    let value = format!(r#"{{"{}":""}}"#, iteration).as_bytes().to_vec();
+    let raw: Vec<u8> = rand::thread_rng()
+        .sample_iter(&Standard)
+        .take(100)
+        .collect();
+    let mut unstructured = Unstructured::new(&raw);
+    let pod = kubernetes_proto::api::core::v1::Pod::arbitrary(&mut unstructured).unwrap();
+    // TODO: use protobuf encoding
+    let value = serde_json::to_vec(&pod).unwrap();
     let request = PutRequest {
-        key: iteration.to_string().into_bytes(),
+        key: key.to_string().into_bytes(),
         value,
         lease: 0,
         prev_kv: false,
         ignore_value: false,
         ignore_lease: false,
     };
-    let mut output = Output::start();
-    let response = kv_client.put(request).await?;
-    output.stop();
-    let member_id = response.into_inner().header.unwrap().member_id;
-    output.member_id = member_id;
+    let mut output = Output::start(client, iteration);
+    let response = kv_client.put(request).await?.into_inner();
+    let header = response.header.unwrap();
+    let member_id = header.member_id;
+    let raft_term = header.raft_term;
+    output.stop(member_id, raft_term);
     Ok(output)
 }
 
 pub async fn put_single(
     kv_client: &mut KvClient<Channel>,
+    client: u32,
     iteration: u32,
     key: String,
 ) -> Result<Output, tonic::Status> {
@@ -93,10 +114,11 @@ pub async fn put_single(
         ignore_value: false,
         ignore_lease: false,
     };
-    let mut output = Output::start();
-    let response = kv_client.put(request).await?;
-    output.stop();
-    let member_id = response.into_inner().header.unwrap().member_id;
-    output.member_id = member_id;
+    let mut output = Output::start(client, iteration);
+    let response = kv_client.put(request).await?.into_inner();
+    let header = response.header.unwrap();
+    let member_id = header.member_id;
+    let raft_term = header.raft_term;
+    output.stop(member_id, raft_term);
     Ok(output)
 }
