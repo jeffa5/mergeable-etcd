@@ -37,6 +37,8 @@ impl exp::Experiment for Experiment {
                 "Test etcd cluster latency and throughput at {} nodes",
                 cluster_size
             );
+            let clients = 100;
+            let iterations = 100;
             for delay in (0..=0).step_by(10) {
                 for (bench_type, mut bench_args) in vec![
                     (
@@ -44,9 +46,14 @@ impl exp::Experiment for Experiment {
                         vec!["put-single".to_owned(), "bench".to_owned()],
                     ),
                     (BenchType::PutRange, vec!["put-range".to_owned()]),
+                    (
+                        BenchType::PutRandom,
+                        vec![
+                            "put-random".to_owned(),
+                            (clients * iterations / 100).to_string(),
+                        ],
+                    ),
                 ] {
-                    let clients = 100;
-                    let iterations = 100;
                     let mut args = vec![
                         format!("--clients={}", clients),
                         format!("--iterations={}", iterations),
@@ -574,6 +581,7 @@ fn plot_latency_cdf(
 pub enum BenchType {
     PutSingle,
     PutRange,
+    PutRandom,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
