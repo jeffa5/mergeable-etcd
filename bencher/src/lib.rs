@@ -2,7 +2,7 @@ use std::time::SystemTime;
 
 use arbitrary::{Arbitrary, Unstructured};
 use etcd_proto::etcdserverpb::{kv_client::KvClient, PutRequest};
-use rand::{distributions::Standard, Rng};
+use rand::{distributions::Standard, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 use tonic::transport::Channel;
@@ -41,6 +41,7 @@ impl Output {
 pub enum Scenario {
     PutSingle { key: String },
     PutRange,
+    PutRandom { size: usize },
 }
 
 impl Scenario {
@@ -64,8 +65,47 @@ impl Scenario {
                 )
                 .await
             }
+            Scenario::PutRandom { size } => {
+                put_random(kv_client, client_id, iteration, *size).await
+            }
         }
     }
+}
+
+fn value() -> Vec<u8> {
+    let raw: Vec<u8> = rand::thread_rng()
+        .sample_iter(&Standard)
+        .take(100)
+        .collect();
+    let mut unstructured = Unstructured::new(&raw);
+    let pod = kubernetes_proto::api::core::v1::Pod::arbitrary(&mut unstructured).unwrap();
+    // TODO: use protobuf encoding
+    serde_json::to_vec(&pod).unwrap()
+}
+
+pub async fn put_random(
+    kv_client: &mut KvClient<Channel>,
+    client: u32,
+    iteration: u32,
+    limit: usize,
+) -> Result<Output, tonic::Status> {
+    let key = thread_rng().gen_range(0..limit);
+    let value = value();
+    let request = PutRequest {
+        key: key.to_string().into_bytes(),
+        value,
+        lease: 0,
+        prev_kv: false,
+        ignore_value: false,
+        ignore_lease: false,
+    };
+    let mut output = Output::start(client, iteration);
+    let response = kv_client.put(request).await?.into_inner();
+    let header = response.header.unwrap();
+    let member_id = header.member_id;
+    let raft_term = header.raft_term;
+    output.stop(member_id, raft_term);
+    Ok(output)
 }
 
 pub async fn put_range(
@@ -74,14 +114,7 @@ pub async fn put_range(
     iteration: u32,
     key: u32,
 ) -> Result<Output, tonic::Status> {
-    let raw: Vec<u8> = rand::thread_rng()
-        .sample_iter(&Standard)
-        .take(100)
-        .collect();
-    let mut unstructured = Unstructured::new(&raw);
-    let pod = kubernetes_proto::api::core::v1::Pod::arbitrary(&mut unstructured).unwrap();
-    // TODO: use protobuf encoding
-    let value = serde_json::to_vec(&pod).unwrap();
+    let value = value();
     let request = PutRequest {
         key: key.to_string().into_bytes(),
         value,
@@ -105,7 +138,7 @@ pub async fn put_single(
     iteration: u32,
     key: String,
 ) -> Result<Output, tonic::Status> {
-    let value = format!(r#"{{"{}":""}}"#, iteration).as_bytes().to_vec();
+    let value = value();
     let request = PutRequest {
         key: key.into_bytes(),
         value,
