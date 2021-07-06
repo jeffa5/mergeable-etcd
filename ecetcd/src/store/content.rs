@@ -65,7 +65,7 @@ impl<T> ValueState<T> {
     }
 }
 
-type Values<T> = BTreeMap<Key, IValue<T>>;
+type Values<'a, T> = BTreeMap<Key, IValue<T>>;
 
 #[derive(Debug, Clone, Default, automergeable::Automergeable)]
 pub struct Lease {

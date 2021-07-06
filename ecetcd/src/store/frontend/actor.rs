@@ -11,7 +11,7 @@ use tracing::{error, info, warn, Instrument, Span};
 use super::FrontendMessage;
 use crate::{
     store::{
-        frontend::document::Document, BackendHandle, IValue, Key, Revision, Server, SnapshotValue,
+        frontend::document::Document, BackendHandle, Key, Revision, Server, SnapshotValue,
         StoreContents, Ttl,
     },
     StoreValue,
@@ -24,11 +24,12 @@ where
 {
     document: Document<T>,
     backend: BackendHandle,
-    watchers: HashMap<WatchRange, mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>>,
+    watchers:
+        HashMap<WatchRange, mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>>,
     // receiver for requests from clients
-    client_receiver: mpsc::Receiver<(FrontendMessage<T>, Span)>,
+    client_receiver: mpsc::Receiver<(FrontendMessage, Span)>,
     // receiver for requests from the backend
-    backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage<T>, Span)>,
+    backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage, Span)>,
     health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
     shutdown: watch::Receiver<()>,
     id: usize,
@@ -57,8 +58,8 @@ where
 {
     pub async fn new(
         backend: BackendHandle,
-        client_receiver: mpsc::Receiver<(FrontendMessage<T>, Span)>,
-        backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage<T>, Span)>,
+        client_receiver: mpsc::Receiver<(FrontendMessage, Span)>,
+        backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage, Span)>,
         health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
         id: usize,
@@ -129,10 +130,7 @@ where
     }
 
     #[tracing::instrument(level="debug",skip(self, msg), fields(%msg))]
-    async fn handle_frontend_message(
-        &mut self,
-        msg: FrontendMessage<T>,
-    ) -> Result<(), FrontendError> {
+    async fn handle_frontend_message(&mut self, msg: FrontendMessage) -> Result<(), FrontendError> {
         match msg {
             FrontendMessage::CurrentServer { ret } => {
                 let server = self.current_server();
@@ -283,8 +281,11 @@ where
             let value = doc.value(&key).unwrap().unwrap();
             for (range, sender) in &self.watchers {
                 if range.contains(&key) {
+                    let latest_value = value.latest_value(key.clone()).unwrap();
+                    let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
+                        .and_then(|rev| value.value_at_revision(rev, key.clone()));
                     let _ = sender
-                        .send((server.clone(), vec![(key.clone(), value.clone())]))
+                        .send((server.clone(), vec![(latest_value, prev_value)]))
                         .await;
                 }
             }
@@ -329,8 +330,11 @@ where
             let value = value.unwrap();
             for (range, sender) in &self.watchers {
                 if range.contains(&key) {
+                    let latest_value = value.latest_value(key.clone()).unwrap();
+                    let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
+                        .and_then(|rev| value.value_at_revision(rev, key.clone()));
                     let _ = sender
-                        .send((server.clone(), vec![(key.clone(), value.clone())]))
+                        .send((server.clone(), vec![(latest_value, prev_value)]))
                         .await;
                 }
             }
@@ -377,8 +381,11 @@ where
                     let value = doc.value(&key).unwrap().unwrap();
                     for (range, sender) in &self.watchers {
                         if range.contains(&key) {
+                            let latest_value = value.latest_value(key.clone()).unwrap();
+                            let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
+                                .and_then(|rev| value.value_at_revision(rev, key.clone()));
                             let _ = sender
-                                .send((server.clone(), vec![(key.clone(), value.clone())]))
+                                .send((server.clone(), vec![(latest_value, prev_value)]))
                                 .await;
                         }
                     }
@@ -388,8 +395,11 @@ where
                     let value = doc.value(&key).unwrap().unwrap();
                     for (range, sender) in &self.watchers {
                         if range.contains(&key) {
+                            let latest_value = value.latest_value(key.clone()).unwrap();
+                            let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
+                                .and_then(|rev| value.value_at_revision(rev, key.clone()));
                             let _ = sender
-                                .send((server.clone(), vec![(key.clone(), value.clone())]))
+                                .send((server.clone(), vec![(latest_value, prev_value)]))
                                 .await;
                         }
                     }
@@ -409,8 +419,8 @@ where
 
     #[tracing::instrument]
     async fn watch_range(
-        mut receiver: mpsc::Receiver<(Server, Vec<(Key, IValue<T>)>)>,
-        tx: tokio::sync::mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>,
+        mut receiver: mpsc::Receiver<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
+        tx: tokio::sync::mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
     ) {
         while let Some((server, events)) = receiver.recv().await {
             if tx.send((server, events)).await.is_err() {

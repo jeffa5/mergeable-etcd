@@ -4,31 +4,22 @@ use tokio::sync::{mpsc, oneshot};
 use tracing::Span;
 
 use super::{actor::FrontendError, FrontendMessage};
-use crate::{
-    store::{IValue, Key, Revision, Server, SnapshotValue, Ttl},
-    StoreValue,
-};
+use crate::store::{Key, Revision, Server, SnapshotValue, Ttl};
 
 #[derive(Clone, Debug)]
-enum Sender<T>
-where
-    T: StoreValue,
-{
-    Bounded(mpsc::Sender<(FrontendMessage<T>, Span)>),
-    Unbounded(mpsc::UnboundedSender<(FrontendMessage<T>, Span)>),
+enum Sender {
+    Bounded(mpsc::Sender<(FrontendMessage, Span)>),
+    Unbounded(mpsc::UnboundedSender<(FrontendMessage, Span)>),
 }
 
-impl<T> Sender<T>
-where
-    T: StoreValue,
-{
+impl Sender {
     // call send on the underlying sender
     #[tracing::instrument(level = "debug", skip(self, value))]
     #[inline]
     async fn send_to_frontend(
         &self,
-        value: FrontendMessage<T>,
-    ) -> Result<(), tokio::sync::mpsc::error::SendError<(FrontendMessage<T>, Span)>> {
+        value: FrontendMessage,
+    ) -> Result<(), tokio::sync::mpsc::error::SendError<(FrontendMessage, Span)>> {
         let span = tracing::Span::current();
         match self {
             Self::Bounded(b) => b.send((value, span)).await,
@@ -38,19 +29,13 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub struct FrontendHandle<T>
-where
-    T: StoreValue,
-{
-    sender: Sender<T>,
+pub struct FrontendHandle {
+    sender: Sender,
     pub actor_id: ActorId,
 }
 
-impl<T> FrontendHandle<T>
-where
-    T: StoreValue,
-{
-    pub fn new(sender: mpsc::Sender<(FrontendMessage<T>, Span)>, actor_id: ActorId) -> Self {
+impl FrontendHandle {
+    pub fn new(sender: mpsc::Sender<(FrontendMessage, Span)>, actor_id: ActorId) -> Self {
         Self {
             sender: Sender::Bounded(sender),
             actor_id,
@@ -58,7 +43,7 @@ where
     }
 
     pub fn new_unbounded(
-        sender: mpsc::UnboundedSender<(FrontendMessage<T>, Span)>,
+        sender: mpsc::UnboundedSender<(FrontendMessage, Span)>,
         actor_id: ActorId,
     ) -> Self {
         Self {
@@ -147,7 +132,7 @@ where
         &self,
         key: Key,
         range_end: Option<Key>,
-        tx_events: mpsc::Sender<(Server, Vec<(Key, IValue<T>)>)>,
+        tx_events: mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
         send_watch_created: oneshot::Sender<()>,
     ) {
         let msg = FrontendMessage::WatchRange {

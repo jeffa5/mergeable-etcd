@@ -4,7 +4,6 @@ pub mod maintenance;
 pub mod watch;
 
 use std::{
-    convert::TryFrom,
     net::SocketAddr,
     task::{Context, Poll},
     time::Duration,
@@ -22,18 +21,12 @@ use tonic::{
 use tower::Service;
 use tracing::{info, warn};
 
-use crate::StoreValue;
-
-pub async fn serve<T>(
+pub async fn serve(
     address: SocketAddr,
     identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
-    server: crate::server::Server<T>,
-) -> Result<(), tonic::transport::Error>
-where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+    server: crate::server::Server,
+) -> Result<(), tonic::transport::Error> {
     let kv_service = KvServer::new(kv::KV {
         server: server.clone(),
     });

@@ -1,6 +1,5 @@
 use std::{
     collections::{hash_map::DefaultHasher, HashMap},
-    convert::TryFrom,
     hash::{Hash, Hasher},
     net::SocketAddr,
     sync::{Arc, Mutex},
@@ -10,39 +9,26 @@ use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest, WatchResponse};
 use tokio::sync::oneshot;
 use tonic::Status;
 
-use crate::{
-    store::{FrontendError, FrontendHandle, Key, Revision, SnapshotValue, Ttl},
-    StoreValue,
-};
+use crate::store::{FrontendError, FrontendHandle, Key, Revision, SnapshotValue, Ttl};
 
 mod lease;
 mod watcher;
 
 #[derive(Debug, Clone)]
-pub struct Server<T>
-where
-    T: StoreValue,
-{
-    inner: Arc<Mutex<Inner<T>>>,
+pub struct Server {
+    inner: Arc<Mutex<Inner>>,
 }
 
 #[derive(Debug)]
-struct Inner<T>
-where
-    T: StoreValue,
-{
-    frontends: Vec<FrontendHandle<T>>,
+struct Inner {
+    frontends: Vec<FrontendHandle>,
     max_watcher_id: i64,
     watchers: HashMap<i64, watcher::Watcher>,
     leases: HashMap<i64, lease::Lease>,
 }
 
-impl<T> Server<T>
-where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
-    pub fn new(frontends: Vec<FrontendHandle<T>>) -> Self {
+impl Server {
+    pub fn new(frontends: Vec<FrontendHandle>) -> Self {
         let inner = Inner {
             frontends,
             max_watcher_id: 1,
@@ -58,7 +44,7 @@ where
     ///
     /// This aims to have requests from the same host repeatedly hit the same frontend
     #[tracing::instrument(level = "debug", skip(self, remote_addr))]
-    fn select_frontend(&self, remote_addr: Option<SocketAddr>) -> FrontendHandle<T> {
+    fn select_frontend(&self, remote_addr: Option<SocketAddr>) -> FrontendHandle {
         let remote_ip = remote_addr.map(|a| a.ip());
         let mut hasher = DefaultHasher::new();
         remote_ip.hash(&mut hasher);

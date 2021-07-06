@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, pin::Pin};
+use std::pin::Pin;
 
 use etcd_proto::etcdserverpb::{
     watch_request::RequestUnion, watch_server::Watch as WatchTrait, WatchRequest, WatchResponse,
@@ -7,22 +7,15 @@ use futures::{Stream, StreamExt};
 use tonic::{Request, Response, Status};
 use tracing::{debug, warn};
 
-use crate::{server::Server, StoreValue};
+use crate::server::Server;
 
 #[derive(Debug)]
-pub struct Watch<T>
-where
-    T: StoreValue,
-{
-    pub server: Server<T>,
+pub struct Watch {
+    pub server: Server,
 }
 
 #[tonic::async_trait]
-impl<T> WatchTrait for Watch<T>
-where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+impl WatchTrait for Watch {
     type WatchStream =
         Pin<Box<dyn Stream<Item = Result<WatchResponse, Status>> + Send + Sync + 'static>>;
 
