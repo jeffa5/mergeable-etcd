@@ -327,7 +327,7 @@ impl From<&Value> for Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, num::NonZeroU64};
+    use std::num::NonZeroU64;
 
     use automerge::Path;
     use ecetcd::store::{IValue, Revision, SnapshotValue};
@@ -338,7 +338,8 @@ mod tests {
     #[allow(clippy::too_many_lines)]
     #[test]
     fn historic_value() {
-        let mut v = IValue::<Value>::new(automerge::Value::Map(HashMap::new()), Path::root());
+        let f = automerge::Frontend::new();
+        let mut v = IValue::<Value>::new(f.proxy().get("random").unwrap(), Path::root());
         assert_eq!(
             None,
             v.value_at_revision(Revision::new(1).unwrap(), Vec::new().into()),

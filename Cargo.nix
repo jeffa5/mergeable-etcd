@@ -412,8 +412,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "8a576492b40c8b88900e6715eadf27b059a3dda7";
-          sha256 = "09r1f0mxl2mk8b5ncscrj30zlbb4m8hjzi4p2jbdz441qnf7dafy";
+          rev = "cea80314ff8f0f1c84f1618c7c2c0373b2983fdb";
+          sha256 = "0m8ar88z778dwlidcs1wb9gkd70adgibz4xw1bw3yk756kqcd5yy";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -455,8 +455,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "8a576492b40c8b88900e6715eadf27b059a3dda7";
-          sha256 = "09r1f0mxl2mk8b5ncscrj30zlbb4m8hjzi4p2jbdz441qnf7dafy";
+          rev = "cea80314ff8f0f1c84f1618c7c2c0373b2983fdb";
+          sha256 = "0m8ar88z778dwlidcs1wb9gkd70adgibz4xw1bw3yk756kqcd5yy";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -548,8 +548,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "8a576492b40c8b88900e6715eadf27b059a3dda7";
-          sha256 = "09r1f0mxl2mk8b5ncscrj30zlbb4m8hjzi4p2jbdz441qnf7dafy";
+          rev = "cea80314ff8f0f1c84f1618c7c2c0373b2983fdb";
+          sha256 = "0m8ar88z778dwlidcs1wb9gkd70adgibz4xw1bw3yk756kqcd5yy";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -705,8 +705,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/automerge//automerge-rs";
-          rev = "8a576492b40c8b88900e6715eadf27b059a3dda7";
-          sha256 = "09r1f0mxl2mk8b5ncscrj30zlbb4m8hjzi4p2jbdz441qnf7dafy";
+          rev = "cea80314ff8f0f1c84f1618c7c2c0373b2983fdb";
+          sha256 = "0m8ar88z778dwlidcs1wb9gkd70adgibz4xw1bw3yk756kqcd5yy";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"

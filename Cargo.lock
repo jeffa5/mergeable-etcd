@@ -114,7 +114,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com/automerge//automerge-rs?branch=fix-changed-indices#8a576492b40c8b88900e6715eadf27b059a3dda7"
+source = "git+https://github.com/automerge//automerge-rs?branch=value-proxy#cea80314ff8f0f1c84f1618c7c2c0373b2983fdb"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
@@ -127,7 +127,7 @@ dependencies = [
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com/automerge//automerge-rs?branch=fix-changed-indices#8a576492b40c8b88900e6715eadf27b059a3dda7"
+source = "git+https://github.com/automerge//automerge-rs?branch=value-proxy#cea80314ff8f0f1c84f1618c7c2c0373b2983fdb"
 dependencies = [
  "automerge-protocol",
  "flate2",
@@ -152,7 +152,7 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com/automerge//automerge-rs?branch=fix-changed-indices#8a576492b40c8b88900e6715eadf27b059a3dda7"
+source = "git+https://github.com/automerge//automerge-rs?branch=value-proxy#cea80314ff8f0f1c84f1618c7c2c0373b2983fdb"
 dependencies = [
  "automerge-protocol",
  "futures",
@@ -196,7 +196,7 @@ dependencies = [
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com/automerge//automerge-rs?branch=fix-changed-indices#8a576492b40c8b88900e6715eadf27b059a3dda7"
+source = "git+https://github.com/automerge//automerge-rs?branch=value-proxy#cea80314ff8f0f1c84f1618c7c2c0373b2983fdb"
 dependencies = [
  "hex",
  "serde",

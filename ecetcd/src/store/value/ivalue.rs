@@ -1,12 +1,11 @@
 use std::{
-    borrow::Cow,
     collections::{BTreeMap, HashMap, HashSet},
     convert::{TryFrom, TryInto},
     fmt::Debug,
     num::NonZeroU64,
 };
 
-use automerge::{Path, Primitive, Value};
+use automerge::{proxy::ValueProxy, Path, Primitive, Value};
 use automergeable::{Automergeable, FromAutomerge, ToAutomerge};
 
 use crate::store::{Key, Revision, SnapshotValue, Version};
@@ -21,20 +20,20 @@ pub trait StoreValue:
 
 /// An implementation of a stored value with history and produces snapshotvalues
 #[derive(Debug, Clone)]
-pub struct IValue<T: StoreValue> {
-    value: automerge::Value,
+pub struct IValue<'a, T: StoreValue> {
+    value: Option<ValueProxy<'a>>,
     revs: Vec<Revision>,
     revisions: Option<BTreeMap<Revision, Option<T>>>,
     lease_id: Option<Option<i64>>,
     init: Vec<(Path, Value)>,
 }
 
-impl<T> IValue<T>
+impl<'a, T> IValue<'a, T>
 where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: Debug,
 {
-    pub fn new(value: Value, path: Path) -> Self {
+    pub fn new(value: Option<ValueProxy<'a>>, path: Path) -> Self {
         let init = Self::init(&value, path);
         Self {
             value,
@@ -45,16 +44,15 @@ where
         }
     }
 
-    fn init(value: &Value, path: Path) -> Vec<(Path, Value)> {
+    fn init(value: &Option<ValueProxy>, path: Path) -> Vec<(Path, Value)> {
         let mut values = Vec::new();
-        if let Value::Map(m) = value {
+        if let Some(ValueProxy::Map(m)) = value {
             if m.is_empty() {
                 values.push((path.clone(), Value::Map(HashMap::new())));
                 values.push((path.key(REVISIONS_KEY), Value::Map(HashMap::new())));
             } else {
-                let revs = value.get_value(Path::root().key(REVISIONS_KEY));
-                if let Some(Cow::Owned(Value::Map(_))) = revs {
-                } else if let Some(Cow::Borrowed(Value::Map(_))) = revs {
+                let revs = m.get(REVISIONS_KEY);
+                if let Some(ValueProxy::Map(_)) = revs {
                 } else {
                     values.push((path.key(REVISIONS_KEY), Value::Map(HashMap::new())));
                 }
@@ -69,37 +67,29 @@ where
     fn create_revision(&mut self, revision: Revision) -> Option<&Revision> {
         self.get_revisions();
 
-        let revisions_path = Path::root().key(REVISIONS_KEY);
+        let revisions = self.value.as_ref()?.map()?.get(REVISIONS_KEY)?;
+        let v = revisions.map()?;
 
         self.revs
             .iter()
             .rev()
             .skip_while(|&&k| k > revision)
-            .take_while(|rev| {
-                self.value
-                    .get_value(revisions_path.clone().key(rev.to_string()))
-                    .is_some()
-                // self.get_value(rev).unwrap().is_some()
-            })
+            .take_while(|rev| v.contains_key(&rev.to_string()))
             .last()
     }
 
     fn version(&mut self, revision: Revision) -> Version {
         self.get_revisions();
 
-        let revisions_path = Path::root().key(REVISIONS_KEY);
+        let revisions = self.value.as_ref()?.map()?.get(REVISIONS_KEY)?;
+        let v = revisions.map()?;
 
         let version = self
             .revs
             .iter()
             .filter(|&&k| k <= revision)
             .rev()
-            .take_while(|rev| {
-                self.value
-                    .get_value(revisions_path.clone().key(rev.to_string()))
-                    .is_some()
-                // self.get_value(rev).unwrap().is_some()
-            })
+            .take_while(|rev| v.contains_key(&rev.to_string()))
             .count();
         NonZeroU64::new(version.try_into().unwrap())
     }
@@ -109,28 +99,26 @@ where
         if self.revs.is_empty() {
             // may have duplicate keys in value and revisions cache
             let mut revisions: HashSet<Revision> = HashSet::new();
-            let value = self.value.get_value(Path::root().key(REVISIONS_KEY));
+            let value = self
+                .value
+                .as_ref()
+                .and_then(|v| v.map().unwrap().get(REVISIONS_KEY));
 
-            if let Some(Cow::Owned(Value::Map(m))) = value {
+            if let Some(ValueProxy::Map(m)) = value {
                 revisions.reserve(m.len());
                 for k in m.keys().map(|k| k.parse::<Revision>().unwrap()) {
                     revisions.insert(k);
                 }
-            } else if let Some(Cow::Borrowed(Value::Map(m))) = value {
-                revisions.reserve(m.len());
-                for k in m.keys().map(|k| k.parse::<Revision>().unwrap()) {
-                    revisions.insert(k);
+                if let Some(revs) = self.revisions.as_ref() {
+                    for k in revs.keys() {
+                        revisions.insert(*k);
+                    }
                 }
-            }
-            if let Some(revs) = self.revisions.as_ref() {
-                for k in revs.keys() {
-                    revisions.insert(*k);
-                }
-            }
-            let mut revisions = revisions.into_iter().collect::<Vec<_>>();
-            revisions.sort_unstable();
+                let mut revisions = revisions.into_iter().collect::<Vec<_>>();
+                revisions.sort_unstable();
 
-            self.revs = revisions;
+                self.revs = revisions;
+            }
         }
     }
 
@@ -144,11 +132,17 @@ where
 
             // already in the cache so do nothing
         } else {
-            let v = self
-                .value
-                .get_value(Path::root().key(REVISIONS_KEY).key(revision.to_string()))?;
+            let v = self.value.as_ref().and_then(|v| {
+                v.map()
+                    .unwrap()
+                    .get(REVISIONS_KEY)
+                    .unwrap()
+                    .map()
+                    .unwrap()
+                    .get(&revision.to_string())
+            })?;
 
-            let v = Option::<T>::from_automerge(&v).unwrap();
+            let v = Option::<T>::from_automerge(&v.value()).unwrap();
             let revs = self.revisions.get_or_insert_with(Default::default);
             revs.insert(*revision, v);
         }
@@ -161,12 +155,10 @@ where
     }
 
     fn lease_id(&mut self) -> Option<i64> {
-        if let Some(Cow::Owned(Value::Primitive(Primitive::Int(i)))) =
-            self.value.get_value(Path::root().key(LEASE_ID_KEY))
-        {
-            Some(i)
-        } else if let Some(Cow::Borrowed(Value::Primitive(Primitive::Int(i)))) =
-            self.value.get_value(Path::root().key(LEASE_ID_KEY))
+        if let Some(ValueProxy::Primitive(Primitive::Int(i))) = self
+            .value
+            .as_ref()
+            .and_then(|v| v.map().unwrap().get(LEASE_ID_KEY))
         {
             Some(*i)
         } else {
