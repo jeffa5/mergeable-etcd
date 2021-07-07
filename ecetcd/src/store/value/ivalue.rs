@@ -70,7 +70,12 @@ where
             .into_iter()
             .rev()
             .skip_while(|&k| k > revision)
-            .take_while(|rev| self.get_value(rev).unwrap().is_some())
+            .take_while(|rev| {
+                self.value
+                    .get_value(Path::root().key(REVISIONS_KEY).key(rev.to_string()))
+                    .is_some()
+                // self.get_value(rev).unwrap().is_some()
+            })
             .last()
     }
 
@@ -80,7 +85,12 @@ where
             .into_iter()
             .filter(|&k| k <= revision)
             .rev()
-            .take_while(|rev| self.get_value(rev).unwrap().is_some())
+            .take_while(|rev| {
+                self.value
+                    .get_value(Path::root().key(REVISIONS_KEY).key(rev.to_string()))
+                    .is_some()
+                // self.get_value(rev).unwrap().is_some()
+            })
             .count();
         NonZeroU64::new(version.try_into().unwrap())
     }
