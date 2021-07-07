@@ -47,7 +47,7 @@ where
     {
         let mut sc = StoreContents::new(&self.frontend);
         let result = change_closure(&mut sc)?;
-        let changes = self.extract_changes(sc.clone());
+        let changes = self.extract_changes(sc);
         let change = self.apply_changes(changes);
         Ok((result, change))
     }
