@@ -23,6 +23,7 @@ pub trait StoreValue:
 #[derive(Debug, Clone)]
 pub struct IValue<T: StoreValue> {
     value: automerge::Value,
+    revs: Vec<Revision>,
     revisions: Option<BTreeMap<Revision, Option<T>>>,
     lease_id: Option<Option<i64>>,
     init: Vec<(Path, Value)>,
@@ -37,6 +38,7 @@ where
         let init = Self::init(&value, path);
         Self {
             value,
+            revs: Vec::new(),
             revisions: None,
             lease_id: None,
             init,
@@ -64,15 +66,18 @@ where
         values
     }
 
-    fn create_revision(&mut self, revision: Revision) -> Option<Revision> {
-        let revisions = self.get_revisions();
-        revisions
-            .into_iter()
+    fn create_revision(&mut self, revision: Revision) -> Option<&Revision> {
+        self.get_revisions();
+
+        let revisions_path = Path::root().key(REVISIONS_KEY);
+
+        self.revs
+            .iter()
             .rev()
-            .skip_while(|&k| k > revision)
+            .skip_while(|&&k| k > revision)
             .take_while(|rev| {
                 self.value
-                    .get_value(Path::root().key(REVISIONS_KEY).key(rev.to_string()))
+                    .get_value(revisions_path.clone().key(rev.to_string()))
                     .is_some()
                 // self.get_value(rev).unwrap().is_some()
             })
@@ -80,14 +85,18 @@ where
     }
 
     fn version(&mut self, revision: Revision) -> Version {
-        let revisions = self.get_revisions();
-        let version = revisions
-            .into_iter()
-            .filter(|&k| k <= revision)
+        self.get_revisions();
+
+        let revisions_path = Path::root().key(REVISIONS_KEY);
+
+        let version = self
+            .revs
+            .iter()
+            .filter(|&&k| k <= revision)
             .rev()
             .take_while(|rev| {
                 self.value
-                    .get_value(Path::root().key(REVISIONS_KEY).key(rev.to_string()))
+                    .get_value(revisions_path.clone().key(rev.to_string()))
                     .is_some()
                 // self.get_value(rev).unwrap().is_some()
             })
@@ -95,28 +104,34 @@ where
         NonZeroU64::new(version.try_into().unwrap())
     }
 
-    fn get_revisions(&self) -> Vec<Revision> {
-        // may have duplicate keys in value and revisions cache
-        let mut revisions: HashSet<Revision> = HashSet::new();
-        let value = self.value.get_value(Path::root().key(REVISIONS_KEY));
+    /// Populate the revisions list from the value if it is already empty
+    fn get_revisions(&mut self) {
+        if self.revs.is_empty() {
+            // may have duplicate keys in value and revisions cache
+            let mut revisions: HashSet<Revision> = HashSet::new();
+            let value = self.value.get_value(Path::root().key(REVISIONS_KEY));
 
-        if let Some(Cow::Owned(Value::Map(m))) = value {
-            for k in m.keys().map(|k| k.parse::<Revision>().unwrap()) {
-                revisions.insert(k);
+            if let Some(Cow::Owned(Value::Map(m))) = value {
+                revisions.reserve(m.len());
+                for k in m.keys().map(|k| k.parse::<Revision>().unwrap()) {
+                    revisions.insert(k);
+                }
+            } else if let Some(Cow::Borrowed(Value::Map(m))) = value {
+                revisions.reserve(m.len());
+                for k in m.keys().map(|k| k.parse::<Revision>().unwrap()) {
+                    revisions.insert(k);
+                }
             }
-        } else if let Some(Cow::Borrowed(Value::Map(m))) = value {
-            for k in m.keys().map(|k| k.parse::<Revision>().unwrap()) {
-                revisions.insert(k);
+            if let Some(revs) = self.revisions.as_ref() {
+                for k in revs.keys() {
+                    revisions.insert(*k);
+                }
             }
+            let mut revisions = revisions.into_iter().collect::<Vec<_>>();
+            revisions.sort_unstable();
+
+            self.revs = revisions;
         }
-        if let Some(revs) = self.revisions.as_ref() {
-            for k in revs.keys() {
-                revisions.insert(*k);
-            }
-        }
-        let mut revisions = revisions.into_iter().collect::<Vec<_>>();
-        revisions.sort();
-        revisions
     }
 
     fn get_value(&mut self, revision: &Revision) -> Option<&Option<T>> {
@@ -163,9 +178,9 @@ where
     ///
     /// `key` is required to be able to build the RawValue
     pub fn value_at_revision(&mut self, revision: Revision, key: Key) -> Option<SnapshotValue> {
-        let revisions = self.get_revisions();
+        self.get_revisions();
 
-        let revision = revisions.into_iter().rfind(|&k| k <= revision)?;
+        let revision = *self.revs.iter().rfind(|&&k| k <= revision)?;
 
         let value = self.get_value(&revision).unwrap();
         let svalue = value.as_ref().map(|i| i.clone().into());
@@ -174,7 +189,7 @@ where
 
         Some(SnapshotValue {
             key,
-            create_revision: self.create_revision(revision),
+            create_revision: self.create_revision(revision).cloned(),
             mod_revision: revision,
             version,
             value: svalue,
@@ -186,27 +201,31 @@ where
     ///
     /// `key` is required to be able to build the RawValue
     pub fn latest_value(&mut self, key: Key) -> Option<SnapshotValue> {
-        let revisions = self.get_revisions();
+        self.get_revisions();
 
-        let last_revision = revisions.last()?;
+        let last_revision = *self.revs.last()?;
 
-        self.value_at_revision(*last_revision, key)
+        self.value_at_revision(last_revision, key)
     }
 
     /// Insert a new value (or update an existing value) at the given revision
     ///
     /// If the value is None then the last value is used and given a new revision.
     pub fn insert(&mut self, revision: Revision, value: Option<Vec<u8>>, lease: Option<i64>) {
+        self.get_revisions();
+
         let value = if let Some(value) = value {
             T::try_from(value).unwrap()
-        } else if let Some(last) = self.get_revisions().last() {
+        } else if let Some(last) = self.revs.last().cloned() {
             // we've just gotten the last revision so it should exist
-            let value = self.get_value(last).unwrap();
+            let value = self.get_value(&last).unwrap();
             value.as_ref().unwrap().clone()
         } else {
             // TODO: probably return an error
             return;
         };
+
+        self.revs.push(revision);
 
         self.revisions
             .get_or_insert_with(Default::default)
@@ -219,6 +238,10 @@ where
 
     /// Delete the value with the given revision
     pub fn delete(&mut self, revision: Revision) {
+        self.get_revisions();
+
+        self.revs.push(revision);
+
         self.revisions
             .get_or_insert_with(Default::default)
             .insert(revision, None);
