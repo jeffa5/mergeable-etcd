@@ -278,7 +278,7 @@ where
 
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
-            let value = doc.value(&key).unwrap().unwrap();
+            let value = doc.value_mut(&key).unwrap().unwrap();
             for (range, sender) in &self.watchers {
                 if range.contains(&key) {
                     let latest_value = value.latest_value(key.clone()).unwrap();
@@ -326,7 +326,7 @@ where
 
         // TODO: handle range
         let mut doc = self.document.get();
-        if let Some(value) = doc.value(&key) {
+        if let Some(value) = doc.value_mut(&key) {
             let value = value.unwrap();
             for (range, sender) in &self.watchers {
                 if range.contains(&key) {
@@ -378,7 +378,7 @@ where
                 }
                 Request::RequestPut(put) => {
                     let key = put.key.into();
-                    let value = doc.value(&key).unwrap().unwrap();
+                    let value = doc.value_mut(&key).unwrap().unwrap();
                     for (range, sender) in &self.watchers {
                         if range.contains(&key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
@@ -392,7 +392,7 @@ where
                 }
                 Request::RequestDeleteRange(del) => {
                     let key = del.key.into();
-                    let value = doc.value(&key).unwrap().unwrap();
+                    let value = doc.value_mut(&key).unwrap().unwrap();
                     for (range, sender) in &self.watchers {
                         if range.contains(&key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();

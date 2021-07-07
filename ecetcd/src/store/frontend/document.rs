@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
 use automerge::LocalChange;
 use automerge_frontend::InvalidPatch;
@@ -18,6 +18,7 @@ pub(super) struct Document<T> {
 impl<T> Document<T>
 where
     T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: Debug,
 {
     pub fn new(frontend: automerge::Frontend) -> Self {
         Self {

@@ -1,7 +1,7 @@
 use std::{
     collections::{btree_map, BTreeMap, HashMap},
     convert::{TryFrom, TryInto},
-    marker::PhantomData,
+    fmt::Debug,
     ops::Range,
 };
 
@@ -65,8 +65,6 @@ impl<T> ValueState<T> {
     }
 }
 
-type Values<'a, T> = BTreeMap<Key, IValue<T>>;
-
 #[derive(Debug, Clone, Default, automergeable::Automergeable)]
 pub struct Lease {
     ttl: Ttl,
@@ -104,17 +102,18 @@ impl Lease {
 pub struct StoreContents<'a, T>
 where
     T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: Debug,
 {
     frontend: &'a automerge::Frontend,
     values: Option<BTreeMap<Key, IValue<T>>>,
     server: Option<Server>,
     leases: Option<HashMap<i64, ValueState<Lease>>>,
-    _type: PhantomData<T>,
 }
 
 impl<'a, T> StoreContents<'a, T>
 where
     T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: Debug,
 {
     pub fn new(frontend: &'a automerge::Frontend) -> Self {
         Self {
@@ -122,7 +121,6 @@ where
             values: None,
             server: None,
             leases: None,
-            _type: PhantomData::default(),
         }
     }
 
@@ -165,17 +163,11 @@ where
             let v = self
                 .frontend
                 .get_value(&Path::root().key(VALUES_KEY).key(key.to_string()))
-                .as_ref()
-                .map(|v| IValue::from_automerge(v));
-            match v {
-                Some(Ok(value)) => {
-                    self.values
-                        .get_or_insert_with(Default::default)
-                        .insert(key.clone(), value);
-                }
-                Some(Err(e)) => return Some(Err(e)),
-                None => return None,
-            }
+                .map(|v| IValue::new(v, Path::root().key(VALUES_KEY).key(key.to_string())))?;
+
+            self.values
+                .get_or_insert_with(Default::default)
+                .insert(key.clone(), v);
         }
         Some(Ok(self.values.as_ref().unwrap().get(key).as_ref().unwrap()))
     }
@@ -187,17 +179,11 @@ where
             let v = self
                 .frontend
                 .get_value(&Path::root().key(VALUES_KEY).key(key.to_string()))
-                .as_ref()
-                .map(|v| IValue::from_automerge(v));
-            match v {
-                Some(Ok(value)) => {
-                    self.values
-                        .get_or_insert_with(Default::default)
-                        .insert(key.clone(), value);
-                }
-                Some(Err(e)) => return Some(Err(e)),
-                None => return None,
-            }
+                .map(|v| IValue::new(v, Path::root().key(VALUES_KEY).key(key.to_string())))?;
+
+            self.values
+                .get_or_insert_with(Default::default)
+                .insert(key.clone(), v);
         }
         Some(Ok(self.values.as_mut().unwrap().get_mut(key).unwrap()))
     }
@@ -206,46 +192,50 @@ where
         &mut self,
         range: Range<Key>,
     ) -> Option<Result<btree_map::Range<Key, IValue<T>>, FromAutomergeError>> {
-        let v = self
-            .frontend
-            .get_value(&Path::root().key(VALUES_KEY))
-            .as_ref()
-            .map(|v| Values::<T>::from_automerge(v));
-
-        match v {
-            Some(Ok(vals)) => {
-                let values = self.values.get_or_insert_with(Default::default);
-                for (k, v) in vals.range(range.clone()) {
-                    values.insert(k.clone(), v.clone());
+        let values = self.frontend.get_value(&Path::root().key(VALUES_KEY));
+        if let Some(Value::Map(m)) = values {
+            let mut keys_in_range = Vec::new();
+            for key in m.keys() {
+                let key = key.parse::<Key>().unwrap();
+                if range.contains(&key) {
+                    keys_in_range.push(key)
                 }
             }
-            Some(Err(e)) => return Some(Err(e)),
-            None => return None,
+
+            keys_in_range.sort_unstable();
+            for key in keys_in_range {
+                // populate the value into the values cache
+                self.value(&key);
+            }
+            Some(Ok(self.values.as_ref().unwrap().range(range)))
+        } else {
+            None
         }
-        Some(Ok(self.values.as_ref().unwrap().range(range)))
     }
 
     pub fn values_mut(
         &mut self,
         range: Range<Key>,
     ) -> Option<Result<btree_map::RangeMut<Key, IValue<T>>, FromAutomergeError>> {
-        let v = self
-            .frontend
-            .get_value(&Path::root().key(VALUES_KEY))
-            .as_ref()
-            .map(|v| Values::<T>::from_automerge(v));
-
-        match v {
-            Some(Ok(vals)) => {
-                let values = self.values.get_or_insert_with(Default::default);
-                for (k, v) in vals.range(range.clone()) {
-                    values.insert(k.clone(), v.clone());
+        let values = self.frontend.get_value(&Path::root().key(VALUES_KEY));
+        if let Some(Value::Map(m)) = values {
+            let mut keys_in_range = Vec::new();
+            for key in m.keys() {
+                let key = key.parse::<Key>().unwrap();
+                if range.contains(&key) {
+                    keys_in_range.push(key)
                 }
             }
-            Some(Err(e)) => return Some(Err(e)),
-            None => return None,
+
+            keys_in_range.sort_unstable();
+            for key in keys_in_range {
+                // populate the value into the values cache
+                self.value(&key);
+            }
+            Some(Ok(self.values.as_mut().unwrap().range_mut(range)))
+        } else {
+            None
         }
-        Some(Ok(self.values.as_mut().unwrap().range_mut(range)))
     }
 
     pub fn lease(&mut self, id: &i64) -> Option<Result<&Lease, FromAutomergeError>> {
@@ -336,31 +326,31 @@ where
         }
     }
 
-    pub(crate) fn changes(&self) -> HashMap<Path, ValueState<Value>> {
-        let mut hm = HashMap::new();
+    pub(crate) fn changes(self) -> Vec<(Path, ValueState<Value>)> {
+        let mut changed_values = Vec::new();
         if let Some(server) = self.server.as_ref() {
-            hm.insert(
+            changed_values.push((
                 Path::root().key(SERVER_KEY),
                 ValueState::Present(server.to_automerge()),
-            );
+            ));
         }
-        if let Some(values) = self.values.as_ref() {
+        if let Some(values) = self.values {
             for (k, v) in values {
-                hm.insert(
-                    Path::root().key(VALUES_KEY).key(k.to_string()),
-                    ValueState::Present(v.to_automerge()),
-                );
+                let value_changes = v.changes(Path::root().key(VALUES_KEY).key(k.to_string()));
+                for (path, value) in value_changes {
+                    changed_values.push((path, ValueState::Present(value)));
+                }
             }
         }
         if let Some(leases) = self.leases.as_ref() {
             for (k, v) in leases {
-                hm.insert(
+                changed_values.push((
                     Path::root().key(LEASES_KEY).key(k.to_string()),
                     v.to_automerge(),
-                );
+                ));
             }
         }
-        hm
+        changed_values
     }
 }
 
@@ -379,7 +369,7 @@ where
         tracing::debug!("getting");
         let mut values = Vec::new();
         if let Some(range_end) = range_end {
-            let vals = self.values(key..range_end);
+            let vals = self.values_mut(key..range_end);
 
             if let Some(Ok(vals)) = vals {
                 for (key, value) in vals {
@@ -388,7 +378,7 @@ where
                     }
                 }
             }
-        } else if let Some(Ok(value)) = self.value(&key) {
+        } else if let Some(Ok(value)) = self.value_mut(&key) {
             if let Some(value) = value.value_at_revision(revision, key) {
                 values.push(value);
             }
@@ -421,7 +411,10 @@ where
             }
             Some(Err(_)) => None,
             None => {
-                let mut v = IValue::default();
+                let mut v = IValue::new(
+                    Value::Map(HashMap::new()),
+                    Path::root().key(VALUES_KEY).key(key.to_string()),
+                );
                 v.insert(revision, value, lease);
                 self.insert_value(key, v);
                 None
