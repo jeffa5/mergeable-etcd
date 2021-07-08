@@ -1,13 +1,21 @@
 mod address;
+mod options;
 
-use std::time::SystemTime;
+use std::{
+    io::{BufWriter, Write},
+    sync::{Arc, Mutex},
+    time::{Duration, SystemTime},
+};
 
 pub use address::{Address, Error, Scheme};
+use anyhow::Context;
 use arbitrary::{Arbitrary, Unstructured};
 use etcd_proto::etcdserverpb::{kv_client::KvClient, PutRequest};
+pub use options::Options;
 use rand::{distributions::Standard, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
+use tokio::{task::JoinHandle, time::sleep};
 use tonic::transport::Channel;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -49,6 +57,45 @@ pub enum Scenario {
 
 impl Scenario {
     pub async fn execute(
+        &self,
+        channel: Channel,
+        options: &Options,
+        out_writer: &Arc<Mutex<BufWriter<Box<dyn Write + Send>>>>,
+    ) -> Vec<JoinHandle<Result<(), anyhow::Error>>> {
+        let mut client_tasks = Vec::new();
+        for client in 0..options.clients {
+            let channel = channel.clone();
+            let options = options.clone();
+            let out_writer = Arc::clone(out_writer);
+            let client_task = tokio::spawn(async move {
+                let mut kv_client = KvClient::new(channel);
+
+                for i in 0..options.iterations {
+                    let output = options
+                        .scenario
+                        .inner_execute(&mut kv_client, client, i, options.iterations)
+                        .await
+                        .with_context(|| {
+                            format!("Failed doing request client {} iteration {}", client, i)
+                        })?;
+
+                    {
+                        let mut out = out_writer.lock().unwrap();
+                        writeln!(out, "{}", serde_json::to_string(&output).unwrap())?;
+                    }
+
+                    sleep(Duration::from_millis(options.interval)).await;
+                }
+                let res: Result<(), anyhow::Error> = Ok(());
+                res
+            });
+            client_tasks.push(client_task);
+        }
+
+        client_tasks
+    }
+
+    async fn inner_execute(
         &self,
         kv_client: &mut KvClient<Channel>,
         client_id: u32,
