@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 use tokio::{task::JoinHandle, time::sleep};
 use tonic::transport::Channel;
-pub use trace::TraceValue;
+pub use trace::{execute_trace, TraceValue};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Output {
