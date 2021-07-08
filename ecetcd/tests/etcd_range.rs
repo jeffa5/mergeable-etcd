@@ -35,3 +35,30 @@ async fn range() {
         }
     }
 }
+
+#[test(tokio::test)]
+async fn range_empty() {
+    for keys_only in [false, true] {
+        for count_only in [false, true] {
+            let key = key();
+            let mut end_key = key.clone();
+            end_key.push(0);
+            let request = etcdserverpb::RangeRequest {
+                key: key.clone(),
+                range_end: end_key,
+                limit: 0,
+                revision: 0,
+                sort_order: 0,
+                sort_target: 0,
+                serializable: false,
+                keys_only,
+                count_only,
+                min_mod_revision: 0,
+                max_mod_revision: 0,
+                min_create_revision: 0,
+                max_create_revision: 0,
+            };
+            test_range(&request).await;
+        }
+    }
+}
