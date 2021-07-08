@@ -64,32 +64,29 @@ where
         values
     }
 
-    fn create_revision(&mut self, revision: Revision) -> Option<&Revision> {
+    fn create_revision(&mut self, revision: Revision) -> Option<Revision> {
         self.get_revisions();
 
-        let revisions = self.value.as_ref()?.map()?.get(REVISIONS_KEY)?;
-        let v = revisions.map()?;
-
         self.revs
+            .clone()
             .iter()
             .rev()
             .skip_while(|&&k| k > revision)
-            .take_while(|rev| v.contains_key(&rev.to_string()))
+            .take_while(|rev| self.get_value(rev).unwrap().is_some())
             .last()
+            .cloned()
     }
 
     fn version(&mut self, revision: Revision) -> Version {
         self.get_revisions();
 
-        let revisions = self.value.as_ref()?.map()?.get(REVISIONS_KEY)?;
-        let v = revisions.map()?;
-
         let version = self
             .revs
+            .clone()
             .iter()
             .filter(|&&k| k <= revision)
             .rev()
-            .take_while(|rev| v.contains_key(&rev.to_string()))
+            .take_while(|rev| self.get_value(rev).unwrap().is_some())
             .count();
         NonZeroU64::new(version.try_into().unwrap())
     }
@@ -181,7 +178,7 @@ where
 
         Some(SnapshotValue {
             key,
-            create_revision: self.create_revision(revision).cloned(),
+            create_revision: self.create_revision(revision),
             mod_revision: revision,
             version,
             value: svalue,

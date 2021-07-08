@@ -339,7 +339,7 @@ mod tests {
     #[test]
     fn historic_value() {
         let f = automerge::Frontend::new();
-        let mut v = IValue::<Value>::new(f.proxy().get("random").unwrap(), Path::root());
+        let mut v = IValue::<Value>::new(f.proxy().get("random"), Path::root());
         assert_eq!(
             None,
             v.value_at_revision(Revision::new(1).unwrap(), Vec::new().into()),
@@ -362,7 +362,8 @@ mod tests {
                 lease: None,
             }),
             v.value_at_revision(Revision::new(2).unwrap(), Vec::new().into()),
-            "2@2"
+            "2@2 {:?}",
+            v
         );
 
         v.insert(Revision::new(4).unwrap(), Some(b"{}".to_vec()), None);
