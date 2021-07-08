@@ -67,13 +67,30 @@
                 '';
               };
 
-              eckd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
+              recetcd-etcd = pkgs.stdenv.mkDerivation {
+                name = "recetcd-etcd";
+                src = packages.recetcd;
+                installPhase = ''
+                  mkdir -p $out/bin
+                  cp $src/bin/recetcd $out/bin/etcd
+                '';
+              };
+
+              recetcd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
                 name = "jeffas/etcd";
                 tag = "latest";
-                contents = packages.eckd-etcd;
+                contents = packages.recetcd-etcd;
 
                 config.Cmd = [ "/bin/etcd" ];
               };
+
+              # eckd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
+              #   name = "jeffas/etcd";
+              #   tag = "latest";
+              #   contents = packages.eckd-etcd;
+
+              #   config.Cmd = [ "/bin/etcd" ];
+              # };
 
               eckd-docker = pkgs.dockerTools.buildLayeredImage {
                 name = "jeffas/eckd";

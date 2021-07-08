@@ -51,7 +51,7 @@ clean:
 
 .PHONY: docker-eckd
 docker-eckd:
-	nix build .\#eckd-docker-etcd
+	nix build .\#recetcd-docker-etcd
 	docker load -i result
 	nix build .\#eckd-docker
 	docker load -i result
