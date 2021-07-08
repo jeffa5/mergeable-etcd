@@ -8,9 +8,9 @@ readme = "README.md"
 repository = "https://gitlab.developers.cam.ac.uk/apj39/eckd-rs"
 
 [dependencies]
-tonic = { version = "0.4.0", git = "https://github.com/hyperium/tonic" }
+tonic = "0.4.0"
 prost = "0.7.0"
 serde = { version = "1.0.123", features = ["derive"] }
 
 [build-dependencies]
-tonic-build = { version = "0.4.0", git = "https://github.com/hyperium/tonic" }
+tonic-build = "0.4.0"

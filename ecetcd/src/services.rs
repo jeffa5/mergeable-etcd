@@ -16,7 +16,7 @@ use etcd_proto::etcdserverpb::{
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use tokio::sync::mpsc;
 use tonic::{
-    body,
+    body::BoxBody,
     transport::{Identity, NamedService, Server, ServerTlsConfig},
 };
 use tower::Service;
@@ -68,7 +68,7 @@ pub async fn serve(
 struct CatchAllService {}
 
 impl Service<HyperRequest<Body>> for CatchAllService {
-    type Response = hyper::Response<body::BoxBody>;
+    type Response = hyper::Response<BoxBody>;
     type Error = hyper::http::Error;
     type Future = futures::future::BoxFuture<'static, Result<Self::Response, Self::Error>>;
 
@@ -79,9 +79,7 @@ impl Service<HyperRequest<Body>> for CatchAllService {
     fn call(&mut self, req: HyperRequest<Body>) -> Self::Future {
         Box::pin(async move {
             warn!("Missed request: {:?} {:?}", req.method(), req.uri());
-            HyperResponse::builder()
-                .status(404)
-                .body(body::empty_body())
+            HyperResponse::builder().status(404).body(BoxBody::empty())
         })
     }
 }
