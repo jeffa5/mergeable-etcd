@@ -210,10 +210,7 @@ where
         Some(Ok(self.values.as_mut().unwrap().get_mut(key).unwrap()))
     }
 
-    pub fn values(
-        &mut self,
-        range: Range<Key>,
-    ) -> Option<Result<btree_map::Range<Key, IValue<'a, T>>, FromAutomergeError>> {
+    pub fn values(&mut self, range: Range<Key>) -> Option<btree_map::Range<Key, IValue<'a, T>>> {
         let values = self.root_proxy.get(VALUES_KEY);
         if let Some(ValueProxy::Map(m)) = values {
             let mut keys_in_range = Vec::new();
@@ -229,7 +226,7 @@ where
                 // populate the value into the values cache
                 self.value(&key);
             }
-            Some(Ok(self.values.as_ref().unwrap().range(range)))
+            self.values.as_ref().map(|v| v.range(range))
         } else {
             None
         }
@@ -238,7 +235,7 @@ where
     pub fn values_mut(
         &mut self,
         range: Range<Key>,
-    ) -> Option<Result<btree_map::RangeMut<Key, IValue<'a, T>>, FromAutomergeError>> {
+    ) -> Option<btree_map::RangeMut<Key, IValue<'a, T>>> {
         let values = self.root_proxy.get(VALUES_KEY);
         if let Some(ValueProxy::Map(m)) = values {
             let mut keys_in_range = Vec::new();
@@ -254,7 +251,7 @@ where
                 // populate the value into the values cache
                 self.value(&key);
             }
-            Some(Ok(self.values.as_mut().unwrap().range_mut(range)))
+            self.values.as_mut().map(|v| v.range_mut(range))
         } else {
             None
         }
@@ -401,7 +398,7 @@ where
         if let Some(range_end) = range_end {
             let vals = self.values_mut(key..range_end);
 
-            if let Some(Ok(vals)) = vals {
+            if let Some(vals) = vals {
                 for (key, value) in vals {
                     if let Some(value) = value.value_at_revision(revision, key.clone()) {
                         values.push(value);
@@ -469,7 +466,7 @@ where
         if let Some(range_end) = range_end {
             let vals = self.values_mut(key..range_end);
 
-            if let Some(Ok(vals)) = vals {
+            if let Some(vals) = vals {
                 for (key, value) in vals {
                     let prev = value.value_at_revision(revision, key.clone());
                     value.delete(revision);
