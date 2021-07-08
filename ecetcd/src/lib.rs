@@ -160,21 +160,30 @@ where
             (urls, _) => urls,
         };
 
-        let trace_out = self.trace_file.as_ref().map(|f| {
+        let (trace_task, trace_out) = if let Some(f) = self.trace_file.as_ref() {
             let (send, mut recv) = mpsc::channel(10);
             let f = f.clone();
-            tokio::spawn(async move {
+            let mut shutdown_clone = shutdown.clone();
+            let file_out = tokio::spawn(async move {
                 let file = File::create(f).unwrap();
                 let mut bw = BufWriter::new(file);
-                while let Some(tv) = recv.recv().await {
-                    let dt = chrono::Utc::now();
-                    let b = serde_json::to_string(&tv).unwrap();
+                loop {
+                    tokio::select! {
+                        _ = shutdown_clone.changed() => break,
+                        Some(tv) = recv.recv() => {
+                            let dt = chrono::Utc::now();
+                            let b = serde_json::to_string(&tv).unwrap();
 
-                    write!(bw, "{} {}", dt.to_rfc3339(), b).unwrap();
+                            writeln!(bw, "{} {}", dt.to_rfc3339(), b).unwrap();
+                        }
+                    }
                 }
+                bw.flush().unwrap()
             });
-            send
-        });
+            (Some(file_out), Some(send))
+        } else {
+            (None, None)
+        };
 
         let client_servers = client_urls.iter().map(|client_url| {
                 let identity = if let Scheme::Https = client_url.scheme {
@@ -236,6 +245,12 @@ where
                     .unwrap()
             },
             async { futures::future::join_all(local_futures).await },
+            async {
+                trace_task
+                    .unwrap_or_else(|| tokio::spawn(async {}))
+                    .await
+                    .unwrap()
+            },
         ];
         Ok(())
     }
