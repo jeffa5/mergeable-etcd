@@ -127,9 +127,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let registry = Registry::default()
         .with(tracing_subscriber::EnvFilter::new(if options.debug {
-            "DEBUG"
+            "ecetcd=DEBUG"
         } else {
-            "INFO"
+            "ecetcd=INFO"
         }))
         .with(tracing_subscriber::fmt::layer());
 
