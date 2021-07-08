@@ -4,14 +4,16 @@ use etcd_proto::etcdserverpb::{
     watch_request::RequestUnion, watch_server::Watch as WatchTrait, WatchRequest, WatchResponse,
 };
 use futures::{Stream, StreamExt};
+use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
 use tracing::{debug, warn};
 
-use crate::server::Server;
+use crate::{server::Server, TraceValue};
 
 #[derive(Debug)]
 pub struct Watch {
     pub server: Server,
+    pub trace_out: Option<mpsc::Sender<TraceValue>>,
 }
 
 #[tonic::async_trait]

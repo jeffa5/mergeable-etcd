@@ -1,13 +1,24 @@
 pub mod address;
+
 pub mod health;
 pub mod server;
 pub mod services;
 pub mod store;
 
-use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
+use std::{
+    convert::TryFrom,
+    fs::File,
+    io::{BufWriter, Write},
+    marker::PhantomData,
+    path::PathBuf,
+};
 
 pub use address::Address;
 use automerge_protocol::ActorId;
+use etcd_proto::etcdserverpb::{
+    CompactionRequest, DeleteRangeRequest, LeaseGrantRequest, LeaseLeasesRequest,
+    LeaseRevokeRequest, LeaseTimeToLiveRequest, PutRequest, RangeRequest, TxnRequest,
+};
 pub use store::StoreValue;
 use store::{BackendActor, BackendHandle, FrontendHandle};
 use tokio::{runtime::Builder, sync::mpsc, task::LocalSet};
@@ -19,6 +30,19 @@ use crate::{
     health::HealthServer,
     store::FrontendActor,
 };
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum TraceValue {
+    RangeRequest(RangeRequest),
+    PutRequest(PutRequest),
+    DeleteRangeRequest(DeleteRangeRequest),
+    TxnRequest(TxnRequest),
+    CompactRequest(CompactionRequest),
+    LeaseGrantRequest(LeaseGrantRequest),
+    LeaseRevokeRequest(LeaseRevokeRequest),
+    LeaseTimeToLiveRequest(LeaseTimeToLiveRequest),
+    LeaseLeasesRequest(LeaseLeasesRequest),
+}
 
 const WAITING_CLIENTS_PER_FRONTEND: usize = 32;
 
@@ -39,6 +63,7 @@ where
     pub key_file: Option<PathBuf>,
     /// Whether to wait for the patch to be applied to the frontend before returning
     pub sync_changes: bool,
+    pub trace_file: Option<PathBuf>,
     pub _data: PhantomData<T>,
 }
 
@@ -134,6 +159,32 @@ where
             ([], urls) => urls,
             (urls, _) => urls,
         };
+
+        let (trace_task, trace_out) = if let Some(f) = self.trace_file.as_ref() {
+            let (send, mut recv) = mpsc::channel(10);
+            let f = f.clone();
+            let mut shutdown_clone = shutdown.clone();
+            let file_out = tokio::spawn(async move {
+                let file = File::create(f).unwrap();
+                let mut bw = BufWriter::new(file);
+                loop {
+                    tokio::select! {
+                        _ = shutdown_clone.changed() => break,
+                        Some(tv) = recv.recv() => {
+                            let dt = chrono::Utc::now();
+                            let b = serde_json::to_string(&tv).unwrap();
+
+                            writeln!(bw, "{} {}", dt.to_rfc3339(), b).unwrap();
+                        }
+                    }
+                }
+                bw.flush().unwrap()
+            });
+            (Some(file_out), Some(send))
+        } else {
+            (None, None)
+        };
+
         let client_servers = client_urls.iter().map(|client_url| {
                 let identity = if let Scheme::Https = client_url.scheme {
                     match (self.cert_file.as_ref(), self.key_file.as_ref()) {
@@ -154,6 +205,7 @@ where
                     identity,
                     shutdown.clone(),
                     server.clone(),
+                    trace_out.clone(),
                 );
                 info!("Listening to clients on {}", client_url);
                 serving
@@ -193,6 +245,12 @@ where
                     .unwrap()
             },
             async { futures::future::join_all(local_futures).await },
+            async {
+                trace_task
+                    .unwrap_or_else(|| tokio::spawn(async {}))
+                    .await
+                    .unwrap()
+            },
         ];
         Ok(())
     }

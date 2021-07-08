@@ -12,5 +12,7 @@
   "k8s-openapi 0.11.0 (git+https://github.com/jeffa5/k8s-openapi?branch=nano-time#96f534e4b635a81f0f61b2a161d754e3502b6112)": "0gi0lpjd0sv5dhkn13f1arj1d1iqjbgqph528nd2frwlwdihmknj",
   "kube 0.52.0 (git+https://github.com/jeffa5/kube-rs?branch=nano-time#7b6bbf6a5689b319efa3d5d1b40f7e0b0630501c)": "194mmw1h8z7xfx4s3hd6xm6hbfbdy990ahzjbk3kavr7z6vmww2v",
   "kube-runtime 0.52.0 (git+https://github.com/jeffa5/kube-rs?branch=nano-time#7b6bbf6a5689b319efa3d5d1b40f7e0b0630501c)": "194mmw1h8z7xfx4s3hd6xm6hbfbdy990ahzjbk3kavr7z6vmww2v",
-  "procfs 0.10.0 (git+https://github.com/jeffa5/procfs?branch=serde#d95e39de7c433c02f93a738ba05b83de5b05069d)": "04jijrn0axm4ipbnpz3x6ggn874azbnphwihccmq5ir066cafgxl"
+  "procfs 0.10.0 (git+https://github.com/jeffa5/procfs?branch=serde#d95e39de7c433c02f93a738ba05b83de5b05069d)": "04jijrn0axm4ipbnpz3x6ggn874azbnphwihccmq5ir066cafgxl",
+  "tonic 0.4.3 (git+https://github.com/hyperium/tonic#0583cff80f57ba071295416ee8828c3430851d0d)": "17yqkr6c9zy3wcmjx1gcfxm9jrj6gvfsd6ilk3f73d7ffrjb3hra",
+  "tonic-build 0.4.2 (git+https://github.com/hyperium/tonic#0583cff80f57ba071295416ee8828c3430851d0d)": "17yqkr6c9zy3wcmjx1gcfxm9jrj6gvfsd6ilk3f73d7ffrjb3hra"
 }

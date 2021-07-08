@@ -9300,7 +9300,12 @@ rec {
         crateName = "tonic";
         version = "0.4.3";
         edition = "2018";
-        sha256 = "1q0vnd6x91aymrmgmikfcd2ixqj0al8bzjjvmwwj7gf6gbcjri1a";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/hyperium/tonic";
+          rev = "0583cff80f57ba071295416ee8828c3430851d0d";
+          sha256 = "17yqkr6c9zy3wcmjx1gcfxm9jrj6gvfsd6ilk3f73d7ffrjb3hra";
+        };
         authors = [
           "Lucio Franco <luciofranco14@gmail.com>"
         ];
@@ -9352,6 +9357,11 @@ rec {
             features = [ "full" ];
           }
           {
+            name = "hyper-timeout";
+            packageId = "hyper-timeout";
+            optional = true;
+          }
+          {
             name = "percent-encoding";
             packageId = "percent-encoding";
           }
@@ -9397,6 +9407,10 @@ rec {
             features = [ "balance" "buffer" "discover" "limit" "load" "make" "timeout" "util" ];
           }
           {
+            name = "tower-layer";
+            packageId = "tower-layer";
+          }
+          {
             name = "tower-service";
             packageId = "tower-service";
           }
@@ -9416,22 +9430,35 @@ rec {
             packageId = "tokio";
             features = [ "rt" "macros" ];
           }
+          {
+            name = "tower";
+            packageId = "tower";
+            features = [ "full" ];
+          }
         ];
         features = {
           "codegen" = [ "async-trait" ];
+          "compression" = [ "flate2" ];
           "default" = [ "transport" "codegen" "prost" ];
           "prost" = [ "prost1" "prost-derive" ];
           "tls" = [ "transport" "tokio-rustls" ];
-          "tls-roots" = [ "tls" "rustls-native-certs" ];
-          "transport" = [ "h2" "hyper" "tokio" "tower" "tracing-futures" "tokio/macros" "tokio/time" ];
+          "tls-roots" = [ "tls-roots-common" "rustls-native-certs" ];
+          "tls-roots-common" = [ "tls" ];
+          "tls-webpki-roots" = [ "tls-roots-common" "webpki-roots" ];
+          "transport" = [ "h2" "hyper" "tokio" "tower" "tracing-futures" "tokio/macros" "tokio/time" "hyper-timeout" ];
         };
-        resolvedDefaultFeatures = [ "async-trait" "codegen" "default" "h2" "hyper" "prost" "prost-derive" "prost1" "tls" "tokio" "tokio-rustls" "tower" "tracing-futures" "transport" ];
+        resolvedDefaultFeatures = [ "async-trait" "codegen" "default" "h2" "hyper" "hyper-timeout" "prost" "prost-derive" "prost1" "tls" "tokio" "tokio-rustls" "tower" "tracing-futures" "transport" ];
       };
       "tonic-build" = rec {
         crateName = "tonic-build";
         version = "0.4.2";
         edition = "2018";
-        sha256 = "1kzx489zx06b9a305nix8q2vi30s2dw7276s3lcrfiig60kxx5f6";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/hyperium/tonic";
+          rev = "0583cff80f57ba071295416ee8828c3430851d0d";
+          sha256 = "17yqkr6c9zy3wcmjx1gcfxm9jrj6gvfsd6ilk3f73d7ffrjb3hra";
+        };
         authors = [
           "Lucio Franco <luciofranco14@gmail.com>"
         ];

@@ -14,29 +14,36 @@ use etcd_proto::etcdserverpb::{
     watch_server::WatchServer,
 };
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
+use tokio::sync::mpsc;
 use tonic::{
-    body::BoxBody,
+    body,
     transport::{Identity, NamedService, Server, ServerTlsConfig},
 };
 use tower::Service;
 use tracing::{info, warn};
+
+use crate::TraceValue;
 
 pub async fn serve(
     address: SocketAddr,
     identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
     server: crate::server::Server,
+    trace_out: Option<mpsc::Sender<TraceValue>>,
 ) -> Result<(), tonic::transport::Error> {
     let kv_service = KvServer::new(kv::KV {
         server: server.clone(),
+        trace_out: trace_out.clone(),
     });
     let maintenance_service = MaintenanceServer::new(maintenance::Maintenance {
         server: server.clone(),
+        trace_out: trace_out.clone(),
     });
     let watch_service = WatchServer::new(watch::Watch {
         server: server.clone(),
+        trace_out: trace_out.clone(),
     });
-    let lease_service = LeaseServer::new(lease::Lease { server });
+    let lease_service = LeaseServer::new(lease::Lease { server, trace_out });
     let mut server = Server::builder();
     if let Some(identity) = identity {
         server = server.tls_config(ServerTlsConfig::new().identity(identity))?;
@@ -61,7 +68,7 @@ pub async fn serve(
 struct CatchAllService {}
 
 impl Service<HyperRequest<Body>> for CatchAllService {
-    type Response = hyper::Response<BoxBody>;
+    type Response = hyper::Response<body::BoxBody>;
     type Error = hyper::http::Error;
     type Future = futures::future::BoxFuture<'static, Result<Self::Response, Self::Error>>;
 
@@ -72,7 +79,9 @@ impl Service<HyperRequest<Body>> for CatchAllService {
     fn call(&mut self, req: HyperRequest<Body>) -> Self::Future {
         Box::pin(async move {
             warn!("Missed request: {:?} {:?}", req.method(), req.uri());
-            HyperResponse::builder().status(404).body(BoxBody::empty())
+            HyperResponse::builder()
+                .status(404)
+                .body(body::empty_body())
         })
     }
 }

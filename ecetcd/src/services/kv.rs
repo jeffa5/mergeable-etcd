@@ -4,17 +4,20 @@ use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
     PutRequest, PutResponse, RangeRequest, RangeResponse, TxnRequest, TxnResponse,
 };
+use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
 use tracing::{debug, info, Level};
 
 use crate::{
     server::Server,
     store::{Revision, SnapshotValue},
+    TraceValue,
 };
 
 #[derive(Debug)]
 pub struct KV {
     pub server: Server,
+    pub trace_out: Option<mpsc::Sender<TraceValue>>,
 }
 
 #[tonic::async_trait]
@@ -26,6 +29,11 @@ impl Kv for KV {
     ) -> Result<Response<RangeResponse>, Status> {
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s.send(TraceValue::RangeRequest(request.clone())).await;
+        }
+
         assert_eq!(
             request.sort_order(),
             etcd_proto::etcdserverpb::range_request::SortOrder::None
@@ -97,6 +105,11 @@ impl Kv for KV {
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s.send(TraceValue::PutRequest(request.clone())).await;
+        }
+
         assert!(!request.ignore_lease);
         debug!("put: {:?}", request);
 
@@ -139,6 +152,13 @@ impl Kv for KV {
     ) -> Result<Response<DeleteRangeResponse>, Status> {
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s
+                .send(TraceValue::DeleteRangeRequest(request.clone()))
+                .await;
+        }
+
         debug!("delete_range: {:?}", request);
 
         let range_end = if request.range_end.is_empty() {
@@ -170,6 +190,11 @@ impl Kv for KV {
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s.send(TraceValue::TxnRequest(request.clone())).await;
+        }
+
         debug!("txn: {:?}", request);
         let txn_result = self.server.txn(request, remote_addr);
         let (server, success, results) = txn_result.await.unwrap();
@@ -188,6 +213,11 @@ impl Kv for KV {
     ) -> Result<Response<CompactionResponse>, Status> {
         info!("Compact");
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s.send(TraceValue::CompactRequest(request.clone())).await;
+        }
+
         debug!("compact: {:?}", request);
         let reply = CompactionResponse { header: None };
         Ok(Response::new(reply))
