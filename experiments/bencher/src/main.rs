@@ -43,12 +43,20 @@ impl exp::Experiment for Experiment {
                 for (bench_type, mut bench_args) in vec![
                     (
                         BenchType::PutSingle,
-                        vec!["put-single".to_owned(), "bench".to_owned()],
+                        vec![
+                            "bench".to_owned(),
+                            "put-single".to_owned(),
+                            "bench".to_owned(),
+                        ],
                     ),
-                    (BenchType::PutRange, vec!["put-range".to_owned()]),
+                    (
+                        BenchType::PutRange,
+                        vec!["bench".to_owned(), "put-range".to_owned()],
+                    ),
                     (
                         BenchType::PutRandom,
                         vec![
+                            "bench".to_owned(),
                             "put-random".to_owned(),
                             (clients * iterations / 100).to_string(),
                         ],
