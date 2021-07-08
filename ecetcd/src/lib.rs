@@ -39,6 +39,7 @@ where
     pub key_file: Option<PathBuf>,
     /// Whether to wait for the patch to be applied to the frontend before returning
     pub sync_changes: bool,
+    pub trace_file: Option<PathBuf>,
     pub _data: PhantomData<T>,
 }
 

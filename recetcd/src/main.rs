@@ -99,6 +99,10 @@ struct Options {
     /// Whether to require changes be applied before returning.
     #[structopt(long)]
     sync: bool,
+
+    /// Where to save traces to, or nowhere to disable.
+    #[structopt(long)]
+    trace_file: Option<PathBuf>,
 }
 
 #[tokio::main]
@@ -155,6 +159,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cert_file: options.cert_file,
         key_file: options.key_file,
         sync_changes: options.sync,
+        trace_file: options.trace_file,
         _data: PhantomData::<Value>,
     };
 
