@@ -790,6 +790,7 @@ dependencies = [
  "automerge-persistent-sled",
  "automerge-protocol",
  "automergeable",
+ "chrono",
  "etcd-proto",
  "futures",
  "futures-core",

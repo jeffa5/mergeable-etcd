@@ -36,6 +36,7 @@ num_cpus = "1.13.0"
 uuid = "0.8.2"
 opentelemetry = "0.15.0"
 warp = "0.3.1"
+chrono = "0.4.19"
 
 [build-dependencies]
 tonic-build = { version = "0.4.0", git = "https://github.com/hyperium/tonic" }

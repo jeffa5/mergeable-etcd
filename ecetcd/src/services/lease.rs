@@ -6,10 +6,11 @@ use etcd_proto::etcdserverpb::{
     LeaseRevokeRequest, LeaseRevokeResponse, LeaseTimeToLiveRequest, LeaseTimeToLiveResponse,
 };
 use futures::{Stream, StreamExt};
+use tokio::sync::mpsc;
 use tonic::{Request, Response, Status, Streaming};
 use tracing::info;
 
-use crate::{server::Server, store::FrontendError};
+use crate::{server::Server, store::FrontendError, TraceValue};
 
 /// at least 2 seconds
 const MINIMUM_LEASE_TTL: i64 = 2;
@@ -17,6 +18,7 @@ const MINIMUM_LEASE_TTL: i64 = 2;
 #[derive(Debug)]
 pub struct Lease {
     pub server: Server,
+    pub trace_out: Option<mpsc::Sender<TraceValue>>,
 }
 
 #[tonic::async_trait]
@@ -29,6 +31,11 @@ impl LeaseTrait for Lease {
         info!("lease grant");
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s.send(TraceValue::LeaseGrantRequest(request.clone())).await;
+        }
+
         let id = if request.id == 0 {
             None
         } else {
@@ -63,6 +70,13 @@ impl LeaseTrait for Lease {
         info!("lease revoke");
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s
+                .send(TraceValue::LeaseRevokeRequest(request.clone()))
+                .await;
+        }
+
         let server_result = self.server.revoke_lease(request.id, remote_addr);
         let server = server_result.await.unwrap();
         Ok(Response::new(LeaseRevokeResponse {
@@ -109,6 +123,13 @@ impl LeaseTrait for Lease {
         request: Request<LeaseTimeToLiveRequest>,
     ) -> Result<Response<LeaseTimeToLiveResponse>, Status> {
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s
+                .send(TraceValue::LeaseTimeToLiveRequest(request.clone()))
+                .await;
+        }
+
         info!("Unimplemented lease_time_to_live request: {:?}", request);
         todo!()
     }
@@ -119,6 +140,13 @@ impl LeaseTrait for Lease {
         request: Request<LeaseLeasesRequest>,
     ) -> Result<Response<LeaseLeasesResponse>, Status> {
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s
+                .send(TraceValue::LeaseLeasesRequest(request.clone()))
+                .await;
+        }
+
         info!("Unimplemented lease_leases request: {:?}", request);
         todo!()
     }

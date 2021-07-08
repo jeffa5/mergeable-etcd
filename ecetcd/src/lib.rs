@@ -1,13 +1,24 @@
 pub mod address;
+
 pub mod health;
 pub mod server;
 pub mod services;
 pub mod store;
 
-use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
+use std::{
+    convert::TryFrom,
+    fs::File,
+    io::{BufWriter, Write},
+    marker::PhantomData,
+    path::PathBuf,
+};
 
 pub use address::Address;
 use automerge_protocol::ActorId;
+use etcd_proto::etcdserverpb::{
+    CompactionRequest, DeleteRangeRequest, LeaseGrantRequest, LeaseLeasesRequest,
+    LeaseRevokeRequest, LeaseTimeToLiveRequest, PutRequest, RangeRequest, TxnRequest,
+};
 pub use store::StoreValue;
 use store::{BackendActor, BackendHandle, FrontendHandle};
 use tokio::{runtime::Builder, sync::mpsc, task::LocalSet};
@@ -19,6 +30,19 @@ use crate::{
     health::HealthServer,
     store::FrontendActor,
 };
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum TraceValue {
+    RangeRequest(RangeRequest),
+    PutRequest(PutRequest),
+    DeleteRangeRequest(DeleteRangeRequest),
+    TxnRequest(TxnRequest),
+    CompactRequest(CompactionRequest),
+    LeaseGrantRequest(LeaseGrantRequest),
+    LeaseRevokeRequest(LeaseRevokeRequest),
+    LeaseTimeToLiveRequest(LeaseTimeToLiveRequest),
+    LeaseLeasesRequest(LeaseLeasesRequest),
+}
 
 const WAITING_CLIENTS_PER_FRONTEND: usize = 32;
 
@@ -135,6 +159,23 @@ where
             ([], urls) => urls,
             (urls, _) => urls,
         };
+
+        let trace_out = self.trace_file.as_ref().map(|f| {
+            let (send, mut recv) = mpsc::channel(10);
+            let f = f.clone();
+            tokio::spawn(async move {
+                let file = File::create(f).unwrap();
+                let mut bw = BufWriter::new(file);
+                while let Some(tv) = recv.recv().await {
+                    let dt = chrono::Utc::now();
+                    let b = serde_json::to_string(&tv).unwrap();
+
+                    write!(bw, "{} {}", dt.to_rfc3339(), b).unwrap();
+                }
+            });
+            send
+        });
+
         let client_servers = client_urls.iter().map(|client_url| {
                 let identity = if let Scheme::Https = client_url.scheme {
                     match (self.cert_file.as_ref(), self.key_file.as_ref()) {
@@ -155,6 +196,7 @@ where
                     identity,
                     shutdown.clone(),
                     server.clone(),
+                    trace_out.clone(),
                 );
                 info!("Listening to clients on {}", client_url);
                 serving

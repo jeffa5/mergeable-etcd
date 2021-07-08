@@ -14,6 +14,7 @@ use etcd_proto::etcdserverpb::{
     watch_server::WatchServer,
 };
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
+use tokio::sync::mpsc;
 use tonic::{
     body,
     transport::{Identity, NamedService, Server, ServerTlsConfig},
@@ -21,22 +22,28 @@ use tonic::{
 use tower::Service;
 use tracing::{info, warn};
 
+use crate::TraceValue;
+
 pub async fn serve(
     address: SocketAddr,
     identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
     server: crate::server::Server,
+    trace_out: Option<mpsc::Sender<TraceValue>>,
 ) -> Result<(), tonic::transport::Error> {
     let kv_service = KvServer::new(kv::KV {
         server: server.clone(),
+        trace_out: trace_out.clone(),
     });
     let maintenance_service = MaintenanceServer::new(maintenance::Maintenance {
         server: server.clone(),
+        trace_out: trace_out.clone(),
     });
     let watch_service = WatchServer::new(watch::Watch {
         server: server.clone(),
+        trace_out: trace_out.clone(),
     });
-    let lease_service = LeaseServer::new(lease::Lease { server });
+    let lease_service = LeaseServer::new(lease::Lease { server, trace_out });
     let mut server = Server::builder();
     if let Some(identity) = identity {
         server = server.tls_config(ServerTlsConfig::new().identity(identity))?;

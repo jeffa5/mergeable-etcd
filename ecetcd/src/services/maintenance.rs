@@ -7,14 +7,16 @@ use etcd_proto::etcdserverpb::{
     StatusRequest, StatusResponse,
 };
 use futures::Stream;
+use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
 use tracing::info;
 
-use crate::server::Server;
+use crate::{server::Server, TraceValue};
 
 #[derive(Debug)]
 pub struct Maintenance {
     pub server: Server,
+    pub trace_out: Option<mpsc::Sender<TraceValue>>,
 }
 
 #[tonic::async_trait]
