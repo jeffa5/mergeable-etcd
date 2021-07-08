@@ -1,4 +1,4 @@
-use std::{cmp::max, convert::TryFrom, pin::Pin};
+use std::{cmp::max, pin::Pin};
 
 use etcd_proto::etcdserverpb::{
     lease_server::Lease as LeaseTrait, LeaseGrantRequest, LeaseGrantResponse,
@@ -9,25 +9,18 @@ use futures::{Stream, StreamExt};
 use tonic::{Request, Response, Status, Streaming};
 use tracing::info;
 
-use crate::{server::Server, store::FrontendError, StoreValue};
+use crate::{server::Server, store::FrontendError};
 
 /// at least 2 seconds
 const MINIMUM_LEASE_TTL: i64 = 2;
 
 #[derive(Debug)]
-pub struct Lease<T>
-where
-    T: StoreValue,
-{
-    pub server: Server<T>,
+pub struct Lease {
+    pub server: Server,
 }
 
 #[tonic::async_trait]
-impl<T> LeaseTrait for Lease<T>
-where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+impl LeaseTrait for Lease {
     #[tracing::instrument(skip(self, request))]
     async fn lease_grant(
         &self,

@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, pin::Pin};
+use std::pin::Pin;
 
 use etcd_proto::etcdserverpb::{
     maintenance_server::Maintenance as MaintenanceTrait, AlarmRequest, AlarmResponse,
@@ -10,22 +10,15 @@ use futures::Stream;
 use tonic::{Request, Response, Status};
 use tracing::info;
 
-use crate::{server::Server, StoreValue};
+use crate::server::Server;
 
 #[derive(Debug)]
-pub struct Maintenance<T>
-where
-    T: StoreValue,
-{
-    pub server: Server<T>,
+pub struct Maintenance {
+    pub server: Server,
 }
 
 #[tonic::async_trait]
-impl<T> MaintenanceTrait for Maintenance<T>
-where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+impl MaintenanceTrait for Maintenance {
     async fn alarm(
         &self,
         _request: Request<AlarmRequest>,

@@ -17,7 +17,7 @@ pub enum Value {
     Event(kubernetes_proto::api::core::v1::Event),
     Endpoints(kubernetes_proto::api::core::v1::Endpoints),
     Pod(Box<kubernetes_proto::api::core::v1::Pod>),
-    Node(kubernetes_proto::api::core::v1::Node),
+    Node(Box<kubernetes_proto::api::core::v1::Node>),
     Namespace(kubernetes_proto::api::core::v1::Namespace),
     ConfigMap(kubernetes_proto::api::core::v1::ConfigMap),
     RangeAllocation(kubernetes_proto::api::core::v1::RangeAllocation),
@@ -88,7 +88,9 @@ impl TryFrom<&[u8]> for Value {
                     let node =
                         kubernetes_proto::api::core::v1::Node::decode(&unknown.raw.unwrap()[..]);
                     debug!("Node: {:?}", node);
-                    Self::Node(node.expect("Failed decoding Node resource from raw"))
+                    Self::Node(Box::new(
+                        node.expect("Failed decoding Node resource from raw"),
+                    ))
                 }
                 (Some("v1"), Some("Namespace")) => {
                     let namespace = kubernetes_proto::api::core::v1::Namespace::decode(
@@ -327,6 +329,7 @@ impl From<&Value> for Vec<u8> {
 mod tests {
     use std::num::NonZeroU64;
 
+    use automerge::Path;
     use ecetcd::store::{IValue, Revision, SnapshotValue};
     use pretty_assertions::assert_eq;
 
@@ -335,8 +338,8 @@ mod tests {
     #[allow(clippy::too_many_lines)]
     #[test]
     fn historic_value() {
-        let mut v = IValue::<Value>::default();
-        assert_eq!(IValue::new(), v);
+        let f = automerge::Frontend::new();
+        let mut v = IValue::<Value>::new(f.proxy().get("random"), Path::root());
         assert_eq!(
             None,
             v.value_at_revision(Revision::new(1).unwrap(), Vec::new().into()),
@@ -359,7 +362,8 @@ mod tests {
                 lease: None,
             }),
             v.value_at_revision(Revision::new(2).unwrap(), Vec::new().into()),
-            "2@2"
+            "2@2 {:?}",
+            v
         );
 
         v.insert(Revision::new(4).unwrap(), Some(b"{}".to_vec()), None);
@@ -515,7 +519,7 @@ mod tests {
     #[test]
     fn k8svalue_node_serde() {
         let inner = kubernetes_proto::api::core::v1::Node::default();
-        let val = Value::Node(inner);
+        let val = Value::Node(Box::new(inner));
         let buf: Vec<u8> = (&val).into();
         let val_back = Value::try_from(buf).unwrap();
         assert_eq!(val, val_back);

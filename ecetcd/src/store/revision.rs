@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// A revision is a historic version of the datastore
 /// The revision must be positive and starts at 1
 #[derive(
-    Automergeable, Serialize, Deserialize, Debug, PartialOrd, Ord, PartialEq, Eq, Clone, Copy,
+    Automergeable, Serialize, Deserialize, Debug, PartialOrd, Ord, PartialEq, Eq, Clone, Copy, Hash,
 )]
 pub struct Revision(NonZeroU64);
 

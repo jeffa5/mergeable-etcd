@@ -1,14 +1,9 @@
-use std::convert::TryFrom;
-
 use etcd_proto::{etcdserverpb::WatchResponse, mvccpb};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tonic::Status;
 use tracing::{debug, warn};
 
-use crate::{
-    store::{value::IValue, Key, Revision, Server, SnapshotValue},
-    StoreValue,
-};
+use crate::store::{Server, SnapshotValue};
 
 #[derive(Debug)]
 pub struct Watcher {
@@ -16,16 +11,12 @@ pub struct Watcher {
 }
 
 impl Watcher {
-    pub(super) fn new<T>(
+    pub(super) fn new(
         id: i64,
         prev_kv: bool,
-        mut changes: Receiver<(Server, Vec<(Key, IValue<T>)>)>,
+        mut changes: Receiver<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
         tx: Sender<Result<WatchResponse, Status>>,
-    ) -> Self
-    where
-        T: StoreValue,
-        <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-    {
+    ) -> Self {
         let (cancel, mut should_cancel) = tokio::sync::oneshot::channel();
         tokio::spawn(async move {
             loop {
@@ -44,28 +35,19 @@ impl Watcher {
     }
 }
 
-async fn handle_event<T>(
+async fn handle_event(
     id: i64,
     prev_kv: bool,
     tx: &Sender<Result<WatchResponse, Status>>,
     server: Server,
-    changes: Vec<(Key, IValue<T>)>,
-) -> bool
-where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+    changes: Vec<(SnapshotValue, Option<SnapshotValue>)>,
+) -> bool {
     debug!("Got a watch event {:?}", changes);
     let events = changes
         .into_iter()
-        .map(|(key, value)| {
-            let latest_value = value.latest_value(key.clone()).unwrap();
+        .map(|(latest_value, prev)| {
             let prev_kv = if prev_kv {
-                Revision::new(latest_value.mod_revision.get() - 1).and_then(|rev| {
-                    value
-                        .value_at_revision(rev, key)
-                        .map(SnapshotValue::key_value)
-                })
+                prev.map(SnapshotValue::key_value)
             } else {
                 None
             };

@@ -1,11 +1,14 @@
 use std::{
     collections::{btree_map, BTreeMap, HashMap},
     convert::{TryFrom, TryInto},
-    marker::PhantomData,
+    fmt::Debug,
     ops::Range,
 };
 
-use automerge::{LocalChange, Path, Value};
+use automerge::{
+    proxy::{RootProxy, ValueProxy},
+    LocalChange, Path, Value,
+};
 use automergeable::{FromAutomerge, FromAutomergeError, ToAutomerge};
 use etcd_proto::etcdserverpb::{
     compare::{CompareResult, CompareTarget, TargetUnion},
@@ -65,8 +68,6 @@ impl<T> ValueState<T> {
     }
 }
 
-type Values<T> = BTreeMap<Key, IValue<T>>;
-
 #[derive(Debug, Clone, Default, automergeable::Automergeable)]
 pub struct Lease {
     ttl: Ttl,
@@ -104,25 +105,26 @@ impl Lease {
 pub struct StoreContents<'a, T>
 where
     T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: Debug,
 {
-    frontend: &'a automerge::Frontend,
-    values: Option<BTreeMap<Key, IValue<T>>>,
+    root_proxy: RootProxy<'a>,
+    values: Option<BTreeMap<Key, IValue<'a, T>>>,
     server: Option<Server>,
     leases: Option<HashMap<i64, ValueState<Lease>>>,
-    _type: PhantomData<T>,
 }
 
 impl<'a, T> StoreContents<'a, T>
 where
     T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: Debug,
 {
     pub fn new(frontend: &'a automerge::Frontend) -> Self {
+        let root_proxy = frontend.proxy();
         Self {
-            frontend,
+            root_proxy,
             values: None,
             server: None,
             leases: None,
-            _type: PhantomData::default(),
         }
     }
 
@@ -135,20 +137,27 @@ where
     }
 
     pub fn contains_key(&self, key: &Key) -> bool {
-        self.frontend
-            .get_value(&Path::root().key(VALUES_KEY).key(key.to_string()))
-            .is_some()
+        self.root_proxy
+            .get(VALUES_KEY)
+            .unwrap()
+            .map()
+            .unwrap()
+            .contains_key(&key.to_string())
     }
 
-    fn insert_value(&mut self, key: Key, value: IValue<T>) {
+    fn insert_value(&mut self, key: Key, value: IValue<'a, T>) {
         self.values
             .get_or_insert_with(Default::default)
             .insert(key, value);
     }
 
     pub fn contains_lease(&self, id: i64) -> bool {
-        self.frontend
-            .get_value(&Path::root().key(LEASES_KEY).key(id.to_string()))
+        self.root_proxy
+            .get(LEASES_KEY)
+            .unwrap()
+            .map()
+            .unwrap()
+            .get(&id.to_string())
             .is_some()
     }
 
@@ -158,46 +167,45 @@ where
             .insert(id, ValueState::Present(Lease::new(ttl)));
     }
 
-    pub fn value(&mut self, key: &Key) -> Option<Result<&IValue<T>, FromAutomergeError>> {
+    pub fn value(&mut self, key: &Key) -> Option<Result<&IValue<'a, T>, FromAutomergeError>> {
         if self.values.as_ref().and_then(|v| v.get(key)).is_some() {
             // already in the cache so do nothing
         } else {
             let v = self
-                .frontend
-                .get_value(&Path::root().key(VALUES_KEY).key(key.to_string()))
-                .as_ref()
-                .map(|v| IValue::from_automerge(v));
-            match v {
-                Some(Ok(value)) => {
-                    self.values
-                        .get_or_insert_with(Default::default)
-                        .insert(key.clone(), value);
-                }
-                Some(Err(e)) => return Some(Err(e)),
-                None => return None,
-            }
+                .root_proxy
+                .get(VALUES_KEY)
+                .unwrap()
+                .map()
+                .unwrap()
+                .get(&key.to_string())
+                .map(|v| IValue::new(Some(v), Path::root().key(VALUES_KEY).key(key.to_string())))?;
+
+            self.values
+                .get_or_insert_with(Default::default)
+                .insert(key.clone(), v);
         }
         Some(Ok(self.values.as_ref().unwrap().get(key).as_ref().unwrap()))
     }
 
-    pub fn value_mut(&mut self, key: &Key) -> Option<Result<&mut IValue<T>, FromAutomergeError>> {
+    pub fn value_mut(
+        &mut self,
+        key: &Key,
+    ) -> Option<Result<&mut IValue<'a, T>, FromAutomergeError>> {
         if self.values.as_mut().and_then(|v| v.get_mut(key)).is_some() {
             // already cached so do nothing
         } else {
             let v = self
-                .frontend
-                .get_value(&Path::root().key(VALUES_KEY).key(key.to_string()))
-                .as_ref()
-                .map(|v| IValue::from_automerge(v));
-            match v {
-                Some(Ok(value)) => {
-                    self.values
-                        .get_or_insert_with(Default::default)
-                        .insert(key.clone(), value);
-                }
-                Some(Err(e)) => return Some(Err(e)),
-                None => return None,
-            }
+                .root_proxy
+                .get(VALUES_KEY)
+                .unwrap()
+                .map()
+                .unwrap()
+                .get(&key.to_string())
+                .map(|v| IValue::new(Some(v), Path::root().key(VALUES_KEY).key(key.to_string())))?;
+
+            self.values
+                .get_or_insert_with(Default::default)
+                .insert(key.clone(), v);
         }
         Some(Ok(self.values.as_mut().unwrap().get_mut(key).unwrap()))
     }
@@ -205,47 +213,51 @@ where
     pub fn values(
         &mut self,
         range: Range<Key>,
-    ) -> Option<Result<btree_map::Range<Key, IValue<T>>, FromAutomergeError>> {
-        let v = self
-            .frontend
-            .get_value(&Path::root().key(VALUES_KEY))
-            .as_ref()
-            .map(|v| Values::<T>::from_automerge(v));
-
-        match v {
-            Some(Ok(vals)) => {
-                let values = self.values.get_or_insert_with(Default::default);
-                for (k, v) in vals.range(range.clone()) {
-                    values.insert(k.clone(), v.clone());
+    ) -> Option<Result<btree_map::Range<Key, IValue<'a, T>>, FromAutomergeError>> {
+        let values = self.root_proxy.get(VALUES_KEY);
+        if let Some(ValueProxy::Map(m)) = values {
+            let mut keys_in_range = Vec::new();
+            for key in m.keys() {
+                let key = key.parse::<Key>().unwrap();
+                if range.contains(&key) {
+                    keys_in_range.push(key)
                 }
             }
-            Some(Err(e)) => return Some(Err(e)),
-            None => return None,
+
+            keys_in_range.sort_unstable();
+            for key in keys_in_range {
+                // populate the value into the values cache
+                self.value(&key);
+            }
+            Some(Ok(self.values.as_ref().unwrap().range(range)))
+        } else {
+            None
         }
-        Some(Ok(self.values.as_ref().unwrap().range(range)))
     }
 
     pub fn values_mut(
         &mut self,
         range: Range<Key>,
-    ) -> Option<Result<btree_map::RangeMut<Key, IValue<T>>, FromAutomergeError>> {
-        let v = self
-            .frontend
-            .get_value(&Path::root().key(VALUES_KEY))
-            .as_ref()
-            .map(|v| Values::<T>::from_automerge(v));
-
-        match v {
-            Some(Ok(vals)) => {
-                let values = self.values.get_or_insert_with(Default::default);
-                for (k, v) in vals.range(range.clone()) {
-                    values.insert(k.clone(), v.clone());
+    ) -> Option<Result<btree_map::RangeMut<Key, IValue<'a, T>>, FromAutomergeError>> {
+        let values = self.root_proxy.get(VALUES_KEY);
+        if let Some(ValueProxy::Map(m)) = values {
+            let mut keys_in_range = Vec::new();
+            for key in m.keys() {
+                let key = key.parse::<Key>().unwrap();
+                if range.contains(&key) {
+                    keys_in_range.push(key)
                 }
             }
-            Some(Err(e)) => return Some(Err(e)),
-            None => return None,
+
+            keys_in_range.sort_unstable();
+            for key in keys_in_range {
+                // populate the value into the values cache
+                self.value(&key);
+            }
+            Some(Ok(self.values.as_mut().unwrap().range_mut(range)))
+        } else {
+            None
         }
-        Some(Ok(self.values.as_mut().unwrap().range_mut(range)))
     }
 
     pub fn lease(&mut self, id: &i64) -> Option<Result<&Lease, FromAutomergeError>> {
@@ -253,10 +265,14 @@ where
             // already in the cache, do nothing
         } else {
             let v = self
-                .frontend
-                .get_value(&Path::root().key(LEASES_KEY).key(id.to_string()))
+                .root_proxy
+                .get(LEASES_KEY)
+                .unwrap()
+                .map()
+                .unwrap()
+                .get(&id.to_string())
                 .as_ref()
-                .map(|v| Lease::from_automerge(v));
+                .map(|v| Lease::from_automerge(&v.value()));
             match v {
                 Some(Ok(lease)) => {
                     self.leases
@@ -276,10 +292,14 @@ where
             // already in the cache, do nothing
         } else {
             let v = self
-                .frontend
-                .get_value(&Path::root().key(LEASES_KEY).key(id.to_string()))
+                .root_proxy
+                .get(LEASES_KEY)
+                .unwrap()
+                .map()
+                .unwrap()
+                .get(&id.to_string())
                 .as_ref()
-                .map(|v| Lease::from_automerge(v));
+                .map(|v| Lease::from_automerge(&v.value()));
             match v {
                 Some(Ok(lease)) => {
                     self.leases
@@ -305,10 +325,10 @@ where
             Ok(server)
         } else {
             let v = self
-                .frontend
-                .get_value(&Path::root().key(SERVER_KEY))
+                .root_proxy
+                .get(SERVER_KEY)
                 .as_ref()
-                .map(|v| Server::from_automerge(v));
+                .map(|v| Server::from_automerge(&v.value()));
             match v {
                 Some(Ok(server)) => self.server = Some(server),
                 Some(Err(e)) => return Err(e),
@@ -323,10 +343,10 @@ where
             Ok(server)
         } else {
             let v = self
-                .frontend
-                .get_value(&Path::root().key(SERVER_KEY))
+                .root_proxy
+                .get(SERVER_KEY)
                 .as_ref()
-                .map(|v| Server::from_automerge(v));
+                .map(|v| Server::from_automerge(&v.value()));
             match v {
                 Some(Ok(server)) => self.server = Some(server),
                 Some(Err(e)) => return Err(e),
@@ -336,31 +356,31 @@ where
         }
     }
 
-    pub(crate) fn changes(&self) -> HashMap<Path, ValueState<Value>> {
-        let mut hm = HashMap::new();
+    pub(crate) fn changes(self) -> Vec<(Path, ValueState<Value>)> {
+        let mut changed_values = Vec::new();
         if let Some(server) = self.server.as_ref() {
-            hm.insert(
+            changed_values.push((
                 Path::root().key(SERVER_KEY),
                 ValueState::Present(server.to_automerge()),
-            );
+            ));
         }
-        if let Some(values) = self.values.as_ref() {
+        if let Some(values) = self.values {
             for (k, v) in values {
-                hm.insert(
-                    Path::root().key(VALUES_KEY).key(k.to_string()),
-                    ValueState::Present(v.to_automerge()),
-                );
+                let value_changes = v.changes(Path::root().key(VALUES_KEY).key(k.to_string()));
+                for (path, value) in value_changes {
+                    changed_values.push((path, ValueState::Present(value)));
+                }
             }
         }
         if let Some(leases) = self.leases.as_ref() {
             for (k, v) in leases {
-                hm.insert(
+                changed_values.push((
                     Path::root().key(LEASES_KEY).key(k.to_string()),
                     v.to_automerge(),
-                );
+                ));
             }
         }
-        hm
+        changed_values
     }
 }
 
@@ -379,7 +399,7 @@ where
         tracing::debug!("getting");
         let mut values = Vec::new();
         if let Some(range_end) = range_end {
-            let vals = self.values(key..range_end);
+            let vals = self.values_mut(key..range_end);
 
             if let Some(Ok(vals)) = vals {
                 for (key, value) in vals {
@@ -388,7 +408,7 @@ where
                     }
                 }
             }
-        } else if let Some(Ok(value)) = self.value(&key) {
+        } else if let Some(Ok(value)) = self.value_mut(&key) {
             if let Some(value) = value.value_at_revision(revision, key) {
                 values.push(value);
             }
@@ -421,7 +441,15 @@ where
             }
             Some(Err(_)) => None,
             None => {
-                let mut v = IValue::default();
+                let mut v = IValue::new(
+                    self.root_proxy
+                        .get(VALUES_KEY)
+                        .unwrap()
+                        .map()
+                        .unwrap()
+                        .get(&key.to_string()),
+                    Path::root().key(VALUES_KEY).key(key.to_string()),
+                );
                 v.insert(revision, value, lease);
                 self.insert_value(key, v);
                 None
