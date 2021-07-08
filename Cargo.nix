@@ -2342,6 +2342,10 @@ rec {
             packageId = "automergeable";
           }
           {
+            name = "chrono";
+            packageId = "chrono";
+          }
+          {
             name = "etcd-proto";
             packageId = "etcd-proto";
           }
