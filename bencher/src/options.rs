@@ -35,5 +35,11 @@ pub struct Options {
     pub timeout: u64,
 
     #[structopt(subcommand)]
-    pub scenario: Scenario,
+    pub ty: Type,
+}
+
+#[derive(StructOpt, Debug, Clone)]
+pub enum Type {
+    Bench(Scenario),
+    Trace { file: PathBuf },
 }

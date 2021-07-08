@@ -1,13 +1,14 @@
 use std::{
     fs::File,
-    io::{stdout, BufWriter, Write},
+    io::{stdout, BufRead, BufReader, BufWriter, Write},
     sync::{Arc, Mutex},
     time::Duration,
 };
 
 use anyhow::{bail, Context};
-use bencher::{Options, Scheme};
+use bencher::{Options, Scheme, TraceValue, Type};
 use chrono::Utc;
+use etcd_proto::etcdserverpb::{kv_client::KvClient, lease_client::LeaseClient};
 use hyper::StatusCode;
 use structopt::StructOpt;
 use tokio::time::sleep;
@@ -90,10 +91,63 @@ async fn main() -> anyhow::Result<()> {
         },
     )));
 
-    let client_tasks = options
-        .scenario
-        .execute(channel, &options, &out_writer)
-        .await;
+    let client_tasks = match options.ty {
+        Type::Bench(ref scenario) => scenario.execute(channel, &options, &out_writer).await,
+        Type::Trace { file } => {
+            let trace_file = File::open(file)?;
+            let buf_reader = BufReader::new(trace_file);
+
+            let mut requests = Vec::new();
+            println!("Parsing trace");
+            for line in buf_reader.lines() {
+                if let Some((date, request)) = line?.split_once(" ") {
+                    let date = chrono::DateTime::parse_from_rfc3339(date)?;
+                    let request: TraceValue = serde_json::from_str(request)?;
+                    requests.push((date, request))
+                }
+            }
+
+            println!("Replaying trace");
+            let mut kv_client = KvClient::new(channel.clone());
+            let mut lease_client = LeaseClient::new(channel);
+            let total_requests = requests.len();
+            for (i, (_date, request)) in requests.into_iter().enumerate() {
+                if i % 100 == 0 {
+                    println!("tracing {}/{}", i, total_requests)
+                }
+                match request {
+                    TraceValue::RangeRequest(r) => {
+                        kv_client.range(r).await?;
+                    }
+                    TraceValue::PutRequest(p) => {
+                        kv_client.put(p).await?;
+                    }
+                    TraceValue::DeleteRangeRequest(d) => {
+                        kv_client.delete_range(d).await?;
+                    }
+                    TraceValue::TxnRequest(t) => {
+                        kv_client.txn(t).await?;
+                    }
+                    TraceValue::CompactRequest(c) => {
+                        kv_client.compact(c).await?;
+                    }
+                    TraceValue::LeaseGrantRequest(l) => {
+                        lease_client.lease_grant(l).await?;
+                    }
+                    TraceValue::LeaseRevokeRequest(l) => {
+                        lease_client.lease_revoke(l).await?;
+                    }
+                    TraceValue::LeaseTimeToLiveRequest(l) => {
+                        lease_client.lease_time_to_live(l).await?;
+                    }
+                    TraceValue::LeaseLeasesRequest(l) => {
+                        lease_client.lease_leases(l).await?;
+                    }
+                }
+            }
+            Vec::new()
+        }
+    };
 
     futures::future::try_join_all(client_tasks)
         .await?

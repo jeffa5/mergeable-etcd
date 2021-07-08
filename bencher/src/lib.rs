@@ -1,5 +1,6 @@
 mod address;
 mod options;
+mod trace;
 
 use std::{
     io::{BufWriter, Write},
@@ -11,12 +12,13 @@ pub use address::{Address, Error, Scheme};
 use anyhow::Context;
 use arbitrary::{Arbitrary, Unstructured};
 use etcd_proto::etcdserverpb::{kv_client::KvClient, PutRequest};
-pub use options::Options;
+pub use options::{Options, Type};
 use rand::{distributions::Standard, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 use tokio::{task::JoinHandle, time::sleep};
 use tonic::transport::Channel;
+pub use trace::TraceValue;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Output {
@@ -67,12 +69,12 @@ impl Scenario {
             let channel = channel.clone();
             let options = options.clone();
             let out_writer = Arc::clone(out_writer);
+            let self_clone = self.clone();
             let client_task = tokio::spawn(async move {
                 let mut kv_client = KvClient::new(channel);
 
                 for i in 0..options.iterations {
-                    let output = options
-                        .scenario
+                    let output = self_clone
                         .inner_execute(&mut kv_client, client, i, options.iterations)
                         .await
                         .with_context(|| {
