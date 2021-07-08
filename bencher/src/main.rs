@@ -1,6 +1,5 @@
 use std::{
     convert::TryFrom,
-    fmt::Display,
     fs::File,
     io::{stdout, BufWriter, Write},
     path::PathBuf,
@@ -9,15 +8,13 @@ use std::{
 };
 
 use anyhow::{bail, Context};
-use bencher::Scenario;
+use bencher::{Address, Scenario, Scheme};
 use chrono::{DateTime, Utc};
 use etcd_proto::etcdserverpb::kv_client::KvClient;
 use hyper::StatusCode;
 use structopt::StructOpt;
-use thiserror::Error;
 use tokio::time::sleep;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
-use url::Url;
 
 const MAX_HEALTH_RETRIES: u32 = 50;
 
@@ -52,72 +49,6 @@ struct Options {
 
     #[structopt(subcommand)]
     scenario: Scenario,
-}
-
-#[derive(Debug, Clone)]
-pub struct Address {
-    pub scheme: Scheme,
-    host: url::Host,
-    port: u16,
-}
-
-impl Display for Address {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}://{}:{}", self.scheme, self.host, self.port)
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("failed to parse url")]
-    ParseError(#[from] url::ParseError),
-    #[error("found an unsupported scheme '{0}'")]
-    UnsupportedScheme(String),
-    #[error("host missing in url")]
-    MissingHost,
-    #[error("port missing in url")]
-    MissingPort,
-}
-
-impl TryFrom<&str> for Address {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let url = Url::parse(value)?;
-        let scheme = match url.scheme() {
-            "http" => Scheme::Http,
-            "https" => Scheme::Https,
-            e => return Err(Error::UnsupportedScheme(e.to_owned())),
-        };
-        let host = match url.host() {
-            Some(h) => h.to_owned(),
-            None => return Err(Error::MissingHost),
-        };
-        let port = match url.port() {
-            Some(p) => p,
-            None => return Err(Error::MissingPort),
-        };
-        Ok(Self { scheme, host, port })
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum Scheme {
-    Http,
-    Https,
-}
-
-impl Display for Scheme {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Http => "http",
-                Self::Https => "https",
-            }
-        )
-    }
 }
 
 #[tokio::main]

@@ -1,5 +1,8 @@
+mod address;
+
 use std::time::SystemTime;
 
+pub use address::{Address, Error, Scheme};
 use arbitrary::{Arbitrary, Unstructured};
 use etcd_proto::etcdserverpb::{kv_client::KvClient, PutRequest};
 use rand::{distributions::Standard, thread_rng, Rng};
