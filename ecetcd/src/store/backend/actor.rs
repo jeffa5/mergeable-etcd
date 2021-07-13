@@ -96,6 +96,11 @@ impl BackendActor {
                 let result = self.get_patch();
                 let _ = ret.send(result);
             }
+            BackendMessage::DbSize { ret } => {
+                // TODO: return the space amplification version for logical space too
+                let result = self.db.size_on_disk().unwrap();
+                let _ = ret.send(result);
+            }
         }
     }
 

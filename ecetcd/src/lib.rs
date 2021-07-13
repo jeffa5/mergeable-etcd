@@ -205,6 +205,7 @@ where
                     identity,
                     shutdown.clone(),
                     server.clone(),
+                    backend.clone(),
                     trace_out.clone(),
                 );
                 info!("Listening to clients on {}", client_url);

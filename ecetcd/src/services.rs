@@ -22,13 +22,14 @@ use tonic::{
 use tower::Service;
 use tracing::{info, warn};
 
-use crate::TraceValue;
+use crate::{store::BackendHandle, TraceValue};
 
 pub async fn serve(
     address: SocketAddr,
     identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
     server: crate::server::Server,
+    backend: BackendHandle,
     trace_out: Option<mpsc::Sender<TraceValue>>,
 ) -> Result<(), tonic::transport::Error> {
     let kv_service = KvServer::new(kv::KV {
@@ -37,6 +38,7 @@ pub async fn serve(
     });
     let maintenance_service = MaintenanceServer::new(maintenance::Maintenance {
         server: server.clone(),
+        backend,
         trace_out: trace_out.clone(),
     });
     let watch_service = WatchServer::new(watch::Watch {

@@ -11,11 +11,12 @@ use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
 use tracing::info;
 
-use crate::{server::Server, TraceValue};
+use crate::{server::Server, store::BackendHandle, TraceValue};
 
 #[derive(Debug)]
 pub struct Maintenance {
     pub server: Server,
+    pub backend: BackendHandle,
     pub trace_out: Option<mpsc::Sender<TraceValue>>,
 }
 
@@ -36,16 +37,17 @@ impl MaintenanceTrait for Maintenance {
         let remote_addr = request.remote_addr();
         let server = self.server.current_server(remote_addr);
         let server = server.await;
+        let db_size = self.backend.db_size().await as i64;
         let reply = StatusResponse {
             header: Some(server.header()),
             version: r#"{"etcdserver":"3.4.13","etcdcluster":"3.4.0"}"#.to_owned(),
-            db_size: 0,
+            db_size,
             leader: server.member_id(),
             raft_index: 0,
             raft_term: 0,
             raft_applied_index: 0,
             errors: vec![],
-            db_size_in_use: 0,
+            db_size_in_use: db_size,
             is_learner: false,
         };
         Ok(Response::new(reply))

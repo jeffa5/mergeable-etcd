@@ -69,4 +69,12 @@ impl BackendHandle {
         let _ = self.sender.send_to_backend(msg).await;
         recv.await.expect("Actor task has been killed")
     }
+
+    pub async fn db_size(&self) -> u64 {
+        let (send, recv) = oneshot::channel();
+        let msg = BackendMessage::DbSize { ret: send };
+
+        let _ = self.sender.send_to_backend(msg).await;
+        recv.await.expect("Backend actor task has been killed")
+    }
 }

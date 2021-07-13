@@ -28,6 +28,9 @@ pub enum BackendMessage {
             Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>>,
         >,
     },
+    DbSize {
+        ret: oneshot::Sender<u64>,
+    },
 }
 
 impl Display for BackendMessage {
@@ -37,6 +40,7 @@ impl Display for BackendMessage {
             BackendMessage::ApplyLocalChangeSync { .. } => "apply_local_change_sync",
             BackendMessage::ApplyChanges { .. } => "apply_changes",
             BackendMessage::GetPatch { .. } => "get_patch",
+            BackendMessage::DbSize { .. } => "db_size",
         };
         write!(f, "{}", s)
     }
