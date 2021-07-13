@@ -28,9 +28,10 @@ impl LeaseTrait for Lease {
         &self,
         request: Request<LeaseGrantRequest>,
     ) -> Result<Response<LeaseGrantResponse>, Status> {
-        info!("lease grant");
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
+
+        info!(?request, "lease grant");
 
         if let Some(s) = self.trace_out.as_ref() {
             let _ = s.send(TraceValue::LeaseGrantRequest(request.clone())).await;
