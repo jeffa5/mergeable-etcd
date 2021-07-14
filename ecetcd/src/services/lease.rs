@@ -8,7 +8,7 @@ use etcd_proto::etcdserverpb::{
 use futures::{Stream, StreamExt};
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status, Streaming};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{server::Server, store::FrontendError, TraceValue};
 
