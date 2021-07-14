@@ -450,7 +450,8 @@ where
                     .expect("Failed to get server")
                     .clone();
 
-                let id = id.unwrap_or_else(random);
+                // only generate positive ids
+                let id = id.unwrap_or_else(|| random::<i64>().abs());
 
                 if store_contents.contains_lease(id) {
                     return Err(FrontendError::LeaseAlreadyExists);
