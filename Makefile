@@ -100,3 +100,8 @@ diagrams: $(SVG_FILES)
 
 %.svg: %.dot
 	dot -Tsvg $< > $@
+
+.PHONY: protos
+protos:
+	rm -rf kubernetes-proto/proto
+	rsync -avm --include='*.proto' --filter 'hide,! */' ../kubernetes/staging/src/ kubernetes-proto/proto
