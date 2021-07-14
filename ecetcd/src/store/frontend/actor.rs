@@ -326,10 +326,10 @@ where
 
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
-            if let Some(Ok(value)) = doc.value_mut(&key) {
-                for (key, prev) in &prev {
-                    for (range, sender) in &self.watchers {
-                        if range.contains(key) {
+            for (key, prev) in &prev {
+                for (range, sender) in &self.watchers {
+                    if range.contains(key) {
+                        if let Some(Ok(value)) = doc.value_mut(key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
                             let _ = sender
                                 .send((server.clone(), vec![(latest_value, prev.clone())]))
@@ -366,7 +366,6 @@ where
             })
             .unwrap();
 
-        // TODO: handle ranges
         let iter = if success {
             dup_request.success
         } else {
@@ -393,6 +392,7 @@ where
                     }
                 }
                 Request::RequestDeleteRange(del) => {
+                    // TODO: handle ranges
                     let key = del.key.into();
                     let value = doc.value_mut(&key).unwrap().unwrap();
                     for (range, sender) in &self.watchers {
@@ -493,7 +493,7 @@ where
 
     #[tracing::instrument(level = "debug", skip(self))]
     async fn revoke_lease(&mut self, id: i64) -> Result<Server, FrontendError> {
-        let (result, change) = self
+        let ((server, prevs), change) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
                 if let Some(Ok(lease)) = store_contents.lease(&id) {
@@ -507,24 +507,42 @@ where
 
                     store_contents.remove_lease(id);
 
+                    let mut prevs = Vec::new();
                     for key in keys_to_delete {
                         if let Some(Ok(value)) = store_contents.value_mut(&key) {
-                            value.delete(server.revision)
+                            let prev = value.delete(server.revision, key.clone());
+                            prevs.push((key, prev));
                         }
                     }
 
-                    Ok(server)
+                    Ok((server, prevs))
                 } else {
-                    Ok(store_contents.server().unwrap().clone())
+                    Ok((store_contents.server().unwrap().clone(), Vec::new()))
                 }
             })
             .unwrap();
+
+        if !self.watchers.is_empty() {
+            let mut doc = self.document.get();
+            for (key, prev) in &prevs {
+                for (range, sender) in &self.watchers {
+                    if range.contains(key) {
+                        if let Some(Ok(value)) = doc.value_mut(key) {
+                            let latest_value = value.latest_value(key.clone()).unwrap();
+                            let _ = sender
+                                .send((server.clone(), vec![(latest_value, prev.clone())]))
+                                .await;
+                        }
+                    }
+                }
+            }
+        }
 
         if let Some(change) = change {
             self.apply_local_change(change).await
         }
 
-        Ok(result)
+        Ok(server)
     }
 }
 

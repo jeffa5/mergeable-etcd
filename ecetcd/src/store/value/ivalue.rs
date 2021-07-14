@@ -226,8 +226,10 @@ where
     }
 
     /// Delete the value with the given revision
-    pub fn delete(&mut self, revision: Revision) {
+    pub fn delete(&mut self, revision: Revision, key: Key) -> Option<SnapshotValue> {
         self.get_revisions();
+
+        let prev = self.value_at_revision(revision, key);
 
         self.revs.push(revision);
 
@@ -235,6 +237,8 @@ where
             .get_or_insert_with(Default::default)
             .insert(revision, None);
         self.lease_id = Some(None);
+
+        prev
     }
 
     pub fn changes(self, path: Path) -> Vec<(Path, Value)> {

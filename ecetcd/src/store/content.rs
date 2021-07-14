@@ -469,14 +469,12 @@ where
 
             if let Some(vals) = vals {
                 for (key, value) in vals {
-                    let prev = value.value_at_revision(revision, key.clone());
-                    value.delete(revision);
+                    let prev = value.delete(revision, key.clone());
                     values.push((key.clone(), prev))
                 }
             }
         } else if let Some(Ok(value)) = self.value_mut(&key) {
-            let prev = value.value_at_revision(revision, key.clone());
-            value.delete(revision);
+            let prev = value.delete(revision, key.clone());
             values.push((key, prev))
         }
         values
