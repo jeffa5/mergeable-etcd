@@ -8,7 +8,7 @@ use etcd_proto::etcdserverpb::{
 use futures::{Stream, StreamExt};
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status, Streaming};
-use tracing::info;
+use tracing::debug;
 
 use crate::{server::Server, store::FrontendError, TraceValue};
 
@@ -31,7 +31,7 @@ impl LeaseTrait for Lease {
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
 
-        info!(?request, "lease grant");
+        debug!(?request, "lease grant");
 
         if let Some(s) = self.trace_out.as_ref() {
             let _ = s.send(TraceValue::LeaseGrantRequest(request.clone())).await;
@@ -68,7 +68,7 @@ impl LeaseTrait for Lease {
         &self,
         request: Request<LeaseRevokeRequest>,
     ) -> Result<Response<LeaseRevokeResponse>, Status> {
-        info!("lease revoke");
+        debug!("lease revoke");
         let remote_addr = request.remote_addr();
         let request = request.into_inner();
 
@@ -93,7 +93,7 @@ impl LeaseTrait for Lease {
         &self,
         request: Request<Streaming<LeaseKeepAliveRequest>>,
     ) -> Result<Response<Self::LeaseKeepAliveStream>, Status> {
-        info!("lease keep alive");
+        debug!("lease keep alive");
         let remote_addr = request.remote_addr();
         let (tx, rx) = tokio::sync::mpsc::channel(1);
 
@@ -131,7 +131,7 @@ impl LeaseTrait for Lease {
                 .await;
         }
 
-        info!("Unimplemented lease_time_to_live request: {:?}", request);
+        warn!("Unimplemented lease_time_to_live request: {:?}", request);
         todo!()
     }
 
@@ -148,7 +148,7 @@ impl LeaseTrait for Lease {
                 .await;
         }
 
-        info!("Unimplemented lease_leases request: {:?}", request);
+        warn!("Unimplemented lease_leases request: {:?}", request);
         todo!()
     }
 }
