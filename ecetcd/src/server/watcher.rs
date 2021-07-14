@@ -66,16 +66,16 @@ async fn handle_event(
         .collect::<Vec<_>>();
 
     let resp = WatchResponse {
-        canceled: false,
         header: Some(server.header()),
         watch_id: id,
         created: false,
+        canceled: false,
         compact_revision: 0,
         cancel_reason: String::new(),
         fragment: false,
         events,
     };
-    debug!("Sending watch response: {:?}", resp);
+    debug!(?resp, "Sending watch response");
     if tx.send(Ok(resp)).await.is_err() {
         // receiver has closed
         warn!("Got an error while sending watch response");

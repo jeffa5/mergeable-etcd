@@ -454,13 +454,14 @@ where
         }
     }
 
+    /// Remove the keys in the given range, returning the previous values if any.
     #[tracing::instrument(level="debug",skip(self), fields(key = %key))]
     pub(crate) fn remove_inner(
         &mut self,
         key: Key,
         range_end: Option<Key>,
         revision: Revision,
-    ) -> Vec<SnapshotValue> {
+    ) -> Vec<(Key, Option<SnapshotValue>)> {
         tracing::debug!("removing");
         let mut values = Vec::new();
         if let Some(range_end) = range_end {
@@ -470,17 +471,13 @@ where
                 for (key, value) in vals {
                     let prev = value.value_at_revision(revision, key.clone());
                     value.delete(revision);
-                    if let Some(prev) = prev {
-                        values.push(prev)
-                    }
+                    values.push((key.clone(), prev))
                 }
             }
         } else if let Some(Ok(value)) = self.value_mut(&key) {
-            let prev = value.value_at_revision(revision, key);
+            let prev = value.value_at_revision(revision, key.clone());
             value.delete(revision);
-            if let Some(prev) = prev {
-                values.push(prev)
-            }
+            values.push((key, prev))
         }
         values
     }
@@ -590,7 +587,11 @@ where
                         server.revision,
                     );
                     let prev_kvs = if request.prev_kv {
-                        prev_kvs.into_iter().map(SnapshotValue::key_value).collect()
+                        prev_kvs
+                            .into_iter()
+                            .filter_map(|(_, p)| p)
+                            .map(SnapshotValue::key_value)
+                            .collect()
                     } else {
                         Vec::new()
                     };

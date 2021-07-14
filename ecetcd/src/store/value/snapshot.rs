@@ -3,7 +3,7 @@ use etcd_proto::mvccpb::KeyValue;
 use crate::store::{Key, Revision, Version};
 
 /// A SnapshotValue corresponds to the value for the API, being just a snapshot of the `StoreValue` at a particular revision.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct SnapshotValue {
     /// the key for this value
     pub key: Key,

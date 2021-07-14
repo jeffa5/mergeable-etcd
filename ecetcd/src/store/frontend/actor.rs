@@ -324,25 +324,27 @@ where
             })
             .unwrap();
 
-        // TODO: handle range
-        let mut doc = self.document.get();
-        if let Some(value) = doc.value_mut(&key) {
-            let value = value.unwrap();
-            for (range, sender) in &self.watchers {
-                if range.contains(&key) {
-                    let latest_value = value.latest_value(key.clone()).unwrap();
-                    let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
-                        .and_then(|rev| value.value_at_revision(rev, key.clone()));
-                    let _ = sender
-                        .send((server.clone(), vec![(latest_value, prev_value)]))
-                        .await;
+        if !self.watchers.is_empty() {
+            let mut doc = self.document.get();
+            if let Some(Ok(value)) = doc.value_mut(&key) {
+                for (key, prev) in &prev {
+                    for (range, sender) in &self.watchers {
+                        if range.contains(key) {
+                            let latest_value = value.latest_value(key.clone()).unwrap();
+                            let _ = sender
+                                .send((server.clone(), vec![(latest_value, prev.clone())]))
+                                .await;
+                        }
+                    }
                 }
             }
-
-            if let Some(change) = change {
-                self.apply_local_change(change).await;
-            }
         }
+
+        if let Some(change) = change {
+            self.apply_local_change(change).await;
+        }
+
+        let prev = prev.into_iter().filter_map(|(_, p)| p).collect();
         Ok((server, prev))
     }
 
