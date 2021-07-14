@@ -134,6 +134,11 @@
               drv = packages.eckd;
             };
 
+            recetcd = flake-utils.lib.mkApp {
+              name = "recetcd";
+              drv = packages.recetcd;
+            };
+
             experiments = flake-utils.lib.mkApp {
               name = "experiments";
               drv = packages.experiments;
