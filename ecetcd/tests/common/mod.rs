@@ -3,14 +3,15 @@ use pretty_assertions::assert_eq;
 use tonic::{transport::Channel, Request};
 
 #[derive(Debug, PartialEq)]
+#[allow(dead_code)]
 pub enum Response {
-    RangeResponse(etcd_proto::etcdserverpb::RangeResponse),
-    PutResponse(etcd_proto::etcdserverpb::PutResponse),
-    DeleteRangeResponse(etcd_proto::etcdserverpb::DeleteRangeResponse),
-    TxnResponse(etcd_proto::etcdserverpb::TxnResponse),
-    WatchResponse(etcd_proto::etcdserverpb::WatchResponse),
-    LeaseGrantResponse(etcd_proto::etcdserverpb::LeaseGrantResponse),
-    LeaseRevokeResponse(etcd_proto::etcdserverpb::LeaseRevokeResponse),
+    Range(etcd_proto::etcdserverpb::RangeResponse),
+    Put(etcd_proto::etcdserverpb::PutResponse),
+    DeleteRange(etcd_proto::etcdserverpb::DeleteRangeResponse),
+    Txn(etcd_proto::etcdserverpb::TxnResponse),
+    Watch(etcd_proto::etcdserverpb::WatchResponse),
+    LeaseGrant(etcd_proto::etcdserverpb::LeaseGrantResponse),
+    LeaseRevoke(etcd_proto::etcdserverpb::LeaseRevokeResponse),
 }
 
 pub struct Clients {
@@ -62,6 +63,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 pub async fn test_range(request: &etcd_proto::etcdserverpb::RangeRequest) {
     dbg!(request);
     run_requests(|mut clients| async move {
@@ -69,7 +71,7 @@ pub async fn test_range(request: &etcd_proto::etcdserverpb::RangeRequest) {
             Ok(r) => {
                 let mut r = r.into_inner();
                 r.header = None;
-                Ok(Response::RangeResponse(r))
+                Ok(Response::Range(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
         };
@@ -78,6 +80,7 @@ pub async fn test_range(request: &etcd_proto::etcdserverpb::RangeRequest) {
     .await
 }
 
+#[allow(dead_code)]
 pub async fn test_put(request: &etcd_proto::etcdserverpb::PutRequest) {
     dbg!(request);
     run_requests(|mut clients| async move {
@@ -85,7 +88,7 @@ pub async fn test_put(request: &etcd_proto::etcdserverpb::PutRequest) {
             Ok(r) => {
                 let mut r = r.into_inner();
                 r.header = None;
-                Ok(Response::PutResponse(r))
+                Ok(Response::Put(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
         };
@@ -94,6 +97,7 @@ pub async fn test_put(request: &etcd_proto::etcdserverpb::PutRequest) {
     .await
 }
 
+#[allow(dead_code)]
 pub async fn test_del(request: &etcd_proto::etcdserverpb::DeleteRangeRequest) {
     dbg!(request);
     run_requests(|mut clients| async move {
@@ -101,7 +105,7 @@ pub async fn test_del(request: &etcd_proto::etcdserverpb::DeleteRangeRequest) {
             Ok(r) => {
                 let mut r = r.into_inner();
                 r.header = None;
-                Ok(Response::DeleteRangeResponse(r))
+                Ok(Response::DeleteRange(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
         };
@@ -110,6 +114,7 @@ pub async fn test_del(request: &etcd_proto::etcdserverpb::DeleteRangeRequest) {
     .await
 }
 
+#[allow(dead_code)]
 pub async fn test_watch(request: &etcd_proto::etcdserverpb::WatchRequest) {
     dbg!(request);
     run_requests(|mut clients| async move {
@@ -137,6 +142,7 @@ pub async fn test_watch(request: &etcd_proto::etcdserverpb::WatchRequest) {
     .await
 }
 
+#[allow(dead_code)]
 pub async fn test_txn(request: &etcd_proto::etcdserverpb::TxnRequest) {
     dbg!(request);
     run_requests(|mut clients| async move {
@@ -160,7 +166,7 @@ pub async fn test_txn(request: &etcd_proto::etcdserverpb::TxnRequest) {
                         }
                     }
                 }
-                Ok(Response::TxnResponse(r))
+                Ok(Response::Txn(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
         };
@@ -169,6 +175,7 @@ pub async fn test_txn(request: &etcd_proto::etcdserverpb::TxnRequest) {
     .await
 }
 
+#[allow(dead_code)]
 pub async fn test_lease_grant(request: &etcd_proto::etcdserverpb::LeaseGrantRequest) {
     dbg!(request);
     run_requests(|mut clients| async move {
@@ -180,7 +187,7 @@ pub async fn test_lease_grant(request: &etcd_proto::etcdserverpb::LeaseGrantRequ
                 if request.id == 0 {
                     r.id = 1000;
                 }
-                Ok(Response::LeaseGrantResponse(r))
+                Ok(Response::LeaseGrant(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
         };
@@ -189,6 +196,7 @@ pub async fn test_lease_grant(request: &etcd_proto::etcdserverpb::LeaseGrantRequ
     .await
 }
 
+#[allow(dead_code)]
 pub async fn test_lease_revoke(request: &etcd_proto::etcdserverpb::LeaseRevokeRequest) {
     dbg!(request);
     run_requests(|mut clients| async move {
@@ -196,7 +204,7 @@ pub async fn test_lease_revoke(request: &etcd_proto::etcdserverpb::LeaseRevokeRe
             Ok(r) => {
                 let mut r = r.into_inner();
                 r.header = None;
-                Ok(Response::LeaseRevokeResponse(r))
+                Ok(Response::LeaseRevoke(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
         };
