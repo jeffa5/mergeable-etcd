@@ -8,10 +8,10 @@ use std::{
 
 use test_env_log::test;
 
-use crate::common::{test_lease_grant, test_put, test_watch};
+use crate::common::{test_del, test_lease_grant, test_put, test_watch};
 
 static KEY_COUNT: AtomicUsize = AtomicUsize::new(0);
-static LEASE_COUNT: AtomicI64 = AtomicI64::new(1);
+static LEASE_COUNT: AtomicI64 = AtomicI64::new(1000);
 
 fn key() -> Vec<u8> {
     let i = KEY_COUNT.fetch_add(1, Ordering::SeqCst);
@@ -127,6 +127,65 @@ async fn watch_lease() {
             ignore_lease: false,
         };
         test_put(&request).await;
+
+        send.send(()).unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
+#[test(tokio::test)]
+async fn watch_remove() {
+    for prev_kv in [false, true] {
+        let key = key();
+        let watch_create_request = etcd_proto::etcdserverpb::WatchCreateRequest {
+            key: key.clone(),
+            range_end: vec![],
+            start_revision: 0,
+            progress_notify: false,
+            filters: vec![],
+            prev_kv,
+            watch_id: 0,
+            fragment: false,
+        };
+
+        let (send, recv) = tokio::sync::oneshot::channel();
+
+        tokio::spawn(async {
+            let watch_request = etcd_proto::etcdserverpb::WatchRequest {
+                request_union: Some(
+                    etcd_proto::etcdserverpb::watch_request::RequestUnion::CreateRequest(
+                        watch_create_request,
+                    ),
+                ),
+            };
+            let tw = test_watch(&watch_request);
+            tokio::select! {
+                _ = recv => {},
+                _ = tw => {}
+            }
+        });
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        let mut value = HashMap::new();
+        value.insert("v", "h");
+        let value = serde_json::to_vec(&value).unwrap();
+        let request = etcd_proto::etcdserverpb::PutRequest {
+            key: key.clone(),
+            value: value.clone(),
+            lease: 0,
+            prev_kv: false,
+            ignore_value: false,
+            ignore_lease: false,
+        };
+        test_put(&request).await;
+
+        let request = etcd_proto::etcdserverpb::DeleteRangeRequest {
+            key: key.clone(),
+            range_end: vec![],
+            prev_kv: false,
+        };
+        test_del(&request).await;
 
         send.send(()).unwrap();
         tokio::time::sleep(Duration::from_millis(50)).await;
