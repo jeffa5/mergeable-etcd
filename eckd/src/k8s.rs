@@ -429,7 +429,7 @@ mod tests {
             v.value_at_revision(Revision::new(7).unwrap(), Vec::new().into()),
             "5@7"
         );
-        v.delete(Revision::new(7).unwrap());
+        v.delete(Revision::new(7).unwrap(), Vec::new().into());
         assert_eq!(
             Some(SnapshotValue {
                 key: Vec::new().into(),
