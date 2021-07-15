@@ -265,6 +265,8 @@ impl exp::Experiment for Experiment {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
 
+        tokio::time::sleep(Duration::from_secs(5)).await;
+
         let bench_name = "bench";
         let mut bench_cmd = vec![
             "--endpoints".to_owned(),
@@ -291,7 +293,7 @@ impl exp::Experiment for Experiment {
             })
             .await;
 
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_secs(5)).await;
 
         runner
             .docker_client()
@@ -299,11 +301,11 @@ impl exp::Experiment for Experiment {
             .next()
             .await;
 
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_secs(5)).await;
 
         runner.finish().await;
 
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_secs(5)).await;
     }
 
     async fn post_run(&self, _configuration: &Self::Configuration) {}
