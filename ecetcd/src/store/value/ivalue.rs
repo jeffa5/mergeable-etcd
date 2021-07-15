@@ -64,31 +64,21 @@ where
         values
     }
 
-    fn create_revision(&mut self, revision: Revision) -> Option<Revision> {
+    fn version_and_create_revision(&mut self, revision: Revision) -> (Version, Option<Revision>) {
         self.get_revisions();
 
-        self.revs
-            .clone()
+        let (version, create_revision) = self
+            .revs
             .iter()
             .rev()
             .skip_while(|&&k| k > revision)
             .take_while(|rev| self.value_is_present(rev))
-            .last()
-            .cloned()
-    }
+            .fold((0, None), |(version, _), rev| (version + 1, Some(rev)));
 
-    fn version(&mut self, revision: Revision) -> Version {
-        self.get_revisions();
-
-        let version = self
-            .revs
-            .clone()
-            .iter()
-            .filter(|&&k| k <= revision)
-            .rev()
-            .take_while(|rev| self.value_is_present(rev))
-            .count();
-        NonZeroU64::new(version.try_into().unwrap())
+        (
+            NonZeroU64::new(version.try_into().unwrap()),
+            create_revision.cloned(),
+        )
     }
 
     /// Populate the revisions list from the value if it is already empty
@@ -212,14 +202,14 @@ where
 
         let revision = *self.revs.iter().rfind(|&&k| k <= revision)?;
 
-        let value = self.get_value(&revision).unwrap();
+        let value = self.get_value(&revision)?;
         let svalue = value.as_ref().map(|i| i.clone().into());
 
-        let version = self.version(revision);
+        let (version, create_revision) = self.version_and_create_revision(revision);
 
         Some(SnapshotValue {
             key,
-            create_revision: self.create_revision(revision),
+            create_revision,
             mod_revision: revision,
             version,
             value: svalue,
