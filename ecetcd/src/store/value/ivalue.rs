@@ -72,7 +72,7 @@ where
             .iter()
             .rev()
             .skip_while(|&&k| k > revision)
-            .take_while(|rev| self.get_value(rev).unwrap().is_some())
+            .take_while(|rev| self.value_is_present(rev))
             .last()
             .cloned()
     }
@@ -86,7 +86,7 @@ where
             .iter()
             .filter(|&&k| k <= revision)
             .rev()
-            .take_while(|rev| self.get_value(rev).unwrap().is_some())
+            .take_while(|rev| self.value_is_present(rev))
             .count();
         NonZeroU64::new(version.try_into().unwrap())
     }
@@ -116,6 +116,47 @@ where
 
                 self.revs = revisions;
             }
+        }
+    }
+
+    /// Return true if the value exists at the given revision and is not deleted.
+    fn value_is_present(&self, revision: &Revision) -> bool {
+        if self
+            .revisions
+            .as_ref()
+            .and_then(|revs| revs.get(revision))
+            .is_some()
+        {
+            // was in cache and is some
+            true
+        } else {
+            let v = self
+                .value
+                .as_ref()
+                .and_then(|v| {
+                    v.map()
+                        .unwrap()
+                        .get(REVISIONS_KEY)
+                        .unwrap()
+                        .map()
+                        .unwrap()
+                        .get(&revision.to_string())
+                })
+                .unwrap();
+
+            !matches!(v.primitive(), Some(Primitive::Null))
+            // if let Some(Primitive::Null) = v.primitive() {
+            //     // null represents Option::None in the automerge representation
+            //     false
+            // } else {
+            //     true
+            //     // TODO: if we can make it cheaper it may be worth checking the actual value
+            //     // // otherwise it may be a mismatching type so try the conversion and test the
+            //     // // option
+            //     // let v = Option::<T>::from_automerge(&v.value()).unwrap();
+            //     // // wasn't in cache but was some after construction
+            //     // v.is_some()
+            // }
         }
     }
 
