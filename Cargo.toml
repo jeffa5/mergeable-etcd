@@ -13,9 +13,3 @@ members = [
 
 [profile.release]
 debug = true
-
-[patch."https://github.com/automerge/automerge-rs"]
-automerge = { git = "https://github.com/automerge//automerge-rs", branch = "value-proxy" }
-automerge-protocol = { git = "https://github.com/automerge//automerge-rs", branch = "value-proxy" }
-automerge-backend = { git = "https://github.com/automerge//automerge-rs", branch = "value-proxy" }
-automerge-frontend = { git = "https://github.com/automerge//automerge-rs", branch = "value-proxy" }

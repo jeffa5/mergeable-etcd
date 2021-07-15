@@ -126,7 +126,7 @@ where
                 send.send(())
             });
 
-            let actor_id = ActorId::from_bytes(uuid.as_bytes());
+            let actor_id = ActorId::from(uuid);
             frontends.push(FrontendHandle::new(fc_sender, actor_id.clone()));
             frontends_for_backend.push(FrontendHandle::new_unbounded(fb_sender, actor_id.clone()));
             local_futures.push(recv);

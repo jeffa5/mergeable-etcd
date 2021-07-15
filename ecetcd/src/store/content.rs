@@ -6,7 +6,7 @@ use std::{
 };
 
 use automerge::{
-    proxy::{RootProxy, ValueProxy},
+    value_ref::{RootRef, ValueRef},
     LocalChange, Path, Value,
 };
 use automergeable::{FromAutomerge, FromAutomergeError, ToAutomerge};
@@ -107,7 +107,7 @@ where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: Debug,
 {
-    root_proxy: RootProxy<'a>,
+    root_value_ref: RootRef<'a>,
     values: Option<BTreeMap<Key, IValue<'a, T>>>,
     server: Option<Server>,
     leases: Option<HashMap<i64, ValueState<Lease>>>,
@@ -119,9 +119,9 @@ where
     <T as TryFrom<Vec<u8>>>::Error: Debug,
 {
     pub fn new(frontend: &'a automerge::Frontend) -> Self {
-        let root_proxy = frontend.proxy();
+        let root_value_ref = frontend.value_ref();
         Self {
-            root_proxy,
+            root_value_ref,
             values: None,
             server: None,
             leases: None,
@@ -137,7 +137,7 @@ where
     }
 
     pub fn contains_key(&self, key: &Key) -> bool {
-        self.root_proxy
+        self.root_value_ref
             .get(VALUES_KEY)
             .unwrap()
             .map()
@@ -152,7 +152,7 @@ where
     }
 
     pub fn contains_lease(&self, id: i64) -> bool {
-        self.root_proxy
+        self.root_value_ref
             .get(LEASES_KEY)
             .unwrap()
             .map()
@@ -172,7 +172,7 @@ where
             // already in the cache so do nothing
         } else {
             let v = self
-                .root_proxy
+                .root_value_ref
                 .get(VALUES_KEY)
                 .unwrap()
                 .map()
@@ -195,7 +195,7 @@ where
             // already cached so do nothing
         } else {
             let v = self
-                .root_proxy
+                .root_value_ref
                 .get(VALUES_KEY)
                 .unwrap()
                 .map()
@@ -211,8 +211,8 @@ where
     }
 
     pub fn values(&mut self, range: Range<Key>) -> Option<btree_map::Range<Key, IValue<'a, T>>> {
-        let values = self.root_proxy.get(VALUES_KEY);
-        if let Some(ValueProxy::Map(m)) = values {
+        let values = self.root_value_ref.get(VALUES_KEY);
+        if let Some(ValueRef::Map(m)) = values {
             let mut keys_in_range = Vec::new();
             for key in m.keys() {
                 let key = key.parse::<Key>().unwrap();
@@ -236,8 +236,8 @@ where
         &mut self,
         range: Range<Key>,
     ) -> Option<btree_map::RangeMut<Key, IValue<'a, T>>> {
-        let values = self.root_proxy.get(VALUES_KEY);
-        if let Some(ValueProxy::Map(m)) = values {
+        let values = self.root_value_ref.get(VALUES_KEY);
+        if let Some(ValueRef::Map(m)) = values {
             let mut keys_in_range = Vec::new();
             for key in m.keys() {
                 let key = key.parse::<Key>().unwrap();
@@ -262,7 +262,7 @@ where
             // already in the cache, do nothing
         } else {
             let v = self
-                .root_proxy
+                .root_value_ref
                 .get(LEASES_KEY)
                 .unwrap()
                 .map()
@@ -289,7 +289,7 @@ where
             // already in the cache, do nothing
         } else {
             let v = self
-                .root_proxy
+                .root_value_ref
                 .get(LEASES_KEY)
                 .unwrap()
                 .map()
@@ -322,7 +322,7 @@ where
             Ok(server)
         } else {
             let v = self
-                .root_proxy
+                .root_value_ref
                 .get(SERVER_KEY)
                 .as_ref()
                 .map(|v| Server::from_automerge(&v.value()));
@@ -340,7 +340,7 @@ where
             Ok(server)
         } else {
             let v = self
-                .root_proxy
+                .root_value_ref
                 .get(SERVER_KEY)
                 .as_ref()
                 .map(|v| Server::from_automerge(&v.value()));
@@ -439,7 +439,7 @@ where
             Some(Err(_)) => None,
             None => {
                 let mut v = IValue::new(
-                    self.root_proxy
+                    self.root_value_ref
                         .get(VALUES_KEY)
                         .unwrap()
                         .map()

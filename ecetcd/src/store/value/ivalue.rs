@@ -5,7 +5,7 @@ use std::{
     num::NonZeroU64,
 };
 
-use automerge::{proxy::ValueProxy, Path, Primitive, Value};
+use automerge::{value_ref::ValueRef, Path, Primitive, Value};
 use automergeable::{Automergeable, FromAutomerge, ToAutomerge};
 
 use crate::store::{Key, Revision, SnapshotValue, Version};
@@ -21,7 +21,7 @@ pub trait StoreValue:
 /// An implementation of a stored value with history and produces snapshotvalues
 #[derive(Debug, Clone)]
 pub struct IValue<'a, T: StoreValue> {
-    value: Option<ValueProxy<'a>>,
+    value: Option<ValueRef<'a>>,
     revs: Vec<Revision>,
     revisions: Option<BTreeMap<Revision, Option<T>>>,
     lease_id: Option<Option<i64>>,
@@ -33,7 +33,7 @@ where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: Debug,
 {
-    pub fn new(value: Option<ValueProxy<'a>>, path: Path) -> Self {
+    pub fn new(value: Option<ValueRef<'a>>, path: Path) -> Self {
         let init = Self::init(&value, path);
         Self {
             value,
@@ -44,15 +44,15 @@ where
         }
     }
 
-    fn init(value: &Option<ValueProxy>, path: Path) -> Vec<(Path, Value)> {
+    fn init(value: &Option<ValueRef>, path: Path) -> Vec<(Path, Value)> {
         let mut values = Vec::new();
-        if let Some(ValueProxy::Map(m)) = value {
+        if let Some(ValueRef::Map(m)) = value {
             if m.is_empty() {
                 values.push((path.clone(), Value::Map(HashMap::new())));
                 values.push((path.key(REVISIONS_KEY), Value::Map(HashMap::new())));
             } else {
                 let revs = m.get(REVISIONS_KEY);
-                if let Some(ValueProxy::Map(_)) = revs {
+                if let Some(ValueRef::Map(_)) = revs {
                 } else {
                     values.push((path.key(REVISIONS_KEY), Value::Map(HashMap::new())));
                 }
@@ -91,7 +91,7 @@ where
                 .as_ref()
                 .and_then(|v| v.map().unwrap().get(REVISIONS_KEY));
 
-            if let Some(ValueProxy::Map(m)) = value {
+            if let Some(ValueRef::Map(m)) = value {
                 revisions.reserve(m.len());
                 for k in m.keys().map(|k| k.parse::<Revision>().unwrap()) {
                     revisions.insert(k);
@@ -183,7 +183,7 @@ where
     }
 
     fn lease_id(&mut self) -> Option<i64> {
-        if let Some(ValueProxy::Primitive(Primitive::Int(i))) = self
+        if let Some(ValueRef::Primitive(Primitive::Int(i))) = self
             .value
             .as_ref()
             .and_then(|v| v.map().unwrap().get(LEASE_ID_KEY))
