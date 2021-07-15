@@ -61,6 +61,9 @@ where
     pub listen_metrics_urls: Vec<Address>,
     pub cert_file: Option<PathBuf>,
     pub key_file: Option<PathBuf>,
+    pub peer_cert_file: Option<PathBuf>,
+    pub peer_key_file: Option<PathBuf>,
+    pub peer_trusted_ca_file: Option<PathBuf>,
     /// Whether to wait for the patch to be applied to the frontend before returning.
     pub sync_changes: bool,
     /// File to write request traces out to.
@@ -153,6 +156,17 @@ where
         let client_urls = match (
             &self.listen_client_urls[..],
             &self.advertise_client_urls[..],
+        ) {
+            ([], []) => {
+                panic!("no client urls to advertise")
+            }
+            ([], urls) => urls,
+            (urls, _) => urls,
+        };
+
+        let peer_urls = match (
+            &self.listen_peer_urls[..],
+            &self.initial_advertise_peer_urls[..],
         ) {
             ([], []) => {
                 panic!("no client urls to advertise")
