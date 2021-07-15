@@ -291,6 +291,8 @@ impl exp::Experiment for Experiment {
             })
             .await;
 
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
         runner
             .docker_client()
             .wait_container::<String>(bench_name, None)
@@ -298,7 +300,10 @@ impl exp::Experiment for Experiment {
             .await;
 
         tokio::time::sleep(Duration::from_secs(1)).await;
-        runner.finish().await
+
+        runner.finish().await;
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
     }
 
     async fn post_run(&self, _configuration: &Self::Configuration) {}
