@@ -4,6 +4,7 @@ members = [
   "recetcd",
   "ecetcd",
   "etcd-proto",
+  "peer-proto",
   "bencher",
   "kubernetes-proto",
   "experiments/bencher",

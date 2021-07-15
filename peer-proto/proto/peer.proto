@@ -1,0 +1,11 @@
+syntax = "proto3";
+package peer;
+
+message SyncMessage {
+  bytes data = 1;
+}
+
+service Peer {
+  // Sync accepts many sync messages and sends back any sync messages.
+  rpc Sync(stream SyncMessage) returns (stream SyncMessage) { }
+}
