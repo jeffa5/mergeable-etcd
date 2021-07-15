@@ -61,8 +61,9 @@ where
     pub listen_metrics_urls: Vec<Address>,
     pub cert_file: Option<PathBuf>,
     pub key_file: Option<PathBuf>,
-    /// Whether to wait for the patch to be applied to the frontend before returning
+    /// Whether to wait for the patch to be applied to the frontend before returning.
     pub sync_changes: bool,
+    /// File to write request traces out to.
     pub trace_file: Option<PathBuf>,
     pub _data: PhantomData<T>,
 }
