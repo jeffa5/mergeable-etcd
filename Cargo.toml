@@ -14,24 +14,6 @@ members = [
 [profile.release]
 debug = true
 
-# [patch."https://github.com/automerge/automerge-rs"]
-# automerge = { git = "https://github.com/automerge//automerge-rs", branch = "actorid-tinyvec" }
-# automerge-protocol = { git = "https://github.com/automerge//automerge-rs", branch = "actorid-tinyvec" }
-# automerge-backend = { git = "https://github.com/automerge//automerge-rs", branch = "actorid-tinyvec" }
-# automerge-frontend = { git = "https://github.com/automerge//automerge-rs", branch = "actorid-tinyvec" }
-
-# [patch."https://github.com/automerge/automerge-rs"]
-# automerge = { git = "https://github.com/automerge//automerge-rs", branch = "reduce-compression" }
-# automerge-protocol = { git = "https://github.com/automerge//automerge-rs", branch = "reduce-compression" }
-# automerge-backend = { git = "https://github.com/automerge//automerge-rs", branch = "reduce-compression" }
-# automerge-frontend = { git = "https://github.com/automerge//automerge-rs", branch = "reduce-compression" }
-
-# [patch."https://github.com/automerge/automerge-rs"]
-# automerge = { git = "https://github.com/automerge//automerge-rs", branch = "fix-changed-indices" }
-# automerge-protocol = { git = "https://github.com/automerge//automerge-rs", branch = "fix-changed-indices" }
-# automerge-backend = { git = "https://github.com/automerge//automerge-rs", branch = "fix-changed-indices" }
-# automerge-frontend = { git = "https://github.com/automerge//automerge-rs", branch = "fix-changed-indices" }
-
 [patch."https://github.com/automerge/automerge-rs"]
 automerge = { git = "https://github.com/automerge//automerge-rs", branch = "value-proxy" }
 automerge-protocol = { git = "https://github.com/automerge//automerge-rs", branch = "value-proxy" }
