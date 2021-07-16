@@ -40,13 +40,15 @@ impl Server {
         tokio::spawn(async move {
             // handle changes in backend and sending generated messages
             while let Some(()) = changed_notify.recv().await {
+                tracing::info!("changed notify");
                 let connections = {
                     let inner = inner.lock().unwrap();
                     inner.sync_connections.clone()
                 };
                 for (peer_id, sender) in connections {
                     let peer_id = peer_id.into_bytes();
-                    let msg = backend.generate_sync_message(peer_id).await;
+                    let msg = backend.generate_sync_message(peer_id.clone()).await;
+                    tracing::info!(?peer_id, ?msg, "generated message for peer");
                     if let Some(msg) = msg {
                         let _ = sender.send(msg);
                     }

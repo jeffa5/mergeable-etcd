@@ -12,6 +12,7 @@ use std::{
     io::{BufWriter, Write},
     marker::PhantomData,
     path::PathBuf,
+    time::Duration,
 };
 
 pub use address::Address;
@@ -249,10 +250,14 @@ where
             }
             let address = address.address.to_string();
             let peer_server = peer_server.clone();
-            let c =
-                tokio::spawn(
-                    async move { crate::peer::connect_and_sync(address, peer_server).await },
-                );
+            let c = tokio::spawn(async move {
+                // connect to the peer and keep trying if goes offline
+                loop {
+                    crate::peer::connect_and_sync(address.clone(), peer_server.clone()).await;
+                    // TODO: use backoff
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                }
+            });
             peer_clients.push(c);
         }
 

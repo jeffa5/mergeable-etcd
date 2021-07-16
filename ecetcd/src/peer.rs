@@ -35,7 +35,7 @@ pub async fn serve(
 
     server
         .trace_fn(|_| tracing::info_span!(""))
-        .timeout(Duration::from_secs(5))
+        // TODO: add timeout when clients use keepalive pings
         .add_service(CatchAllService {})
         .add_service(peer_service)
         .serve_with_shutdown(address, async {
