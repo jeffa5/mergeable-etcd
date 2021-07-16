@@ -29,7 +29,11 @@ pub async fn serve(
     sender: mpsc::Sender<(u64, Option<automerge_backend::SyncMessage>)>,
     frontend: FrontendHandle,
 ) -> Result<(), tonic::transport::Error> {
-    let peer_service = PeerServer::new(Peer { sender, frontend });
+    let peer_service = PeerServer::new(Peer {
+        sender,
+        frontend,
+        shutdown: shutdown.clone(),
+    });
     let mut server = tonic::transport::Server::builder();
     if let Some(identity) = identity {
         server = server.tls_config(ServerTlsConfig::new().identity(identity))?;
@@ -37,12 +41,11 @@ pub async fn serve(
 
     server
         .trace_fn(|_| tracing::info_span!(""))
-        // TODO: add timeout when clients use keepalive pings
         .add_service(CatchAllService {})
         .add_service(peer_service)
         .serve_with_shutdown(address, async {
             shutdown.changed().await.unwrap();
-            info!("Gracefully shutting down client server")
+            info!("Gracefully shutting down peer server")
         })
         .await
 }

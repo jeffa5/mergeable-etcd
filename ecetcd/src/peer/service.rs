@@ -1,6 +1,6 @@
 use futures::StreamExt;
 use peer_proto::peer_server::Peer as PeerTrait;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use tonic::Response;
 
 use crate::store::FrontendHandle;
@@ -8,6 +8,7 @@ use crate::store::FrontendHandle;
 pub struct Peer {
     pub sender: mpsc::Sender<(u64, Option<automerge_backend::SyncMessage>)>,
     pub frontend: FrontendHandle,
+    pub shutdown: watch::Receiver<()>,
 }
 
 #[tonic::async_trait]
@@ -24,11 +25,19 @@ impl PeerTrait for Peer {
         let _ = self.sender.send((0, None)).await.is_err();
         tracing::info!(address = ?remote_addr, "Server triggered sync");
 
-        while let Some(Ok(msg)) = stream.next().await {
-            tracing::info!(address = ?remote_addr, "Received sync message");
-            let smsg = automerge_backend::SyncMessage::decode(&msg.data).unwrap();
-            if self.sender.send((msg.id, Some(smsg))).await.is_err() {
-                break;
+        let mut shutdown = self.shutdown.clone();
+
+        loop {
+            tokio::select! {
+                Some(Ok(msg)) = stream.next() => {
+                    tracing::info!(address = ?remote_addr, "Received sync message");
+                    let smsg = automerge_backend::SyncMessage::decode(&msg.data).unwrap();
+                    if self.sender.send((msg.id, Some(smsg))).await.is_err() {
+                        break;
+                    }
+                },
+                _ = shutdown.changed() => break,
+                else => break,
             }
         }
 

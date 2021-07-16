@@ -252,16 +252,34 @@ where
             let address = address.address.to_string();
             let peer_server = peer_server.clone();
             let frontend = frontend.clone();
+            let mut shutdown = shutdown.clone();
             let c = tokio::spawn(async move {
                 // connect to the peer and keep trying if goes offline
-                loop {
-                    let server = frontend.current_server().await;
-                    let member_id = server.member_id();
-                    crate::peer::connect_and_sync(address.clone(), peer_server.clone(), member_id)
+
+                let server = frontend.current_server().await;
+                let member_id = server.member_id();
+
+                let address_clone = address.clone();
+                let l = tokio::spawn(async move {
+                    loop {
+                        crate::peer::connect_and_sync(
+                            address.clone(),
+                            peer_server.clone(),
+                            member_id,
+                        )
                         .await;
-                    // TODO: use backoff
-                    tokio::time::sleep(Duration::from_secs(1)).await;
+                        // TODO: use backoff
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+                    }
+                });
+
+                // loop won't terminate so just wait for it and the shutdown
+                tokio::select! {
+                    _ = shutdown.changed() => {},
+                    _ = l => {},
+                    else => {},
                 }
+                tracing::info!(address = ?address_clone, "Shutting down client loop")
             });
             peer_clients.push(c);
         }
