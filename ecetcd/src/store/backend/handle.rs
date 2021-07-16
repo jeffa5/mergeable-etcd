@@ -85,10 +85,16 @@ impl BackendHandle {
     }
 
     pub async fn generate_sync_message(&self, peer_id: Vec<u8>) -> Option<SyncMessage> {
-        todo!()
+        let (send, recv) = oneshot::channel();
+        let msg = BackendMessage::GenerateSyncMessage { peer_id, ret: send };
+
+        let _ = self.sender.send_to_backend(msg).await;
+        recv.await.expect("Backend actor task has been killed")
     }
 
     pub async fn receive_sync_message(&self, peer_id: Vec<u8>, message: SyncMessage) {
-        todo!()
+        let msg = BackendMessage::ReceiveSyncMessage { peer_id, message };
+
+        let _ = self.sender.send_to_backend(msg).await;
     }
 }

@@ -1,4 +1,5 @@
 use automerge::Change;
+use automerge_backend::SyncMessage;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::Patch;
@@ -101,6 +102,24 @@ impl BackendActor {
                 let result = self.db.size_on_disk().unwrap();
                 let _ = ret.send(result);
             }
+            BackendMessage::GenerateSyncMessage { peer_id, ret } => {
+                let result = self.generate_sync_message(peer_id).unwrap();
+                let _ = ret.send(result);
+            }
+            BackendMessage::ReceiveSyncMessage { peer_id, message } => {
+                let patch = self.receive_sync_message(peer_id, message).unwrap();
+
+                if let Some(patch) = patch {
+                    let frontends = self.frontends.clone();
+                    tokio::spawn(async move {
+                        let apply_patches = frontends
+                            .iter()
+                            .map(|f| f.apply_patch(patch.clone()))
+                            .collect::<Vec<_>>();
+                        join_all(apply_patches).await;
+                    });
+                }
+            }
         }
     }
 
@@ -169,5 +188,23 @@ impl BackendActor {
         &self,
     ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
         self.backend.get_patch()
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    fn generate_sync_message(
+        &mut self,
+        peer_id: Vec<u8>,
+    ) -> Result<Option<SyncMessage>, Error<SledPersisterError, automerge_backend::AutomergeError>>
+    {
+        self.backend.generate_sync_message(peer_id)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    fn receive_sync_message(
+        &mut self,
+        peer_id: Vec<u8>,
+        message: SyncMessage,
+    ) -> Result<Option<Patch>, Error<SledPersisterError, automerge_backend::AutomergeError>> {
+        self.backend.receive_sync_message(peer_id, message)
     }
 }
