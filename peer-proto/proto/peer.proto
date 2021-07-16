@@ -5,7 +5,9 @@ message SyncMessage {
   bytes data = 1;
 }
 
+message Empty{}
+
 service Peer {
-  // Sync accepts many sync messages and sends back any sync messages.
-  rpc Sync(stream SyncMessage) returns (stream SyncMessage) { }
+  // Sync accepts many sync messages.
+  rpc Sync(stream SyncMessage) returns (Empty) { }
 }

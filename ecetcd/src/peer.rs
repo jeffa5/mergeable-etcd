@@ -1,3 +1,4 @@
+mod client;
 mod server;
 mod service;
 
@@ -7,12 +8,15 @@ use std::{
     time::Duration,
 };
 
+pub use client::connect_and_sync;
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use peer_proto::peer_server::PeerServer;
+pub use server::Server;
 use service::Peer;
+use tokio::sync::mpsc;
 use tonic::{
     body::BoxBody,
-    transport::{Identity, NamedService, Server, ServerTlsConfig},
+    transport::{Identity, NamedService, ServerTlsConfig},
 };
 use tower::Service;
 use tracing::{info, warn};
@@ -21,10 +25,10 @@ pub async fn serve(
     address: SocketAddr,
     identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
-    server: server::Server,
+    sender: mpsc::Sender<(SocketAddr, automerge_backend::SyncMessage)>,
 ) -> Result<(), tonic::transport::Error> {
-    let peer_service = PeerServer::new(Peer { server });
-    let mut server = Server::builder();
+    let peer_service = PeerServer::new(Peer { sender });
+    let mut server = tonic::transport::Server::builder();
     if let Some(identity) = identity {
         server = server.tls_config(ServerTlsConfig::new().identity(identity))?;
     }

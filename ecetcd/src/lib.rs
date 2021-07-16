@@ -1,6 +1,7 @@
 pub mod address;
 
 pub mod health;
+pub mod peer;
 pub mod server;
 pub mod services;
 pub mod store;
@@ -228,6 +229,43 @@ where
             })
             .collect::<Vec<_>>();
 
+        let peer_servers = peer_urls
+            .iter()
+            .map(|peer_url| {
+                let identity = if let Scheme::Https = peer_url.scheme {
+                    match (self.peer_cert_file.as_ref(), self.peer_key_file.as_ref()) {
+                        (Some(cert_file), Some(key_file)) => {
+                            let cert = std::fs::read(&cert_file).expect("reading server cert");
+                            let key = std::fs::read(&key_file).expect("reading server key");
+                            Some(Identity::from_pem(cert, key))
+                        }
+                        (Some(_), None) => {
+                            panic!("Requested peer url '{}', but missing --cert-file", peer_url)
+                        }
+                        (None, Some(_)) => {
+                            panic!("Requested peer url '{}', but missing --key-file", peer_url)
+                        }
+                        (None, None) => panic!(
+                            "Requested peer url '{}', but missing both --cert-file and --key-file",
+                            peer_url
+                        ),
+                    }
+                } else {
+                    None
+                };
+                let serving = crate::services::serve(
+                    peer_url.socket_address(),
+                    identity,
+                    shutdown.clone(),
+                    server.clone(),
+                    backend.clone(),
+                    trace_out.clone(),
+                );
+                info!("Listening to peers on {}", peer_url);
+                serving
+            })
+            .collect::<Vec<_>>();
+
         let metrics_servers = self.listen_metrics_urls.iter().map(|metrics_url| {
             // TODO: handle identity on metrics urls
                 let _identity = if let Scheme::Https = metrics_url.scheme {
@@ -255,6 +293,7 @@ where
 
         tokio::join![
             async { futures::future::try_join_all(client_servers).await.unwrap() },
+            async { futures::future::try_join_all(peer_servers).await.unwrap() },
             async {
                 futures::future::try_join_all(metrics_servers)
                     .await

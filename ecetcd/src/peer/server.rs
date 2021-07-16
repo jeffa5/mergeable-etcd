@@ -5,7 +5,6 @@ use std::{
 };
 
 use tokio::sync::mpsc;
-use tonic::Status;
 
 use crate::store::BackendHandle;
 
@@ -14,15 +13,23 @@ pub struct Server {
 }
 
 pub struct Inner {
-    sender: mpsc::Sender<automerge_backend::SyncMessage>,
-    sync_connections: HashMap<SocketAddr, mpsc::Sender<Result<peer_proto::SyncMessage, Status>>>,
+    sync_connections: HashMap<String, mpsc::UnboundedSender<automerge_backend::SyncMessage>>,
 }
 
 impl Server {
+    pub fn new() -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(Inner {
+                sync_connections: HashMap::new(),
+            })),
+        }
+    }
+
     pub async fn sync(
         &self,
         mut changed_notify: mpsc::UnboundedReceiver<()>,
         backend: BackendHandle,
+        // receive messages from servers (streamed from clients)
         mut receiver: mpsc::Receiver<(SocketAddr, automerge_backend::SyncMessage)>,
     ) {
         let inner = Arc::clone(&self.inner);
@@ -35,13 +42,10 @@ impl Server {
                     inner.sync_connections.clone()
                 };
                 for (peer_id, sender) in connections {
-                    let peer_id = format!("{:?}", peer_id).into_bytes();
+                    let peer_id = peer_id.into_bytes();
                     let msg = backend_clone.generate_sync_message(peer_id).await;
                     if let Some(msg) = msg {
-                        let msg = peer_proto::SyncMessage {
-                            data: msg.encode().unwrap(),
-                        };
-                        let _ = sender.send(Ok(msg)).await;
+                        let _ = sender.send(msg);
                     }
                 }
             }
@@ -61,21 +65,25 @@ impl Server {
         // generate sync messages for others
     }
 
-    pub fn register_peer(
+    /// Try and add the client with response sender to this server.
+    ///
+    /// Returns true if a client for this address doesn't already exist.
+    pub fn register_client(
         &self,
-        peer_id: SocketAddr,
-        out_sender: mpsc::Sender<Result<peer_proto::SyncMessage, Status>>,
-    ) -> Option<mpsc::Sender<automerge_backend::SyncMessage>> {
+        addr: String,
+        sender: mpsc::UnboundedSender<automerge_backend::SyncMessage>,
+    ) -> bool {
         let mut inner = self.inner.lock().unwrap();
-
-        if inner.sync_connections.contains_key(&peer_id) {
-            None
+        if inner.sync_connections.contains_key(&addr) {
+            false
         } else {
-            let in_sender = inner.sender.clone();
-
-            inner.sync_connections.insert(peer_id, out_sender);
-
-            Some(in_sender)
+            inner.sync_connections.insert(addr, sender);
+            true
         }
+    }
+
+    pub fn unregister_client(&self, addr: &str) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.sync_connections.remove(addr);
     }
 }

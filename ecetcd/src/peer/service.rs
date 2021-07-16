@@ -1,46 +1,30 @@
-use std::pin::Pin;
+use std::net::SocketAddr;
 
-use futures::{Stream, StreamExt};
-use peer_proto::{peer_server::Peer as PeerTrait, SyncMessage};
+use futures::StreamExt;
+use peer_proto::peer_server::Peer as PeerTrait;
 use tokio::sync::mpsc;
-use tonic::{Response, Status};
+use tonic::Response;
 
 pub struct Peer {
-    pub server: super::server::Server,
+    pub sender: mpsc::Sender<(SocketAddr, automerge_backend::SyncMessage)>,
 }
 
 #[tonic::async_trait]
 impl PeerTrait for Peer {
-    type SyncStream =
-        Pin<Box<dyn Stream<Item = Result<SyncMessage, Status>> + Send + Sync + 'static>>;
-
     async fn sync(
         &self,
         request: tonic::Request<tonic::Streaming<peer_proto::SyncMessage>>,
-    ) -> Result<tonic::Response<Self::SyncStream>, tonic::Status> {
+    ) -> Result<tonic::Response<peer_proto::Empty>, tonic::Status> {
         let remote_addr = request.remote_addr().unwrap();
-
         let mut stream = request.into_inner();
 
-        let (out_send, out_recv) = mpsc::channel(1);
-
-        let in_sender = self.server.register_peer(remote_addr, out_send);
-
-        if let Some(in_sender) = in_sender {
-            tokio::spawn(async move {
-                while let Some(Ok(msg)) = stream.next().await {
-                    let msg = automerge_backend::SyncMessage::decode(&msg.data).unwrap();
-                    if in_sender.send(msg).await.is_err() {
-                        break;
-                    }
-                }
-            });
-
-            Ok(Response::new(Box::pin(
-                tokio_stream::wrappers::ReceiverStream::new(out_recv),
-            )))
-        } else {
-            return Err(Status::aborted("connection already exists"));
+        while let Some(Ok(msg)) = stream.next().await {
+            let msg = automerge_backend::SyncMessage::decode(&msg.data).unwrap();
+            if self.sender.send((remote_addr, msg)).await.is_err() {
+                break;
+            }
         }
+
+        Ok(Response::new(peer_proto::Empty {}))
     }
 }
