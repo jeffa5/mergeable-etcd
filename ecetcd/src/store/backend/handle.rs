@@ -29,17 +29,12 @@ impl Sender {
 #[derive(Clone, Debug)]
 pub struct BackendHandle {
     sender: Sender,
-    changed_notify: mpsc::UnboundedSender<()>,
 }
 
 impl BackendHandle {
-    pub fn new(
-        sender: mpsc::UnboundedSender<(BackendMessage, Span)>,
-        changed_notify: mpsc::UnboundedSender<()>,
-    ) -> Self {
+    pub fn new(sender: mpsc::UnboundedSender<(BackendMessage, Span)>) -> Self {
         Self {
             sender: Sender { inner: sender },
-            changed_notify,
         }
     }
 

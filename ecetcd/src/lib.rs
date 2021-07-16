@@ -83,7 +83,7 @@ where
     ) -> Result<(), Box<dyn std::error::Error>> {
         let (b_sender, b_receiver) = tokio::sync::mpsc::unbounded_channel();
         let (change_notify_sender, change_notify_receiver) = mpsc::unbounded_channel();
-        let backend = BackendHandle::new(b_sender, change_notify_sender);
+        let backend = BackendHandle::new(b_sender);
 
         let mut frontends = Vec::new();
         let mut frontends_for_backend = Vec::new();
@@ -148,6 +148,7 @@ where
                 b_receiver,
                 backend_health_receiver,
                 shutdown_clone,
+                change_notify_sender,
             );
             actor.run().await;
         });

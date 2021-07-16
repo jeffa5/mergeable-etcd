@@ -21,6 +21,7 @@ pub struct BackendActor {
     health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
     shutdown: watch::Receiver<()>,
     frontends: Vec<FrontendHandle>,
+    changed_notify: mpsc::UnboundedSender<()>,
 }
 
 impl BackendActor {
@@ -30,6 +31,7 @@ impl BackendActor {
         receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
         health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
+        changed_notify: mpsc::UnboundedSender<()>,
     ) -> Self {
         let db = config.open().unwrap();
         let changes_tree = db.open_tree("changes").unwrap();
@@ -52,6 +54,7 @@ impl BackendActor {
             health_receiver,
             shutdown,
             frontends,
+            changed_notify,
         }
     }
 
