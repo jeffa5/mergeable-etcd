@@ -32,7 +32,7 @@ impl exp::Experiment for Experiment {
     fn configurations(&self) -> Vec<Self::Configuration> {
         let mut confs = Vec::new();
         let repeats = 1;
-        for cluster_size in (1..=1).step_by(2) {
+        for cluster_size in (1..=5).step_by(2) {
             let description = format!(
                 "Test etcd cluster latency and throughput at {} nodes",
                 cluster_size
