@@ -279,7 +279,7 @@ where
                     _ = l => {},
                     else => {},
                 }
-                tracing::info!(address = ?address_clone, "Shutting down client loop")
+                tracing::info!(address = ?address_clone, "Shutting down peer client loop")
             });
             peer_clients.push(c);
         }
