@@ -8,6 +8,7 @@ use tokio::sync::mpsc;
 
 use crate::store::BackendHandle;
 
+#[derive(Clone)]
 pub struct Server {
     inner: Arc<Mutex<Inner>>,
 }
@@ -32,6 +33,7 @@ impl Server {
         // receive messages from servers (streamed from clients)
         mut receiver: mpsc::Receiver<(SocketAddr, automerge_backend::SyncMessage)>,
     ) {
+        tracing::info!("Started handling peer syncs");
         let inner = Arc::clone(&self.inner);
         let backend_clone = backend.clone();
         tokio::spawn(async move {

@@ -20,6 +20,7 @@ pub async fn connect_and_sync(address: String, server: super::server::Server) {
                 }
             }),
         ));
+        tracing::info!("Connected to peer as client");
         peer_client.sync(stream).await.unwrap();
         server.unregister_client(&address);
     } else {

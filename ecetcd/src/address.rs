@@ -90,7 +90,7 @@ impl TryFrom<&str> for Address {
 #[derive(Debug, Clone)]
 pub struct NamedAddress {
     name: String,
-    address: Address,
+    pub address: Address,
 }
 
 #[derive(Debug, Error)]

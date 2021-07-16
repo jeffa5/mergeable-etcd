@@ -82,7 +82,8 @@ where
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let (b_sender, b_receiver) = tokio::sync::mpsc::unbounded_channel();
-        let backend = BackendHandle::new(b_sender);
+        let (change_notify_sender, change_notify_receiver) = mpsc::unbounded_channel();
+        let backend = BackendHandle::new(b_sender, change_notify_sender);
 
         let mut frontends = Vec::new();
         let mut frontends_for_backend = Vec::new();
@@ -229,6 +230,27 @@ where
             })
             .collect::<Vec<_>>();
 
+        let (peer_send, peer_receive) = mpsc::channel(1);
+
+        let peer_server = crate::peer::Server::new();
+        let peer_server_clone = peer_server.clone();
+        let peer_server_task = tokio::spawn(async move {
+            peer_server_clone
+                .sync(change_notify_receiver, backend, peer_receive)
+                .await
+        });
+
+        let mut peer_clients = Vec::new();
+        for address in self.initial_cluster.iter() {
+            let address = address.address.to_string();
+            let peer_server = peer_server.clone();
+            let c =
+                tokio::spawn(
+                    async move { crate::peer::connect_and_sync(address, peer_server).await },
+                );
+            peer_clients.push(c);
+        }
+
         let peer_servers = peer_urls
             .iter()
             .map(|peer_url| {
@@ -253,13 +275,12 @@ where
                 } else {
                     None
                 };
-                let serving = crate::services::serve(
+
+                let serving = crate::peer::serve(
                     peer_url.socket_address(),
                     identity,
                     shutdown.clone(),
-                    server.clone(),
-                    backend.clone(),
-                    trace_out.clone(),
+                    peer_send.clone(),
                 );
                 info!("Listening to peers on {}", peer_url);
                 serving
@@ -294,6 +315,8 @@ where
         tokio::join![
             async { futures::future::try_join_all(client_servers).await.unwrap() },
             async { futures::future::try_join_all(peer_servers).await.unwrap() },
+            async { peer_server_task.await.unwrap() },
+            async { futures::future::join_all(peer_clients).await },
             async {
                 futures::future::try_join_all(metrics_servers)
                     .await
