@@ -243,6 +243,10 @@ where
 
         let mut peer_clients = Vec::new();
         for address in self.initial_cluster.iter() {
+            if self.listen_peer_urls.contains(&address.address) {
+                // don't send sync messages to self
+                continue;
+            }
             let address = address.address.to_string();
             let peer_server = peer_server.clone();
             let c =
