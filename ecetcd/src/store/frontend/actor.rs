@@ -71,8 +71,11 @@ where
         // fill in the default structure
         //
         // TODO: find a better way of doing this when multiple peers are around
-        let (_, change) = document
-            .frontend
+        let patch = backend.get_patch().await.unwrap();
+        let mut starter_frontend =
+            automerge::Frontend::new_with_timestamper_and_actor_id(Box::new(|| None), &[0]);
+        starter_frontend.apply_patch(patch).unwrap();
+        let (_, change) = starter_frontend
             .change::<_, _, std::convert::Infallible>(None, |sc| {
                 for c in StoreContents::<T>::init() {
                     sc.add_change(c).unwrap()

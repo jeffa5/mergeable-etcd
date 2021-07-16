@@ -1,6 +1,7 @@
 pub mod address;
 
 pub mod health;
+pub mod peer;
 pub mod server;
 pub mod services;
 pub mod store;
@@ -11,6 +12,7 @@ use std::{
     io::{BufWriter, Write},
     marker::PhantomData,
     path::PathBuf,
+    time::Duration,
 };
 
 pub use address::Address;
@@ -61,6 +63,9 @@ where
     pub listen_metrics_urls: Vec<Address>,
     pub cert_file: Option<PathBuf>,
     pub key_file: Option<PathBuf>,
+    pub peer_cert_file: Option<PathBuf>,
+    pub peer_key_file: Option<PathBuf>,
+    pub peer_trusted_ca_file: Option<PathBuf>,
     /// Whether to wait for the patch to be applied to the frontend before returning.
     pub sync_changes: bool,
     /// File to write request traces out to.
@@ -78,6 +83,7 @@ where
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let (b_sender, b_receiver) = tokio::sync::mpsc::unbounded_channel();
+        let (change_notify_sender, change_notify_receiver) = mpsc::unbounded_channel();
         let backend = BackendHandle::new(b_sender);
 
         let mut frontends = Vec::new();
@@ -143,16 +149,28 @@ where
                 b_receiver,
                 backend_health_receiver,
                 shutdown_clone,
+                change_notify_sender,
             );
             actor.run().await;
         });
 
         let health = HealthServer::new(frontend_healths, backend_health_sender);
 
-        let server = crate::server::Server::new(frontends);
+        let server = crate::server::Server::new(frontends.clone());
         let client_urls = match (
             &self.listen_client_urls[..],
             &self.advertise_client_urls[..],
+        ) {
+            ([], []) => {
+                panic!("no client urls to advertise")
+            }
+            ([], urls) => urls,
+            (urls, _) => urls,
+        };
+
+        let peer_urls = match (
+            &self.listen_peer_urls[..],
+            &self.initial_advertise_peer_urls[..],
         ) {
             ([], []) => {
                 panic!("no client urls to advertise")
@@ -214,6 +232,95 @@ where
             })
             .collect::<Vec<_>>();
 
+        let (peer_send, peer_receive) = mpsc::channel(1);
+
+        let peer_server = crate::peer::Server::new(backend);
+        let peer_server_clone = peer_server.clone();
+        let peer_server_task = tokio::spawn(async move {
+            peer_server_clone
+                .sync(change_notify_receiver, peer_receive)
+                .await
+        });
+
+        let mut peer_clients = Vec::new();
+        let frontend = frontends.get(0).unwrap();
+        for address in self.initial_cluster.iter() {
+            if self.listen_peer_urls.contains(&address.address) {
+                // don't send sync messages to self
+                continue;
+            }
+            let address = address.address.to_string();
+            let peer_server = peer_server.clone();
+            let frontend = frontend.clone();
+            let mut shutdown = shutdown.clone();
+            let c = tokio::spawn(async move {
+                // connect to the peer and keep trying if goes offline
+
+                let server = frontend.current_server().await;
+                let member_id = server.member_id();
+
+                let address_clone = address.clone();
+                let l = tokio::spawn(async move {
+                    loop {
+                        crate::peer::connect_and_sync(
+                            address.clone(),
+                            peer_server.clone(),
+                            member_id,
+                        )
+                        .await;
+                        // TODO: use backoff
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+                    }
+                });
+
+                // loop won't terminate so just wait for it and the shutdown
+                tokio::select! {
+                    _ = shutdown.changed() => {},
+                    _ = l => {},
+                    else => {},
+                }
+                tracing::info!(address = ?address_clone, "Shutting down peer client loop")
+            });
+            peer_clients.push(c);
+        }
+
+        let peer_servers = peer_urls
+            .iter()
+            .map(|peer_url| {
+                let identity = if let Scheme::Https = peer_url.scheme {
+                    match (self.peer_cert_file.as_ref(), self.peer_key_file.as_ref()) {
+                        (Some(cert_file), Some(key_file)) => {
+                            let cert = std::fs::read(&cert_file).expect("reading server cert");
+                            let key = std::fs::read(&key_file).expect("reading server key");
+                            Some(Identity::from_pem(cert, key))
+                        }
+                        (Some(_), None) => {
+                            panic!("Requested peer url '{}', but missing --cert-file", peer_url)
+                        }
+                        (None, Some(_)) => {
+                            panic!("Requested peer url '{}', but missing --key-file", peer_url)
+                        }
+                        (None, None) => panic!(
+                            "Requested peer url '{}', but missing both --cert-file and --key-file",
+                            peer_url
+                        ),
+                    }
+                } else {
+                    None
+                };
+
+                let serving = crate::peer::serve(
+                    peer_url.socket_address(),
+                    identity,
+                    shutdown.clone(),
+                    peer_send.clone(),
+                    frontend.clone(),
+                );
+                info!("Listening to peers on {}", peer_url);
+                serving
+            })
+            .collect::<Vec<_>>();
+
         let metrics_servers = self.listen_metrics_urls.iter().map(|metrics_url| {
             // TODO: handle identity on metrics urls
                 let _identity = if let Scheme::Https = metrics_url.scheme {
@@ -241,6 +348,9 @@ where
 
         tokio::join![
             async { futures::future::try_join_all(client_servers).await.unwrap() },
+            async { futures::future::try_join_all(peer_servers).await.unwrap() },
+            async { peer_server_task.await.unwrap() },
+            async { futures::future::join_all(peer_clients).await },
             async {
                 futures::future::try_join_all(metrics_servers)
                     .await

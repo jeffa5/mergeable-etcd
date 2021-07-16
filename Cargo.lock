@@ -170,7 +170,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#2c63399ba3a2f3c28ae0d10f7b844d71fadb0e4a"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#2826f58f0f5f43e74ae4253c7ffaef1b78dada74"
 dependencies = [
  "async-trait",
  "automerge",
@@ -182,7 +182,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent-sled"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#2c63399ba3a2f3c28ae0d10f7b844d71fadb0e4a"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#2826f58f0f5f43e74ae4253c7ffaef1b78dada74"
 dependencies = [
  "async-trait",
  "automerge",
@@ -762,6 +762,7 @@ dependencies = [
  "hyper",
  "num_cpus",
  "opentelemetry 0.15.0",
+ "peer-proto",
  "pretty_assertions",
  "prost",
  "rand 0.8.4",
@@ -1979,6 +1980,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39fe46acc5503595e5949c17b818714d26fdf9b4920eacf3b2947f0199f4a6ff"
 dependencies = [
  "rustc_version",
+]
+
+[[package]]
+name = "peer-proto"
+version = "0.1.0"
+dependencies = [
+ "prost",
+ "serde",
+ "tonic",
+ "tonic-build",
 ]
 
 [[package]]

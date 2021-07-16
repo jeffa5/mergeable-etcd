@@ -1,0 +1,24 @@
+syntax = "proto3";
+package peer;
+
+message SyncMessage {
+  // The member id of the sending party.
+  uint64 id = 1;
+  // The encoded sync message.
+  bytes data = 2;
+}
+
+message GetMemberIDResponse {
+  // The member id of the responder.
+  uint64 id = 1;
+}
+
+message Empty {}
+
+service Peer {
+  // Sync accepts many sync messages.
+  rpc Sync(stream SyncMessage) returns (Empty) { }
+
+  // gets the members id (for use as a sync peer id)
+  rpc GetMemberID(Empty) returns (GetMemberIDResponse) {}
+}
