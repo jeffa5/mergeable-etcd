@@ -60,11 +60,6 @@ impl Server {
                 backend.receive_sync_message(peer_id, message).await;
             }
         });
-
-        // periodically (every 0.1s?) generate new sync messages for each peer
-        //
-        // additionally if we have just received a message, debounce it (use a small sleep) then
-        // generate sync messages for others
     }
 
     /// Try and add the client with response sender to this server.
