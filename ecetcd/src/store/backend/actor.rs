@@ -79,13 +79,19 @@ impl BackendActor {
     async fn handle_backend_message(&mut self, msg: BackendMessage) {
         match msg {
             BackendMessage::ApplyLocalChange { change } => {
-                self.apply_local_change_async(change).await.unwrap()
+                let result = self.apply_local_change_async(change).await.unwrap();
+                let _ = self.changed_notify.send(());
+                result
             }
             BackendMessage::ApplyLocalChangeSync { change, ret } => {
-                self.apply_local_change_sync(change, ret).await.unwrap()
+                let result = self.apply_local_change_sync(change, ret).await.unwrap();
+                let _ = self.changed_notify.send(());
+                result
             }
             BackendMessage::ApplyChanges { changes } => {
                 let patch = self.apply_changes(changes).unwrap();
+
+                let _ = self.changed_notify.send(());
 
                 let frontends = self.frontends.clone();
                 tokio::spawn(async move {
@@ -111,6 +117,8 @@ impl BackendActor {
             }
             BackendMessage::ReceiveSyncMessage { peer_id, message } => {
                 let patch = self.receive_sync_message(peer_id, message).unwrap();
+
+                let _ = self.changed_notify.send(());
 
                 if let Some(patch) = patch {
                     let frontends = self.frontends.clone();
