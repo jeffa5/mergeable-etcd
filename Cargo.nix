@@ -119,6 +119,16 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
+    "peer-proto" = rec {
+      packageId = "peer-proto";
+      build = internal.buildRustCrateWithFeatures {
+        packageId = "peer-proto";
+      };
+
+      # Debug support which might change between releases.
+      # File a bug if you depend on any for non-debug work!
+      debug = internal.debugCrate { inherit packageId; };
+    };
     "recetcd" = rec {
       packageId = "recetcd";
       build = internal.buildRustCrateWithFeatures {
@@ -623,8 +633,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "2c63399ba3a2f3c28ae0d10f7b844d71fadb0e4a";
-          sha256 = "0afx71v2wkchq3pbg3wmifqbc9dh2q7s15njcvbhzxh4b3jz1x00";
+          rev = "2826f58f0f5f43e74ae4253c7ffaef1b78dada74";
+          sha256 = "1xpf5lfqmrbid7mqq2gpsfk10h3n9ffij672yiar86l6phj000gs";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -660,8 +670,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "2c63399ba3a2f3c28ae0d10f7b844d71fadb0e4a";
-          sha256 = "0afx71v2wkchq3pbg3wmifqbc9dh2q7s15njcvbhzxh4b3jz1x00";
+          rev = "2826f58f0f5f43e74ae4253c7ffaef1b78dada74";
+          sha256 = "1xpf5lfqmrbid7mqq2gpsfk10h3n9ffij672yiar86l6phj000gs";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -2299,6 +2309,10 @@ rec {
           {
             name = "opentelemetry";
             packageId = "opentelemetry 0.15.0";
+          }
+          {
+            name = "peer-proto";
+            packageId = "peer-proto";
           }
           {
             name = "prost";
@@ -5886,6 +5900,37 @@ rec {
         ];
         features = {
         };
+      };
+      "peer-proto" = rec {
+        crateName = "peer-proto";
+        version = "0.1.0";
+        edition = "2018";
+        src = lib.cleanSourceWith { filter = sourceFilter;  src = ./peer-proto; };
+        authors = [
+          "Andrew Jeffery <dev@jeffas.io>"
+        ];
+        dependencies = [
+          {
+            name = "prost";
+            packageId = "prost";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "tonic";
+            packageId = "tonic";
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "tonic-build";
+            packageId = "tonic-build";
+          }
+        ];
+
       };
       "pem" = rec {
         crateName = "pem";
