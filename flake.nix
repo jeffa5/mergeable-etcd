@@ -26,6 +26,10 @@
                 buildInputs = [ pkgs.protobuf pkgs.rustfmt ];
                 PROTOC = "${pkgs.protobuf}/bin/protoc";
               };
+              peer-proto = attrs: {
+                buildInputs = [ pkgs.protobuf pkgs.rustfmt ];
+                PROTOC = "${pkgs.protobuf}/bin/protoc";
+              };
               kubernetes-proto = attrs: {
                 buildInputs = [ pkgs.protobuf pkgs.rustfmt ];
                 PROTOC = "${pkgs.protobuf}/bin/protoc";
