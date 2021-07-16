@@ -21,13 +21,16 @@ use tonic::{
 use tower::Service;
 use tracing::{info, warn};
 
+use crate::store::FrontendHandle;
+
 pub async fn serve(
     address: SocketAddr,
     identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
-    sender: mpsc::Sender<(SocketAddr, Option<automerge_backend::SyncMessage>)>,
+    sender: mpsc::Sender<(u64, Option<automerge_backend::SyncMessage>)>,
+    frontend: FrontendHandle,
 ) -> Result<(), tonic::transport::Error> {
-    let peer_service = PeerServer::new(Peer { sender });
+    let peer_service = PeerServer::new(Peer { sender, frontend });
     let mut server = tonic::transport::Server::builder();
     if let Some(identity) = identity {
         server = server.tls_config(ServerTlsConfig::new().identity(identity))?;

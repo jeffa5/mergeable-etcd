@@ -156,7 +156,7 @@ where
 
         let health = HealthServer::new(frontend_healths, backend_health_sender);
 
-        let server = crate::server::Server::new(frontends);
+        let server = crate::server::Server::new(frontends.clone());
         let client_urls = match (
             &self.listen_client_urls[..],
             &self.advertise_client_urls[..],
@@ -243,6 +243,7 @@ where
         });
 
         let mut peer_clients = Vec::new();
+        let frontend = frontends.get(0).unwrap();
         for address in self.initial_cluster.iter() {
             if self.listen_peer_urls.contains(&address.address) {
                 // don't send sync messages to self
@@ -250,10 +251,14 @@ where
             }
             let address = address.address.to_string();
             let peer_server = peer_server.clone();
+            let frontend = frontend.clone();
             let c = tokio::spawn(async move {
                 // connect to the peer and keep trying if goes offline
                 loop {
-                    crate::peer::connect_and_sync(address.clone(), peer_server.clone()).await;
+                    let server = frontend.current_server().await;
+                    let member_id = server.member_id();
+                    crate::peer::connect_and_sync(address.clone(), peer_server.clone(), member_id)
+                        .await;
                     // TODO: use backoff
                     tokio::time::sleep(Duration::from_secs(1)).await;
                 }
@@ -291,6 +296,7 @@ where
                     identity,
                     shutdown.clone(),
                     peer_send.clone(),
+                    frontend.clone(),
                 );
                 info!("Listening to peers on {}", peer_url);
                 serving
