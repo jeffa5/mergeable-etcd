@@ -5,7 +5,6 @@ mod service;
 use std::{
     net::SocketAddr,
     task::{Context, Poll},
-    time::Duration,
 };
 
 pub use client::connect_and_sync;

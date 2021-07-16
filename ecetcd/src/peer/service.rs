@@ -39,7 +39,7 @@ impl PeerTrait for Peer {
 
     async fn get_member_id(
         &self,
-        empty: tonic::Request<peer_proto::Empty>,
+        _empty: tonic::Request<peer_proto::Empty>,
     ) -> Result<tonic::Response<peer_proto::GetMemberIdResponse>, tonic::Status> {
         let server = self.frontend.current_server().await;
         let id = server.member_id();
