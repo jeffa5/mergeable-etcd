@@ -40,6 +40,7 @@ pub enum BackendMessage {
         peer_id: Vec<u8>,
         message: SyncMessage,
     },
+    NewSyncPeer {},
 }
 
 impl Display for BackendMessage {
@@ -52,6 +53,7 @@ impl Display for BackendMessage {
             BackendMessage::DbSize { .. } => "db_size",
             BackendMessage::GenerateSyncMessage { .. } => "generate_sync_message",
             BackendMessage::ReceiveSyncMessage { .. } => "receive_sync_message",
+            BackendMessage::NewSyncPeer {} => "new_sync_peer",
         };
         write!(f, "{}", s)
     }

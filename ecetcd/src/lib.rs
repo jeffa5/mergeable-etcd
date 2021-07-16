@@ -233,11 +233,11 @@ where
 
         let (peer_send, peer_receive) = mpsc::channel(1);
 
-        let peer_server = crate::peer::Server::new();
+        let peer_server = crate::peer::Server::new(backend);
         let peer_server_clone = peer_server.clone();
         let peer_server_task = tokio::spawn(async move {
             peer_server_clone
-                .sync(change_notify_receiver, backend, peer_receive)
+                .sync(change_notify_receiver, peer_receive)
                 .await
         });
 

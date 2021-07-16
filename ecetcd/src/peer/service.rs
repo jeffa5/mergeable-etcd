@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 use tonic::Response;
 
 pub struct Peer {
-    pub sender: mpsc::Sender<(SocketAddr, automerge_backend::SyncMessage)>,
+    pub sender: mpsc::Sender<(SocketAddr, Option<automerge_backend::SyncMessage>)>,
 }
 
 #[tonic::async_trait]
@@ -18,9 +18,12 @@ impl PeerTrait for Peer {
         let remote_addr = request.remote_addr().unwrap();
         let mut stream = request.into_inner();
 
+        // handle sending initial message to catch people up
+        let _ = self.sender.send((remote_addr, None)).await.is_err();
+
         while let Some(Ok(msg)) = stream.next().await {
             let msg = automerge_backend::SyncMessage::decode(&msg.data).unwrap();
-            if self.sender.send((remote_addr, msg)).await.is_err() {
+            if self.sender.send((remote_addr, Some(msg))).await.is_err() {
                 break;
             }
         }

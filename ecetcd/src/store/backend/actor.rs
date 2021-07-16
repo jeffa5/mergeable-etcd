@@ -131,6 +131,10 @@ impl BackendActor {
                     });
                 }
             }
+            BackendMessage::NewSyncPeer {} => {
+                // trigger sync clients to try for new messages
+                let _ = self.changed_notify.send(());
+            }
         }
     }
 

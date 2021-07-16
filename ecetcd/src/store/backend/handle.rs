@@ -92,4 +92,9 @@ impl BackendHandle {
 
         let _ = self.sender.send_to_backend(msg).await;
     }
+
+    pub async fn new_sync_peer(&self) {
+        let msg = BackendMessage::NewSyncPeer {};
+        let _ = self.sender.send_to_backend(msg).await;
+    }
 }

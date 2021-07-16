@@ -25,7 +25,7 @@ pub async fn serve(
     address: SocketAddr,
     identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
-    sender: mpsc::Sender<(SocketAddr, automerge_backend::SyncMessage)>,
+    sender: mpsc::Sender<(SocketAddr, Option<automerge_backend::SyncMessage>)>,
 ) -> Result<(), tonic::transport::Error> {
     let peer_service = PeerServer::new(Peer { sender });
     let mut server = tonic::transport::Server::builder();

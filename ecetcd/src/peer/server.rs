@@ -11,6 +11,7 @@ use crate::store::BackendHandle;
 #[derive(Clone)]
 pub struct Server {
     inner: Arc<Mutex<Inner>>,
+    backend: BackendHandle,
 }
 
 pub struct Inner {
@@ -18,24 +19,24 @@ pub struct Inner {
 }
 
 impl Server {
-    pub fn new() -> Self {
+    pub fn new(backend: BackendHandle) -> Self {
         Self {
             inner: Arc::new(Mutex::new(Inner {
                 sync_connections: HashMap::new(),
             })),
+            backend,
         }
     }
 
     pub async fn sync(
         &self,
         mut changed_notify: mpsc::UnboundedReceiver<()>,
-        backend: BackendHandle,
         // receive messages from servers (streamed from clients)
-        mut receiver: mpsc::Receiver<(SocketAddr, automerge_backend::SyncMessage)>,
+        mut receiver: mpsc::Receiver<(SocketAddr, Option<automerge_backend::SyncMessage>)>,
     ) {
         tracing::info!("Started handling peer syncs");
         let inner = Arc::clone(&self.inner);
-        let backend_clone = backend.clone();
+        let backend = self.backend.clone();
         tokio::spawn(async move {
             // handle changes in backend and sending generated messages
             while let Some(()) = changed_notify.recv().await {
@@ -45,7 +46,7 @@ impl Server {
                 };
                 for (peer_id, sender) in connections {
                     let peer_id = peer_id.into_bytes();
-                    let msg = backend_clone.generate_sync_message(peer_id).await;
+                    let msg = backend.generate_sync_message(peer_id).await;
                     if let Some(msg) = msg {
                         let _ = sender.send(msg);
                     }
@@ -53,11 +54,21 @@ impl Server {
             }
         });
 
+        let backend = self.backend.clone();
         tokio::spawn(async move {
             // handle any received messages and apply them to the backend
             while let Some((peer_id, message)) = receiver.recv().await {
                 let peer_id = format!("{:?}", peer_id).into_bytes();
-                backend.receive_sync_message(peer_id, message).await;
+                if let Some(message) = message {
+                    backend.receive_sync_message(peer_id, message).await;
+                } else {
+                    // new connection to the server
+                    //
+                    // This will trigger clients to check for new messages
+                    //
+                    // Works when the client is already connected and set up.
+                    backend.new_sync_peer().await;
+                }
             }
         });
     }
@@ -65,18 +76,23 @@ impl Server {
     /// Try and add the client with response sender to this server.
     ///
     /// Returns true if a client for this address doesn't already exist.
-    pub fn register_client(
+    pub async fn register_client(
         &self,
         addr: String,
         sender: mpsc::UnboundedSender<automerge_backend::SyncMessage>,
     ) -> bool {
-        let mut inner = self.inner.lock().unwrap();
-        if inner.sync_connections.contains_key(&addr) {
-            false
-        } else {
-            inner.sync_connections.insert(addr, sender);
-            true
-        }
+        let res = {
+            let mut inner = self.inner.lock().unwrap();
+            if inner.sync_connections.contains_key(&addr) {
+                false
+            } else {
+                inner.sync_connections.insert(addr, sender);
+                true
+            }
+        };
+        // newly connected client so should see if there is anything to send to the peer
+        self.backend.new_sync_peer().await;
+        res
     }
 
     pub fn unregister_client(&self, addr: &str) {

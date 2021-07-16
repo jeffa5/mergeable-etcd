@@ -12,7 +12,7 @@ pub async fn connect_and_sync(address: String, server: super::server::Server) {
     let (send, recv) = mpsc::unbounded_channel();
 
     // register with the peer handler
-    if server.register_client(address.clone(), send) {
+    if server.register_client(address.clone(), send).await {
         let stream = Request::new(Box::pin(
             tokio_stream::wrappers::UnboundedReceiverStream::new(recv).map(|msg| {
                 peer_proto::SyncMessage {
