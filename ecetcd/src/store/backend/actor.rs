@@ -80,20 +80,17 @@ impl BackendActor {
         match msg {
             BackendMessage::ApplyLocalChange { change } => {
                 let result = self.apply_local_change_async(change).await.unwrap();
-                tracing::info!("triggering changed notify");
                 let _ = self.changed_notify.send(());
                 result
             }
             BackendMessage::ApplyLocalChangeSync { change, ret } => {
                 let result = self.apply_local_change_sync(change, ret).await.unwrap();
-                tracing::info!("triggering changed notify");
                 let _ = self.changed_notify.send(());
                 result
             }
             BackendMessage::ApplyChanges { changes } => {
                 let patch = self.apply_changes(changes).unwrap();
 
-                tracing::info!("triggering changed notify");
                 let _ = self.changed_notify.send(());
 
                 let frontends = self.frontends.clone();
@@ -121,7 +118,6 @@ impl BackendActor {
             BackendMessage::ReceiveSyncMessage { peer_id, message } => {
                 let patch = self.receive_sync_message(peer_id, message).unwrap();
 
-                tracing::info!("triggering changed notify");
                 let _ = self.changed_notify.send(());
 
                 if let Some(patch) = patch {
@@ -137,7 +133,6 @@ impl BackendActor {
             }
             BackendMessage::NewSyncPeer {} => {
                 // trigger sync clients to try for new messages
-                tracing::info!("triggering changed notify");
                 let _ = self.changed_notify.send(());
             }
         }
