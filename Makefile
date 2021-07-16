@@ -105,3 +105,7 @@ diagrams: $(SVG_FILES)
 protos:
 	rm -rf kubernetes-proto/proto
 	rsync -avm --include='*.proto' --filter 'hide,! */' ../kubernetes/staging/src/ kubernetes-proto/proto
+
+.PHONY: jaeger
+jaeger:
+	docker run --name jaeger -d -p6831:6831/udp -p6832:6832/udp -p16686:16686 jaegertracing/all-in-one:latest
