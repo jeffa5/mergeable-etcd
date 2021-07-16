@@ -1,4 +1,5 @@
 use automerge::Change;
+use automerge_backend::SyncMessage;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::Patch;
@@ -76,5 +77,13 @@ impl BackendHandle {
 
         let _ = self.sender.send_to_backend(msg).await;
         recv.await.expect("Backend actor task has been killed")
+    }
+
+    pub async fn generate_sync_message(&self, peer_id: Vec<u8>) -> Option<SyncMessage> {
+        todo!()
+    }
+
+    pub async fn receive_sync_message(&self, peer_id: Vec<u8>, message: SyncMessage) {
+        todo!()
     }
 }
