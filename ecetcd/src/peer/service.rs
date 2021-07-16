@@ -17,20 +17,16 @@ impl PeerTrait for Peer {
         &self,
         request: tonic::Request<tonic::Streaming<peer_proto::SyncMessage>>,
     ) -> Result<tonic::Response<peer_proto::Empty>, tonic::Status> {
-        let remote_addr = request.remote_addr().unwrap();
         let mut stream = request.into_inner();
 
-        tracing::info!(address = ?remote_addr, "Accepted connection from peer");
         // handle sending initial message to catch people up
         let _ = self.sender.send((0, None)).await.is_err();
-        tracing::info!(address = ?remote_addr, "Server triggered sync");
 
         let mut shutdown = self.shutdown.clone();
 
         loop {
             tokio::select! {
                 Some(Ok(msg)) = stream.next() => {
-                    tracing::info!(address = ?remote_addr, "Received sync message");
                     let smsg = automerge_backend::SyncMessage::decode(&msg.data).unwrap();
                     if self.sender.send((msg.id, Some(smsg))).await.is_err() {
                         break;
@@ -40,8 +36,6 @@ impl PeerTrait for Peer {
                 else => break,
             }
         }
-
-        tracing::info!(address = ?remote_addr, "Closing server connection");
 
         Ok(Response::new(peer_proto::Empty {}))
     }

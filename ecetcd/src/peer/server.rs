@@ -33,13 +33,11 @@ impl Server {
         // receive messages from servers (streamed from clients)
         mut receiver: mpsc::Receiver<(u64, Option<automerge_backend::SyncMessage>)>,
     ) {
-        tracing::info!("Started handling peer syncs");
         let inner = Arc::clone(&self.inner);
         let backend = self.backend.clone();
         tokio::spawn(async move {
             // handle changes in backend and sending generated messages
             while let Some(()) = changed_notify.recv().await {
-                tracing::info!("changed notify");
                 let connections = {
                     let inner = inner.lock().unwrap();
                     inner.sync_connections.clone()
@@ -47,7 +45,6 @@ impl Server {
                 for (peer_id, sender) in connections {
                     let peer_id = peer_id.to_be_bytes().to_vec();
                     let msg = backend.generate_sync_message(peer_id.clone()).await;
-                    tracing::info!(?peer_id, ?msg, "generated message for peer");
                     if let Some(msg) = msg {
                         let _ = sender.send(msg);
                     }
