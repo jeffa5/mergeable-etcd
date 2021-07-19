@@ -114,7 +114,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#f14697cb61a5f8dd002a373fdd38508db9d7dc6e"
+source = "git+https://github.com//automerge/automerge-rs?branch=sync-improvements#511a00c8c6d2c470da78a2acf9da1eaacbc1dbf2"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
@@ -127,7 +127,7 @@ dependencies = [
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#f14697cb61a5f8dd002a373fdd38508db9d7dc6e"
+source = "git+https://github.com//automerge/automerge-rs?branch=sync-improvements#511a00c8c6d2c470da78a2acf9da1eaacbc1dbf2"
 dependencies = [
  "automerge-protocol",
  "flate2",
@@ -152,7 +152,7 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#f14697cb61a5f8dd002a373fdd38508db9d7dc6e"
+source = "git+https://github.com//automerge/automerge-rs?branch=sync-improvements#511a00c8c6d2c470da78a2acf9da1eaacbc1dbf2"
 dependencies = [
  "automerge-protocol",
  "futures",
@@ -196,7 +196,7 @@ dependencies = [
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com/automerge/automerge-rs?branch=main#f14697cb61a5f8dd002a373fdd38508db9d7dc6e"
+source = "git+https://github.com//automerge/automerge-rs?branch=sync-improvements#511a00c8c6d2c470da78a2acf9da1eaacbc1dbf2"
 dependencies = [
  "hex",
  "serde",

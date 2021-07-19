@@ -421,9 +421,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "f14697cb61a5f8dd002a373fdd38508db9d7dc6e";
-          sha256 = "15lnzivx8303p6sxm8s6c3m2fiawjkfgqynqj39w3nxjx98w0lx0";
+          url = "https://github.com//automerge/automerge-rs";
+          rev = "511a00c8c6d2c470da78a2acf9da1eaacbc1dbf2";
+          sha256 = "0vyikxq3mm0ra7qb67yhzldma0pnn69rmwcaascx8yb97d2dda01";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -464,9 +464,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "f14697cb61a5f8dd002a373fdd38508db9d7dc6e";
-          sha256 = "15lnzivx8303p6sxm8s6c3m2fiawjkfgqynqj39w3nxjx98w0lx0";
+          url = "https://github.com//automerge/automerge-rs";
+          rev = "511a00c8c6d2c470da78a2acf9da1eaacbc1dbf2";
+          sha256 = "0vyikxq3mm0ra7qb67yhzldma0pnn69rmwcaascx8yb97d2dda01";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -557,9 +557,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "f14697cb61a5f8dd002a373fdd38508db9d7dc6e";
-          sha256 = "15lnzivx8303p6sxm8s6c3m2fiawjkfgqynqj39w3nxjx98w0lx0";
+          url = "https://github.com//automerge/automerge-rs";
+          rev = "511a00c8c6d2c470da78a2acf9da1eaacbc1dbf2";
+          sha256 = "0vyikxq3mm0ra7qb67yhzldma0pnn69rmwcaascx8yb97d2dda01";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -714,9 +714,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/automerge/automerge-rs";
-          rev = "f14697cb61a5f8dd002a373fdd38508db9d7dc6e";
-          sha256 = "15lnzivx8303p6sxm8s6c3m2fiawjkfgqynqj39w3nxjx98w0lx0";
+          url = "https://github.com//automerge/automerge-rs";
+          rev = "511a00c8c6d2c470da78a2acf9da1eaacbc1dbf2";
+          sha256 = "0vyikxq3mm0ra7qb67yhzldma0pnn69rmwcaascx8yb97d2dda01";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
