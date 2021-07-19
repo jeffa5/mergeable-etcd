@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use automerge::Change;
 use automerge_backend::SyncMessage;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::Patch;
 use futures::future::join_all;
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{mpsc, oneshot, watch, Notify};
 use tracing::{info, Instrument, Span};
 
 use super::BackendMessage;
@@ -21,7 +23,7 @@ pub struct BackendActor {
     health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
     shutdown: watch::Receiver<()>,
     frontends: Vec<FrontendHandle>,
-    changed_notify: mpsc::UnboundedSender<()>,
+    changed_notify: Arc<Notify>,
 }
 
 impl BackendActor {
@@ -31,7 +33,7 @@ impl BackendActor {
         receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
         health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
-        changed_notify: mpsc::UnboundedSender<()>,
+        changed_notify: Arc<Notify>,
     ) -> Self {
         let db = config.open().unwrap();
         let changes_tree = db.open_tree("changes").unwrap();
@@ -80,18 +82,18 @@ impl BackendActor {
         match msg {
             BackendMessage::ApplyLocalChange { change } => {
                 let result = self.apply_local_change_async(change).await.unwrap();
-                let _ = self.changed_notify.send(());
+                let _ = self.changed_notify.notify_one();
                 result
             }
             BackendMessage::ApplyLocalChangeSync { change, ret } => {
                 let result = self.apply_local_change_sync(change, ret).await.unwrap();
-                let _ = self.changed_notify.send(());
+                let _ = self.changed_notify.notify_one();
                 result
             }
             BackendMessage::ApplyChanges { changes } => {
                 let patch = self.apply_changes(changes).unwrap();
 
-                let _ = self.changed_notify.send(());
+                let _ = self.changed_notify.notify_one();
 
                 let frontends = self.frontends.clone();
                 tokio::spawn(async move {
@@ -118,7 +120,7 @@ impl BackendActor {
             BackendMessage::ReceiveSyncMessage { peer_id, message } => {
                 let patch = self.receive_sync_message(peer_id, message).unwrap();
 
-                let _ = self.changed_notify.send(());
+                let _ = self.changed_notify.notify_one();
 
                 if let Some(patch) = patch {
                     let frontends = self.frontends.clone();
@@ -133,7 +135,7 @@ impl BackendActor {
             }
             BackendMessage::NewSyncPeer {} => {
                 // trigger sync clients to try for new messages
-                let _ = self.changed_notify.send(());
+                let _ = self.changed_notify.notify_one();
             }
         }
     }

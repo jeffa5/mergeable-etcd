@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Notify};
 
 use crate::store::BackendHandle;
 
@@ -29,7 +29,7 @@ impl Server {
 
     pub async fn sync(
         &self,
-        mut changed_notify: mpsc::UnboundedReceiver<()>,
+        changed_notify: Arc<Notify>,
         // receive messages from servers (streamed from clients)
         mut receiver: mpsc::Receiver<(u64, Option<automerge_backend::SyncMessage>)>,
     ) {
@@ -37,11 +37,18 @@ impl Server {
         let backend = self.backend.clone();
         tokio::spawn(async move {
             // handle changes in backend and sending generated messages
-            while let Some(()) = changed_notify.recv().await {
+            loop {
+                // wait to be notified of a new change in the backend
+                //
+                // Using notify here stops us getting lots of duplicate values and unnecessary
+                // sends
+                changed_notify.notified().await;
+
                 let connections = {
                     let inner = inner.lock().unwrap();
                     inner.sync_connections.clone()
                 };
+
                 for (peer_id, sender) in connections {
                     let peer_id = peer_id.to_be_bytes().to_vec();
                     let msg = backend.generate_sync_message(peer_id.clone()).await;

@@ -12,6 +12,7 @@ use std::{
     io::{BufWriter, Write},
     marker::PhantomData,
     path::PathBuf,
+    sync::Arc,
     time::Duration,
 };
 
@@ -23,7 +24,11 @@ use etcd_proto::etcdserverpb::{
 };
 pub use store::StoreValue;
 use store::{BackendActor, BackendHandle, FrontendHandle};
-use tokio::{runtime::Builder, sync::mpsc, task::LocalSet};
+use tokio::{
+    runtime::Builder,
+    sync::{mpsc, Notify},
+    task::LocalSet,
+};
 use tonic::transport::Identity;
 use tracing::info;
 
@@ -83,7 +88,10 @@ where
         shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let (b_sender, b_receiver) = tokio::sync::mpsc::unbounded_channel();
-        let (change_notify_sender, change_notify_receiver) = mpsc::unbounded_channel();
+
+        let change_notify = Arc::new(Notify::new());
+        let change_notify2 = change_notify.clone();
+
         let backend = BackendHandle::new(b_sender);
 
         let mut frontends = Vec::new();
@@ -149,7 +157,7 @@ where
                 b_receiver,
                 backend_health_receiver,
                 shutdown_clone,
-                change_notify_sender,
+                change_notify,
             );
             actor.run().await;
         });
@@ -236,11 +244,8 @@ where
 
         let peer_server = crate::peer::Server::new(backend);
         let peer_server_clone = peer_server.clone();
-        let peer_server_task = tokio::spawn(async move {
-            peer_server_clone
-                .sync(change_notify_receiver, peer_receive)
-                .await
-        });
+        let peer_server_task =
+            tokio::spawn(async move { peer_server_clone.sync(change_notify2, peer_receive).await });
 
         let mut peer_clients = Vec::new();
         let frontend = frontends.get(0).unwrap();
