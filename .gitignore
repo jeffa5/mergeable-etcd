@@ -2,10 +2,7 @@
 .direnv
 result
 result-lib
-default.eckd
-default.etcd
-default.ecetcd
-default.recetcd
+default.*
 certs/*.pem
 certs/*.csr
 certs/*.crt
