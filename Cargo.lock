@@ -863,7 +863,7 @@ dependencies = [
 [[package]]
 name = "exp"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/exp?branch=main#89bb9e9996cea8290763a3bb7aa2d33fd4d57d29"
+source = "git+https://github.com/jeffa5/exp?branch=main#cb677aa2ac760cf64cf5eb3957e7bfc4cc9f79db"
 dependencies = [
  "async-trait",
  "bollard",

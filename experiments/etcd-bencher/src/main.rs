@@ -130,6 +130,7 @@ impl exp::Experiment for Experiment {
                     capabilities: None,
                     cpus: None,
                     memory: None,
+                    tmpfs: Some(vec!["/data".to_owned()]),
                 })
                 .await
         }
@@ -153,6 +154,7 @@ impl exp::Experiment for Experiment {
                 capabilities: None,
                 cpus: None,
                 memory: None,
+                tmpfs: None,
             })
             .await;
 

@@ -225,6 +225,7 @@ impl exp::Experiment for Experiment {
                     capabilities: Some(vec!["NET_ADMIN".to_owned()]),
                     cpus: None,
                     memory: None,
+                    tmpfs: Some(vec!["/data".to_owned()]),
                 })
                 .await;
             tokio::time::sleep(Duration::from_millis(10)).await;
@@ -290,6 +291,7 @@ impl exp::Experiment for Experiment {
                 capabilities: None,
                 cpus: None,
                 memory: None,
+                tmpfs: None,
             })
             .await;
 
