@@ -186,12 +186,17 @@ impl BackendActor {
 
     #[tracing::instrument(level = "debug", skip(self))]
     async fn apply_patch_to_frontends(&mut self, patch: Patch) {
-        let apply_patches = self
-            .frontends
-            .iter()
-            .map(|f| f.apply_patch(patch.clone()))
-            .collect::<Vec<_>>();
-        join_all(apply_patches).await;
+        // avoid cloning for each element, instead consuming the patch for the last
+        if let Some((last, rest)) = self.frontends.split_last() {
+            let mut apply_patches = rest
+                .iter()
+                .map(|f| f.apply_patch(patch.clone()))
+                .collect::<Vec<_>>();
+
+            apply_patches.push(last.apply_patch(patch));
+
+            join_all(apply_patches).await;
+        }
     }
 
     fn apply_changes(
