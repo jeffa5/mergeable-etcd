@@ -633,8 +633,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "2826f58f0f5f43e74ae4253c7ffaef1b78dada74";
-          sha256 = "1xpf5lfqmrbid7mqq2gpsfk10h3n9ffij672yiar86l6phj000gs";
+          rev = "4b2ac8163ab6ddcded4eba51df4dba760b0b71b0";
+          sha256 = "1fcrzc9xpahf3fizaa3b3fwhdnfridlv86pajyg4m7cqw755f5h1";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -670,8 +670,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "2826f58f0f5f43e74ae4253c7ffaef1b78dada74";
-          sha256 = "1xpf5lfqmrbid7mqq2gpsfk10h3n9ffij672yiar86l6phj000gs";
+          rev = "4b2ac8163ab6ddcded4eba51df4dba760b0b71b0";
+          sha256 = "1fcrzc9xpahf3fizaa3b3fwhdnfridlv86pajyg4m7cqw755f5h1";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -692,10 +692,6 @@ rec {
           {
             name = "automerge-protocol";
             packageId = "automerge-protocol";
-          }
-          {
-            name = "futures";
-            packageId = "futures";
           }
           {
             name = "sled";
