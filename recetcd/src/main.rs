@@ -92,7 +92,7 @@ struct Options {
     #[structopt(long)]
     debug: bool,
 
-    /// Enable reporting trace spans to jaeger.
+    /// Enable sending traces to jaeger.
     #[structopt(long)]
     jaeger: bool,
 

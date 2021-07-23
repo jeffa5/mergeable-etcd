@@ -1,15 +1,19 @@
-use std::{collections::HashMap, convert::TryFrom, ops::Range, thread};
+use std::{cell::RefCell, collections::HashMap, convert::TryFrom, rc::Rc, thread};
 
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::ActorId;
-use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
+use etcd_proto::etcdserverpb::{request_op::Request, RequestOp, ResponseOp, TxnRequest};
 use rand::random;
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::{
+    sync::{mpsc, oneshot, watch},
+    task,
+};
 use tracing::{error, info, warn, Instrument, Span};
 
 use super::FrontendMessage;
 use crate::{
+    key_range::SingleKeyOrRange,
     store::{
         frontend::document::Document, BackendHandle, Key, Revision, Server, SnapshotValue,
         StoreContents, Ttl,
@@ -24,8 +28,11 @@ where
 {
     document: Document<T>,
     backend: BackendHandle,
-    watchers:
-        HashMap<WatchRange, mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>>,
+    watchers: HashMap<
+        SingleKeyOrRange,
+        mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
+    >,
+    locked_key_ranges: Rc<RefCell<HashMap<SingleKeyOrRange, watch::Receiver<()>>>>,
     // receiver for requests from clients
     client_receiver: mpsc::Receiver<(FrontendMessage, Span)>,
     // receiver for requests from the backend
@@ -34,21 +41,6 @@ where
     shutdown: watch::Receiver<()>,
     id: usize,
     sync: bool,
-}
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum WatchRange {
-    Range(Range<Key>),
-    Single(Key),
-}
-
-impl WatchRange {
-    fn contains(&self, key: &Key) -> bool {
-        match self {
-            Self::Range(range) => range.contains(key),
-            Self::Single(s) => s == key,
-        }
-    }
 }
 
 impl<T> FrontendActor<T>
@@ -94,10 +86,13 @@ where
             actor_id
         );
 
+        let locked_key_ranges = Rc::new(RefCell::new(HashMap::new()));
+
         Ok(Self {
             document,
             backend,
             watchers,
+            locked_key_ranges,
             client_receiver,
             backend_receiver,
             health_receiver,
@@ -146,7 +141,7 @@ where
                 range_end,
                 revision,
             } => {
-                let result = self.get(key, range_end, revision);
+                let result = self.get(key, range_end, revision).await;
                 let _ = ret.send(result);
                 Ok(())
             }
@@ -157,8 +152,7 @@ where
                 lease,
                 ret,
             } => {
-                let result = self.insert(key, value, prev_kv, lease).await;
-                let _ = ret.send(result);
+                self.insert(key, value, prev_kv, lease, ret).await;
                 Ok(())
             }
             FrontendMessage::Remove {
@@ -182,9 +176,9 @@ where
                 send_watch_created,
             } => {
                 let range = if let Some(end) = range_end {
-                    WatchRange::Range(key..end)
+                    SingleKeyOrRange::Range(key..end)
                 } else {
-                    WatchRange::Single(key)
+                    SingleKeyOrRange::Single(key)
                 };
                 let (sender, receiver) = mpsc::channel(1);
                 self.watchers.insert(range, sender);
@@ -199,7 +193,10 @@ where
                     .unwrap();
 
                 if let Some(change) = change {
-                    self.apply_local_change(change).await;
+                    // no keys changed, just the server
+                    let (send, recv) = oneshot::channel();
+                    self.apply_local_change(Vec::new(), change, send).await;
+                    recv.await.unwrap()
                 }
 
                 tokio::task::spawn_local(async move {
@@ -235,26 +232,95 @@ where
     }
 
     #[tracing::instrument(level="debug",skip(self, change), fields(sync = self.sync))]
-    async fn apply_local_change(&mut self, change: automerge_protocol::Change) {
+    async fn apply_local_change(
+        &mut self,
+        key_ranges: Vec<SingleKeyOrRange>,
+        change: automerge_protocol::Change,
+        send: oneshot::Sender<()>,
+    ) {
         if self.sync {
-            self.backend.apply_local_change_sync(change).await;
+            let mut releases = Vec::new();
+            for key_range in &key_ranges {
+                let (send, recv) = watch::channel(());
+                releases.push(send);
+
+                let mut locked_key_ranges = self.locked_key_ranges.borrow_mut();
+
+                for existing_key_range in locked_key_ranges.keys() {
+                    if existing_key_range.overlaps(key_range) {
+                        panic!("locked_key_ranges already contained key {:?}", key_range)
+                    }
+                }
+
+                if locked_key_ranges.insert(key_range.clone(), recv).is_some() {
+                    panic!("locked_key_ranges already contained key {:?}", key_range)
+                }
+            }
+
+            let backend = self.backend.clone();
+            let locked_key_ranges = self.locked_key_ranges.clone();
+
+            task::spawn_local(async move {
+                backend.apply_local_change_sync(change).await;
+                let mut locked = locked_key_ranges.borrow_mut();
+                for (key, release) in key_ranges.into_iter().zip(releases.into_iter()) {
+                    locked.remove(&key);
+                    let _ = release.send(());
+                }
+                send.send(()).unwrap()
+            });
         } else {
-            self.backend.apply_local_change(change).await;
+            self.backend.apply_local_change_async(change).await;
+            send.send(()).unwrap()
         }
         // patch gets sent back asynchronously and we don't wait for it
     }
 
     #[tracing::instrument(level="debug",skip(self), fields(key = %key, frontend = self.id))]
-    fn get(
+    async fn get(
         &self,
         key: Key,
         range_end: Option<Key>,
         revision: Option<Revision>,
     ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
+        let wait_keys = if let Some(end) = range_end.as_ref() {
+            SingleKeyOrRange::Range(key.clone()..end.clone())
+        } else {
+            SingleKeyOrRange::Single(key.clone())
+        };
+        self.wait_for_keys(&[wait_keys]).await;
+
         let server = self.current_server();
         let revision = revision.unwrap_or(server.revision);
         let values = self.document.get().get_inner(key, range_end, revision);
         Ok((server, values))
+    }
+
+    async fn wait_for_keys(&self, key_ranges: &[SingleKeyOrRange]) {
+        let mut waits = Vec::new();
+
+        let locked_key_ranges = self.locked_key_ranges.borrow();
+
+        for key_range in key_ranges {
+            for (existing_key_range, wait) in locked_key_ranges.iter() {
+                if existing_key_range.overlaps(key_range) {
+                    waits.push(wait.clone());
+                }
+            }
+        }
+
+        drop(locked_key_ranges);
+
+        if !waits.is_empty() {
+            // since we are waiting ask the backend to flush changes so that operations we are
+            // waiting on can finish quicker
+            self.backend.flush_now();
+
+            for mut wait in waits {
+                // wait for the key to be unlocked
+                wait.changed().await.unwrap();
+            }
+        }
     }
 
     #[tracing::instrument(level="debug",skip(self, value), fields(key = %key, frontend = self.id))]
@@ -264,7 +330,11 @@ where
         value: Option<Vec<u8>>,
         prev_kv: bool,
         lease: Option<i64>,
-    ) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
+        ret: oneshot::Sender<Result<(Server, Option<SnapshotValue>), FrontendError>>,
+    ) {
+        let wait_key_range = vec![SingleKeyOrRange::Single(key.clone())];
+        self.wait_for_keys(&wait_key_range).await;
+
         let ((server, prev), change) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
@@ -295,10 +365,15 @@ where
         }
 
         if let Some(change) = change {
-            self.apply_local_change(change).await;
+            let (send, recv) = oneshot::channel();
+            self.apply_local_change(wait_key_range, change, send).await;
+            tokio::spawn(async move {
+                let () = recv.await.unwrap();
+                ret.send(Ok((server, prev))).unwrap()
+            });
+        } else {
+            ret.send(Ok((server, prev))).unwrap()
         }
-
-        Ok((server, prev))
     }
 
     #[tracing::instrument(level="debug",skip(self), fields(key = %key, frontend = self.id))]
@@ -307,6 +382,14 @@ where
         key: Key,
         range_end: Option<Key>,
     ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
+        let wait_keys = if let Some(end) = range_end.as_ref() {
+            SingleKeyOrRange::Range(key.clone()..end.clone())
+        } else {
+            SingleKeyOrRange::Single(key.clone())
+        };
+        let wait_key_range = vec![wait_keys];
+        self.wait_for_keys(&wait_key_range).await;
+
         let ((server, prev), change) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
@@ -344,7 +427,9 @@ where
         }
 
         if let Some(change) = change {
-            self.apply_local_change(change).await;
+            let (send, recv) = oneshot::channel();
+            self.apply_local_change(wait_key_range, change, send).await;
+            recv.await.unwrap();
         }
 
         let prev = prev.into_iter().filter_map(|(_, p)| p).collect();
@@ -356,6 +441,9 @@ where
         &mut self,
         request: TxnRequest,
     ) -> Result<(Server, bool, Vec<ResponseOp>), FrontendError> {
+        let wait_for_keys = extract_keys_from_txn(&request);
+        self.wait_for_keys(&wait_for_keys).await;
+
         let dup_request = request.clone();
         let ((server, success, results), change) = self
             .document
@@ -416,7 +504,9 @@ where
         }
 
         if let Some(change) = change {
-            self.apply_local_change(change).await;
+            let (send, recv) = oneshot::channel();
+            self.apply_local_change(wait_for_keys, change, send).await;
+            recv.await.unwrap();
         }
 
         Ok((server, success, results))
@@ -425,7 +515,7 @@ where
     #[tracing::instrument]
     async fn watch_range(
         mut receiver: mpsc::Receiver<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
-        tx: tokio::sync::mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
+        tx: mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
     ) {
         while let Some((server, events)) = receiver.recv().await {
             if tx.send((server, events)).await.is_err() {
@@ -467,7 +557,9 @@ where
             })?;
 
         if let Some(change) = change {
-            self.apply_local_change(change).await;
+            let (send, recv) = oneshot::channel();
+            self.apply_local_change(Vec::new(), change, send).await;
+            recv.await.unwrap();
         }
 
         Ok(result)
@@ -488,7 +580,9 @@ where
             .unwrap();
 
         if let Some(change) = change {
-            self.apply_local_change(change).await;
+            let (send, recv) = oneshot::channel();
+            self.apply_local_change(Vec::new(), change, send).await;
+            recv.await.unwrap();
         }
 
         Ok((server, ttl))
@@ -542,7 +636,9 @@ where
         }
 
         if let Some(change) = change {
-            self.apply_local_change(change).await
+            let (send, recv) = oneshot::channel();
+            self.apply_local_change(Vec::new(), change, send).await;
+            recv.await.unwrap();
         }
 
         Ok(server)
@@ -565,4 +661,50 @@ pub enum FrontendError {
     AutomergeDocumentChangeError(#[from] automergeable::DocumentChangeError),
     #[error("lease already exists")]
     LeaseAlreadyExists,
+}
+
+fn extract_keys_from_txn(txn: &TxnRequest) -> Vec<SingleKeyOrRange> {
+    let mut key_ranges = Vec::new();
+
+    for compare in &txn.compare {
+        let wk = if compare.range_end.is_empty() {
+            SingleKeyOrRange::Single(compare.key.clone().into())
+        } else {
+            SingleKeyOrRange::Range(compare.key.clone().into()..compare.range_end.clone().into())
+        };
+        key_ranges.push(wk);
+    }
+
+    key_ranges.extend(extract_keys_from_txn_inner(&txn.success));
+    key_ranges.extend(extract_keys_from_txn_inner(&txn.failure));
+    key_ranges
+}
+
+fn extract_keys_from_txn_inner(request_ops: &[RequestOp]) -> Vec<SingleKeyOrRange> {
+    let mut key_ranges = Vec::new();
+    for op in request_ops {
+        match op.request.as_ref().unwrap() {
+            Request::RequestRange(r) => {
+                let wk = if !r.range_end.is_empty() {
+                    SingleKeyOrRange::Range(r.key.clone().into()..r.range_end.clone().into())
+                } else {
+                    SingleKeyOrRange::Single(r.key.clone().into())
+                };
+                key_ranges.push(wk);
+            }
+            Request::RequestPut(r) => {
+                key_ranges.push(SingleKeyOrRange::Single(r.key.clone().into()))
+            }
+            Request::RequestDeleteRange(r) => {
+                let wk = if !r.range_end.is_empty() {
+                    SingleKeyOrRange::Range(r.key.clone().into()..r.range_end.clone().into())
+                } else {
+                    SingleKeyOrRange::Single(r.key.clone().into())
+                };
+                key_ranges.push(wk);
+            }
+            Request::RequestTxn(r) => key_ranges.extend(extract_keys_from_txn(r)),
+        }
+    }
+    key_ranges
 }

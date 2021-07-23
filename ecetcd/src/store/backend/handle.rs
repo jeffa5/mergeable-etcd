@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use automerge::Change;
 use automerge_backend::SyncMessage;
 use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::Patch;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, Notify};
 use tracing::Span;
 
 use super::BackendMessage;
@@ -29,17 +31,22 @@ impl Sender {
 #[derive(Clone, Debug)]
 pub struct BackendHandle {
     sender: Sender,
+    flush_notify: Arc<Notify>,
 }
 
 impl BackendHandle {
-    pub fn new(sender: mpsc::UnboundedSender<(BackendMessage, Span)>) -> Self {
+    pub fn new(
+        sender: mpsc::UnboundedSender<(BackendMessage, Span)>,
+        flush_notify: Arc<Notify>,
+    ) -> Self {
         Self {
             sender: Sender { inner: sender },
+            flush_notify,
         }
     }
 
     #[tracing::instrument(level = "debug", skip(self, change))]
-    pub async fn apply_local_change(&self, change: automerge_protocol::Change) {
+    pub async fn apply_local_change_async(&self, change: automerge_protocol::Change) {
         let msg = BackendMessage::ApplyLocalChange { change };
         let _ = self.sender.send_to_backend(msg).await;
     }
@@ -96,5 +103,9 @@ impl BackendHandle {
     pub async fn new_sync_peer(&self) {
         let msg = BackendMessage::NewSyncPeer {};
         let _ = self.sender.send_to_backend(msg).await;
+    }
+
+    pub fn flush_now(&self) {
+        self.flush_notify.notify_one()
     }
 }

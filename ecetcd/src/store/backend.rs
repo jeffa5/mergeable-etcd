@@ -41,6 +41,7 @@ pub enum BackendMessage {
         message: SyncMessage,
     },
     NewSyncPeer {},
+    Tick {},
 }
 
 impl Display for BackendMessage {
@@ -54,6 +55,7 @@ impl Display for BackendMessage {
             BackendMessage::GenerateSyncMessage { .. } => "generate_sync_message",
             BackendMessage::ReceiveSyncMessage { .. } => "receive_sync_message",
             BackendMessage::NewSyncPeer {} => "new_sync_peer",
+            BackendMessage::Tick {} => "tick",
         };
         write!(f, "{}", s)
     }

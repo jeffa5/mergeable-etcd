@@ -1,4 +1,5 @@
 pub mod address;
+mod key_range;
 
 pub mod health;
 pub mod peer;
@@ -92,7 +93,10 @@ where
         let change_notify = Arc::new(Notify::new());
         let change_notify2 = change_notify.clone();
 
-        let backend = BackendHandle::new(b_sender);
+        let flush_notify_send = Arc::new(Notify::new());
+        let flush_notify_recv = flush_notify_send.clone();
+
+        let backend = BackendHandle::new(b_sender, flush_notify_send);
 
         let mut frontends = Vec::new();
         let mut frontends_for_backend = Vec::new();
@@ -158,6 +162,7 @@ where
                 backend_health_receiver,
                 shutdown_clone,
                 change_notify,
+                flush_notify_recv,
             );
             actor.run().await;
         });
