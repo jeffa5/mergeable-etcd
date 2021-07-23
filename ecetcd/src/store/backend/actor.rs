@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use automerge::Change;
 use automerge_backend::SyncMessage;
@@ -6,7 +6,10 @@ use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::Patch;
 use futures::future::join_all;
-use tokio::sync::{mpsc, oneshot, watch, Notify};
+use tokio::{
+    sync::{mpsc, oneshot, watch, Notify},
+    time::sleep,
+};
 use tracing::{info, Instrument, Span};
 
 use super::BackendMessage;
@@ -24,6 +27,9 @@ pub struct BackendActor {
     shutdown: watch::Receiver<()>,
     frontends: Vec<FrontendHandle>,
     changed_notify: Arc<Notify>,
+    flush_notify: Arc<Notify>,
+    flush_buffer: Vec<(oneshot::Sender<()>, Patch)>,
+    internal_receiver: mpsc::Receiver<BackendMessage>,
 }
 
 impl BackendActor {
@@ -34,6 +40,7 @@ impl BackendActor {
         health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
         changed_notify: Arc<Notify>,
+        flush_notify: Arc<Notify>,
     ) -> Self {
         let db = config.open().unwrap();
         let changes_tree = db.open_tree("changes").unwrap();
@@ -47,6 +54,17 @@ impl BackendActor {
         )
         .unwrap();
         let backend = automerge_persistent::PersistentBackend::load(sled_perst).unwrap();
+
+        let (internal_sender, internal_receiver) = mpsc::channel(1);
+
+        tokio::spawn(async move {
+            loop {
+                sleep(Duration::from_millis(10)).await;
+
+                let _ = internal_sender.send(BackendMessage::Tick {}).await;
+            }
+        });
+
         tracing::info!("Created backend actor");
 
         Self {
@@ -57,6 +75,9 @@ impl BackendActor {
             shutdown,
             frontends,
             changed_notify,
+            flush_notify,
+            flush_buffer: Vec::new(),
+            internal_receiver,
         }
     }
 
@@ -66,8 +87,14 @@ impl BackendActor {
                 Some(s) = self.health_receiver.recv() => {
                     let _ = s.send(());
                 }
+                Some(msg) = self.internal_receiver.recv() => {
+                    self.handle_backend_message(msg).await;
+                }
                 Some((msg,span)) = self.receiver.recv() => {
                     self.handle_backend_message(msg).instrument(span).await;
+                }
+                _ = self.flush_notify.notified() => {
+                    self.handle_backend_message(BackendMessage::Tick{}).await;
                 }
                 _ = self.shutdown.changed() => {
                     info!("backend shutting down");
@@ -79,6 +106,14 @@ impl BackendActor {
 
     #[tracing::instrument(level="debug",skip(self, msg), fields(%msg))]
     async fn handle_backend_message(&mut self, msg: BackendMessage) {
+        // if the message is not an apply_local_change_sync and we have things to flush, we should
+        // flush them now.
+        if !matches!(msg, BackendMessage::ApplyLocalChangeSync { .. })
+            && !self.flush_buffer.is_empty()
+        {
+            self.flush().await;
+        }
+
         match msg {
             BackendMessage::ApplyLocalChange { change } => {
                 let result = self.apply_local_change_async(change).await.unwrap();
@@ -137,6 +172,9 @@ impl BackendActor {
                 // trigger sync clients to try for new messages
                 let _ = self.changed_notify.notify_one();
             }
+            BackendMessage::Tick {} => {
+                // do nothing
+            }
         }
     }
 
@@ -168,13 +206,8 @@ impl BackendActor {
     ) -> Result<(), Error<SledPersisterError, automerge_backend::AutomergeError>> {
         let patch = self.apply_local_change(change)?;
 
-        // ensure that the change is in disk
-        self.flush().await;
-
-        // notify the frontend that the change has been processed
-        let _ = ret.send(());
-
-        self.apply_patch_to_frontends(patch).await;
+        // we may be able to batch things up so don't flush this straight away
+        self.flush_buffer.push((ret, patch));
 
         Ok(())
     }
@@ -182,6 +215,23 @@ impl BackendActor {
     #[tracing::instrument(level = "debug", skip(self))]
     async fn flush(&mut self) {
         self.backend.flush().unwrap();
+
+        for (ret, patch) in self.flush_buffer.drain(..) {
+            let _ = ret.send(());
+
+            // from apply_patch_to_frontends to avoid borrow checker issues
+
+            if let Some((last, rest)) = self.frontends.split_last() {
+                let mut apply_patches = rest
+                    .iter()
+                    .map(|f| f.apply_patch(patch.clone()))
+                    .collect::<Vec<_>>();
+
+                apply_patches.push(last.apply_patch(patch));
+
+                join_all(apply_patches).await;
+            }
+        }
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
