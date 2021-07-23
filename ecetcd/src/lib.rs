@@ -9,16 +9,18 @@ pub mod store;
 
 use std::{
     convert::TryFrom,
+    fmt::Debug,
     fs::File,
     io::{BufWriter, Write},
     marker::PhantomData,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
 };
 
 pub use address::Address;
-use automerge_persistent_sled::SledPersisterError;
+use automerge_persistent::Persister;
+use automerge_persistent_sled::SledPersister;
 use automerge_protocol::ActorId;
 use etcd_proto::etcdserverpb::{
     CompactionRequest, DeleteRangeRequest, LeaseGrantRequest, LeaseLeasesRequest,
@@ -61,7 +63,6 @@ where
     T: StoreValue,
 {
     pub name: String,
-    pub data_dir: PathBuf,
     pub listen_peer_urls: Vec<Address>,
     pub listen_client_urls: Vec<Address>,
     pub initial_advertise_peer_urls: Vec<Address>,
@@ -85,10 +86,15 @@ where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {
-    pub async fn serve(
-        &self,
+    pub async fn serve<P>(
+        self,
         shutdown: tokio::sync::watch::Receiver<()>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+        persister: P,
+    ) -> Result<(), Box<dyn std::error::Error>>
+    where
+        P: Persister + Debug + Send + 'static,
+        P::Error: Send,
+    {
         let (b_sender, b_receiver) = tokio::sync::mpsc::unbounded_channel();
 
         let change_notify = Arc::new(Notify::new());
@@ -128,7 +134,7 @@ where
                 let local = LocalSet::new();
 
                 local.block_on(&rt, async move {
-                    let mut actor = FrontendActor::<T, SledPersisterError>::new(
+                    let mut actor = FrontendActor::<T, P::Error>::new(
                         backend_clone,
                         fc_receiver,
                         fb_receiver,
@@ -153,23 +159,11 @@ where
         }
 
         let shutdown_clone = shutdown.clone();
-        let config = sled::Config::new().path(&self.data_dir);
-        let db = config.open().unwrap();
-        let changes_tree = db.open_tree("changes").unwrap();
-        let document_tree = db.open_tree("document").unwrap();
-        let sync_states_tree = db.open_tree("syncstates").unwrap();
-        let sled_perst = automerge_persistent_sled::SledPersister::new(
-            changes_tree,
-            document_tree,
-            sync_states_tree,
-            String::new(),
-        )
-        .unwrap();
 
         let (backend_health_sender, backend_health_receiver) = mpsc::channel(1);
         tokio::spawn(async move {
             let mut actor = BackendActor::new(
-                sled_perst,
+                persister,
                 frontends_for_backend,
                 b_receiver,
                 backend_health_receiver,
@@ -389,4 +383,19 @@ where
         ];
         Ok(())
     }
+}
+
+pub fn sled_persister<P: AsRef<Path>>(data_dir: P) -> SledPersister {
+    let config = sled::Config::new().path(data_dir);
+    let db = config.open().unwrap();
+    let changes_tree = db.open_tree("changes").unwrap();
+    let document_tree = db.open_tree("document").unwrap();
+    let sync_states_tree = db.open_tree("syncstates").unwrap();
+    automerge_persistent_sled::SledPersister::new(
+        changes_tree,
+        document_tree,
+        sync_states_tree,
+        String::new(),
+    )
+    .unwrap()
 }

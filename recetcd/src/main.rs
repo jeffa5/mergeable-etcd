@@ -6,7 +6,7 @@ use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 
 use ecetcd::{
     address::{Address, NamedAddress},
-    Ecetcd,
+    sled_persister, Ecetcd,
 };
 use opentelemetry::global;
 use structopt::StructOpt;
@@ -149,7 +149,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server = Ecetcd {
         name: options.name,
-        data_dir: options.data_dir,
         listen_peer_urls: options.listen_peer_urls,
         listen_client_urls: options.listen_client_urls,
         initial_advertise_peer_urls: options.initial_advertise_peer_urls,
@@ -177,7 +176,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1)
     });
 
-    server.serve(shutdown_rx).await?;
+    let persister = sled_persister(options.data_dir);
+    server.serve(shutdown_rx, persister).await?;
 
     Ok(())
 }
