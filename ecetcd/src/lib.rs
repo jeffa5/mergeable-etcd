@@ -18,6 +18,7 @@ use std::{
 };
 
 pub use address::Address;
+use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::ActorId;
 use etcd_proto::etcdserverpb::{
     CompactionRequest, DeleteRangeRequest, LeaseGrantRequest, LeaseLeasesRequest,
@@ -127,7 +128,7 @@ where
                 let local = LocalSet::new();
 
                 local.block_on(&rt, async move {
-                    let mut actor = FrontendActor::<T>::new(
+                    let mut actor = FrontendActor::<T, SledPersisterError>::new(
                         backend_clone,
                         fc_receiver,
                         fb_receiver,
@@ -153,10 +154,22 @@ where
 
         let shutdown_clone = shutdown.clone();
         let config = sled::Config::new().path(&self.data_dir);
+        let db = config.open().unwrap();
+        let changes_tree = db.open_tree("changes").unwrap();
+        let document_tree = db.open_tree("document").unwrap();
+        let sync_states_tree = db.open_tree("syncstates").unwrap();
+        let sled_perst = automerge_persistent_sled::SledPersister::new(
+            changes_tree,
+            document_tree,
+            sync_states_tree,
+            String::new(),
+        )
+        .unwrap();
+
         let (backend_health_sender, backend_health_receiver) = mpsc::channel(1);
         tokio::spawn(async move {
             let mut actor = BackendActor::new(
-                &config,
+                sled_perst,
                 frontends_for_backend,
                 b_receiver,
                 backend_health_receiver,

@@ -1,9 +1,8 @@
-use std::{sync::Arc, time::Duration};
+use std::{fmt::Debug, sync::Arc, time::Duration};
 
 use automerge::Change;
 use automerge_backend::SyncMessage;
-use automerge_persistent::Error;
-use automerge_persistent_sled::SledPersisterError;
+use automerge_persistent::{Error, Persister};
 use automerge_protocol::Patch;
 use futures::future::join_all;
 use tokio::{
@@ -16,44 +15,36 @@ use super::BackendMessage;
 use crate::store::FrontendHandle;
 
 #[derive(Debug)]
-pub struct BackendActor {
-    db: sled::Db,
-    backend: automerge_persistent::PersistentBackend<
-        automerge_persistent_sled::SledPersister,
-        automerge::Backend,
-    >,
-    receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
+pub struct BackendActor<P>
+where
+    P: Persister,
+{
+    backend: automerge_persistent::PersistentBackend<P, automerge::Backend>,
+    receiver: mpsc::UnboundedReceiver<(BackendMessage<P::Error>, Span)>,
     health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
     shutdown: watch::Receiver<()>,
     frontends: Vec<FrontendHandle>,
     changed_notify: Arc<Notify>,
     flush_notify: Arc<Notify>,
     flush_buffer: Vec<(oneshot::Sender<()>, Patch)>,
-    internal_receiver: mpsc::Receiver<BackendMessage>,
+    internal_receiver: mpsc::Receiver<BackendMessage<P::Error>>,
 }
 
-impl BackendActor {
+impl<P> BackendActor<P>
+where
+    P: Persister + Debug + 'static,
+    P::Error: Send,
+{
     pub fn new(
-        config: &sled::Config,
+        persister: P,
         frontends: Vec<FrontendHandle>,
-        receiver: mpsc::UnboundedReceiver<(BackendMessage, Span)>,
+        receiver: mpsc::UnboundedReceiver<(BackendMessage<P::Error>, Span)>,
         health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
         changed_notify: Arc<Notify>,
         flush_notify: Arc<Notify>,
     ) -> Self {
-        let db = config.open().unwrap();
-        let changes_tree = db.open_tree("changes").unwrap();
-        let document_tree = db.open_tree("document").unwrap();
-        let sync_states_tree = db.open_tree("syncstates").unwrap();
-        let sled_perst = automerge_persistent_sled::SledPersister::new(
-            changes_tree,
-            document_tree,
-            sync_states_tree,
-            String::new(),
-        )
-        .unwrap();
-        let backend = automerge_persistent::PersistentBackend::load(sled_perst).unwrap();
+        let backend = automerge_persistent::PersistentBackend::load(persister).unwrap();
 
         let (internal_sender, internal_receiver) = mpsc::channel(1);
 
@@ -68,7 +59,6 @@ impl BackendActor {
         tracing::info!("Created backend actor");
 
         Self {
-            db,
             backend,
             receiver,
             health_receiver,
@@ -105,7 +95,7 @@ impl BackendActor {
     }
 
     #[tracing::instrument(level="debug",skip(self, msg), fields(%msg))]
-    async fn handle_backend_message(&mut self, msg: BackendMessage) {
+    async fn handle_backend_message(&mut self, msg: BackendMessage<P::Error>) {
         // if the message is not an apply_local_change_sync and we have things to flush, we should
         // flush them now.
         if !matches!(msg, BackendMessage::ApplyLocalChangeSync { .. })
@@ -144,8 +134,8 @@ impl BackendActor {
                 let _ = ret.send(result);
             }
             BackendMessage::DbSize { ret } => {
-                // TODO: return the space amplification version for logical space too
-                let result = self.db.size_on_disk().unwrap();
+                // TODO: actually calculate it and return the space amplification version for logical space too
+                let result = 0;
                 let _ = ret.send(result);
             }
             BackendMessage::GenerateSyncMessage { peer_id, ret } => {
@@ -182,7 +172,7 @@ impl BackendActor {
     fn apply_local_change(
         &mut self,
         change: automerge_protocol::Change,
-    ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
+    ) -> Result<Patch, Error<P::Error, automerge_backend::AutomergeError>> {
         self.backend.apply_local_change(change)
     }
 
@@ -190,7 +180,7 @@ impl BackendActor {
     async fn apply_local_change_async(
         &mut self,
         change: automerge_protocol::Change,
-    ) -> Result<(), Error<SledPersisterError, automerge_backend::AutomergeError>> {
+    ) -> Result<(), Error<P::Error, automerge_backend::AutomergeError>> {
         let patch = self.apply_local_change(change)?;
 
         self.apply_patch_to_frontends(patch).await;
@@ -203,7 +193,7 @@ impl BackendActor {
         &mut self,
         change: automerge_protocol::Change,
         ret: oneshot::Sender<()>,
-    ) -> Result<(), Error<SledPersisterError, automerge_backend::AutomergeError>> {
+    ) -> Result<(), Error<P::Error, automerge_backend::AutomergeError>> {
         let patch = self.apply_local_change(change)?;
 
         // we may be able to batch things up so don't flush this straight away
@@ -252,13 +242,11 @@ impl BackendActor {
     fn apply_changes(
         &mut self,
         changes: Vec<Change>,
-    ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
+    ) -> Result<Patch, Error<P::Error, automerge_backend::AutomergeError>> {
         self.backend.apply_changes(changes)
     }
 
-    fn get_patch(
-        &self,
-    ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
+    fn get_patch(&self) -> Result<Patch, Error<P::Error, automerge_backend::AutomergeError>> {
         self.backend.get_patch()
     }
 
@@ -266,8 +254,7 @@ impl BackendActor {
     fn generate_sync_message(
         &mut self,
         peer_id: Vec<u8>,
-    ) -> Result<Option<SyncMessage>, Error<SledPersisterError, automerge_backend::AutomergeError>>
-    {
+    ) -> Result<Option<SyncMessage>, Error<P::Error, automerge_backend::AutomergeError>> {
         self.backend.generate_sync_message(peer_id)
     }
 
@@ -276,7 +263,7 @@ impl BackendActor {
         &mut self,
         peer_id: Vec<u8>,
         message: SyncMessage,
-    ) -> Result<Option<Patch>, Error<SledPersisterError, automerge_backend::AutomergeError>> {
+    ) -> Result<Option<Patch>, Error<P::Error, automerge_backend::AutomergeError>> {
         self.backend.receive_sync_message(peer_id, message)
     }
 }

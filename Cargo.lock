@@ -170,7 +170,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#2826f58f0f5f43e74ae4253c7ffaef1b78dada74"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#4b2ac8163ab6ddcded4eba51df4dba760b0b71b0"
 dependencies = [
  "async-trait",
  "automerge",
@@ -182,13 +182,12 @@ dependencies = [
 [[package]]
 name = "automerge-persistent-sled"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#2826f58f0f5f43e74ae4253c7ffaef1b78dada74"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#4b2ac8163ab6ddcded4eba51df4dba760b0b71b0"
 dependencies = [
  "async-trait",
  "automerge",
  "automerge-persistent",
  "automerge-protocol",
- "futures",
  "sled",
  "thiserror",
 ]

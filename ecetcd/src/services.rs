@@ -24,12 +24,12 @@ use tracing::{info, warn};
 
 use crate::{store::BackendHandle, TraceValue};
 
-pub async fn serve(
+pub async fn serve<E: std::error::Error + Send>(
     address: SocketAddr,
     identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
     server: crate::server::Server,
-    backend: BackendHandle,
+    backend: BackendHandle<E>,
     trace_out: Option<mpsc::Sender<TraceValue>>,
 ) -> Result<(), tonic::transport::Error> {
     let kv_service = KvServer::new(kv::KV {

@@ -3,40 +3,74 @@ use std::sync::Arc;
 use automerge::Change;
 use automerge_backend::SyncMessage;
 use automerge_persistent::Error;
-use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::Patch;
 use tokio::sync::{mpsc, oneshot, Notify};
 use tracing::Span;
 
 use super::BackendMessage;
 
-#[derive(Clone, Debug)]
-struct Sender {
-    inner: mpsc::UnboundedSender<(BackendMessage, Span)>,
+#[derive(Debug)]
+struct Sender<E>
+where
+    E: std::error::Error + 'static,
+{
+    inner: mpsc::UnboundedSender<(BackendMessage<E>, Span)>,
 }
 
-impl Sender {
+impl<E> Clone for Sender<E>
+where
+    E: std::error::Error + 'static,
+{
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl<E> Sender<E>
+where
+    E: std::error::Error,
+{
     // call send on the underlying sender
     #[tracing::instrument(level = "debug", skip(self, value))]
     #[inline]
     async fn send_to_backend(
         &self,
-        value: BackendMessage,
-    ) -> Result<(), tokio::sync::mpsc::error::SendError<(BackendMessage, Span)>> {
+        value: BackendMessage<E>,
+    ) -> Result<(), tokio::sync::mpsc::error::SendError<(BackendMessage<E>, Span)>> {
         let span = tracing::Span::current();
         self.inner.send((value, span))
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct BackendHandle {
-    sender: Sender,
+#[derive(Debug)]
+pub struct BackendHandle<E>
+where
+    E: std::error::Error + 'static,
+{
+    sender: Sender<E>,
     flush_notify: Arc<Notify>,
 }
 
-impl BackendHandle {
+impl<E> Clone for BackendHandle<E>
+where
+    E: std::error::Error + 'static,
+{
+    fn clone(&self) -> Self {
+        Self {
+            sender: self.sender.clone(),
+            flush_notify: self.flush_notify.clone(),
+        }
+    }
+}
+
+impl<E> BackendHandle<E>
+where
+    E: std::error::Error,
+{
     pub fn new(
-        sender: mpsc::UnboundedSender<(BackendMessage, Span)>,
+        sender: mpsc::UnboundedSender<(BackendMessage<E>, Span)>,
         flush_notify: Arc<Notify>,
     ) -> Self {
         Self {
@@ -68,9 +102,7 @@ impl BackendHandle {
         let _ = self.sender.send_to_backend(msg).await;
     }
 
-    pub async fn get_patch(
-        &self,
-    ) -> Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>> {
+    pub async fn get_patch(&self) -> Result<Patch, Error<E, automerge_backend::AutomergeError>> {
         let (send, recv) = oneshot::channel();
         let msg = BackendMessage::GetPatch { ret: send };
 

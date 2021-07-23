@@ -7,13 +7,15 @@ pub use actor::BackendActor;
 use automerge::Change;
 use automerge_backend::SyncMessage;
 use automerge_persistent::Error;
-use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::Patch;
 pub use handle::BackendHandle;
 use tokio::sync::oneshot;
 
 #[derive(Debug)]
-pub enum BackendMessage {
+pub enum BackendMessage<E>
+where
+    E: std::error::Error + 'static,
+{
     ApplyLocalChange {
         change: automerge_protocol::Change,
     },
@@ -25,9 +27,7 @@ pub enum BackendMessage {
         changes: Vec<Change>,
     },
     GetPatch {
-        ret: oneshot::Sender<
-            Result<Patch, Error<SledPersisterError, automerge_backend::AutomergeError>>,
-        >,
+        ret: oneshot::Sender<Result<Patch, Error<E, automerge_backend::AutomergeError>>>,
     },
     DbSize {
         ret: oneshot::Sender<u64>,
@@ -44,7 +44,10 @@ pub enum BackendMessage {
     Tick {},
 }
 
-impl Display for BackendMessage {
+impl<E> Display for BackendMessage<E>
+where
+    E: std::error::Error,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         let s = match self {
             BackendMessage::ApplyLocalChange { .. } => "apply_local_change",

@@ -7,18 +7,35 @@ use tokio::sync::{mpsc, Notify};
 
 use crate::store::BackendHandle;
 
-#[derive(Clone)]
-pub struct Server {
+pub struct Server<E>
+where
+    E: std::error::Error + 'static,
+{
     inner: Arc<Mutex<Inner>>,
-    backend: BackendHandle,
+    backend: BackendHandle<E>,
+}
+
+impl<E> Clone for Server<E>
+where
+    E: std::error::Error + 'static,
+{
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            backend: self.backend.clone(),
+        }
+    }
 }
 
 pub struct Inner {
     sync_connections: HashMap<u64, mpsc::UnboundedSender<automerge_backend::SyncMessage>>,
 }
 
-impl Server {
-    pub fn new(backend: BackendHandle) -> Self {
+impl<E> Server<E>
+where
+    E: std::error::Error + Send,
+{
+    pub fn new(backend: BackendHandle<E>) -> Self {
         Self {
             inner: Arc::new(Mutex::new(Inner {
                 sync_connections: HashMap::new(),

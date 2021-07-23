@@ -14,14 +14,20 @@ use tracing::info;
 use crate::{server::Server, store::BackendHandle, TraceValue};
 
 #[derive(Debug)]
-pub struct Maintenance {
+pub struct Maintenance<E>
+where
+    E: std::error::Error + 'static,
+{
     pub server: Server,
-    pub backend: BackendHandle,
+    pub backend: BackendHandle<E>,
     pub trace_out: Option<mpsc::Sender<TraceValue>>,
 }
 
 #[tonic::async_trait]
-impl MaintenanceTrait for Maintenance {
+impl<E> MaintenanceTrait for Maintenance<E>
+where
+    E: std::error::Error + Send + 'static,
+{
     async fn alarm(
         &self,
         _request: Request<AlarmRequest>,

@@ -22,12 +22,13 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct FrontendActor<T>
+pub struct FrontendActor<T, E>
 where
     T: StoreValue,
+    E: std::error::Error + 'static,
 {
     document: Document<T>,
-    backend: BackendHandle,
+    backend: BackendHandle<E>,
     watchers: HashMap<
         SingleKeyOrRange,
         mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
@@ -43,13 +44,14 @@ where
     sync: bool,
 }
 
-impl<T> FrontendActor<T>
+impl<T, E> FrontendActor<T, E>
 where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+    E: std::error::Error,
 {
     pub async fn new(
-        backend: BackendHandle,
+        backend: BackendHandle<E>,
         client_receiver: mpsc::Receiver<(FrontendMessage, Span)>,
         backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage, Span)>,
         health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
