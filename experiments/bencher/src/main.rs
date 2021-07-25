@@ -92,7 +92,7 @@ impl exp::Experiment for Experiment {
                         bin_name: "eckd".to_owned(),
                         delay,
                         delay_variation: 0.1,
-                        extra_args: Vec::new(),
+                        extra_args: vec!["--persister".to_owned(), "sled".to_owned()],
                     });
                     // with sync changes
                     confs.push(Config {
@@ -106,7 +106,11 @@ impl exp::Experiment for Experiment {
                         bin_name: "eckd".to_owned(),
                         delay,
                         delay_variation: 0.1,
-                        extra_args: vec!["--sync".to_owned()],
+                        extra_args: vec![
+                            "--sync".to_owned(),
+                            "--persister".to_owned(),
+                            "sled".to_owned(),
+                        ],
                     });
 
                     confs.push(Config {
@@ -120,7 +124,7 @@ impl exp::Experiment for Experiment {
                         bin_name: "recetcd".to_owned(),
                         delay,
                         delay_variation: 0.1,
-                        extra_args: Vec::new(),
+                        extra_args: vec!["--persister".to_owned(), "sled".to_owned()],
                     });
 
                     confs.push(Config {
@@ -134,7 +138,11 @@ impl exp::Experiment for Experiment {
                         bin_name: "recetcd".to_owned(),
                         delay,
                         delay_variation: 0.1,
-                        extra_args: vec!["--sync".to_owned()],
+                        extra_args: vec![
+                            "--sync".to_owned(),
+                            "--persister".to_owned(),
+                            "sled".to_owned(),
+                        ],
                     });
                 }
             }
