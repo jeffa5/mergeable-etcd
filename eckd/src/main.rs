@@ -4,9 +4,10 @@
 
 use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 
+use clap::arg_enum;
 use ecetcd::{
     address::{Address, NamedAddress},
-    sled_persister, Ecetcd,
+    rocksdb_persister, sled_persister, Ecetcd,
 };
 use opentelemetry::global;
 use structopt::StructOpt;
@@ -103,6 +104,17 @@ struct Options {
     /// Where to save traces to, or nowhere to disable.
     #[structopt(long)]
     trace_file: Option<PathBuf>,
+
+    #[structopt(long, possible_values = &Persister::variants(), case_insensitive = true)]
+    persister: Persister,
+}
+
+arg_enum! {
+    #[derive(Debug)]
+    enum Persister {
+        Sled,
+        RocksDb,
+    }
 }
 
 #[tokio::main]
@@ -178,8 +190,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1)
     });
 
-    let persister = sled_persister(options.data_dir);
-    server.serve(shutdown_rx, persister).await?;
+    match options.persister {
+        Persister::Sled => {
+            let config = sled::Config::default().mode(sled::Mode::HighThroughput);
+            let persister = sled_persister(config, options.data_dir);
+            server.serve(shutdown_rx, persister).await?;
+        }
+        Persister::RocksDb => {
+            let persister = rocksdb_persister(rocksdb::Options::default(), options.data_dir);
+            server.serve(shutdown_rx, persister).await?;
+        }
+    };
 
     Ok(())
 }

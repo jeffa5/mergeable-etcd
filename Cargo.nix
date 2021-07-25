@@ -194,9 +194,9 @@ rec {
       };
       "aho-corasick" = rec {
         crateName = "aho-corasick";
-        version = "0.7.18";
-        edition = "2018";
-        sha256 = "0vv50b3nvkhyy7x7ip19qnsq11bqlnffkmj2yx2xlyk5wzawydqy";
+        version = "0.7.15";
+        edition = "2015";
+        sha256 = "1rb8gzhljl8r87dpf2n5pnqnkl694casgns4ma0sqzd4zazzw13l";
         libName = "aho_corasick";
         authors = [
           "Andrew Gallant <jamslam@gmail.com>"
@@ -210,7 +210,7 @@ rec {
         ];
         features = {
           "default" = [ "std" ];
-          "std" = [ "memchr/std" ];
+          "std" = [ "memchr/use_std" ];
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
@@ -633,8 +633,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "4b2ac8163ab6ddcded4eba51df4dba760b0b71b0";
-          sha256 = "1fcrzc9xpahf3fizaa3b3fwhdnfridlv86pajyg4m7cqw755f5h1";
+          rev = "3969fdf2a401bbbfa1682753e297b4d3e8781794";
+          sha256 = "0v06a7rh5rskkxds9n2vg07r98kn9wa0ayxcpap0pw4wgjqmx945";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -663,6 +663,47 @@ rec {
         ];
 
       };
+      "automerge-persistent-rocksdb" = rec {
+        crateName = "automerge-persistent-rocksdb";
+        version = "0.1.0";
+        edition = "2018";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/jeffa5/automerge-persistent";
+          rev = "3969fdf2a401bbbfa1682753e297b4d3e8781794";
+          sha256 = "0v06a7rh5rskkxds9n2vg07r98kn9wa0ayxcpap0pw4wgjqmx945";
+        };
+        authors = [
+          "Andrew Jeffery <dev@jeffas.io>"
+        ];
+        dependencies = [
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "automerge";
+            packageId = "automerge";
+          }
+          {
+            name = "automerge-persistent";
+            packageId = "automerge-persistent";
+          }
+          {
+            name = "automerge-protocol";
+            packageId = "automerge-protocol";
+          }
+          {
+            name = "rocksdb";
+            packageId = "rocksdb";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+        ];
+
+      };
       "automerge-persistent-sled" = rec {
         crateName = "automerge-persistent-sled";
         version = "0.1.0";
@@ -670,8 +711,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "4b2ac8163ab6ddcded4eba51df4dba760b0b71b0";
-          sha256 = "1fcrzc9xpahf3fizaa3b3fwhdnfridlv86pajyg4m7cqw755f5h1";
+          rev = "3969fdf2a401bbbfa1682753e297b4d3e8781794";
+          sha256 = "0v06a7rh5rskkxds9n2vg07r98kn9wa0ayxcpap0pw4wgjqmx945";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -1068,6 +1109,84 @@ rec {
         ];
 
       };
+      "bindgen" = rec {
+        crateName = "bindgen";
+        version = "0.59.0";
+        edition = "2018";
+        crateBin = [];
+        sha256 = "1fnck67pg6d5lfhavhgzqvq0qsczxadiw1m3l1p1mx12xqwycb0b";
+        authors = [
+          "Jyun-Yan You <jyyou.tw@gmail.com>"
+          "Emilio Cobos Álvarez <emilio@crisal.io>"
+          "Nick Fitzgerald <fitzgen@gmail.com>"
+          "The Servo project developers"
+        ];
+        dependencies = [
+          {
+            name = "bitflags";
+            packageId = "bitflags";
+          }
+          {
+            name = "cexpr";
+            packageId = "cexpr";
+          }
+          {
+            name = "clang-sys";
+            packageId = "clang-sys";
+            features = [ "clang_6_0" ];
+          }
+          {
+            name = "lazy_static";
+            packageId = "lazy_static";
+          }
+          {
+            name = "lazycell";
+            packageId = "lazycell";
+          }
+          {
+            name = "peeking_take_while";
+            packageId = "peeking_take_while";
+          }
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "regex";
+            packageId = "regex";
+            usesDefaultFeatures = false;
+            features = [ "std" "unicode" ];
+          }
+          {
+            name = "rustc-hash";
+            packageId = "rustc-hash";
+          }
+          {
+            name = "shlex";
+            packageId = "shlex";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "shlex";
+            packageId = "shlex";
+          }
+        ];
+        features = {
+          "default" = [ "logging" "clap" "runtime" "which-rustfmt" ];
+          "logging" = [ "env_logger" "log" ];
+          "runtime" = [ "clang-sys/runtime" ];
+          "static" = [ "clang-sys/static" ];
+          "which-rustfmt" = [ "which" ];
+        };
+        resolvedDefaultFeatures = [ "runtime" ];
+      };
       "bitflags" = rec {
         crateName = "bitflags";
         version = "1.2.1";
@@ -1098,6 +1217,41 @@ rec {
           "default" = [ "std" ];
         };
         resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "bitvec" = rec {
+        crateName = "bitvec";
+        version = "0.19.5";
+        edition = "2018";
+        sha256 = "08a3rfly22mky5y1881a4gr6wsapnqmcmc50vp4kh65fab9whhl9";
+        authors = [
+          "myrrlyn <self@myrrlyn.dev>"
+        ];
+        dependencies = [
+          {
+            name = "funty";
+            packageId = "funty";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "radium";
+            packageId = "radium";
+          }
+          {
+            name = "tap";
+            packageId = "tap";
+          }
+          {
+            name = "wyz";
+            packageId = "wyz";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "alloc" = [ "wyz/alloc" ];
+          "default" = [ "atomic" "std" ];
+          "std" = [ "alloc" ];
+        };
+        resolvedDefaultFeatures = [ "alloc" "std" ];
       };
       "block-buffer" = rec {
         crateName = "block-buffer";
@@ -1346,9 +1500,35 @@ rec {
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
+        dependencies = [
+          {
+            name = "jobserver";
+            packageId = "jobserver";
+            optional = true;
+          }
+        ];
         features = {
           "parallel" = [ "jobserver" ];
         };
+        resolvedDefaultFeatures = [ "jobserver" "parallel" ];
+      };
+      "cexpr" = rec {
+        crateName = "cexpr";
+        version = "0.5.0";
+        edition = "2018";
+        sha256 = "12awiqgwqc1cnjr2b4lz139mdv3md0y13n0dxmv24b95g5v7ll6v";
+        authors = [
+          "Jethro Beekman <jethro@jbeekman.nl>"
+        ];
+        dependencies = [
+          {
+            name = "nom";
+            packageId = "nom";
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+        ];
+
       };
       "cfg-if" = rec {
         crateName = "cfg-if";
@@ -1414,6 +1594,53 @@ rec {
           "wasmbind" = [ "wasm-bindgen" "js-sys" ];
         };
         resolvedDefaultFeatures = [ "clock" "default" "libc" "oldtime" "serde" "std" "time" "winapi" ];
+      };
+      "clang-sys" = rec {
+        crateName = "clang-sys";
+        version = "1.2.0";
+        edition = "2015";
+        sha256 = "0z07zr6k0j8lx6kcsbnkh45g90c79xhsw85zyj3j4k189i8xlgl5";
+        authors = [
+          "Kyle Mayes <kyle@mayeses.com>"
+        ];
+        dependencies = [
+          {
+            name = "glob";
+            packageId = "glob";
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "libloading";
+            packageId = "libloading";
+            optional = true;
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "glob";
+            packageId = "glob";
+          }
+        ];
+        features = {
+          "clang_10_0" = [ "clang_9_0" ];
+          "clang_11_0" = [ "clang_10_0" ];
+          "clang_3_6" = [ "clang_3_5" ];
+          "clang_3_7" = [ "clang_3_6" ];
+          "clang_3_8" = [ "clang_3_7" ];
+          "clang_3_9" = [ "clang_3_8" ];
+          "clang_4_0" = [ "clang_3_9" ];
+          "clang_5_0" = [ "clang_4_0" ];
+          "clang_6_0" = [ "clang_5_0" ];
+          "clang_7_0" = [ "clang_6_0" ];
+          "clang_8_0" = [ "clang_7_0" ];
+          "clang_9_0" = [ "clang_8_0" ];
+          "runtime" = [ "libloading" ];
+        };
+        resolvedDefaultFeatures = [ "clang_3_5" "clang_3_6" "clang_3_7" "clang_3_8" "clang_3_9" "clang_4_0" "clang_5_0" "clang_6_0" "libloading" "runtime" ];
       };
       "clap 2.33.3" = rec {
         crateName = "clap";
@@ -2267,6 +2494,10 @@ rec {
             packageId = "automerge-persistent";
           }
           {
+            name = "automerge-persistent-rocksdb";
+            packageId = "automerge-persistent-rocksdb";
+          }
+          {
             name = "automerge-persistent-sled";
             packageId = "automerge-persistent-sled";
           }
@@ -2317,6 +2548,10 @@ rec {
           {
             name = "rand";
             packageId = "rand 0.8.4";
+          }
+          {
+            name = "rocksdb";
+            packageId = "rocksdb";
           }
           {
             name = "serde";
@@ -2415,6 +2650,10 @@ rec {
             packageId = "automergeable";
           }
           {
+            name = "clap";
+            packageId = "clap 2.33.3";
+          }
+          {
             name = "ecetcd";
             packageId = "ecetcd";
           }
@@ -2433,6 +2672,10 @@ rec {
           {
             name = "prost";
             packageId = "prost";
+          }
+          {
+            name = "rocksdb";
+            packageId = "rocksdb";
           }
           {
             name = "serde";
@@ -3032,6 +3275,18 @@ rec {
         ];
 
       };
+      "funty" = rec {
+        crateName = "funty";
+        version = "1.1.0";
+        edition = "2018";
+        sha256 = "19wx3p3jmv863y0mjb56sr4qf1kvqhl3fsyslkd92zli0p8lrlzy";
+        authors = [
+          "myrrlyn <self@myrrlyn.dev>"
+        ];
+        features = {
+          "default" = [ "std" ];
+        };
+      };
       "futures" = rec {
         crateName = "futures";
         version = "0.3.15";
@@ -3485,6 +3740,16 @@ rec {
           "default" = [ "raii_no_panic" "std" ];
         };
         resolvedDefaultFeatures = [ "default" "raii_no_panic" "std" ];
+      };
+      "glob" = rec {
+        crateName = "glob";
+        version = "0.3.0";
+        edition = "2015";
+        sha256 = "0x25wfr7vg3mzxc9x05dcphvd3nwlcmbnxrvwcvrrdwplcrrk4cv";
+        authors = [
+          "The Rust Project Developers"
+        ];
+
       };
       "h2" = rec {
         crateName = "h2";
@@ -4266,6 +4531,23 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
+      "jobserver" = rec {
+        crateName = "jobserver";
+        version = "0.1.22";
+        edition = "2018";
+        sha256 = "1zg7p4khibisbvd8b1lqvvni6lr00g49d4bq2zj6m76bs7jmlbwp";
+        authors = [
+          "Alex Crichton <alex@alexcrichton.com>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+            target = { target, features }: (target."unix" or false);
+          }
+        ];
+
+      };
       "jpeg-decoder" = rec {
         crateName = "jpeg-decoder";
         version = "0.1.22";
@@ -4771,6 +5053,19 @@ rec {
           "spin_no_std" = [ "spin" ];
         };
       };
+      "lazycell" = rec {
+        crateName = "lazycell";
+        version = "1.3.0";
+        edition = "2015";
+        sha256 = "0m8gw7dn30i0zjjpjdyf6pc16c34nl71lpv461mix50x3p70h3c3";
+        authors = [
+          "Alex Crichton <alex@alexcrichton.com>"
+          "Nikita Pekin <contact@nikitapek.in>"
+        ];
+        features = {
+          "nightly-testing" = [ "clippy" "nightly" ];
+        };
+      };
       "leb128" = rec {
         crateName = "leb128";
         version = "0.2.4";
@@ -4798,6 +5093,66 @@ rec {
           "use_std" = [ "std" ];
         };
         resolvedDefaultFeatures = [ "default" "extra_traits" "std" ];
+      };
+      "libloading" = rec {
+        crateName = "libloading";
+        version = "0.7.0";
+        edition = "2015";
+        sha256 = "0sidr67nsa693mqrqgk2np3bkqni0778yk147xncspy171jdk13g";
+        authors = [
+          "Simonas Kazlauskas <libloading@kazlauskas.me>"
+        ];
+        dependencies = [
+          {
+            name = "cfg-if";
+            packageId = "cfg-if";
+            target = { target, features }: (target."unix" or false);
+          }
+          {
+            name = "winapi";
+            packageId = "winapi";
+            target = { target, features }: (target."windows" or false);
+            features = [ "errhandlingapi" "libloaderapi" ];
+          }
+        ];
+
+      };
+      "librocksdb-sys" = rec {
+        crateName = "librocksdb-sys";
+        version = "6.20.3";
+        edition = "2018";
+        sha256 = "0pd2kjxx4mv3nfk7b2w6jq2x4m3153sqq2aakbmsqi088z9aj2f3";
+        authors = [
+          "Karl Hobley <karlhobley10@gmail.com>"
+          "Arkadiy Paronyan <arkadiy@ethcore.io>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "bindgen";
+            packageId = "bindgen";
+            usesDefaultFeatures = false;
+            features = [ "runtime" ];
+          }
+          {
+            name = "cc";
+            packageId = "cc";
+            features = [ "parallel" ];
+          }
+          {
+            name = "glob";
+            packageId = "glob";
+          }
+        ];
+        features = {
+          "default" = [ "static" ];
+        };
+        resolvedDefaultFeatures = [ "bzip2" "default" "lz4" "snappy" "static" "zlib" "zstd" ];
       };
       "linked-hash-map" = rec {
         crateName = "linked-hash-map";
@@ -4892,9 +5247,9 @@ rec {
       };
       "memchr" = rec {
         crateName = "memchr";
-        version = "2.4.0";
-        edition = "2018";
-        sha256 = "1p478fqf4nia2ma0kv4npb8x1hli0zz6k16517ikb51jkryx8sxi";
+        version = "2.3.4";
+        edition = "2015";
+        sha256 = "098m9clfs495illlw00hv2gg67mhm7jflld3msyclvi5m9xc9q8f";
         authors = [
           "Andrew Gallant <jamslam@gmail.com>"
           "bluss"
@@ -5247,6 +5602,48 @@ rec {
           }
         ];
 
+      };
+      "nom" = rec {
+        crateName = "nom";
+        version = "6.2.1";
+        edition = "2018";
+        sha256 = "19h3l5hajpcszwl6nzcmgs4mpng73ifn6akslq7n4g1s12wm2p4w";
+        authors = [
+          "contact@geoffroycouprie.com"
+        ];
+        dependencies = [
+          {
+            name = "bitvec";
+            packageId = "bitvec";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "funty";
+            packageId = "funty";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "memchr";
+            packageId = "memchr";
+            usesDefaultFeatures = false;
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "version_check";
+            packageId = "version_check";
+          }
+        ];
+        features = {
+          "alloc" = [ "bitvec/alloc" "funty" ];
+          "default" = [ "std" "bitvec" "lexical" ];
+          "lexical" = [ "lexical-core" ];
+          "regexp" = [ "regex" ];
+          "std" = [ "alloc" "bitvec/std" "memchr/use_std" ];
+        };
+        resolvedDefaultFeatures = [ "alloc" "bitvec" "funty" "std" ];
       };
       "nonzero_ext" = rec {
         crateName = "nonzero_ext";
@@ -5896,6 +6293,16 @@ rec {
         ];
         features = {
         };
+      };
+      "peeking_take_while" = rec {
+        crateName = "peeking_take_while";
+        version = "0.1.2";
+        edition = "2015";
+        sha256 = "16bhqr6rdyrp12zv381cxaaqqd0pwysvm1q8h2ygihvypvfprc8r";
+        authors = [
+          "Nick Fitzgerald <fitzgen@gmail.com>"
+        ];
+
       };
       "peer-proto" = rec {
         crateName = "peer-proto";
@@ -6703,6 +7110,17 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "proc-macro" ];
       };
+      "radium" = rec {
+        crateName = "radium";
+        version = "0.5.3";
+        edition = "2018";
+        sha256 = "1f5vj5zy4kcsw8p87y976dm5pln6v6jfw5f0fkj7qbwfipbsj6wl";
+        authors = [
+          "Nika Layzell <nika@thelayzells.com>"
+          "myrrlyn <self@myrrlyn.dev>"
+        ];
+
+      };
       "rand 0.7.3" = rec {
         crateName = "rand";
         version = "0.7.3";
@@ -7009,6 +7427,10 @@ rec {
             packageId = "automergeable";
           }
           {
+            name = "clap";
+            packageId = "clap 2.33.3";
+          }
+          {
             name = "ecetcd";
             packageId = "ecetcd";
           }
@@ -7019,6 +7441,10 @@ rec {
           {
             name = "opentelemetry-jaeger";
             packageId = "opentelemetry-jaeger";
+          }
+          {
+            name = "rocksdb";
+            packageId = "rocksdb";
           }
           {
             name = "serde";
@@ -7093,9 +7519,9 @@ rec {
       };
       "regex" = rec {
         crateName = "regex";
-        version = "1.5.4";
-        edition = "2018";
-        sha256 = "0qf479kjbmb582h4d1d6gfl75h0j8aq2nrdi5wg6zdcy6llqcynh";
+        version = "1.4.6";
+        edition = "2015";
+        sha256 = "0nf7gj6b7qzrq8b11srnwva2amx6b4v3lnrki1jxajspid0sy9ia";
         authors = [
           "The Rust Project Developers"
         ];
@@ -7455,6 +7881,48 @@ rec {
           "std" = [ "alloc" ];
         };
         resolvedDefaultFeatures = [ "alloc" "default" "dev_urandom_fallback" "once_cell" ];
+      };
+      "rocksdb" = rec {
+        crateName = "rocksdb";
+        version = "0.17.0";
+        edition = "2018";
+        sha256 = "19s4iwpq03rz2vsjjjxypx08sna5y3cvwcc629hq4b6grajyqqks";
+        authors = [
+          "Tyler Neely <t@jujit.su>"
+          "David Greenberg <dsg123456789@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+          {
+            name = "librocksdb-sys";
+            packageId = "librocksdb-sys";
+          }
+        ];
+        features = {
+          "bzip2" = [ "librocksdb-sys/bzip2" ];
+          "default" = [ "snappy" "lz4" "zstd" "zlib" "bzip2" ];
+          "lz4" = [ "librocksdb-sys/lz4" ];
+          "snappy" = [ "librocksdb-sys/snappy" ];
+          "zlib" = [ "librocksdb-sys/zlib" ];
+          "zstd" = [ "librocksdb-sys/zstd" ];
+        };
+        resolvedDefaultFeatures = [ "bzip2" "default" "lz4" "snappy" "zlib" "zstd" ];
+      };
+      "rustc-hash" = rec {
+        crateName = "rustc-hash";
+        version = "1.1.0";
+        edition = "2015";
+        sha256 = "1qkc5khrmv5pqi5l5ca9p5nl5hs742cagrndhbrlk3dhlrx3zm08";
+        authors = [
+          "The Rust Project Developers"
+        ];
+        features = {
+          "default" = [ "std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "rustc_version" = rec {
         crateName = "rustc_version";
@@ -8148,6 +8616,17 @@ rec {
         ];
 
       };
+      "shlex" = rec {
+        crateName = "shlex";
+        version = "1.0.0";
+        edition = "2015";
+        sha256 = "0gf773p2snqpw69rzh8s1wdlq8dc8c1ypmiv516il1fdyb46i9a2";
+        authors = [
+          "comex <comexk@gmail.com>"
+          "Fenhl <fenhl@fenhl.net>"
+        ];
+
+      };
       "signal-hook-registry" = rec {
         crateName = "signal-hook-registry";
         version = "1.4.0";
@@ -8597,6 +9076,17 @@ rec {
           "test" = [ "syn-test-suite/all-features" ];
         };
         resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "full" "parsing" "printing" "proc-macro" "quote" "visit" "visit-mut" ];
+      };
+      "tap" = rec {
+        crateName = "tap";
+        version = "1.0.1";
+        edition = "2015";
+        sha256 = "0sc3gl4nldqpvyhqi3bbd0l9k7fngrcl4zs47n314nqqk4bpx4sm";
+        authors = [
+          "Elliott Linder <elliott.darfink@gmail.com>"
+          "myrrlyn <self@myrrlyn.dev>"
+        ];
+
       };
       "tempfile" = rec {
         crateName = "tempfile";
@@ -11226,6 +11716,20 @@ rec {
           }
         ];
 
+      };
+      "wyz" = rec {
+        crateName = "wyz";
+        version = "0.2.0";
+        edition = "2018";
+        sha256 = "05028bk49b2ix1lz22sj65fnlxr0f29j2klkaqjxp6az3c6hprl5";
+        authors = [
+          "myrrlyn <self@myrrlyn.dev>"
+        ];
+        features = {
+          "default" = [ "std" ];
+          "std" = [ "alloc" ];
+        };
+        resolvedDefaultFeatures = [ "alloc" ];
       };
       "yaml-rust" = rec {
         crateName = "yaml-rust";

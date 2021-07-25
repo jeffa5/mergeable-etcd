@@ -20,6 +20,7 @@ use std::{
 
 pub use address::Address;
 use automerge_persistent::Persister;
+use automerge_persistent_rocksdb::RocksDbPersister;
 use automerge_persistent_sled::SledPersister;
 use automerge_protocol::ActorId;
 use etcd_proto::etcdserverpb::{
@@ -385,16 +386,26 @@ where
     }
 }
 
-pub fn sled_persister<P: AsRef<Path>>(data_dir: P) -> SledPersister {
-    let config = sled::Config::new().path(data_dir);
+pub fn sled_persister<P: AsRef<Path>>(config: sled::Config, data_dir: P) -> SledPersister {
+    let config = config.path(data_dir);
     let db = config.open().unwrap();
     let changes_tree = db.open_tree("changes").unwrap();
     let document_tree = db.open_tree("document").unwrap();
     let sync_states_tree = db.open_tree("syncstates").unwrap();
-    automerge_persistent_sled::SledPersister::new(
-        changes_tree,
-        document_tree,
-        sync_states_tree,
+    SledPersister::new(changes_tree, document_tree, sync_states_tree, String::new()).unwrap()
+}
+
+pub fn rocksdb_persister<P: AsRef<Path>>(
+    options: rocksdb::Options,
+    data_dir: P,
+) -> RocksDbPersister {
+    let db = rocksdb::DB::open(&options, &data_dir).unwrap();
+
+    RocksDbPersister::new(
+        Arc::new(db),
+        "changes".to_owned(),
+        "documents".to_owned(),
+        "sync-states".to_owned(),
         String::new(),
     )
     .unwrap()

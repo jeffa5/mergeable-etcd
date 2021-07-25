@@ -195,6 +195,10 @@
               expat
               fontconfig
 
+              # for rocksdb
+              clang
+
+
               cfssl
               etcd
               kind
@@ -207,6 +211,8 @@
 
             ETCDCTL_API = 3;
             PROTOC = "${pkgs.protobuf}/bin/protoc";
+            # for rocksdb
+            LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
           };
         }
       );

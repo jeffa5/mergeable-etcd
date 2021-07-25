@@ -371,10 +371,10 @@ where
             self.apply_local_change(wait_key_range, change, send).await;
             tokio::spawn(async move {
                 let () = recv.await.unwrap();
-                ret.send(Ok((server, prev))).unwrap()
+                let _ = ret.send(Ok((server, prev)));
             });
         } else {
-            ret.send(Ok((server, prev))).unwrap()
+            let _ = ret.send(Ok((server, prev)));
         }
     }
 
