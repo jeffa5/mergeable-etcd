@@ -16,5 +16,5 @@ opentelemetry = "0.15.0"
 opentelemetry-jaeger = "0.13.0"
 tracing-opentelemetry = "0.13.0"
 clap = "2.33.3"
-rocksdb = "0.17.0"
+rocksdb = { version = "0.16.0", default-features = false }
 sled = "0.34.6"
