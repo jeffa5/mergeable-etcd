@@ -207,7 +207,6 @@
               # for rocksdb
               clang
 
-
               cfssl
               etcd
               kind
