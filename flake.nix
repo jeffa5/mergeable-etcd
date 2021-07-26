@@ -43,6 +43,15 @@
               servo-fontconfig-sys = attrs: {
                 buildInputs = [ pkgs.fontconfig pkgs.pkg-config ];
               };
+              librocksdb-sys = attrs: {
+                buildInputs = [
+                  (rust.override {
+                    extensions = [ "rust-src" "rustfmt" ];
+                  })
+                  pkgs.clang
+                ];
+                LIBCLANG_PATH = "${pkgs.clang.cc.lib}/lib";
+              };
             };
           };
           cargoNix = makeCargoNix true;
@@ -212,7 +221,7 @@
             ETCDCTL_API = 3;
             PROTOC = "${pkgs.protobuf}/bin/protoc";
             # for rocksdb
-            LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+            LIBCLANG_PATH = "${pkgs.clang.cc.lib}/lib";
           };
         }
       );
