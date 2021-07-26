@@ -197,7 +197,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             server.serve(shutdown_rx, persister).await?;
         }
         Persister::RocksDb => {
-            let persister = rocksdb_persister(rocksdb::Options::default(), options.data_dir);
+            let mut rock_opts = rocksdb::Options::default();
+            rock_opts.create_if_missing(true);
+            let persister = rocksdb_persister(rock_opts, options.data_dir);
             server.serve(shutdown_rx, persister).await?;
         }
     };
