@@ -3,6 +3,7 @@ use std::{
     hash::{Hash, Hasher},
     net::SocketAddr,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest, WatchResponse};
@@ -72,9 +73,13 @@ impl Server {
         remote_addr: Option<SocketAddr>,
     ) -> i64 {
         // TODO: have a more robust cancel mechanism
-        self.inner.lock().unwrap().max_watcher_id += 1;
 
-        let id = self.inner.lock().unwrap().max_watcher_id;
+        let id = {
+            let mut guard = self.inner.lock().unwrap();
+            guard.max_watcher_id += 1;
+            guard.max_watcher_id
+        };
+
         let (tx_events, rx_events) = tokio::sync::mpsc::channel(1);
         let range_end = if range_end.is_empty() {
             None
@@ -90,14 +95,40 @@ impl Server {
                 .await
         });
         recv_watch_created.await.unwrap();
-        // TODO: periodically walk the watchers map and check if watchers are dead, if so, remove
-        // them
+
+        // periodically check if the watcher is dead, if so cancel it
+        let self_clone = self.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+
+                let mut is_dead = false;
+                if let Some((_, watcher)) = self_clone.inner.lock().unwrap().watchers.get(&id) {
+                    if watcher.is_dead() {
+                        is_dead = true;
+                    } else {
+                        // do nothing as it is still ok
+                    }
+                } else {
+                    break;
+                }
+
+                if is_dead {
+                    self_clone.cancel_watcher(id).await;
+                    break;
+                }
+            }
+        });
+
         let watcher = watcher::Watcher::new(id, prev_kv, rx_events, tx_results);
+
+        let frontend = self.select_frontend(remote_addr);
+
         self.inner
             .lock()
             .unwrap()
             .watchers
-            .insert(id, (self.select_frontend(remote_addr), watcher));
+            .insert(id, (frontend, watcher));
 
         WATCHERS_GAUGE.inc();
 
