@@ -117,8 +117,8 @@ build-musl:
 
 .PHONY: copy-to-binky
 copy-to-binky: build-musl
-	rsync target/x86_64-unknown-linux-musl/release/bencher-experiment binky:/home/apj39/eckd-rs/bencher-experiment
+	rsync -vv --progress target/x86_64-unknown-linux-musl/release/bencher-experiment binky:/home/apj39/eckd-rs/bencher-experiment
 
 .PHONY: copy-from-binky
-copy-from-binky: build-musl
-	rsync binky:/local/scratch/apj39/bencher-experiment/ experiments/bencher/results
+copy-from-binky:
+	rsync -r -vv --progress binky:/local/scratch/apj39/bencher-experiment/results/ experiments/bencher/results/
