@@ -1108,10 +1108,10 @@ rec {
       };
       "bindgen" = rec {
         crateName = "bindgen";
-        version = "0.59.1";
+        version = "0.57.0";
         edition = "2018";
         crateBin = [];
-        sha256 = "0xa32gh9hvnp810abympsn4nr10q2vil1xixpdiypc0bjpjljg25";
+        sha256 = "0g96ypnck6n60p3cz9k3y3jnxi4z7jfv2pha5bxsm8269806aj7x";
         authors = [
           "Jyun-Yan You <jyyou.tw@gmail.com>"
           "Emilio Cobos Álvarez <emilio@crisal.io>"
@@ -1214,41 +1214,6 @@ rec {
           "default" = [ "std" ];
         };
         resolvedDefaultFeatures = [ "default" "std" ];
-      };
-      "bitvec" = rec {
-        crateName = "bitvec";
-        version = "0.19.5";
-        edition = "2018";
-        sha256 = "08a3rfly22mky5y1881a4gr6wsapnqmcmc50vp4kh65fab9whhl9";
-        authors = [
-          "myrrlyn <self@myrrlyn.dev>"
-        ];
-        dependencies = [
-          {
-            name = "funty";
-            packageId = "funty";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "radium";
-            packageId = "radium";
-          }
-          {
-            name = "tap";
-            packageId = "tap";
-          }
-          {
-            name = "wyz";
-            packageId = "wyz";
-            usesDefaultFeatures = false;
-          }
-        ];
-        features = {
-          "alloc" = [ "wyz/alloc" ];
-          "default" = [ "atomic" "std" ];
-          "std" = [ "alloc" ];
-        };
-        resolvedDefaultFeatures = [ "alloc" "std" ];
       };
       "block-buffer" = rec {
         crateName = "block-buffer";
@@ -1511,9 +1476,9 @@ rec {
       };
       "cexpr" = rec {
         crateName = "cexpr";
-        version = "0.5.0";
+        version = "0.4.0";
         edition = "2018";
-        sha256 = "12awiqgwqc1cnjr2b4lz139mdv3md0y13n0dxmv24b95g5v7ll6v";
+        sha256 = "09qd1k1mrhcqfhqmsz4y1bya9gcs29si7y3w96pqkgid4y2dpbpl";
         authors = [
           "Jethro Beekman <jethro@jbeekman.nl>"
         ];
@@ -3287,18 +3252,6 @@ rec {
           }
         ];
 
-      };
-      "funty" = rec {
-        crateName = "funty";
-        version = "1.1.0";
-        edition = "2018";
-        sha256 = "19wx3p3jmv863y0mjb56sr4qf1kvqhl3fsyslkd92zli0p8lrlzy";
-        authors = [
-          "myrrlyn <self@myrrlyn.dev>"
-        ];
-        features = {
-          "default" = [ "std" ];
-        };
       };
       "futures" = rec {
         crateName = "futures";
@@ -5132,9 +5085,9 @@ rec {
       };
       "librocksdb-sys" = rec {
         crateName = "librocksdb-sys";
-        version = "6.20.3";
+        version = "6.17.3";
         edition = "2018";
-        sha256 = "0pd2kjxx4mv3nfk7b2w6jq2x4m3153sqq2aakbmsqi088z9aj2f3";
+        sha256 = "1yc9gryb2k05r4az8iw594l8fwx04dai30jrg2p7qb7jq3hjb8ax";
         authors = [
           "Karl Hobley <karlhobley10@gmail.com>"
           "Arkadiy Paronyan <arkadiy@ethcore.io>"
@@ -5618,25 +5571,13 @@ rec {
       };
       "nom" = rec {
         crateName = "nom";
-        version = "6.2.1";
+        version = "5.1.2";
         edition = "2018";
-        sha256 = "19h3l5hajpcszwl6nzcmgs4mpng73ifn6akslq7n4g1s12wm2p4w";
+        sha256 = "1br74rwdp3c2ddga03bphnf355spn4mzwf1slg0a30zd4qnjdd7z";
         authors = [
           "contact@geoffroycouprie.com"
         ];
         dependencies = [
-          {
-            name = "bitvec";
-            packageId = "bitvec";
-            optional = true;
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "funty";
-            packageId = "funty";
-            optional = true;
-            usesDefaultFeatures = false;
-          }
           {
             name = "memchr";
             packageId = "memchr";
@@ -5650,13 +5591,13 @@ rec {
           }
         ];
         features = {
-          "alloc" = [ "bitvec/alloc" "funty" ];
-          "default" = [ "std" "bitvec" "lexical" ];
+          "default" = [ "std" "lexical" ];
           "lexical" = [ "lexical-core" ];
           "regexp" = [ "regex" ];
-          "std" = [ "alloc" "bitvec/std" "memchr/use_std" ];
+          "regexp_macros" = [ "regexp" "lazy_static" ];
+          "std" = [ "alloc" "memchr/use_std" ];
         };
-        resolvedDefaultFeatures = [ "alloc" "bitvec" "funty" "std" ];
+        resolvedDefaultFeatures = [ "alloc" "std" ];
       };
       "nonzero_ext" = rec {
         crateName = "nonzero_ext";
@@ -7219,17 +7160,6 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "proc-macro" ];
       };
-      "radium" = rec {
-        crateName = "radium";
-        version = "0.5.3";
-        edition = "2018";
-        sha256 = "1f5vj5zy4kcsw8p87y976dm5pln6v6jfw5f0fkj7qbwfipbsj6wl";
-        authors = [
-          "Nika Layzell <nika@thelayzells.com>"
-          "myrrlyn <self@myrrlyn.dev>"
-        ];
-
-      };
       "rand 0.7.3" = rec {
         crateName = "rand";
         version = "0.7.3";
@@ -8731,12 +8661,11 @@ rec {
       };
       "shlex" = rec {
         crateName = "shlex";
-        version = "1.0.0";
+        version = "0.1.1";
         edition = "2015";
-        sha256 = "0gf773p2snqpw69rzh8s1wdlq8dc8c1ypmiv516il1fdyb46i9a2";
+        sha256 = "1lmv6san7g8dv6jdfp14m7bdczq9ss7j7bgsfqyqjc3jnjfippvz";
         authors = [
           "comex <comexk@gmail.com>"
-          "Fenhl <fenhl@fenhl.net>"
         ];
 
       };
@@ -9189,17 +9118,6 @@ rec {
           "test" = [ "syn-test-suite/all-features" ];
         };
         resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "full" "parsing" "printing" "proc-macro" "quote" "visit" "visit-mut" ];
-      };
-      "tap" = rec {
-        crateName = "tap";
-        version = "1.0.1";
-        edition = "2015";
-        sha256 = "0sc3gl4nldqpvyhqi3bbd0l9k7fngrcl4zs47n314nqqk4bpx4sm";
-        authors = [
-          "Elliott Linder <elliott.darfink@gmail.com>"
-          "myrrlyn <self@myrrlyn.dev>"
-        ];
-
       };
       "tempfile" = rec {
         crateName = "tempfile";
@@ -11829,20 +11747,6 @@ rec {
           }
         ];
 
-      };
-      "wyz" = rec {
-        crateName = "wyz";
-        version = "0.2.0";
-        edition = "2018";
-        sha256 = "05028bk49b2ix1lz22sj65fnlxr0f29j2klkaqjxp6az3c6hprl5";
-        authors = [
-          "myrrlyn <self@myrrlyn.dev>"
-        ];
-        features = {
-          "default" = [ "std" ];
-          "std" = [ "alloc" ];
-        };
-        resolvedDefaultFeatures = [ "alloc" ];
       };
       "yaml-rust" = rec {
         crateName = "yaml-rust";
