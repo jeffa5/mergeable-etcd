@@ -4,6 +4,8 @@ use automerge_persistent::Error;
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::ActorId;
 use etcd_proto::etcdserverpb::{request_op::Request, RequestOp, ResponseOp, TxnRequest};
+use lazy_static::lazy_static;
+use prometheus::{register_int_counter, IntCounter};
 use rand::random;
 use tokio::{
     sync::{mpsc, oneshot, watch},
@@ -21,6 +23,38 @@ use crate::{
     StoreValue,
 };
 
+lazy_static! {
+    static ref GET_REQUEST_COUNTER: IntCounter = register_int_counter!(
+        "ecetcd_get_request_total",
+        "Number of get requests received"
+    )
+    .unwrap();
+}
+
+lazy_static! {
+    static ref PUT_REQUEST_COUNTER: IntCounter = register_int_counter!(
+        "ecetcd_put_request_total",
+        "Number of put requests received"
+    )
+    .unwrap();
+}
+
+lazy_static! {
+    static ref DELETE_RANGE_REQUEST_COUNTER: IntCounter = register_int_counter!(
+        "ecetcd_delete_range_request_total",
+        "Number of delete_range requests received"
+    )
+    .unwrap();
+}
+
+lazy_static! {
+    static ref TXN_REQUEST_COUNTER: IntCounter = register_int_counter!(
+        "ecetcd_txn_request_total",
+        "Number of txn requests received"
+    )
+    .unwrap();
+}
+
 #[derive(Debug)]
 pub struct FrontendActor<T, E>
 where
@@ -30,8 +64,11 @@ where
     document: Document<T>,
     backend: BackendHandle<E>,
     watchers: HashMap<
-        SingleKeyOrRange,
-        mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
+        i64,
+        (
+            SingleKeyOrRange,
+            mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
+        ),
     >,
     locked_key_ranges: Rc<RefCell<HashMap<SingleKeyOrRange, watch::Receiver<()>>>>,
     // receiver for requests from clients
@@ -144,6 +181,9 @@ where
                 revision,
             } => {
                 let result = self.get(key, range_end, revision).await;
+
+                GET_REQUEST_COUNTER.inc();
+
                 let _ = ret.send(result);
                 Ok(())
             }
@@ -155,6 +195,9 @@ where
                 ret,
             } => {
                 self.insert(key, value, prev_kv, lease, ret).await;
+
+                PUT_REQUEST_COUNTER.inc();
+
                 Ok(())
             }
             FrontendMessage::Remove {
@@ -163,15 +206,22 @@ where
                 ret,
             } => {
                 let result = self.remove(key, range_end).await;
+
+                DELETE_RANGE_REQUEST_COUNTER.inc();
+
                 let _ = ret.send(result);
                 Ok(())
             }
             FrontendMessage::Txn { request, ret } => {
                 let result = self.txn(request).await;
+
+                TXN_REQUEST_COUNTER.inc();
+
                 let _ = ret.send(result);
                 Ok(())
             }
             FrontendMessage::WatchRange {
+                id,
                 key,
                 range_end,
                 tx_events,
@@ -183,7 +233,7 @@ where
                     SingleKeyOrRange::Single(key)
                 };
                 let (sender, receiver) = mpsc::channel(1);
-                self.watchers.insert(range, sender);
+                self.watchers.insert(id, (range, sender));
 
                 let ((), change) = self
                     .document
@@ -207,6 +257,10 @@ where
 
                 send_watch_created.send(()).unwrap();
 
+                Ok(())
+            }
+            FrontendMessage::RemoveWatchRange { id } => {
+                self.watchers.remove(&id);
                 Ok(())
             }
             FrontendMessage::CreateLease { id, ttl, ret } => {
@@ -354,7 +408,7 @@ where
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
             let value = doc.value_mut(&key).unwrap().unwrap();
-            for (range, sender) in &self.watchers {
+            for (range, sender) in self.watchers.values() {
                 if range.contains(&key) {
                     let latest_value = value.latest_value(key.clone()).unwrap();
                     let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
@@ -415,7 +469,7 @@ where
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
             for (key, prev) in &prev {
-                for (range, sender) in &self.watchers {
+                for (range, sender) in self.watchers.values() {
                     if range.contains(key) {
                         if let Some(Ok(value)) = doc.value_mut(key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
@@ -473,7 +527,7 @@ where
                 Request::RequestPut(put) => {
                     let key = put.key.into();
                     let value = doc.value_mut(&key).unwrap().unwrap();
-                    for (range, sender) in &self.watchers {
+                    for (range, sender) in self.watchers.values() {
                         if range.contains(&key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
                             let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
@@ -488,7 +542,7 @@ where
                     // TODO: handle ranges
                     let key = del.key.into();
                     let value = doc.value_mut(&key).unwrap().unwrap();
-                    for (range, sender) in &self.watchers {
+                    for (range, sender) in self.watchers.values() {
                         if range.contains(&key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
                             let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
@@ -624,7 +678,7 @@ where
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
             for (key, prev) in &prevs {
-                for (range, sender) in &self.watchers {
+                for (range, sender) in self.watchers.values() {
                     if range.contains(key) {
                         if let Some(Ok(value)) = doc.value_mut(key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();

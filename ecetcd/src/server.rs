@@ -3,9 +3,12 @@ use std::{
     hash::{Hash, Hasher},
     net::SocketAddr,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest, WatchResponse};
+use lazy_static::lazy_static;
+use prometheus::{register_int_gauge, IntGauge};
 use tokio::sync::oneshot;
 use tonic::Status;
 
@@ -13,6 +16,11 @@ use crate::store::{FrontendError, FrontendHandle, Key, Revision, SnapshotValue, 
 
 mod lease;
 mod watcher;
+
+lazy_static! {
+    static ref WATCHERS_GAUGE: IntGauge =
+        register_int_gauge!("ecetcd_watchers_count", "Number of watchers registered").unwrap();
+}
 
 #[derive(Debug, Clone)]
 pub struct Server {
@@ -23,7 +31,7 @@ pub struct Server {
 struct Inner {
     frontends: Vec<FrontendHandle>,
     max_watcher_id: i64,
-    watchers: HashMap<i64, watcher::Watcher>,
+    watchers: HashMap<i64, (FrontendHandle, watcher::Watcher)>,
     leases: HashMap<i64, lease::Lease>,
 }
 
@@ -65,8 +73,13 @@ impl Server {
         remote_addr: Option<SocketAddr>,
     ) -> i64 {
         // TODO: have a more robust cancel mechanism
-        self.inner.lock().unwrap().max_watcher_id += 1;
-        let id = self.inner.lock().unwrap().max_watcher_id;
+
+        let id = {
+            let mut guard = self.inner.lock().unwrap();
+            guard.max_watcher_id += 1;
+            guard.max_watcher_id
+        };
+
         let (tx_events, rx_events) = tokio::sync::mpsc::channel(1);
         let range_end = if range_end.is_empty() {
             None
@@ -78,19 +91,61 @@ impl Server {
         tokio::spawn(async move {
             self_clone
                 .select_frontend(remote_addr)
-                .watch_range(key.into(), range_end, tx_events, send_watch_created)
+                .watch_range(id, key.into(), range_end, tx_events, send_watch_created)
                 .await
         });
         recv_watch_created.await.unwrap();
+
+        // periodically check if the watcher is dead, if so cancel it
+        let self_clone = self.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+
+                let mut is_dead = false;
+                if let Some((_, watcher)) = self_clone.inner.lock().unwrap().watchers.get(&id) {
+                    if watcher.is_dead() {
+                        is_dead = true;
+                    } else {
+                        // do nothing as it is still ok
+                    }
+                } else {
+                    break;
+                }
+
+                if is_dead {
+                    self_clone.cancel_watcher(id).await;
+                    break;
+                }
+            }
+        });
+
         let watcher = watcher::Watcher::new(id, prev_kv, rx_events, tx_results);
-        self.inner.lock().unwrap().watchers.insert(id, watcher);
+
+        let frontend = self.select_frontend(remote_addr);
+
+        self.inner
+            .lock()
+            .unwrap()
+            .watchers
+            .insert(id, (frontend, watcher));
+
+        WATCHERS_GAUGE.inc();
+
         id
     }
 
-    pub fn cancel_watcher(&self, id: i64) {
+    pub async fn cancel_watcher(&self, id: i64) {
         // TODO: robust cancellation
-        if let Some(watcher) = self.inner.lock().unwrap().watchers.remove(&id) {
-            watcher.cancel()
+
+        let removed = self.inner.lock().unwrap().watchers.remove(&id);
+
+        if let Some((frontend, watcher)) = removed {
+            watcher.cancel();
+
+            frontend.remove_watch_range(id).await;
+
+            WATCHERS_GAUGE.dec();
         }
     }
 

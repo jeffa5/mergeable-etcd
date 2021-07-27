@@ -33,6 +33,10 @@ impl Watcher {
     pub(super) fn cancel(self) {
         let _ = self.cancel.send(());
     }
+
+    pub(super) fn is_dead(&self) -> bool {
+        self.cancel.is_closed()
+    }
 }
 
 async fn handle_event(

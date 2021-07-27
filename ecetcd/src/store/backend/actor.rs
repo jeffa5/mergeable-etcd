@@ -5,6 +5,8 @@ use automerge_backend::SyncMessage;
 use automerge_persistent::{Error, Persister};
 use automerge_protocol::Patch;
 use futures::future::join_all;
+use lazy_static::lazy_static;
+use prometheus::{register_int_counter, IntCounter};
 use tokio::{
     sync::{mpsc, oneshot, watch, Notify},
     time::sleep,
@@ -13,6 +15,14 @@ use tracing::{info, Instrument, Span};
 
 use super::BackendMessage;
 use crate::store::FrontendHandle;
+
+lazy_static! {
+    static ref APPLIED_CHANGES_COUNTER: IntCounter = register_int_counter!(
+        "ecetcd_applied_changes_total",
+        "Number of changes applied to the backend"
+    )
+    .unwrap();
+}
 
 #[derive(Debug)]
 pub struct BackendActor<P>
@@ -107,16 +117,25 @@ where
         match msg {
             BackendMessage::ApplyLocalChange { change } => {
                 let result = self.apply_local_change_async(change).await.unwrap();
+
+                APPLIED_CHANGES_COUNTER.inc();
+
                 let _ = self.changed_notify.notify_one();
                 result
             }
             BackendMessage::ApplyLocalChangeSync { change, ret } => {
                 let result = self.apply_local_change_sync(change, ret).await.unwrap();
+
+                APPLIED_CHANGES_COUNTER.inc();
+
                 let _ = self.changed_notify.notify_one();
                 result
             }
             BackendMessage::ApplyChanges { changes } => {
+                let num_changes = changes.len();
                 let patch = self.apply_changes(changes).unwrap();
+
+                APPLIED_CHANGES_COUNTER.inc_by(num_changes as u64);
 
                 let _ = self.changed_notify.notify_one();
 
