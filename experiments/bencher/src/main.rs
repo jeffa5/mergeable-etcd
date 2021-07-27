@@ -165,7 +165,10 @@ impl exp::Experiment for Experiment {
         let mut initial_cluster = "node1=http://172.18.0.2:2380".to_owned();
         let mut client_urls = "http://172.18.0.2:2379".to_owned();
         let mut metrics_urls = "http://172.18.0.2:2381".to_owned();
-        let network_name = "etcd-bench".to_owned();
+
+        let network_name = "apj39-bencher-experiment".to_owned();
+        let network_subnet = "172.19.0.0/16".to_owned();
+
         for i in 2..=configuration.cluster_size {
             initial_cluster.push_str(&format!(
                 ",node{}=http://172.18.0.{}:{}",
@@ -218,7 +221,7 @@ impl exp::Experiment for Experiment {
                     pull: false,
                     command: Some(cmd),
                     network: Some(network_name.clone()),
-                    network_subnet: Some("172.18.0.0/16".to_owned()),
+                    network_subnet: Some(network_subnet.clone()),
                     ports: Some(vec![
                         (client_port.to_string(), client_port.to_string()),
                         (peer_port.to_string(), peer_port.to_string()),
@@ -287,7 +290,7 @@ impl exp::Experiment for Experiment {
                 pull: false,
                 command: Some(bench_cmd),
                 network: Some(network_name.clone()),
-                network_subnet: Some("172.18.0.0/16".to_owned()),
+                network_subnet: Some(network_subnet.clone()),
                 ports: None,
                 capabilities: None,
                 cpus: None,
