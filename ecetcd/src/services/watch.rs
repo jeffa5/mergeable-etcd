@@ -123,9 +123,7 @@ impl WatchTrait for Watch {
                             }
                         }
                     },
-                    Err(e) => {
-                        warn!("watch error: {}", e);
-
+                    Err(_) => {
                         for id in watch_ids_created_here {
                             server_clone.cancel_watcher(id).await;
                         }
