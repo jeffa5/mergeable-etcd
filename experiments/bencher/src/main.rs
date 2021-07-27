@@ -13,10 +13,15 @@ pub struct Experiment;
 
 const ETCD_IMAGE: &str = "quay.io/coreos/etcd";
 const ETCD_TAG: &str = "v3.4.13";
+
 const ECKD_IMAGE: &str = "jeffas/eckd";
 const ECKD_TAG: &str = "latest";
+
 const RECETCD_IMAGE: &str = "jeffas/recetcd";
 const RECETCD_TAG: &str = "latest";
+
+const BENCHER_IMAGE: &str = "jeffas/bencher";
+const BENCHER_TAG: &str = "latest";
 
 #[async_trait]
 impl exp::Experiment for Experiment {
@@ -148,15 +153,15 @@ impl exp::Experiment for Experiment {
     }
 
     async fn pre_run(&self, configuration: &Self::Configuration) {
-        docker_runner::pull_image(ETCD_IMAGE, ETCD_TAG)
-            .await
-            .unwrap();
-        docker_runner::pull_image(ECKD_IMAGE, ECKD_TAG)
-            .await
-            .unwrap();
-        docker_runner::pull_image(RECETCD_IMAGE, RECETCD_TAG)
-            .await
-            .unwrap();
+        for (img, tag) in [
+            (ETCD_IMAGE, ETCD_TAG),
+            (ECKD_IMAGE, ECKD_TAG),
+            (RECETCD_IMAGE, RECETCD_TAG),
+            (BENCHER_IMAGE, BENCHER_TAG),
+        ] {
+            docker_runner::pull_image(img, tag).await.unwrap();
+        }
+
         println!("Running bencher experiment: {:?}", configuration);
     }
 
@@ -295,8 +300,8 @@ impl exp::Experiment for Experiment {
         runner
             .add_container(&ContainerConfig {
                 name: bench_name.to_owned(),
-                image_name: "jeffas/bencher".to_owned(),
-                image_tag: "latest".to_owned(),
+                image_name: BENCHER_IMAGE.to_owned(),
+                image_tag: BENCHER_TAG.to_owned(),
                 pull: false,
                 command: Some(bench_cmd),
                 network: Some(network_name.clone()),
