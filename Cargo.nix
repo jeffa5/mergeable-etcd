@@ -2527,6 +2527,10 @@ rec {
             packageId = "hyper";
           }
           {
+            name = "lazy_static";
+            packageId = "lazy_static";
+          }
+          {
             name = "num_cpus";
             packageId = "num_cpus";
           }
@@ -2537,6 +2541,12 @@ rec {
           {
             name = "peer-proto";
             packageId = "peer-proto";
+          }
+          {
+            name = "prometheus";
+            packageId = "prometheus";
+            usesDefaultFeatures = false;
+            features = [ "process" ];
           }
           {
             name = "prost";
@@ -2920,7 +2930,7 @@ rec {
           }
           {
             name = "procfs";
-            packageId = "procfs";
+            packageId = "procfs 0.10.0";
             features = [ "serde" ];
           }
           {
@@ -6880,7 +6890,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "proc-macro" ];
       };
-      "procfs" = rec {
+      "procfs 0.10.0" = rec {
         crateName = "procfs";
         version = "0.10.0";
         edition = "2018";
@@ -6935,6 +6945,102 @@ rec {
           "default" = [ "chrono" ];
         };
         resolvedDefaultFeatures = [ "chrono" "default" "serde" ];
+      };
+      "procfs 0.9.1" = rec {
+        crateName = "procfs";
+        version = "0.9.1";
+        edition = "2018";
+        sha256 = "1kfmlpx902czawrn54zbs0918k0bxi22lv931zds4l44q7h0k25b";
+        authors = [
+          "Andrew Chin <achin@eminence32.net>"
+        ];
+        dependencies = [
+          {
+            name = "bitflags";
+            packageId = "bitflags";
+          }
+          {
+            name = "byteorder";
+            packageId = "byteorder";
+            features = [ "i128" ];
+          }
+          {
+            name = "flate2";
+            packageId = "flate2";
+          }
+          {
+            name = "hex";
+            packageId = "hex";
+          }
+          {
+            name = "lazy_static";
+            packageId = "lazy_static";
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+        ];
+        features = {
+          "default" = [ "chrono" ];
+        };
+      };
+      "prometheus" = rec {
+        crateName = "prometheus";
+        version = "0.12.0";
+        edition = "2018";
+        sha256 = "175r0lz6qsqjzm8mpcnlzwqng6ybm7dir2qgyp99401qca6sm1jr";
+        authors = [
+          "overvenus@gmail.com"
+          "siddontang@gmail.com"
+          "vistaswx@gmail.com"
+        ];
+        dependencies = [
+          {
+            name = "cfg-if";
+            packageId = "cfg-if";
+          }
+          {
+            name = "fnv";
+            packageId = "fnv";
+          }
+          {
+            name = "lazy_static";
+            packageId = "lazy_static";
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+            optional = true;
+          }
+          {
+            name = "memchr";
+            packageId = "memchr";
+          }
+          {
+            name = "parking_lot";
+            packageId = "parking_lot";
+          }
+          {
+            name = "procfs";
+            packageId = "procfs 0.9.1";
+            optional = true;
+            usesDefaultFeatures = false;
+            target = { target, features }: (target."os" == "linux");
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+        ];
+        features = {
+          "default" = [ "protobuf" ];
+          "gen" = [ "protobuf-codegen-pure" ];
+          "nightly" = [ "libc" ];
+          "process" = [ "libc" "procfs" ];
+          "push" = [ "reqwest" "libc" "protobuf" ];
+        };
+        resolvedDefaultFeatures = [ "libc" "process" "procfs" ];
       };
       "prost" = rec {
         crateName = "prost";
