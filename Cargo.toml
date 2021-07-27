@@ -13,7 +13,7 @@ members = [
 ]
 
 [profile.release]
-debug = true
+debug = false
 
 [patch."https://github.com/automerge/automerge-rs"]
 automerge = { git = "https://github.com//jeffa5/automerge-rs", branch = "state-tree-and-sync-improvements" }
