@@ -75,7 +75,7 @@ impl WatchTrait for Watch {
                             }
                         }
                         Some(RequestUnion::CancelRequest(cancel)) => {
-                            server_clone.cancel_watcher(cancel.watch_id);
+                            server_clone.cancel_watcher(cancel.watch_id).await;
                             let server = server_clone.current_server(remote_addr);
                             let header = server.await.header();
                             if tx_response

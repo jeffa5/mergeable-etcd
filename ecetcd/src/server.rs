@@ -106,10 +106,13 @@ impl Server {
 
     pub async fn cancel_watcher(&self, id: i64) {
         // TODO: robust cancellation
-        if let Some((frontend, watcher)) = self.inner.lock().unwrap().watchers.remove(&id) {
-            frontend.remove_watch_range(id).await;
 
+        let removed = self.inner.lock().unwrap().watchers.remove(&id);
+
+        if let Some((frontend, watcher)) = removed {
             watcher.cancel();
+
+            frontend.remove_watch_range(id).await;
 
             WATCHERS_GAUGE.dec();
         }

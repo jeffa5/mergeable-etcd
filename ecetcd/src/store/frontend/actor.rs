@@ -408,7 +408,7 @@ where
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
             let value = doc.value_mut(&key).unwrap().unwrap();
-            for (id, (range, sender)) in &self.watchers {
+            for (range, sender) in self.watchers.values() {
                 if range.contains(&key) {
                     let latest_value = value.latest_value(key.clone()).unwrap();
                     let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
@@ -469,7 +469,7 @@ where
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
             for (key, prev) in &prev {
-                for (id, (range, sender)) in &self.watchers {
+                for (range, sender) in self.watchers.values() {
                     if range.contains(key) {
                         if let Some(Ok(value)) = doc.value_mut(key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
@@ -527,7 +527,7 @@ where
                 Request::RequestPut(put) => {
                     let key = put.key.into();
                     let value = doc.value_mut(&key).unwrap().unwrap();
-                    for (id, (range, sender)) in &self.watchers {
+                    for (range, sender) in self.watchers.values() {
                         if range.contains(&key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
                             let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
@@ -542,7 +542,7 @@ where
                     // TODO: handle ranges
                     let key = del.key.into();
                     let value = doc.value_mut(&key).unwrap().unwrap();
-                    for (id, (range, sender)) in &self.watchers {
+                    for (range, sender) in self.watchers.values() {
                         if range.contains(&key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
                             let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
@@ -678,7 +678,7 @@ where
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
             for (key, prev) in &prevs {
-                for (id, (range, sender)) in &self.watchers {
+                for (range, sender) in self.watchers.values() {
                     if range.contains(key) {
                         if let Some(Ok(value)) = doc.value_mut(key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
