@@ -1,19 +1,12 @@
-use std::{
-    collections::{BTreeMap, HashMap, HashSet},
-    fs::{create_dir_all, read_dir},
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
-use bencher::Output;
 use clap::Clap;
 use exp::{
-    docker_runner::{self, ContainerConfig, Logs, Runner, Stats, Tops},
+    docker_runner::{self, ContainerConfig, Runner},
     Environment, ExperimentConfiguration,
 };
 use futures::{future::ready, StreamExt};
-use plotters::data::fitting_range;
 use serde::{Deserialize, Serialize};
 
 pub struct Experiment;
@@ -322,283 +315,12 @@ impl exp::Experiment for Experiment {
 
     fn analyse(
         &self,
-        exp_dir: std::path::PathBuf,
-        date: chrono::DateTime<chrono::offset::Utc>,
+        _exp_dir: std::path::PathBuf,
+        _date: chrono::DateTime<chrono::offset::Utc>,
         _environment: Environment,
-        configurations: Vec<(Self::Configuration, PathBuf)>,
+        _configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
-        let mut configs = BTreeMap::new();
-        for (i, (config, config_dir)) in configurations.iter().enumerate() {
-            let mut repeats = BTreeMap::new();
-            for (i, repeat_dir) in exp::repeat_dirs(config_dir).unwrap().iter().enumerate() {
-                let mut logs = HashMap::new();
-                for log_file in read_dir(repeat_dir.join("logs")).unwrap() {
-                    if let Ok(log) = exp::docker_runner::Logs::from_file(&log_file.unwrap().path())
-                    {
-                        logs.insert(log.container_name.clone(), log);
-                    }
-                }
-                let mut stats = HashMap::new();
-                for stat_file in read_dir(repeat_dir.join("metrics")).unwrap() {
-                    if let Ok(stat) =
-                        exp::docker_runner::Stats::from_file(&stat_file.unwrap().path())
-                    {
-                        stats.insert(stat.container_name.clone(), stat);
-                    }
-                }
-                let mut tops = HashMap::new();
-                for top_file in read_dir(repeat_dir.join("metrics")).unwrap() {
-                    if let Ok(top) = exp::docker_runner::Tops::from_file(&top_file.unwrap().path())
-                    {
-                        tops.insert(top.container_name.clone(), top);
-                    }
-                }
-                repeats.insert(i, (logs, stats, tops));
-            }
-            configs.insert(i, (config.clone(), repeats));
-        }
-
-        // extract benchmark information
-        let mut bench_results = BTreeMap::new();
-        for (ci, (_c, r)) in &configs {
-            let mut repeats = BTreeMap::new();
-            for (ri, (logs, _stats, _tops)) in r {
-                if let Some(bench_logs) = logs.get("bench") {
-                    let outputs = bench_logs
-                        .lines
-                        .iter()
-                        .map(|(_, l)| {
-                            let output: Output = serde_json::from_str(l).unwrap();
-                            output
-                        })
-                        .collect();
-                    repeats.insert(*ri, BenchResults { outputs });
-                }
-            }
-            bench_results.insert(*ci, repeats);
-        }
-        let plots_path = exp_dir.join("plots");
-        create_dir_all(&plots_path).unwrap();
-        plot_latency(date, &plots_path, &configs, &bench_results);
-        plot_latency_cdf(date, &plots_path, &configs, &bench_results);
-    }
-}
-
-#[derive(Debug)]
-struct BenchResults {
-    outputs: Vec<Output>,
-}
-
-fn plot_latency(
-    date: chrono::DateTime<chrono::Utc>,
-    plots_path: &Path,
-    configs: &BTreeMap<
-        usize,
-        (
-            Config,
-            BTreeMap<
-                usize,
-                (
-                    HashMap<String, Logs>,
-                    HashMap<String, Stats>,
-                    HashMap<String, Tops>,
-                ),
-            >,
-        ),
-    >,
-    bench_results: &BTreeMap<usize, BTreeMap<usize, BenchResults>>,
-) {
-    use plotters::prelude::*;
-    let colours = vec![
-        BLUE.mix(0.5).filled(),
-        RED.mix(0.5).filled(),
-        GREEN.mix(0.5).filled(),
-        YELLOW.mix(0.5).filled(),
-        CYAN.mix(0.5).filled(),
-        MAGENTA.mix(0.5).filled(),
-        BLACK.mix(0.5).filled(),
-    ];
-
-    for (i, rs) in bench_results.iter() {
-        for (r, res) in rs.iter() {
-            let members = res
-                .outputs
-                .iter()
-                .map(|o| o.member_id)
-                .collect::<HashSet<_>>();
-            let members = members
-                .iter()
-                .enumerate()
-                .map(|(i, m)| (m, i))
-                .collect::<HashMap<_, _>>();
-            let latency_plot = plots_path.join(format!("latency-c{}-r{}.svg", i, r));
-            println!("Creating plot {:?}", latency_plot);
-            let root = SVGBackend::new(&latency_plot, (640, 480)).into_drawing_area();
-            root.fill(&WHITE).unwrap();
-            let start = res.outputs.iter().map(|output| output.start).min().unwrap();
-            let mut chart = ChartBuilder::on(&root)
-                .caption(
-                    format!(
-                        "latency {} {}x{} {:?} {}ms {}",
-                        date,
-                        configs[i].0.cluster_size,
-                        configs[i].0.image_name,
-                        configs[i].0.bench_type,
-                        configs[i].0.delay,
-                        configs[i].0.extra_args.join(" "),
-                    ),
-                    ("Times", 20).into_font(),
-                )
-                .margin(10)
-                .x_label_area_size(40)
-                .y_label_area_size(50)
-                .build_cartesian_2d(
-                    fitting_range(
-                        &res.outputs
-                            .iter()
-                            .map(|output| {
-                                output.start.duration_since(start).unwrap().as_micros() as f64
-                                    / 1000.
-                            })
-                            .collect::<Vec<_>>(),
-                    ),
-                    fitting_range(
-                        &res.outputs
-                            .iter()
-                            .map(|output| {
-                                output.end.duration_since(output.start).unwrap().as_micros() as f64
-                                    / 1000.
-                            })
-                            .collect::<Vec<_>>(),
-                    ),
-                )
-                .unwrap();
-
-            chart
-                .configure_mesh()
-                .x_desc("milliseconds from start")
-                .label_style(("Times", 14).into_font())
-                .axis_desc_style(("Times", 15).into_font())
-                .y_desc("Request duration (ms)")
-                .draw()
-                .unwrap();
-
-            chart
-                .draw_series(
-                    res.outputs
-                        .iter()
-                        .map(|output| {
-                            Cross::new(
-                                (
-                                    output.start.duration_since(start).unwrap().as_micros() as f64
-                                        / 1000.,
-                                    output.end.duration_since(output.start).unwrap().as_micros()
-                                        as f64
-                                        / 1000.,
-                                ),
-                                3,
-                                colours[members[&output.member_id]].clone(),
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
-                .unwrap();
-        }
-    }
-}
-
-fn plot_latency_cdf(
-    date: chrono::DateTime<chrono::Utc>,
-    plots_path: &Path,
-    configs: &BTreeMap<
-        usize,
-        (
-            Config,
-            BTreeMap<
-                usize,
-                (
-                    HashMap<String, Logs>,
-                    HashMap<String, Stats>,
-                    HashMap<String, Tops>,
-                ),
-            >,
-        ),
-    >,
-    bench_results: &BTreeMap<usize, BTreeMap<usize, BenchResults>>,
-) {
-    use plotters::prelude::*;
-    let colours = vec![
-        BLUE.mix(0.5).filled(),
-        RED.mix(0.5).filled(),
-        GREEN.mix(0.5).filled(),
-        YELLOW.mix(0.5).filled(),
-        CYAN.mix(0.5).filled(),
-        MAGENTA.mix(0.5).filled(),
-        BLACK.mix(0.5).filled(),
-    ];
-
-    for (i, rs) in bench_results.iter() {
-        for (r, res) in rs.iter() {
-            let latency_plot = plots_path.join(format!("latcdf-c{}-r{}.svg", i, r));
-            println!("Creating plot {:?}", latency_plot);
-            let root = SVGBackend::new(&latency_plot, (640, 480)).into_drawing_area();
-            root.fill(&WHITE).unwrap();
-            let mut latencies = res
-                .outputs
-                .iter()
-                .map(|output| output.end.duration_since(output.start).unwrap().as_micros())
-                .collect::<Vec<_>>();
-            latencies.sort_unstable();
-            let mut cumulative_latencies = Vec::new();
-            let mut total = 0;
-            for x in &latencies {
-                total += x;
-                cumulative_latencies.push(total);
-            }
-            let max = *cumulative_latencies.iter().max().unwrap();
-
-            let normalised = cumulative_latencies.iter().map(|&x| x as f64 / max as f64);
-            let points = latencies
-                .iter()
-                .map(|&x| x as f64 / 1000.)
-                .zip(normalised)
-                .collect::<Vec<_>>();
-
-            let mut chart = ChartBuilder::on(&root)
-                .caption(
-                    format!(
-                        "lat cdf {} {}x{} {:?} {}ms {}",
-                        date,
-                        configs[i].0.cluster_size,
-                        configs[i].0.image_name,
-                        configs[i].0.bench_type,
-                        configs[i].0.delay,
-                        configs[i].0.extra_args.join(" "),
-                    ),
-                    ("Times", 20).into_font(),
-                )
-                .margin(10)
-                .x_label_area_size(40)
-                .y_label_area_size(50)
-                .build_cartesian_2d(
-                    fitting_range(points.iter().map(|(x, _)| x)),
-                    fitting_range(points.iter().map(|(_, y)| y)),
-                )
-                .unwrap();
-
-            chart
-                .configure_mesh()
-                .x_desc("Request duration (ms)")
-                .label_style(("Times", 14).into_font())
-                .axis_desc_style(("Times", 15).into_font())
-                .y_desc("Probability")
-                .draw()
-                .unwrap();
-
-            chart
-                .draw_series(LineSeries::new(points, colours[0].clone()))
-                .unwrap();
-        }
+        // do nothing
     }
 }
 
@@ -636,16 +358,6 @@ impl ExperimentConfiguration for Config {
 
 #[derive(Clap)]
 struct CliOptions {
-    /// Run all the experiments
-    #[clap(long)]
-    run: bool,
-    /// Analyse all the experiments
-    #[clap(long)]
-    analyse: bool,
-
-    #[clap(long)]
-    date: Option<chrono::DateTime<chrono::Utc>>,
-
     #[clap(long, default_value = "experiments/bencher/results")]
     results_dir: PathBuf,
 }
@@ -653,24 +365,12 @@ struct CliOptions {
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let opts = CliOptions::parse();
-    if !opts.run && !opts.analyse {
-        anyhow::bail!("Neither run nor analyse specified");
-    }
 
-    if opts.run {
-        let conf = exp::RunConfig {
-            results_dir: opts.results_dir.clone(),
-        };
+    let conf = exp::RunConfig {
+        results_dir: opts.results_dir.clone(),
+    };
 
-        exp::run(&Experiment, &conf).await?;
-    }
+    exp::run(&Experiment, &conf).await?;
 
-    if opts.analyse {
-        let conf = exp::AnalyseConfig {
-            results_dir: opts.results_dir,
-            date: opts.date,
-        };
-        exp::analyse(&Experiment, &conf).await?;
-    }
     Ok(())
 }

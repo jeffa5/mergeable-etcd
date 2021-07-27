@@ -15,5 +15,4 @@ chrono = "0.4.19"
 clap = "3.0.0-beta.2"
 clap_derive = "3.0.0-beta.2"
 plotters = "0.3.0"
-bencher = { path = "../../bencher" }
 bollard = "0.10.1"
