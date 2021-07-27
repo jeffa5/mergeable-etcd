@@ -161,34 +161,44 @@ impl exp::Experiment for Experiment {
     }
 
     async fn run(&self, configuration: &Self::Configuration, repeat_dir: std::path::PathBuf) {
-        let mut runner = Runner::new(repeat_dir).await;
-        let mut initial_cluster = "node1=http://172.18.0.2:2380".to_owned();
-        let mut client_urls = "http://172.18.0.2:2379".to_owned();
-        let mut metrics_urls = "http://172.18.0.2:2381".to_owned();
+        let experiment_prefix = "apj39-bencher-exp";
+        let node_name_prefix = format!("{}-node", experiment_prefix);
 
-        let network_name = "apj39-bencher-experiment".to_owned();
-        let network_subnet = "172.19.0.0/16".to_owned();
+        let network_name = format!("{}-net", experiment_prefix);
+        let network_triplet = "172.19.0";
+        let network_quad = "172.19.0.0";
+        let network_subnet = format!("{}/16", network_quad);
+
+        let mut runner = Runner::new(repeat_dir).await;
+        let mut initial_cluster =
+            format!("{}1=http://{}.2:2380", node_name_prefix, network_triplet);
+        let mut client_urls = format!("http://{}.2:2379", network_triplet);
+        let mut metrics_urls = format!("http://{}.2:2381", network_triplet);
 
         for i in 2..=configuration.cluster_size {
             initial_cluster.push_str(&format!(
-                ",node{}=http://172.18.0.{}:{}",
+                ",{}{}=http://{}.{}:{}",
+                node_name_prefix,
                 i,
+                network_triplet,
                 i + 1,
                 2380 + ((i - 1) * 10)
             ));
             client_urls.push_str(&format!(
-                ",http://172.18.0.{}:{}",
+                ",http://{}.{}:{}",
+                network_triplet,
                 i + 1,
                 2379 + ((i - 1) * 10)
             ));
             metrics_urls.push_str(&format!(
-                ",http://172.18.0.{}:{}",
+                ",http://{}.{}:{}",
+                network_triplet,
                 i + 1,
                 2381 + ((i - 1) * 10)
             ));
         }
         for i in 1..configuration.cluster_size + 1 {
-            let ip = format!("172.18.0.{}", i + 1);
+            let ip = format!("{}.{}", network_triplet, i + 1);
             let client_port = 2379 + ((i - 1) * 10);
             let peer_port = 2380 + ((i - 1) * 10);
             let metrics_port = 2381 + ((i - 1) * 10);
