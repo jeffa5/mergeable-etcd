@@ -122,7 +122,7 @@ where
             "Created frontend actor {} on thread {:?} with id {:?}",
             id,
             thread::current().id(),
-            f.actor_id
+            document.frontend.actor_id
         );
 
         let locked_key_ranges = Rc::new(RefCell::new(HashMap::new()));
