@@ -130,19 +130,27 @@ impl FrontendHandle {
 
     pub async fn watch_range(
         &self,
+        id: i64,
         key: Key,
         range_end: Option<Key>,
         tx_events: mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
         send_watch_created: oneshot::Sender<()>,
     ) {
         let msg = FrontendMessage::WatchRange {
+            id,
             key,
             range_end,
             tx_events,
             send_watch_created,
         };
 
-        let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        let _ = self.sender.send_to_frontend(msg).await;
+    }
+
+    pub async fn remove_watch_range(&self, id: i64) {
+        let msg = FrontendMessage::RemoveWatchRange { id };
+
+        let _ = self.sender.send_to_frontend(msg).await;
     }
 
     pub async fn create_lease(

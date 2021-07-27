@@ -64,8 +64,11 @@ where
     document: Document<T>,
     backend: BackendHandle<E>,
     watchers: HashMap<
-        SingleKeyOrRange,
-        mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
+        i64,
+        (
+            SingleKeyOrRange,
+            mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
+        ),
     >,
     locked_key_ranges: Rc<RefCell<HashMap<SingleKeyOrRange, watch::Receiver<()>>>>,
     // receiver for requests from clients
@@ -218,6 +221,7 @@ where
                 Ok(())
             }
             FrontendMessage::WatchRange {
+                id,
                 key,
                 range_end,
                 tx_events,
@@ -229,7 +233,7 @@ where
                     SingleKeyOrRange::Single(key)
                 };
                 let (sender, receiver) = mpsc::channel(1);
-                self.watchers.insert(range, sender);
+                self.watchers.insert(id, (range, sender));
 
                 let ((), change) = self
                     .document
@@ -253,6 +257,10 @@ where
 
                 send_watch_created.send(()).unwrap();
 
+                Ok(())
+            }
+            FrontendMessage::RemoveWatchRange { id } => {
+                self.watchers.remove(&id);
                 Ok(())
             }
             FrontendMessage::CreateLease { id, ttl, ret } => {
@@ -400,7 +408,7 @@ where
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
             let value = doc.value_mut(&key).unwrap().unwrap();
-            for (range, sender) in &self.watchers {
+            for (id, (range, sender)) in &self.watchers {
                 if range.contains(&key) {
                     let latest_value = value.latest_value(key.clone()).unwrap();
                     let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
@@ -461,7 +469,7 @@ where
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
             for (key, prev) in &prev {
-                for (range, sender) in &self.watchers {
+                for (id, (range, sender)) in &self.watchers {
                     if range.contains(key) {
                         if let Some(Ok(value)) = doc.value_mut(key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
@@ -519,7 +527,7 @@ where
                 Request::RequestPut(put) => {
                     let key = put.key.into();
                     let value = doc.value_mut(&key).unwrap().unwrap();
-                    for (range, sender) in &self.watchers {
+                    for (id, (range, sender)) in &self.watchers {
                         if range.contains(&key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
                             let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
@@ -534,7 +542,7 @@ where
                     // TODO: handle ranges
                     let key = del.key.into();
                     let value = doc.value_mut(&key).unwrap().unwrap();
-                    for (range, sender) in &self.watchers {
+                    for (id, (range, sender)) in &self.watchers {
                         if range.contains(&key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();
                             let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
@@ -670,7 +678,7 @@ where
         if !self.watchers.is_empty() {
             let mut doc = self.document.get();
             for (key, prev) in &prevs {
-                for (range, sender) in &self.watchers {
+                for (id, (range, sender)) in &self.watchers {
                     if range.contains(key) {
                         if let Some(Ok(value)) = doc.value_mut(key) {
                             let latest_value = value.latest_value(key.clone()).unwrap();

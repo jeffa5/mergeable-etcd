@@ -41,10 +41,14 @@ pub enum FrontendMessage {
         ret: oneshot::Sender<Result<(Server, bool, Vec<ResponseOp>), FrontendError>>,
     },
     WatchRange {
+        id: i64,
         key: Key,
         range_end: Option<Key>,
         tx_events: mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
         send_watch_created: oneshot::Sender<()>,
+    },
+    RemoveWatchRange {
+        id: i64,
     },
     CreateLease {
         id: Option<i64>,
@@ -73,6 +77,7 @@ impl Display for FrontendMessage {
             FrontendMessage::Remove { .. } => "remove",
             FrontendMessage::Txn { .. } => "txn",
             FrontendMessage::WatchRange { .. } => "watch_range",
+            FrontendMessage::RemoveWatchRange { .. } => "remove_watch_range",
             FrontendMessage::CreateLease { .. } => "create_lease",
             FrontendMessage::RefreshLease { .. } => "refresh_lease",
             FrontendMessage::RevokeLease { .. } => "revoke_lease",
