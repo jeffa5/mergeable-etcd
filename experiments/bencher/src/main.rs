@@ -202,7 +202,7 @@ impl exp::Experiment for Experiment {
             let client_port = 2379 + ((i - 1) * 10);
             let peer_port = 2380 + ((i - 1) * 10);
             let metrics_port = 2381 + ((i - 1) * 10);
-            let name = format!("node{}", i);
+            let name = format!("{}{}", node_name_prefix, i);
             let mut cmd = vec![
                 configuration.bin_name.to_owned(),
                 "--name".to_owned(),
