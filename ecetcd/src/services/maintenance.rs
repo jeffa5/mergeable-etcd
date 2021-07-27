@@ -9,7 +9,7 @@ use etcd_proto::etcdserverpb::{
 use futures::Stream;
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
-use tracing::info;
+use tracing::debug;
 
 use crate::{server::Server, store::BackendHandle, TraceValue};
 
@@ -39,7 +39,7 @@ where
         &self,
         request: Request<StatusRequest>,
     ) -> Result<Response<StatusResponse>, Status> {
-        info!("status request");
+        debug!("status request");
         let remote_addr = request.remote_addr();
         let server = self.server.current_server(remote_addr);
         let server = server.await;
