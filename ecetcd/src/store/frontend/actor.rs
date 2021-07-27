@@ -119,10 +119,10 @@ where
         document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
         tracing::info!(
-            "Created frontend actor {} on thread {:?} with id {}",
+            "Created frontend actor {} on thread {:?} with id {:?}",
             id,
             thread::current().id(),
-            actor_id
+            f.actor_id
         );
 
         let locked_key_ranges = Rc::new(RefCell::new(HashMap::new()));
