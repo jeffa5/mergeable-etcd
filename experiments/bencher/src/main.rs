@@ -642,8 +642,12 @@ struct CliOptions {
     /// Analyse all the experiments
     #[clap(long)]
     analyse: bool,
+
     #[clap(long)]
     date: Option<chrono::DateTime<chrono::Utc>>,
+
+    #[clap(long, default_value = "experiments/bencher/results")]
+    results_dir: PathBuf,
 }
 
 #[tokio::main]
@@ -653,11 +657,9 @@ async fn main() -> Result<(), anyhow::Error> {
         anyhow::bail!("Neither run nor analyse specified");
     }
 
-    const RESULTS_DIR: &str = "experiments/bencher/results";
-
     if opts.run {
         let conf = exp::RunConfig {
-            results_dir: PathBuf::from(RESULTS_DIR),
+            results_dir: opts.results_dir.clone(),
         };
 
         exp::run(&Experiment, &conf).await?;
@@ -665,7 +667,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     if opts.analyse {
         let conf = exp::AnalyseConfig {
-            results_dir: PathBuf::from(RESULTS_DIR),
+            results_dir: opts.results_dir,
             date: opts.date,
         };
         exp::analyse(&Experiment, &conf).await?;
