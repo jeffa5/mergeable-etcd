@@ -1,4 +1,4 @@
-use std::pin::Pin;
+use std::{collections::HashSet, pin::Pin};
 
 use etcd_proto::etcdserverpb::{
     watch_request::RequestUnion, watch_server::Watch as WatchTrait, WatchRequest, WatchResponse,
@@ -34,6 +34,8 @@ impl WatchTrait for Watch {
         tokio::spawn(async move {
             debug!("Waiting on watch requests");
             let mut in_stream = request.into_inner();
+            let mut watch_ids_created_here = HashSet::new();
+
             while let Some(request) = in_stream.next().await {
                 debug!("Got request from client: {:?}", request);
                 match request {
@@ -55,6 +57,8 @@ impl WatchTrait for Watch {
                                 )
                                 .await;
 
+                            watch_ids_created_here.insert(watch_id);
+
                             let server = server_clone.current_server(remote_addr);
                             let header = server.await.header();
                             if tx_response
@@ -75,6 +79,8 @@ impl WatchTrait for Watch {
                             }
                         }
                         Some(RequestUnion::CancelRequest(cancel)) => {
+                            watch_ids_created_here.remove(&cancel.watch_id);
+
                             server_clone.cancel_watcher(cancel.watch_id).await;
                             let server = server_clone.current_server(remote_addr);
                             let header = server.await.header();
@@ -108,12 +114,22 @@ impl WatchTrait for Watch {
                             {
                                 // receiver has closed
                                 warn!("Got an error while sending watch empty message error");
+
+                                for id in watch_ids_created_here {
+                                    server_clone.cancel_watcher(id).await;
+                                }
+
                                 break;
                             }
                         }
                     },
                     Err(e) => {
                         warn!("watch error: {}", e);
+
+                        for id in watch_ids_created_here {
+                            server_clone.cancel_watcher(id).await;
+                        }
+
                         break;
                     }
                 }
