@@ -109,3 +109,12 @@ protos:
 .PHONY: jaeger
 jaeger:
 	docker run --name jaeger -d -p6831:6831/udp -p6832:6832/udp -p16686:16686 jaegertracing/all-in-one:latest
+
+.PHONY: build-musl
+build-musl:
+	# only supports building libraries that don't use openssl
+	cargo build --release --target x86_64-unknown-linux-musl --bin bencher-experiment
+
+.PHONY: binky
+binky: build-musl
+	rsync target/x86_64-unknown-linux-musl/release/bencher-experiment binky:/home/apj39/eckd-rs/bencher-experiment

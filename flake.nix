@@ -178,6 +178,7 @@
             buildInputs = with pkgs;[
               (rust.override {
                 extensions = [ "rust-src" "rustfmt" ];
+                targets = [ "x86_64-unknown-linux-musl" ];
               })
               cargo-edit
               cargo-watch
