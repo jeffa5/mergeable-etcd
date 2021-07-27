@@ -1,6 +1,7 @@
 use std::{convert::Infallible, time::Duration};
 
 use hyper::StatusCode;
+use prometheus::Encoder;
 use tokio::{
     sync::{mpsc, oneshot},
     time::timeout,
@@ -37,6 +38,19 @@ pub async fn do_health_check(
     Ok(status)
 }
 
+#[instrument]
+pub async fn do_gather_metrics() -> Result<impl warp::Reply, warp::Rejection> {
+    let mut buffer = Vec::new();
+    let encoder = prometheus::TextEncoder::new();
+
+    let metric_families = prometheus::gather();
+    encoder.encode(&metric_families, &mut buffer).unwrap();
+
+    let output = String::from_utf8(buffer).unwrap();
+
+    Ok(output)
+}
+
 impl HealthServer {
     pub fn new(
         frontends: Vec<mpsc::Sender<oneshot::Sender<()>>>,
@@ -68,10 +82,16 @@ impl HealthServer {
         metrics_url: Address,
         mut shutdown: tokio::sync::watch::Receiver<()>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let route = warp::get()
+        let health = warp::get()
             .and(warp::path("health"))
             .and(with_health_server(self.clone()))
             .and_then(do_health_check);
+
+        let metrics = warp::get()
+            .and(warp::path("metrics"))
+            .and_then(do_gather_metrics);
+
+        let route = warp::any().and(health.or(metrics));
 
         let (_, server) = warp::serve(route).bind_with_graceful_shutdown(
             metrics_url.socket_address(),
