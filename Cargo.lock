@@ -114,21 +114,20 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com//jeffa5/automerge-rs?branch=state-tree-and-sync-improvements#9158e16e99ebbb7fd9d9146d30651202faf0743c"
+source = "git+https://github.com//automerge/automerge-rs?branch=frontend-sorted-map#d27e44954ee478e8d3b8b935b3a551adfdcc492a"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
  "automerge-protocol",
  "serde",
  "serde_json",
- "thiserror",
  "uuid",
 ]
 
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com//jeffa5/automerge-rs?branch=state-tree-and-sync-improvements#9158e16e99ebbb7fd9d9146d30651202faf0743c"
+source = "git+https://github.com//automerge/automerge-rs?branch=frontend-sorted-map#d27e44954ee478e8d3b8b935b3a551adfdcc492a"
 dependencies = [
  "automerge-protocol",
  "flate2",
@@ -153,10 +152,12 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com//jeffa5/automerge-rs?branch=state-tree-and-sync-improvements#9158e16e99ebbb7fd9d9146d30651202faf0743c"
+source = "git+https://github.com//automerge/automerge-rs?branch=frontend-sorted-map#d27e44954ee478e8d3b8b935b3a551adfdcc492a"
 dependencies = [
  "automerge-protocol",
+ "futures",
  "getrandom 0.2.3",
+ "im-rc",
  "maplit",
  "serde",
  "serde_json",
@@ -192,7 +193,7 @@ dependencies = [
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com//jeffa5/automerge-rs?branch=state-tree-and-sync-improvements#9158e16e99ebbb7fd9d9146d30651202faf0743c"
+source = "git+https://github.com//automerge/automerge-rs?branch=frontend-sorted-map#d27e44954ee478e8d3b8b935b3a551adfdcc492a"
 dependencies = [
  "hex",
  "serde",
@@ -206,7 +207,7 @@ dependencies = [
 [[package]]
 name = "automergeable"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#e548064052793e2124e440084b003ae580e2103a"
+source = "git+https://github.com//jeffa5/automergeable?branch=sorted-map#495219068fad7bc145f46a67fcfec76132830f84"
 dependencies = [
  "automerge",
  "automerge-frontend",
@@ -222,7 +223,7 @@ dependencies = [
 [[package]]
 name = "automergeable-derive"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#e548064052793e2124e440084b003ae580e2103a"
+source = "git+https://github.com//jeffa5/automergeable?branch=sorted-map#495219068fad7bc145f46a67fcfec76132830f84"
 dependencies = [
  "automerge",
  "automergeable-traits",
@@ -234,7 +235,7 @@ dependencies = [
 [[package]]
 name = "automergeable-traits"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/automergeable?branch=main#e548064052793e2124e440084b003ae580e2103a"
+source = "git+https://github.com//jeffa5/automergeable?branch=sorted-map#495219068fad7bc145f46a67fcfec76132830f84"
 dependencies = [
  "automerge",
  "automerge-protocol",
@@ -298,6 +299,15 @@ name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
+
+[[package]]
+name = "bitmaps"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "031043d04099746d8db04daf1fa424b2bc8bd69d92b25962dcde24da39ab64a2"
+dependencies = [
+ "typenum",
+]
 
 [[package]]
 name = "block-buffer"
@@ -1331,6 +1341,20 @@ dependencies = [
  "matches",
  "unicode-bidi",
  "unicode-normalization",
+]
+
+[[package]]
+name = "im-rc"
+version = "15.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ca8957e71f04a205cb162508f9326aea04676c8dfd0711220190d6b83664f3f"
+dependencies = [
+ "bitmaps",
+ "rand_core 0.5.1",
+ "rand_xoshiro",
+ "sized-chunks",
+ "typenum",
+ "version_check",
 ]
 
 [[package]]
@@ -2388,6 +2412,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_xoshiro"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9fcdd2e881d02f1d9390ae47ad8e5696a9e4be7b547a1da2afbc61973217004"
+dependencies = [
+ "rand_core 0.5.1",
+]
+
+[[package]]
 name = "recetcd"
 version = "0.1.0"
 dependencies = [
@@ -2784,6 +2817,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "sized-chunks"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16d69225bde7a69b235da73377861095455d298f2b970996eec25ddbb42b3d1e"
+dependencies = [
+ "bitmaps",
+ "typenum",
 ]
 
 [[package]]

@@ -1,6 +1,8 @@
 use std::{collections::HashMap, convert::TryFrom, sync::Arc, thread};
 
+use automerge::{frontend::schema::MapSchema, FrontendOptions};
 use automerge_backend::SyncMessage;
+use automerge_frontend::schema::SortedMapSchema;
 use automerge_persistent::{Error, PersistentAutomerge, PersistentAutomergeError, Persister};
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::ActorId;
@@ -15,7 +17,10 @@ use super::FrontendMessage;
 use crate::{
     key_range::SingleKeyOrRange,
     store::{
-        frontend::document::Document, Key, Revision, Server, SnapshotValue, StoreContents, Ttl,
+        content::{LEASES_KEY, SERVER_KEY, VALUES_KEY},
+        frontend::document::Document,
+        value::{LEASE_ID_KEY, REVISIONS_KEY},
+        BackendHandle, Key, Revision, Server, SnapshotValue, StoreContents, Ttl,
     },
     StoreValue,
 };
@@ -89,6 +94,18 @@ where
         actor_id: uuid::Uuid,
         changed_notify: Arc<Notify>,
     ) -> Result<Self, FrontendError> {
+        let schema = MapSchema::default()
+            .with_kv(
+                VALUES_KEY,
+                SortedMapSchema::default().with_default(
+                    MapSchema::default()
+                        .with_kv(REVISIONS_KEY, SortedMapSchema::default())
+                        .with_kv(LEASE_ID_KEY, MapSchema::default()),
+                ),
+            )
+            .with_kv(SERVER_KEY, MapSchema::default())
+            .with_kv(LEASES_KEY, MapSchema::default());
+
         // fill in the default structure
         //
         // This creates a default change with the document structure so that when syncing peers
@@ -113,7 +130,11 @@ where
 
         let persister = starter_automerge.close().unwrap();
         // load the document from the changes we've just made.
-        let f = automerge::Frontend::new_with_actor_id(actor_id.as_bytes());
+        let f = automerge::Frontend::new(
+            FrontendOptions::default()
+                .with_actor_id(actor_id)
+                .with_schema(schema),
+        );
         let automerge = PersistentAutomerge::load_with_frontend(persister, f).unwrap();
 
         let document = Document::new(automerge);

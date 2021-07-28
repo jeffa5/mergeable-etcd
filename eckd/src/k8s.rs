@@ -338,7 +338,7 @@ mod tests {
     #[allow(clippy::too_many_lines)]
     #[test]
     fn historic_value() {
-        let f = automerge::Frontend::new();
+        let f = automerge::Frontend::default();
         let mut v = IValue::<Value>::new(f.value_ref().get("random"), Path::root());
         assert_eq!(
             None,
