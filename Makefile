@@ -84,7 +84,7 @@ docker-push: docker-load
 .PHONY: test
 test: docker-recetcd
 	docker rm -f recetcd etcd
-	docker run --name recetcd --network host -d $(RECETCD_IMAGE) recetcd --advertise-client-urls http://127.0.0.1:2389
+	docker run --name recetcd --network host -d $(RECETCD_IMAGE) recetcd --advertise-client-urls http://127.0.0.1:2389 --listen-peer-urls http://127.0.0.1:2390 --listen-metrics-urls http://127.0.0.1:1291 --persister sled
 	docker run --name etcd --network host -d $(ETCD_IMAGE) etcd --advertise-client-urls http://127.0.0.1:2379
 	sleep 3
 	cargo test --workspace --exclude kubernetes-proto -- --test-threads=1
