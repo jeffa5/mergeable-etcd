@@ -45,7 +45,7 @@ impl FromStr for Revision {
 
 impl ToString for Revision {
     fn to_string(&self) -> String {
-        self.0.to_string()
+        format!("{:08}", self.0)
     }
 }
 
