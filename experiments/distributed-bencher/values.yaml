@@ -1,2 +1,4 @@
 node_image: docker.io/jeffas/recetcd:latest
+node_count: 3
+
 bencher_image: docker.io/jeffas/bencher:latest
