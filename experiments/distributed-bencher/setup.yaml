@@ -1,0 +1,8 @@
+---
+- name: Prepare for the experiment
+  hosts: all
+  tasks:
+    - name: Pull docker images
+      community.docker.docker_image:
+        name: "{{ image }}"
+        source: pull

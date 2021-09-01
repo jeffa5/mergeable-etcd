@@ -214,6 +214,8 @@
 
               graphviz
 
+              ansible
+
               rnix-lsp
               nixpkgs-fmt
             ];

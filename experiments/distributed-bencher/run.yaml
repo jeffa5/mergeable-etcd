@@ -1,0 +1,8 @@
+---
+- name: Run the experiment
+  hosts: all
+  tasks:
+    - name: Start the etcd cluster
+      community.docker.docker_image:
+        name: "{{ image }}"
+        source: pull
