@@ -3,6 +3,10 @@
   hosts: all
   tasks:
     - name: Start the etcd cluster
-      community.docker.docker_image:
-        name: "{{ image }}"
-        source: pull
+      community.docker.docker_container:
+        name: "node-{{ item }}"
+        recreate: yes
+        image: "{{ image }}"
+        # command: sleep 1d
+      with_sequence: count=3
+
