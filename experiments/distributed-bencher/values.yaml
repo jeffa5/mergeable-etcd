@@ -1,1 +1,2 @@
-image: docker.io/jeffas/recetcd:latest
+node_image: docker.io/jeffas/recetcd:latest
+bencher_image: docker.io/jeffas/bencher:latest

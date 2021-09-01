@@ -2,7 +2,12 @@
 - name: Prepare for the experiment
   hosts: all
   tasks:
-    - name: Pull docker images
+    - name: Pull etcd docker images
       community.docker.docker_image:
-        name: "{{ image }}"
+        name: "{{ node_image }}"
+        source: pull
+
+    - name: Pull bencher docker images
+      community.docker.docker_image:
+        name: "{{ bencher_image }}"
         source: pull

@@ -6,7 +6,6 @@
       community.docker.docker_container:
         name: "node-{{ item }}"
         recreate: yes
-        image: "{{ image }}"
+        image: "{{ node_image }}"
         # command: sleep 1d
       with_sequence: count=3
-

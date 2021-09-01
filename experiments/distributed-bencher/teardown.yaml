@@ -1,0 +1,17 @@
+---
+- name: Run the experiment
+  hosts: all
+  tasks:
+    - name: Stop the etcd cluster
+      community.docker.docker_container:
+        name: "node-{{ item }}"
+        state: stopped
+      with_sequence: count=3
+
+    # TODO: collect logs
+
+    - name: Remove the etcd cluster
+      community.docker.docker_container:
+        name: "node-{{ item }}"
+        state: absent
+      with_sequence: count=3
