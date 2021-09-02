@@ -1,0 +1,5 @@
+- name: Remove bencher docker images
+  docker_image:
+    state: absent
+    name: "{{ bencher_image }}"
+    source: pull

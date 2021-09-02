@@ -1,6 +1,37 @@
 ---
-- name: Run bencher
-  hosts: all
+- name: Set up cluster
+  hosts: cluster
   become: true
   roles:
-    - role: roles/bencher
+    - role: roles/setup-cluster
+
+- name: Set up bencher
+  hosts: bencher
+  become: true
+  roles:
+    - role: roles/setup-bencher
+
+- name: Run cluster
+  hosts: cluster
+  become: true
+  roles:
+    - role: roles/run-cluster
+
+- name: Run bencher
+  hosts: bencher
+  become: true
+  roles:
+    - role: roles/run-bencher
+
+- name: Teardown bencher
+  hosts: bencher
+  become: true
+  roles:
+    - role: roles/teardown-bencher
+
+- name: Teardown cluster
+  hosts: cluster
+  become: true
+  roles:
+    - role: roles/teardown-cluster
+

@@ -5,11 +5,6 @@
     image: "{{ node_image }}"
     # command: sleep 1d
   with_sequence: count={{ node_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
   register: node_containers
 
-- name: Fetch docker logs
-  ansible.builtin.fetch:
-    src: "{{ item.container.LogPath }}"
-    dest: "logs-{{ item.container.Name | regex_replace('^\\/', '') }}"
-    flat: true
-  with_items: "{{ node_containers.results }}"

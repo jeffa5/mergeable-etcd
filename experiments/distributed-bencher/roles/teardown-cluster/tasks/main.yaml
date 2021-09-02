@@ -1,0 +1,19 @@
+- name: Fetch docker logs
+  ansible.builtin.fetch:
+    src: "{{ item.container.LogPath }}"
+    dest: "logs-{{ item.container.Name | regex_replace('^\\/', '') }}"
+    flat: true
+  with_items: "{{ node_containers.results }}"
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+
+- name: Remove the etcd cluster
+  community.docker.docker_container:
+    name: "node-{{ item }}"
+    state: absent
+  with_sequence: count=3
+
+- name: Remove etcd docker images
+  docker_image:
+    state: absent
+    name: "{{ node_image }}"
+    source: pull

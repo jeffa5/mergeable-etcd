@@ -1,6 +1,9 @@
+[cluster]
 caelum-401.cl.cam.ac.uk
 caelum-402.cl.cam.ac.uk
 caelum-403.cl.cam.ac.uk
 caelum-404.cl.cam.ac.uk
+
+[bencher]
 caelum-409.cl.cam.ac.uk
 caelum-410.cl.cam.ac.uk

@@ -13,16 +13,11 @@
     name: python3-pip
     state: present
 
-- name: Install docker-py package
+- name: Install docker pip package
   pip:
     name: docker
 
 - name: Pull etcd docker images
   docker_image:
     name: "{{ node_image }}"
-    source: pull
-
-- name: Pull bencher docker images
-  docker_image:
-    name: "{{ bencher_image }}"
     source: pull
