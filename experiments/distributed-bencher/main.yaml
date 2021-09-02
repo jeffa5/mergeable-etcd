@@ -1,0 +1,6 @@
+---
+- name: Run bencher
+  hosts: all
+  become: true
+  roles:
+    - role: roles/bencher

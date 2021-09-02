@@ -1,0 +1,19 @@
+# TODO: collect logs
+
+- name: Remove the etcd cluster
+  community.docker.docker_container:
+    name: "node-{{ item }}"
+    state: absent
+  with_sequence: count=3
+
+- name: Remove etcd docker images
+  docker_image:
+    state: absent
+    name: "{{ node_image }}"
+    source: pull
+
+- name: Remove bencher docker images
+  docker_image:
+    state: absent
+    name: "{{ bencher_image }}"
+    source: pull

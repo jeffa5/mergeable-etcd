@@ -1,0 +1,14 @@
+- name: Start the etcd cluster
+  community.docker.docker_container:
+    name: "node-{{ item }}"
+    recreate: yes
+    image: "{{ node_image }}"
+    # command: sleep 1d
+  with_sequence: count={{ node_count }}
+  register: node_containers
+
+- name: Fetch docker logs
+  ansible.builtin.fetch:
+    src: "{{ item.container.LogPath }}"
+    dest: "logs-{{ item.container.Name }}"
+  with_items: "{{ node_containers.results }}"

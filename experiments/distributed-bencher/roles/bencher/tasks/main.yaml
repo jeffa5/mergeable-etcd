@@ -1,0 +1,6 @@
+# - name: Set up
+#   import_tasks: setup.yaml
+- name: Run
+  import_tasks: run.yaml
+# - name: Teardown
+#   import_tasks: teardown.yaml
