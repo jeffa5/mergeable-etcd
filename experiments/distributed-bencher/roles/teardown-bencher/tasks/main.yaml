@@ -1,5 +1,28 @@
+- name: Get docker logs
+  shell: "docker logs bencher-{{ item }} > /tmp/bencher-{{ item }}.out 2> /tmp/bencher-{{ item }}.err"
+  with_sequence: count={{ bencher_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+
+- name: Fetch logs (out)
+  fetch:
+    src: "/tmp/bencher-{{ item }}.out"
+    dest: "logs/bencher-{{ item }}.out"
+    flat: true
+  with_sequence: count={{ bencher_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+
+- name: Fetch logs (err)
+  fetch:
+    src: "/tmp/bencher-{{ item }}.err"
+    dest: "logs/bencher-{{ item }}.err"
+    flat: true
+  with_sequence: count={{ bencher_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+
 - name: Remove bencher docker images
   docker_image:
     state: absent
-    name: "{{ bencher_image }}"
+    name: "bencher-{{ item }}"
     source: pull
+  with_sequence: count={{ bencher_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)

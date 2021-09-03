@@ -1,19 +1,28 @@
-- name: Fetch docker logs
-  ansible.builtin.fetch:
-    src: "{{ item.container.LogPath }}"
-    dest: "logs-{{ item.container.Name | regex_replace('^\\/', '') }}"
-    flat: true
-  with_items: "{{ node_containers.results }}"
+- name: Get docker logs
+  shell: "docker logs node-{{ item }} > /tmp/node-{{ item }}.out 2> /tmp/node-{{ item }}.err"
+  with_sequence: count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
 
-- name: Remove the etcd cluster
-  community.docker.docker_container:
-    name: "node-{{ item }}"
-    state: absent
-  with_sequence: count=3
+- name: Fetch logs (out)
+  fetch:
+    src: "/tmp/node-{{ item }}.out"
+    dest: "logs/node-{{ item }}.out"
+    flat: true
+  with_sequence: count={{ node_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+
+- name: Fetch logs (err)
+  fetch:
+    src: "/tmp/node-{{ item }}.err"
+    dest: "logs/node-{{ item }}.err"
+    flat: true
+  with_sequence: count={{ node_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
 
 - name: Remove etcd docker images
   docker_image:
     state: absent
-    name: "{{ node_image }}"
+    name: "node-{{ item }}"
     source: pull
+  with_sequence: count={{ node_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)

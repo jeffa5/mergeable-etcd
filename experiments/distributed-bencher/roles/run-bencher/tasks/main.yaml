@@ -1,0 +1,8 @@
+- name: Start the bencher cluster
+  community.docker.docker_container:
+    name: "bencher-{{ item }}"
+    recreate: yes
+    image: "{{ bencher_image }}"
+    # command: sleep 1d
+  with_sequence: count={{ bencher_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
