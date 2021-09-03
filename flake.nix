@@ -95,6 +95,7 @@
                 contents = packages.recetcd-etcd;
 
                 config.Cmd = [ "/bin/etcd" ];
+                config.Entrypoint = [ "/bin/etcd" ];
               };
 
               # eckd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
@@ -103,6 +104,7 @@
               #   contents = packages.eckd-etcd;
 
               #   config.Cmd = [ "/bin/etcd" ];
+              #   config.Entrypoint = [ "/bin/etcd" ];
               # };
 
               eckd-docker = pkgs.dockerTools.buildLayeredImage {
@@ -111,6 +113,7 @@
                 contents = packages.eckd;
 
                 config.Cmd = [ "/bin/eckd" ];
+                config.Entrypoint = [ "/bin/eckd" ];
               };
 
               recetcd-docker = pkgs.dockerTools.buildLayeredImage {
@@ -119,6 +122,7 @@
                 contents = packages.recetcd;
 
                 config.Cmd = [ "/bin/recetcd" ];
+                config.Entrypoint = [ "/bin/recetcd" ];
               };
 
               etcd = pkgs.buildGoModule rec {
