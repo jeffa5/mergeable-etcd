@@ -1,0 +1,6 @@
+---
+- import_tasks: check.yml
+
+- import_tasks: pre.yml
+
+- include_tasks: install.yml
