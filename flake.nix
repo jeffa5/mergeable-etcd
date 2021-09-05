@@ -218,7 +218,8 @@
 
               graphviz
 
-              ansible
+              ansible_2_10
+              python3Packages.ruamel-yaml
 
               rnix-lsp
               nixpkgs-fmt
