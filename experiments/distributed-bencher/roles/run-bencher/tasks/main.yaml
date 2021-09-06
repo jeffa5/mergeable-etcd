@@ -3,6 +3,8 @@
     name: "bencher-{{ item }}"
     recreate: yes
     image: "{{ bencher_image }}"
+    detach: true
+    network_mode: host
     # command: sleep 1d
   with_sequence: count={{ bencher_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
