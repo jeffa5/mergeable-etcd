@@ -105,7 +105,7 @@ struct Options {
     #[structopt(long)]
     trace_file: Option<PathBuf>,
 
-    #[structopt(long, possible_values = &Persister::variants(), case_insensitive = true)]
+    #[structopt(long, possible_values = &Persister::variants(), case_insensitive = true, default_value = "sled")]
     persister: Persister,
 }
 

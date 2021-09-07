@@ -5,8 +5,6 @@
     image: "{{ node_image }}"
     detach: true
     network_mode: host
-    command:
-      - --persister
-      - sled
+    command: []
   with_sequence: count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
