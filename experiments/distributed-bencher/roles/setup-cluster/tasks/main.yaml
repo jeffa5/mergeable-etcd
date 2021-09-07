@@ -21,3 +21,4 @@
   docker_image:
     name: "{{ node_image }}"
     source: pull
+    force_source: true

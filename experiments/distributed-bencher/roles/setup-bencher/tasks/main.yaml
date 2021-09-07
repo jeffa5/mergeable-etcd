@@ -21,3 +21,4 @@
   docker_image:
     name: "{{ bencher_image }}"
     source: pull
+    force_source: true
