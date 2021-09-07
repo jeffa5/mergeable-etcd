@@ -67,7 +67,6 @@
                 tag = "latest";
                 contents = packages.bencher;
 
-                config.Cmd = [ "/bin/bencher" ];
                 config.Entrypoint = [ "/bin/bencher" ];
               };
 
@@ -94,7 +93,6 @@
                 tag = "latest";
                 contents = packages.recetcd-etcd;
 
-                config.Cmd = [ "/bin/etcd" ];
                 config.Entrypoint = [ "/bin/etcd" ];
               };
 
@@ -103,7 +101,6 @@
               #   tag = "latest";
               #   contents = packages.eckd-etcd;
 
-              #   config.Cmd = [ "/bin/etcd" ];
               #   config.Entrypoint = [ "/bin/etcd" ];
               # };
 
@@ -112,7 +109,6 @@
                 tag = "latest";
                 contents = packages.eckd;
 
-                config.Cmd = [ "/bin/eckd" ];
                 config.Entrypoint = [ "/bin/eckd" ];
               };
 
@@ -121,7 +117,6 @@
                 tag = "latest";
                 contents = packages.recetcd;
 
-                config.Cmd = [ "/bin/recetcd" ];
                 config.Entrypoint = [ "/bin/recetcd" ];
               };
 
