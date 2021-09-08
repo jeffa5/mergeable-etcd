@@ -1,5 +1,11 @@
-node_image: docker.io/jeffas/recetcd:latest
+node_image: quay.io/coreos/etcd:latest
 node_count: 3
 
+node_name_prefix: node-
+
+bencher_name_prefix: bencher-
 bencher_image: docker.io/jeffas/bencher:latest
 bencher_count: 2
+
+bench_clients: 100
+bench_iterations: 1000

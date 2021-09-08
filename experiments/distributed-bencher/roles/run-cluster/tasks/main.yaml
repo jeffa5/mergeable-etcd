@@ -1,18 +1,18 @@
-- name: setfact
+- name: Build the initial_cluster variable
   set_fact:
-    initial_cluster: "node1=http://{{ hostvars[ansible_play_hosts[0]]['ansible_default_ipv4']['address'] }}:2380{% for i in range(2, node_count | int + 1) %},node{{ i }}=http://{{ hostvars[ansible_play_hosts[(i - 1) % (ansible_play_hosts | length)]]['ansible_default_ipv4']['address'] }}:{{ 2380 + ((i - 1) * 10) }}{% endfor %}"
+    initial_cluster: "{{ node_name_prefix }}1=http://{{ hostvars[ansible_play_hosts[0]]['ansible_default_ipv4']['address'] }}:2380{% for i in range(2, node_count | int + 1) %},{{ node_name_prefix }}{{ i }}=http://{{ hostvars[ansible_play_hosts[(i - 1) % (ansible_play_hosts | length)]]['ansible_default_ipv4']['address'] }}:{{ 2380 + ((i - 1) * 10) }}{% endfor %}"
 
 - name: Start the etcd cluster
   community.docker.docker_container:
-    name: "node{{ item | int + 1}}"
+    name: "{{ node_name_prefix }}{{ item | int + 1}}"
     recreate: yes
     image: "{{ node_image }}"
     detach: true
     network_mode: host
     command:
       - etcd
-      - --name=node{{ item | int + 1 }}
-      - --data-dir=/data/node{{ item }}.etcd
+      - --name={{ node_name_prefix }}{{ item | int + 1 }}
+      - --data-dir=/data/{{ node_name_prefix }}{{ item }}.etcd
       - --advertise-client-urls=http://0.0.0.0:{{ 2379 + ((item | int) * 10) }}
       - --listen-client-urls=http://0.0.0.0:{{ 2379 + ((item | int) * 10) }}
       - --initial-cluster={{ initial_cluster }}
@@ -20,3 +20,17 @@
       - --listen-metrics-urls=http://0.0.0.0:{{ 2381 + ((item | int) * 10) }}
   with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+
+- name: Build metrics_urls variable
+  set_fact:
+    metrics_urls: "http://{{ hostvars[groups['cluster'][0]]['ansible_default_ipv4']['address'] }}:2381{% for i in range(2, node_count | int + 1) %},http://{{ hostvars[groups['cluster'][(i - 1) % (groups['cluster'] | length)]]['ansible_default_ipv4']['address'] }}:{{ 2381 + ((i - 1) * 10) }}{% endfor %}"
+
+- name: Wait for healthy metrics
+  uri:
+    url: "{{ item }}/health"
+    status_code: 200
+  register: result
+  until: result.status == 200
+  retries: 20
+  delay: 1
+  with_items: "{{ metrics_urls.split(',') }}"

@@ -1,10 +1,24 @@
+- name: Build client_urls variable
+  set_fact:
+    client_urls: "http://{{ hostvars[groups['cluster'][0]]['ansible_default_ipv4']['address'] }}:2379{% for i in range(2, node_count | int + 1) %},http://{{ hostvars[groups['cluster'][(i - 1) % (groups['cluster'] | length)]]['ansible_default_ipv4']['address'] }}:{{ 2379 + ((i - 1) * 10) }}{% endfor %}"
+
+- name: Build metrics_urls variable
+  set_fact:
+    metrics_urls: "http://{{ hostvars[groups['cluster'][0]]['ansible_default_ipv4']['address'] }}:2381{% for i in range(2, node_count | int + 1) %},http://{{ hostvars[groups['cluster'][(i - 1) % (groups['cluster'] | length)]]['ansible_default_ipv4']['address'] }}:{{ 2381 + ((i - 1) * 10) }}{% endfor %}"
+
 - name: Start the bencher cluster
   community.docker.docker_container:
-    name: "bencher-{{ item }}"
+    name: "{{ bencher_name_prefix }}{{ item | int + 1 }}"
     recreate: yes
     image: "{{ bencher_image }}"
-    detach: true
+    detach: false
     network_mode: host
-    # command: sleep 1d
-  with_sequence: count={{ bencher_count }}
+    command:
+      - --endpoints={{ client_urls }}
+      - --metrics-endpoints={{ metrics_urls }}
+      - --clients={{ bench_clients }}
+      - --iterations={{ bench_iterations }}
+      - bench
+      - put-range
+  with_sequence: start=0 count={{ bencher_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)

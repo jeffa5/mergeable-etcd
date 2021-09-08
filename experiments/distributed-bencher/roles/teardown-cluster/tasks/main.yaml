@@ -1,28 +1,42 @@
 - name: Get docker logs
-  shell: "docker logs node{{ item | int + 1 }} > /tmp/node{{ item | int + 1 }}.out 2> /tmp/node{{ item | int + 1 }}.err"
+  shell: "docker logs {{ node_name_prefix }}{{ item | int + 1 }} > /tmp/{{ node_name_prefix }}{{ item | int + 1 }}.out 2> /tmp/{{ node_name_prefix }}{{ item | int + 1 }}.err"
   with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+  register: logs
+  ignore_errors: true
 
 - name: Fetch logs (out)
   fetch:
-    src: "/tmp/node{{ item | int + 1 }}.out"
-    dest: "logs/node{{ item | int + 1 }}.out"
+    src: "/tmp/{{ node_name_prefix }}{{ item | int + 1 }}.out"
+    dest: "logs/{{ node_name_prefix }}{{ item | int + 1 }}.out"
     flat: true
   with_sequence: start=0 count={{ node_count }}
-  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+  when:
+    - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+    - logs is succeeded
 
 - name: Fetch logs (err)
   fetch:
-    src: "/tmp/node{{ item | int + 1 }}.err"
-    dest: "logs/node{{ item | int + 1 }}.err"
+    src: "/tmp/{{ node_name_prefix }}{{ item | int + 1 }}.err"
+    dest: "logs/{{ node_name_prefix }}{{ item | int + 1 }}.err"
     flat: true
+  with_sequence: start=0 count={{ node_count }}
+  when:
+    - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+    - logs is succeeded
+
+- name: Stop etcd docker containers
+  docker_container:
+    state: absent
+    name: "{{ node_name_prefix }}{{ item | int + 1 }}"
+    force_kill: true
   with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
 
 - name: Remove etcd docker images
   docker_image:
     state: absent
-    name: "node{{ item | int + 1 }}"
-    source: pull
+    name: "{{ node_name_prefix }}{{ item | int + 1 }}"
+    force_absent: true
   with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
