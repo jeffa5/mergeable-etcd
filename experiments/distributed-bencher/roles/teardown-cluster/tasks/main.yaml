@@ -1,28 +1,28 @@
 - name: Get docker logs
-  shell: "docker logs node-{{ item }} > /tmp/node-{{ item }}.out 2> /tmp/node-{{ item }}.err"
-  with_sequence: count={{ node_count }}
+  shell: "docker logs node{{ item | int + 1 }} > /tmp/node{{ item | int + 1 }}.out 2> /tmp/node{{ item | int + 1 }}.err"
+  with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
 
 - name: Fetch logs (out)
   fetch:
-    src: "/tmp/node-{{ item }}.out"
-    dest: "logs/node-{{ item }}.out"
+    src: "/tmp/node{{ item | int + 1 }}.out"
+    dest: "logs/node{{ item | int + 1 }}.out"
     flat: true
-  with_sequence: count={{ node_count }}
+  with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
 
 - name: Fetch logs (err)
   fetch:
-    src: "/tmp/node-{{ item }}.err"
-    dest: "logs/node-{{ item }}.err"
+    src: "/tmp/node{{ item | int + 1 }}.err"
+    dest: "logs/node{{ item | int + 1 }}.err"
     flat: true
-  with_sequence: count={{ node_count }}
+  with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
 
 - name: Remove etcd docker images
   docker_image:
     state: absent
-    name: "node-{{ item }}"
+    name: "node{{ item | int + 1 }}"
     source: pull
-  with_sequence: count={{ node_count }}
+  with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
