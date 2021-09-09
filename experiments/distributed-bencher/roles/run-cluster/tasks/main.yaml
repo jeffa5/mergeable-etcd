@@ -34,3 +34,7 @@
   retries: 20
   delay: 1
   with_items: "{{ metrics_urls.split(',') }}"
+
+- name: Pause to wait for etcd to come up fully
+  pause:
+    seconds: 10

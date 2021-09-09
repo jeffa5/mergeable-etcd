@@ -8,7 +8,7 @@
 - name: Fetch logs (out)
   fetch:
     src: "/tmp/{{ node_name_prefix }}{{ item | int + 1 }}.out"
-    dest: "logs/{{ node_name_prefix }}{{ item | int + 1 }}.out"
+    dest: "{{ logs_dir }}/{{ node_name_prefix }}{{ item | int + 1 }}.out"
     flat: true
   with_sequence: start=0 count={{ node_count }}
   when:
@@ -18,7 +18,7 @@
 - name: Fetch logs (err)
   fetch:
     src: "/tmp/{{ node_name_prefix }}{{ item | int + 1 }}.err"
-    dest: "logs/{{ node_name_prefix }}{{ item | int + 1 }}.err"
+    dest: "{{ logs_dir }}/{{ node_name_prefix }}{{ item | int + 1 }}.err"
     flat: true
   with_sequence: start=0 count={{ node_count }}
   when:
@@ -30,13 +30,5 @@
     state: absent
     name: "{{ node_name_prefix }}{{ item | int + 1 }}"
     force_kill: true
-  with_sequence: start=0 count={{ node_count }}
-  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
-
-- name: Remove etcd docker images
-  docker_image:
-    state: absent
-    name: "{{ node_name_prefix }}{{ item | int + 1 }}"
-    force_absent: true
   with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)

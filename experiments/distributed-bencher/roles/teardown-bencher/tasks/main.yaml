@@ -8,7 +8,7 @@
 - name: Fetch logs (out)
   fetch:
     src: "/tmp/{{ bencher_name_prefix }}{{ item | int + 1 }}.out"
-    dest: "logs/{{ bencher_name_prefix }}{{ item | int + 1 }}.out"
+    dest: "{{ logs_dir }}/{{ bencher_name_prefix }}{{ item | int + 1 }}.out"
     flat: true
   with_sequence: start=0 count={{ bencher_count }}
   when:
@@ -19,7 +19,7 @@
 - name: Fetch logs (err)
   fetch:
     src: "/tmp/{{ bencher_name_prefix }}{{ item | int + 1 }}.err"
-    dest: "logs/{{ bencher_name_prefix }}{{ item | int + 1 }}.err"
+    dest: "{{ logs_dir }}/{{ bencher_name_prefix }}{{ item | int + 1 }}.err"
     flat: true
   with_sequence: start=0 count={{ bencher_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
@@ -33,11 +33,3 @@
   when:
     - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
     - logs is succeeded
-
-- name: Remove bencher docker images
-  docker_image:
-    state: absent
-    name: "{{ bencher_name_prefix }}{{ item | int + 1 }}"
-    force_absent: true
-  with_sequence: start=0 count={{ bencher_count }}
-  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)

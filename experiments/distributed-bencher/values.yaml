@@ -1,3 +1,4 @@
+binary_name: etcd
 node_image: quay.io/coreos/etcd:latest
 node_count: 3
 
@@ -9,3 +10,6 @@ bencher_count: 2
 
 bench_clients: 100
 bench_iterations: 1000
+
+results_dir: results
+logs_dir: "{{ results_dir }}/{{ binary_name }}-{{ node_count }}nodes-{{ bencher_count }}benchers/logs"
