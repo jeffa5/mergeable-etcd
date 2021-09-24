@@ -206,14 +206,23 @@ where
             let file_out = tokio::spawn(async move {
                 let file = File::create(f).unwrap();
                 let mut bw = BufWriter::new(file);
+                let mut i = 0;
                 loop {
                     tokio::select! {
                         _ = shutdown_clone.changed() => break,
+                        _ = tokio::time::sleep(Duration::from_secs(1)) => {
+                            bw.flush().unwrap()
+                        },
                         Some(tv) = recv.recv() => {
                             let dt = chrono::Utc::now();
                             let b = serde_json::to_string(&tv).unwrap();
 
                             writeln!(bw, "{} {}", dt.to_rfc3339(), b).unwrap();
+
+                            i += 1;
+                            if i % 100 == 0 {
+                                bw.flush().unwrap()
+                            }
                         }
                     }
                 }
