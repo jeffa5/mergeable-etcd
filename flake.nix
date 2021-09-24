@@ -82,7 +82,11 @@
               recetcd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
                 name = "jeffas/etcd";
                 tag = "latest";
-                contents = packages.recetcd-etcd;
+                contents = [
+                  # to allow debugging and using `kubectl cp`
+                  pkgs.busybox
+                  packages.recetcd-etcd
+                ];
 
                 config.Entrypoint = [ "/bin/etcd" ];
               };
