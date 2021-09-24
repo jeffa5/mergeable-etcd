@@ -3,7 +3,6 @@
   "automerge-backend 0.0.1 (git+https://github.com//jeffa5/automerge-rs?branch=state-tree-and-sync-improvements#6b856874647653895a01e6e2b225298112e0120c)": "0ky85s79s429s88v6ww42knfaplw4fz9gkjbgi2ya8q8zicvbiaf",
   "automerge-frontend 0.1.0 (git+https://github.com//jeffa5/automerge-rs?branch=state-tree-and-sync-improvements#6b856874647653895a01e6e2b225298112e0120c)": "0ky85s79s429s88v6ww42knfaplw4fz9gkjbgi2ya8q8zicvbiaf",
   "automerge-persistent 0.1.0 (git+https://github.com/jeffa5/automerge-persistent?branch=main#e28722e7de4d014d8aeefd82ca7d4f2c1779104e)": "0blkba9ffv1ap9ja81acsygvh787imqffsvp4l6pp2d06iqbc4hm",
-  "automerge-persistent-rocksdb 0.1.0 (git+https://github.com/jeffa5/automerge-persistent?branch=main#e28722e7de4d014d8aeefd82ca7d4f2c1779104e)": "0blkba9ffv1ap9ja81acsygvh787imqffsvp4l6pp2d06iqbc4hm",
   "automerge-persistent-sled 0.1.0 (git+https://github.com/jeffa5/automerge-persistent?branch=main#e28722e7de4d014d8aeefd82ca7d4f2c1779104e)": "0blkba9ffv1ap9ja81acsygvh787imqffsvp4l6pp2d06iqbc4hm",
   "automerge-protocol 0.1.0 (git+https://github.com//jeffa5/automerge-rs?branch=state-tree-and-sync-improvements#6b856874647653895a01e6e2b225298112e0120c)": "0ky85s79s429s88v6ww42knfaplw4fz9gkjbgi2ya8q8zicvbiaf",
   "automergeable 0.1.0 (git+https://github.com/jeffa5/automergeable?branch=main#e548064052793e2124e440084b003ae580e2103a)": "13my4w4nvpndndsx4qjv0a6kwh2npq7q9fkkam5hwpjjyzp0yy04",

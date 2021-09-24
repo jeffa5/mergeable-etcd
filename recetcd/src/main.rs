@@ -7,7 +7,7 @@ use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 use clap::arg_enum;
 use ecetcd::{
     address::{Address, NamedAddress},
-    rocksdb_persister, sled_persister, Ecetcd,
+    sled_persister, Ecetcd,
 };
 use opentelemetry::global;
 use structopt::StructOpt;
@@ -113,7 +113,6 @@ arg_enum! {
     #[derive(Debug)]
     enum Persister {
         Sled,
-        RocksDb,
     }
 }
 
@@ -192,14 +191,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Persister::Sled => {
             let config = sled::Config::default().mode(sled::Mode::HighThroughput);
             let persister = sled_persister(config, options.data_dir);
-            server.serve(shutdown_rx, persister).await?;
-        }
-        Persister::RocksDb => {
-            let mut rock_opts = rocksdb::Options::default();
-            rock_opts.create_if_missing(true);
-            rock_opts.increase_parallelism(8);
-            rock_opts.set_max_open_files(100);
-            let persister = rocksdb_persister(rock_opts, options.data_dir);
             server.serve(shutdown_rx, persister).await?;
         }
     };
