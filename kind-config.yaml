@@ -10,3 +10,4 @@ kubeadmConfigPatches:
       extraArgs:
         persister: sled
         # debug: ""
+        trace-file: /tmp/trace.out
