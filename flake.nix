@@ -18,7 +18,7 @@
             };
           lib = pkgs.lib;
           rust = pkgs.rust-bin.nightly.latest.rust;
-          makeCargoNix = release: pkgs.callPackage ./Cargo.nix {
+          makeCargoNix = release: import ./Cargo.nix {
             inherit pkgs release;
 
             defaultCrateOverrides = pkgs.defaultCrateOverrides // {
