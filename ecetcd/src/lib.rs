@@ -10,7 +10,7 @@ pub mod store;
 use std::{
     convert::TryFrom,
     fmt::Debug,
-    fs::File,
+    fs::{create_dir_all, File},
     io::{BufWriter, Write},
     marker::PhantomData,
     path::{Path, PathBuf},
@@ -204,6 +204,8 @@ where
             let f = f.clone();
             let mut shutdown_clone = shutdown.clone();
             let file_out = tokio::spawn(async move {
+                create_dir_all(f.parent().unwrap()).unwrap();
+
                 let file = File::create(f).unwrap();
                 let mut bw = BufWriter::new(file);
                 let mut i = 0;
@@ -402,4 +404,3 @@ pub fn sled_persister<P: AsRef<Path>>(config: sled::Config, data_dir: P) -> Sled
     let sync_states_tree = db.open_tree("syncstates").unwrap();
     SledPersister::new(changes_tree, document_tree, sync_states_tree, String::new()).unwrap()
 }
-
