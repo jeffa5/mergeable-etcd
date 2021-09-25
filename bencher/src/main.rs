@@ -39,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
         let mut retries = 0;
         loop {
             if retries > MAX_HEALTH_RETRIES {
-                panic!("Gave up waiting for service to be ready")
+                bail!("Gave up waiting for service to be ready")
             }
             retries += 1;
 
