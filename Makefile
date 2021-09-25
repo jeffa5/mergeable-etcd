@@ -1,3 +1,4 @@
+TRACE_FILE ?= trace.out
 CERTS_DIR ?= certs
 CA_KEYS := $(CERTS_DIR)/ca.pem $(CERTS_DIR)/ca-key.pem $(CERTS_DIR)/ca.csr
 SERVER_KEYS := $(CERTS_DIR)/server.crt $(CERTS_DIR)/server.key $(CERTS_DIR)/server.csr
@@ -37,7 +38,15 @@ bench: $(SERVER_KEYS)
 
 .PHONY: bencher
 bencher: $(SERVER_KEYS)
-	nix run .\#bencher -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem put-range
+	nix run .\#bencher -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem bench put-range
+
+.PHONY: run-trace
+run-trace: $(SERVER_KEYS)
+	nix run .\#bencher -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem trace $(TRACE_FILE)
+
+.PHONY: get-trace
+get-trace:
+	kubectl -n kube-system cp etcd-kind-control-plane:/tmp/trace.out $(TRACE_FILE)
 
 $(CA_KEYS): $(CERTS_DIR)/ca-csr.json
 	cfssl gencert -initca $(CERTS_DIR)/ca-csr.json | cfssljson -bare $(CERTS_DIR)/ca -
