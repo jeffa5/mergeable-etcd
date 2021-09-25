@@ -40,6 +40,8 @@ pub struct Options {
 
 #[derive(StructOpt, Debug, Clone)]
 pub enum Type {
+    /// Run a synthetic benchmark scenario
     Bench(Scenario),
+    /// Replay a trace from a file
     Trace { file: PathBuf },
 }
