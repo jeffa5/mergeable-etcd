@@ -996,6 +996,14 @@ rec {
             packageId = "tower";
           }
           {
+            name = "tracing";
+            packageId = "tracing";
+          }
+          {
+            name = "tracing-subscriber";
+            packageId = "tracing-subscriber";
+          }
+          {
             name = "url";
             packageId = "url";
           }
@@ -9646,9 +9654,9 @@ rec {
       };
       "tracing" = rec {
         crateName = "tracing";
-        version = "0.1.26";
+        version = "0.1.28";
         edition = "2018";
-        sha256 = "17dqjhixmnbrk0c99ydb3b9pygjnzfb7yhlasb6134s4jy6fpb89";
+        sha256 = "1a5xmjns2lwfvk4j6na0w7s63nzandfdy3f2hyb430hcbh4nxyc4";
         authors = [
           "Eliza Weisman <eliza@buoyant.io>"
           "Tokio Contributors <team@tokio.rs>"
@@ -9694,9 +9702,9 @@ rec {
       };
       "tracing-attributes" = rec {
         crateName = "tracing-attributes";
-        version = "0.1.15";
+        version = "0.1.16";
         edition = "2018";
-        sha256 = "1qni83p58nrp20i256zm169dnf7cylfchkfd9iza3j076fjnybn4";
+        sha256 = "0xxxpjl93jx8l6k3gi3i9rgvg9mx1pc0lxf6g4drm9czs06kv1lq";
         procMacro = true;
         authors = [
           "Tokio Contributors <team@tokio.rs>"
@@ -9724,9 +9732,9 @@ rec {
       };
       "tracing-core" = rec {
         crateName = "tracing-core";
-        version = "0.1.18";
+        version = "0.1.20";
         edition = "2018";
-        sha256 = "0lm0li6lx75jgbbgxsb45439257sqb0j7828caf2hjqsigwi9zx9";
+        sha256 = "1krsibdghzcg5rnl4g74lxnl23j2bamkwsbd1hdwh8b1q845c4j6";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -9867,9 +9875,9 @@ rec {
       };
       "tracing-subscriber" = rec {
         crateName = "tracing-subscriber";
-        version = "0.2.19";
+        version = "0.2.24";
         edition = "2018";
-        sha256 = "0j6yg01c5zir4x6qmz9k491vaa254msjnbf6wf5xk97w86bh2sdb";
+        sha256 = "1qvbz1s1vc4lz2ld5imyav6q23fa5frx423ric2ggfp3py6mdl7x";
         authors = [
           "Eliza Weisman <eliza@buoyant.io>"
           "David Barsky <me@davidbarsky.com>"

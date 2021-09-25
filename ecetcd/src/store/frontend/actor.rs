@@ -391,44 +391,52 @@ where
         let wait_key_range = vec![SingleKeyOrRange::Single(key.clone())];
         self.wait_for_keys(&wait_key_range).await;
 
-        let ((server, prev), change) = self
+        let change_result = self
             .document
-            .change::<_, _, std::convert::Infallible>(|store_contents| {
+            .change::<_, _, FrontendError>(|store_contents| {
                 let server = store_contents.server_mut().expect("Failed to get server");
                 server.increment_revision();
                 let server = server.clone();
 
-                let prev =
-                    store_contents.insert_inner(key.clone(), value.clone(), server.revision, lease);
-                let prev = if prev_kv { prev } else { None };
-                Ok((server, prev))
-            })
-            .unwrap();
+                store_contents
+                    .insert_inner(key.clone(), value.clone(), server.revision, lease)
+                    .map(|prev| {
+                        let prev = if prev_kv { prev } else { None };
+                        (server, prev)
+                    })
+            });
 
-        if !self.watchers.is_empty() {
-            let mut doc = self.document.get();
-            let value = doc.value_mut(&key).unwrap().unwrap();
-            for (range, sender) in self.watchers.values() {
-                if range.contains(&key) {
-                    let latest_value = value.latest_value(key.clone()).unwrap();
-                    let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
-                        .and_then(|rev| value.value_at_revision(rev, key.clone()));
-                    let _ = sender
-                        .send((server.clone(), vec![(latest_value, prev_value)]))
-                        .await;
+        match change_result {
+            Err(e) => {
+                let _ = ret.send(Err(e));
+            }
+            Ok(((server, prev), change)) => {
+                if !self.watchers.is_empty() {
+                    let mut doc = self.document.get();
+                    let value = doc.value_mut(&key).unwrap().unwrap();
+                    for (range, sender) in self.watchers.values() {
+                        if range.contains(&key) {
+                            let latest_value = value.latest_value(key.clone()).unwrap();
+                            let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
+                                .and_then(|rev| value.value_at_revision(rev, key.clone()));
+                            let _ = sender
+                                .send((server.clone(), vec![(latest_value, prev_value)]))
+                                .await;
+                        }
+                    }
+                }
+
+                if let Some(change) = change {
+                    let (send, recv) = oneshot::channel();
+                    self.apply_local_change(wait_key_range, change, send).await;
+                    tokio::spawn(async move {
+                        let () = recv.await.unwrap();
+                        let _ = ret.send(Ok((server, prev)));
+                    });
+                } else {
+                    let _ = ret.send(Ok((server, prev)));
                 }
             }
-        }
-
-        if let Some(change) = change {
-            let (send, recv) = oneshot::channel();
-            self.apply_local_change(wait_key_range, change, send).await;
-            tokio::spawn(async move {
-                let () = recv.await.unwrap();
-                let _ = ret.send(Ok((server, prev)));
-            });
-        } else {
-            let _ = ret.send(Ok((server, prev)));
         }
     }
 
@@ -501,17 +509,16 @@ where
         self.wait_for_keys(&wait_for_keys).await;
 
         let dup_request = request.clone();
-        let ((server, success, results), change) = self
-            .document
-            .change::<_, _, std::convert::Infallible>(|store_contents| {
-                let (success, results) = store_contents.transaction_inner(request);
-                let server = store_contents
-                    .server()
-                    .expect("Failed to get server")
-                    .clone();
-                Ok((server, success, results))
-            })
-            .unwrap();
+        let ((server, success, results), change) =
+            self.document
+                .change::<_, _, FrontendError>(|store_contents| {
+                    let (success, results) = store_contents.transaction_inner(request)?;
+                    let server = store_contents
+                        .server()
+                        .expect("Failed to get server")
+                        .clone();
+                    Ok((server, success, results))
+                })?;
 
         let iter = if success {
             dup_request.success
@@ -526,16 +533,21 @@ where
                 }
                 Request::RequestPut(put) => {
                     let key = put.key.into();
-                    let value = doc.value_mut(&key).unwrap().unwrap();
-                    for (range, sender) in self.watchers.values() {
-                        if range.contains(&key) {
-                            let latest_value = value.latest_value(key.clone()).unwrap();
-                            let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
-                                .and_then(|rev| value.value_at_revision(rev, key.clone()));
-                            let _ = sender
-                                .send((server.clone(), vec![(latest_value, prev_value)]))
-                                .await;
+                    if let Some(value) = doc.value_mut(&key) {
+                        let value = value.unwrap();
+                        for (range, sender) in self.watchers.values() {
+                            if range.contains(&key) {
+                                let latest_value = value.latest_value(key.clone()).unwrap();
+                                let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
+                                    .and_then(|rev| value.value_at_revision(rev, key.clone()));
+                                let _ = sender
+                                    .send((server.clone(), vec![(latest_value, prev_value)]))
+                                    .await;
+                            }
                         }
+                    } else {
+                        warn!(%key, "Missing value");
+                        return Err(FrontendError::MissingValue { key });
                     }
                 }
                 Request::RequestDeleteRange(del) => {
@@ -715,8 +727,14 @@ pub enum FrontendError {
     BackendError(#[from] Error<SledPersisterError, automerge_backend::AutomergeError>),
     #[error(transparent)]
     AutomergeDocumentChangeError(#[from] automergeable::DocumentChangeError),
+    #[error(transparent)]
+    FromAutomergeError(#[from] automergeable::FromAutomergeError),
     #[error("lease already exists")]
     LeaseAlreadyExists,
+    #[error("missing value for key: {key}")]
+    MissingValue { key: Key },
+    #[error("requested lease not found")]
+    MissingLease,
 }
 
 fn extract_keys_from_txn(txn: &TxnRequest) -> Vec<SingleKeyOrRange> {

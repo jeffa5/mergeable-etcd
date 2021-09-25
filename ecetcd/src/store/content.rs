@@ -16,9 +16,10 @@ use etcd_proto::etcdserverpb::{
     response_op::Response,
     ResponseOp, TxnRequest,
 };
+use tracing::warn;
 
 use crate::{
-    store::{IValue, Key, Revision, Server, SnapshotValue, Ttl},
+    store::{FrontendError, IValue, Key, Revision, Server, SnapshotValue, Ttl},
     StoreValue,
 };
 
@@ -420,12 +421,17 @@ where
         value: Option<Vec<u8>>,
         revision: Revision,
         lease: Option<i64>,
-    ) -> Option<SnapshotValue> {
+    ) -> Result<Option<SnapshotValue>, FrontendError> {
         tracing::debug!("inserting");
 
         if let Some(lease_id) = lease {
-            let lease = self.lease_mut(&lease_id).unwrap().unwrap();
-            lease.add_key(key.clone());
+            if let Some(lease) = self.lease_mut(&lease_id) {
+                let lease = lease.unwrap();
+                lease.add_key(key.clone());
+            } else {
+                warn!(lease_id, "No lease found during insert");
+                return Err(FrontendError::MissingLease);
+            }
         }
 
         let v = self.value_mut(&key);
@@ -434,9 +440,9 @@ where
             Some(Ok(v)) => {
                 let prev = v.value_at_revision(revision, key);
                 v.insert(revision, value, lease);
-                prev
+                Ok(prev)
             }
-            Some(Err(_)) => None,
+            Some(Err(e)) => Err(FrontendError::FromAutomergeError(e)),
             None => {
                 let mut v = IValue::new(
                     self.root_value_ref
@@ -449,7 +455,7 @@ where
                 );
                 v.insert(revision, value, lease);
                 self.insert_value(key, v);
-                None
+                Ok(None)
             }
         }
     }
@@ -481,7 +487,10 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, request))]
-    pub(crate) fn transaction_inner(&mut self, request: TxnRequest) -> (bool, Vec<ResponseOp>) {
+    pub(crate) fn transaction_inner(
+        &mut self,
+        request: TxnRequest,
+    ) -> Result<(bool, Vec<ResponseOp>), FrontendError> {
         tracing::debug!("transacting");
         let server = self.server().unwrap().clone();
         let success = request.compare.iter().all(|compare| {
@@ -520,7 +529,7 @@ where
         } else {
             request.failure.iter()
         };
-        let results = ops
+        let results: Result<Vec<_>, FrontendError> = ops
             .map(|op| match &op.request {
                 Some(Request::RequestRange(request)) => {
                     let kv = self.get_inner(
@@ -542,9 +551,9 @@ where
                         count,
                         more: false,
                     };
-                    ResponseOp {
+                    Ok(ResponseOp {
                         response: Some(Response::ResponseRange(response)),
-                    }
+                    })
                 }
                 Some(Request::RequestPut(request)) => {
                     let prev_kv = self.insert_inner(
@@ -561,17 +570,22 @@ where
                             Some(request.lease)
                         },
                     );
-                    let prev_kv = if request.prev_kv {
-                        prev_kv.map(|sv| sv.key_value())
-                    } else {
-                        None
-                    };
-                    let reply = etcd_proto::etcdserverpb::PutResponse {
-                        header: Some(server.header()),
-                        prev_kv,
-                    };
-                    ResponseOp {
-                        response: Some(Response::ResponsePut(reply)),
+                    match prev_kv {
+                        Err(e) => Err(e),
+                        Ok(prev_kv) => {
+                            let prev_kv = if request.prev_kv {
+                                prev_kv.map(|sv| sv.key_value())
+                            } else {
+                                None
+                            };
+                            let reply = etcd_proto::etcdserverpb::PutResponse {
+                                header: Some(server.header()),
+                                prev_kv,
+                            };
+                            Ok(ResponseOp {
+                                response: Some(Response::ResponsePut(reply)),
+                            })
+                        }
                     }
                 }
                 Some(Request::RequestDeleteRange(request)) => {
@@ -598,15 +612,15 @@ where
                         deleted: 1,
                         prev_kvs,
                     };
-                    ResponseOp {
+                    Ok(ResponseOp {
                         response: Some(Response::ResponseDeleteRange(reply)),
-                    }
+                    })
                 }
                 Some(Request::RequestTxn(_request)) => todo!(),
                 None => unimplemented!(),
             })
-            .collect::<Vec<_>>();
-        (success, results)
+            .collect();
+        Ok((success, results?))
     }
 }
 

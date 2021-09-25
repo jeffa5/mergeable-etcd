@@ -6,7 +6,7 @@ use etcd_proto::etcdserverpb::{
 };
 use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
-use tracing::{debug, info, Level};
+use tracing::{debug, info, warn, Level};
 
 use crate::{
     server::Server,
@@ -123,26 +123,39 @@ impl Kv for KV {
             return Err(Status::invalid_argument("etcdserver: value is provided"));
         }
 
-        let insert_response = self.server.insert(
-            request.key.into(),
-            if request.ignore_value {
-                None
-            } else {
-                Some(request.value)
-            },
-            request.prev_kv,
-            lease,
-            remote_addr,
-        );
-        let (server, prev_kv) = insert_response.await.unwrap();
-        let prev_kv = prev_kv.map(SnapshotValue::key_value);
+        let insert_response = self
+            .server
+            .insert(
+                request.key.into(),
+                if request.ignore_value {
+                    None
+                } else {
+                    Some(request.value)
+                },
+                request.prev_kv,
+                lease,
+                remote_addr,
+            )
+            .await;
+        match insert_response {
+            Err(crate::store::FrontendError::MissingLease) => {
+                return Err(Status::not_found("etcdserver: requested lease not found"));
+            }
+            Err(e) => {
+                warn!(error=%e, "Unhandled error");
+                return Err(Status::internal(e.to_string()));
+            }
+            Ok((server, prev_kv)) => {
+                let prev_kv = prev_kv.map(SnapshotValue::key_value);
 
-        let reply = PutResponse {
-            header: Some(server.header()),
-            prev_kv,
-        };
-        tracing::event!(Level::DEBUG, "finished request");
-        Ok(Response::new(reply))
+                let reply = PutResponse {
+                    header: Some(server.header()),
+                    prev_kv,
+                };
+                tracing::event!(Level::DEBUG, "finished request");
+                Ok(Response::new(reply))
+            }
+        }
     }
 
     #[tracing::instrument(skip(self, request))]

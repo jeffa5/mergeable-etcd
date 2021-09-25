@@ -126,3 +126,18 @@ async fn put_simple_different_options() {
         }
     }
 }
+
+#[test(tokio::test)]
+async fn put_simple_with_nonexistent_lease() {
+    let mut value = HashMap::new();
+    value.insert("v", "hello");
+    let request = etcd_proto::etcdserverpb::PutRequest {
+        key: key(),
+        value: serde_json::to_vec(&value).unwrap(),
+        lease: 99999999,
+        prev_kv: false,
+        ignore_value: false,
+        ignore_lease: false,
+    };
+    test_put(&request).await;
+}

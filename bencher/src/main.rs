@@ -12,11 +12,18 @@ use hyper::StatusCode;
 use structopt::StructOpt;
 use tokio::time::sleep;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
+use tracing::{info, subscriber::set_global_default, Level};
 
 const MAX_HEALTH_RETRIES: u32 = 50;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    set_global_default(
+        tracing_subscriber::fmt()
+            .with_max_level(Level::INFO)
+            .finish(),
+    )?;
+
     let options = Options::from_args();
 
     if let Some(start_at) = options.start_at {
@@ -24,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
             .to_std()
             .context("Failed to create start-at duration, maybe it was in the past?")?;
 
-        println!("Starting in {:?}", duration);
+        info!("Starting in {:?}", duration);
 
         sleep(duration).await
     }
@@ -35,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
         .unwrap();
 
     for endpoint in &options.metrics_endpoints {
-        println!("Waiting for {} to be ready", endpoint);
+        info!("Waiting for {} to be ready", endpoint);
         let mut retries = 0;
         loop {
             if retries > MAX_HEALTH_RETRIES {
@@ -51,6 +58,7 @@ async fn main() -> anyhow::Result<()> {
             }
             sleep(Duration::from_secs(1)).await;
         }
+        info!("Finished waiting for {} to be ready", endpoint);
     }
 
     let mut endpoints = Vec::new();
