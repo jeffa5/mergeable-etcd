@@ -209,14 +209,21 @@ impl Kv for KV {
         }
 
         debug!("txn: {:?}", request);
-        let txn_result = self.server.txn(request, remote_addr);
-        let (server, success, results) = txn_result.await.unwrap();
-        let reply = TxnResponse {
-            header: Some(server.header()),
-            responses: results,
-            succeeded: success,
-        };
-        Ok(Response::new(reply))
+        let txn_result = self.server.txn(request, remote_addr).await;
+        match txn_result {
+            Err(crate::store::FrontendError::MissingLease) => {
+                return Err(Status::not_found("etcdserver: requested lease not found"));
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+            Ok((server, success, results)) => {
+                let reply = TxnResponse {
+                    header: Some(server.header()),
+                    responses: results,
+                    succeeded: success,
+                };
+                Ok(Response::new(reply))
+            }
+        }
     }
 
     #[tracing::instrument(skip(self, request))]
