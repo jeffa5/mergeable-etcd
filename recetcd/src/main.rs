@@ -36,7 +36,7 @@ struct Options {
     listen_client_urls: Vec<Address>,
 
     /// List of URLs to listen on for metrics.
-    #[structopt(long, parse(try_from_str = Address::try_from))]
+    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2381")]
     listen_metrics_urls: Vec<Address>,
 
     /// List of this member's peer URLs to advertise to the rest of the cluster.
