@@ -30,7 +30,7 @@ run-recetcd: $(SERVER_KEYS)
 .PHONY: run-etcd
 run-etcd: $(SERVER_KEYS)
 	rm -rf default.etcd
-	etcd --cert-file $(CERTS_DIR)/server.crt --key-file $(CERTS_DIR)/server.key $(RUN_ARGS) --listen-client-urls 'https://localhost:2379' --advertise-client-urls 'https://localhost:2379'
+	etcd --cert-file $(CERTS_DIR)/server.crt --key-file $(CERTS_DIR)/server.key $(RUN_ARGS) --listen-client-urls 'https://localhost:2379' --advertise-client-urls 'https://localhost:2379' --listen-metrics-urls 'http://localhost:2381'
 
 .PHONY: bench
 bench: $(SERVER_KEYS)
