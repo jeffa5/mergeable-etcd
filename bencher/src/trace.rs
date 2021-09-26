@@ -1,20 +1,35 @@
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, BufWriter, Write},
     path::PathBuf,
     time::Instant,
 };
 
 use anyhow::{Context, Result};
 use etcd_proto::etcdserverpb::{
-    kv_client::KvClient, lease_client::LeaseClient, CompactionRequest, DeleteRangeRequest,
-    LeaseGrantRequest, LeaseLeasesRequest, LeaseRevokeRequest, LeaseTimeToLiveRequest, PutRequest,
-    RangeRequest, TxnRequest,
+    kv_client::KvClient, lease_client::LeaseClient, CompactionRequest, CompactionResponse,
+    DeleteRangeRequest, DeleteRangeResponse, LeaseGrantRequest, LeaseGrantResponse,
+    LeaseLeasesRequest, LeaseLeasesResponse, LeaseRevokeRequest, LeaseRevokeResponse,
+    LeaseTimeToLiveRequest, LeaseTimeToLiveResponse, PutRequest, PutResponse, RangeRequest,
+    RangeResponse, TxnRequest, TxnResponse,
 };
 use tokio::task::JoinHandle;
 use tonic::transport::Channel;
 use tracing::{info, instrument};
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum ResponseValue {
+    RangeResponse(RangeResponse),
+    PutResponse(PutResponse),
+    DeleteRangeResponse(DeleteRangeResponse),
+    TxnResponse(TxnResponse),
+    CompactResponse(CompactionResponse),
+    LeaseGrantResponse(LeaseGrantResponse),
+    LeaseRevokeResponse(LeaseRevokeResponse),
+    LeaseTimeToLiveResponse(LeaseTimeToLiveResponse),
+    LeaseLeasesResponse(LeaseLeasesResponse),
+}
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum TraceValue {
@@ -105,9 +120,16 @@ fn replace_leases_txn(txn: &mut TxnRequest, bound_leases: &HashMap<i64, i64>) {
 }
 
 #[instrument(skip(channel))]
-pub async fn execute_trace(file: PathBuf, channel: Channel) -> Result<Vec<JoinHandle<Result<()>>>> {
-    let trace_file = File::open(&file)?;
+pub async fn execute_trace(
+    in_file: PathBuf,
+    out_file: PathBuf,
+    channel: Channel,
+) -> Result<Vec<JoinHandle<Result<()>>>> {
+    let trace_file = File::open(&in_file)?;
     let buf_reader = BufReader::new(trace_file);
+
+    let responses_file = File::create(&out_file)?;
+    let mut buf_writer = BufWriter::new(responses_file);
 
     let mut requests = Vec::new();
     info!("Parsing trace");
@@ -146,39 +168,61 @@ pub async fn execute_trace(file: PathBuf, channel: Channel) -> Result<Vec<JoinHa
             request.replace_leases(&bound_leases);
         }
 
-        match request {
-            TraceValue::RangeRequest(r) => {
-                kv_client.range(r).await.context("range")?;
-            }
+        let response = match request {
+            TraceValue::RangeRequest(r) => ResponseValue::RangeResponse(
+                kv_client.range(r).await.context("range")?.into_inner(),
+            ),
             TraceValue::PutRequest(p) => {
-                kv_client.put(p).await.context("put")?;
+                ResponseValue::PutResponse(kv_client.put(p).await.context("put")?.into_inner())
             }
-            TraceValue::DeleteRangeRequest(d) => {
-                kv_client.delete_range(d).await.context("delete_range")?;
-            }
+            TraceValue::DeleteRangeRequest(d) => ResponseValue::DeleteRangeResponse(
+                kv_client
+                    .delete_range(d)
+                    .await
+                    .context("delete_range")?
+                    .into_inner(),
+            ),
             TraceValue::TxnRequest(t) => {
-                kv_client.txn(t).await.context("txn")?;
+                ResponseValue::TxnResponse(kv_client.txn(t).await.context("txn")?.into_inner())
             }
-            TraceValue::CompactRequest(c) => {
-                kv_client.compact(c).await.context("compact")?;
-            }
+            TraceValue::CompactRequest(c) => ResponseValue::CompactResponse(
+                kv_client.compact(c).await.context("compact")?.into_inner(),
+            ),
             TraceValue::LeaseGrantRequest(l) => {
-                let response = lease_client.lease_grant(l).await.context("lease_grant")?;
-                unbound_leases.push(response.into_inner().id);
+                let response = lease_client
+                    .lease_grant(l)
+                    .await
+                    .context("lease_grant")?
+                    .into_inner();
+                unbound_leases.push(response.id);
+                ResponseValue::LeaseGrantResponse(response)
             }
-            TraceValue::LeaseRevokeRequest(l) => {
-                lease_client.lease_revoke(l).await.context("lease_revoke")?;
-            }
-            TraceValue::LeaseTimeToLiveRequest(l) => {
+            TraceValue::LeaseRevokeRequest(l) => ResponseValue::LeaseRevokeResponse(
+                lease_client
+                    .lease_revoke(l)
+                    .await
+                    .context("lease_revoke")?
+                    .into_inner(),
+            ),
+            TraceValue::LeaseTimeToLiveRequest(l) => ResponseValue::LeaseTimeToLiveResponse(
                 lease_client
                     .lease_time_to_live(l)
                     .await
-                    .context("lease_time_to_live")?;
-            }
-            TraceValue::LeaseLeasesRequest(l) => {
-                lease_client.lease_leases(l).await.context("lease_leases")?;
-            }
-        }
+                    .context("lease_time_to_live")?
+                    .into_inner(),
+            ),
+            TraceValue::LeaseLeasesRequest(l) => ResponseValue::LeaseLeasesResponse(
+                lease_client
+                    .lease_leases(l)
+                    .await
+                    .context("lease_leases")?
+                    .into_inner(),
+            ),
+        };
+
+        let dt = chrono::Utc::now();
+        let json = serde_json::to_string(&response)?;
+        writeln!(buf_writer, "{} {}", dt.to_rfc3339(), json)?;
     }
 
     info!("Duration: {:?}", start.elapsed());

@@ -42,6 +42,11 @@ pub struct Options {
 pub enum Type {
     /// Run a synthetic benchmark scenario
     Bench(Scenario),
-    /// Replay a trace from a file
-    Trace { file: PathBuf },
+    /// Replay a trace from a file, saving responses to the `out_file`
+    Trace {
+        #[structopt(long, default_value = "trace.requests")]
+        in_file: PathBuf,
+        #[structopt(long, default_value = "trace.responses")]
+        out_file: PathBuf,
+    },
 }

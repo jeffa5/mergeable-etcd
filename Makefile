@@ -1,4 +1,4 @@
-TRACE_FILE ?= trace.out
+TRACE_FILE ?= trace.requests
 CERTS_DIR ?= certs
 CA_KEYS := $(CERTS_DIR)/ca.pem $(CERTS_DIR)/ca-key.pem $(CERTS_DIR)/ca.csr
 SERVER_KEYS := $(CERTS_DIR)/server.crt $(CERTS_DIR)/server.key $(CERTS_DIR)/server.csr
@@ -42,7 +42,7 @@ bencher: $(SERVER_KEYS)
 
 .PHONY: run-trace
 run-trace: $(SERVER_KEYS)
-	nix run .\#bencher -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem trace $(TRACE_FILE)
+	nix run .\#bencher -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem trace --in-file $(TRACE_FILE)
 
 .PHONY: get-trace
 get-trace:

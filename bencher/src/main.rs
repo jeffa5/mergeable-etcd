@@ -100,7 +100,7 @@ async fn main() -> anyhow::Result<()> {
 
     let client_tasks = match options.ty {
         Type::Bench(ref scenario) => scenario.execute(channel, &options, &out_writer).await,
-        Type::Trace { file } => execute_trace(file, channel).await?,
+        Type::Trace { in_file, out_file } => execute_trace(in_file, out_file, channel).await?,
     };
 
     futures::future::try_join_all(client_tasks)
