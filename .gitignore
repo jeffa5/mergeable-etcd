@@ -8,6 +8,7 @@ certs/*.csr
 certs/*.crt
 certs/*.key
 experiments-results/
+results/
 *.svg
 
 **/results/
