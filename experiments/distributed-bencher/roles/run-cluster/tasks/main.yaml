@@ -9,7 +9,7 @@
     image: "{{ node_image }}"
     detach: true
     network_mode: host
-    command:
+    entrypoint:
       - etcd
       - --name={{ node_name_prefix }}{{ item | int + 1 }}
       - --data-dir=/data/{{ node_name_prefix }}{{ item }}.etcd
