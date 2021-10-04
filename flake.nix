@@ -110,7 +110,7 @@
               recetcd-docker = pkgs.dockerTools.buildLayeredImage {
                 name = "jeffas/recetcd";
                 tag = "latest";
-                contents = packages.recetcd;
+                contents = [ packages.recetcd-etcd packages.recetcd ];
 
                 config.Entrypoint = [ "/bin/recetcd" ];
               };
