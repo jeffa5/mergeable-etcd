@@ -3,6 +3,7 @@
   hosts: cluster
   become: true
   tags: setup
+  any_errors_fatal: true
   roles:
     - role: roles/setup-cluster
 
@@ -10,6 +11,7 @@
   hosts: bencher
   become: true
   tags: setup
+  any_errors_fatal: true
   roles:
     - role: roles/setup-bencher
 
@@ -17,6 +19,7 @@
   hosts: cluster
   become: true
   tags: run
+  any_errors_fatal: true
   roles:
     - role: roles/run-cluster
 
@@ -24,6 +27,7 @@
   hosts: bencher
   become: true
   tags: run
+  any_errors_fatal: true
   roles:
     - role: roles/run-bencher
 
