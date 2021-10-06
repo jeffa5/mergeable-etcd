@@ -185,6 +185,7 @@
 
               jupyter
               python3Packages.numpy
+              python3Packages.pandas
               python3Packages.matplotlib
               # for the latex font bits
               pkgs.texlive.combined.scheme-full
