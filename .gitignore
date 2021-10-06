@@ -15,3 +15,6 @@ results/
 **/.ipynb_checkpoints/
 perf.data
 perf.data.old
+
+/experiments/kubespray/inventory/caelum/artifacts/
+/experiments/kubespray/contrib/packaging/
