@@ -4,6 +4,7 @@
     dest: "{{ run_dir }}/configuration.json"
   delegate_to: localhost
   become: false
+  run_once: true
 
 - name: Get docker logs
   shell: "docker logs {{ bencher_name_prefix }}{{ item | int + 1 }} > /tmp/{{ bencher_name_prefix }}{{ item | int + 1 }}.out 2> /tmp/{{ bencher_name_prefix }}{{ item | int + 1 }}.err"
