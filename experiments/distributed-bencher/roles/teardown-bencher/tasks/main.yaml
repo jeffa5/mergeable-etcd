@@ -1,29 +1,3 @@
-- name: Get docker logs
-  shell: "docker logs {{ bencher_name_prefix }}{{ item | int + 1 }} > /tmp/{{ bencher_name_prefix }}{{ item | int + 1 }}.out 2> /tmp/{{ bencher_name_prefix }}{{ item | int + 1 }}.err"
-  with_sequence: start=0 count={{ bencher_count }}
-  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
-  register: logs
-  ignore_errors: true
-
-- name: Fetch logs (out)
-  fetch:
-    src: "/tmp/{{ bencher_name_prefix }}{{ item | int + 1 }}.out"
-    dest: "{{ logs_dir }}/{{ bencher_name_prefix }}{{ item | int + 1 }}.out"
-    flat: true
-  with_sequence: start=0 count={{ bencher_count }}
-  when:
-    - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
-    - logs is succeeded
-
-
-- name: Fetch logs (err)
-  fetch:
-    src: "/tmp/{{ bencher_name_prefix }}{{ item | int + 1 }}.err"
-    dest: "{{ logs_dir }}/{{ bencher_name_prefix }}{{ item | int + 1 }}.err"
-    flat: true
-  with_sequence: start=0 count={{ bencher_count }}
-  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
-
 - name: Stop bencher docker containers
   docker_container:
     state: absent
@@ -32,4 +6,3 @@
   with_sequence: start=0 count={{ bencher_count }}
   when:
     - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
-    - logs is succeeded

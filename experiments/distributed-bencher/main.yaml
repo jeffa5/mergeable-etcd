@@ -31,6 +31,20 @@
   roles:
     - role: roles/run-bencher
 
+- name: Fetch bencher
+  hosts: bencher
+  become: true
+  tags: fetch
+  roles:
+    - role: roles/fetch-bencher
+
+- name: Fetch cluster
+  hosts: cluster
+  become: true
+  tags: fetch
+  roles:
+    - role: roles/fetch-cluster
+
 - name: Teardown bencher
   hosts: bencher
   become: true
