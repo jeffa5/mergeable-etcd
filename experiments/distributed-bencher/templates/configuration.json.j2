@@ -3,5 +3,7 @@
   "repeat": {{ repeat }},
   "bench_type": "PutRange",
   "cluster_size": {{ node_count }},
-  "extra_args": ""
+  "bencher_count": {{ bencher_count }},
+  "extra_args": "",
+  "sync": {{ sync | to_json }}
 }

@@ -18,6 +18,7 @@
       - --initial-cluster={{ initial_cluster }}
       - --listen-peer-urls=http://0.0.0.0:{{ 2380 + ((item | int) * 10) }}
       - --listen-metrics-urls=http://0.0.0.0:{{ 2381 + ((item | int) * 10) }}
+      - "{% if sync %}--sync{% endif %}"
   with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
 
@@ -31,7 +32,7 @@
     status_code: 200
   register: result
   until: result.status == 200
-  retries: 20
+  retries: 60
   delay: 1
   with_items: "{{ metrics_urls.split(',') }}"
 

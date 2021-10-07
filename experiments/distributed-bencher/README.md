@@ -17,3 +17,16 @@ The rough steps of the experiment are:
 ## Implementation
 
 Ansible is well suited for this kind of setup.
+
+## Running
+
+The provided `run.sh` script runs multiple configurations of the experiment.
+It varies parameters such as the image and cluster size.
+
+Parameters can be passed to the script to reproduce results with differing numbers of repeats and cluster sizes if just some results need backfilling.
+
+## Tearing down
+
+Successful runs of the playbook should clean up the docker containers created during the run.
+In the event of failure though this step may not always run successfully.
+In this case it is useful to run the `teardown.sh` script which will run just those steps.
