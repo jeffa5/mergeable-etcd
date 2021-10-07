@@ -12,7 +12,7 @@ use hyper::StatusCode;
 use structopt::StructOpt;
 use tokio::time::sleep;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
-use tracing::{info, subscriber::set_global_default, Level};
+use tracing::{info, subscriber::set_global_default, warn, Level};
 
 const MAX_HEALTH_RETRIES: u32 = 50;
 
@@ -42,18 +42,24 @@ async fn main() -> anyhow::Result<()> {
         .unwrap();
 
     for endpoint in &options.metrics_endpoints {
-        info!("Waiting for {} to be ready", endpoint);
         let mut retries = 0;
         loop {
             if retries > MAX_HEALTH_RETRIES {
                 bail!("Gave up waiting for service to be ready")
             }
+            info!("Waiting for {}/health to be ready", endpoint);
             retries += 1;
 
             let result = client.get(format!("{}/health", endpoint)).send().await;
             if let Ok(response) = result {
                 if response.status() == StatusCode::OK {
                     break;
+                } else {
+                    let text = response.text().await.unwrap();
+                    warn!(
+                        response = %text,
+                        "Found unhealthy node"
+                    );
                 }
             }
             sleep(Duration::from_secs(1)).await;
