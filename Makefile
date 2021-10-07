@@ -27,6 +27,11 @@ run-recetcd: $(SERVER_KEYS)
 	rm -rf default.recetcd
 	nix run .#recetcd -- --cert-file $(CERTS_DIR)/server.crt --key-file $(CERTS_DIR)/server.key $(RUN_ARGS) --listen-client-urls 'https://localhost:2379' --advertise-client-urls 'https://localhost:2379'
 
+.PHONY: run-recetcd-sync
+run-recetcd-sync: $(SERVER_KEYS)
+	rm -rf default.recetcd
+	nix run .#recetcd -- --cert-file $(CERTS_DIR)/server.crt --key-file $(CERTS_DIR)/server.key $(RUN_ARGS) --listen-client-urls 'https://localhost:2379' --advertise-client-urls 'https://localhost:2379' --sync
+
 .PHONY: run-etcd
 run-etcd: $(SERVER_KEYS)
 	rm -rf default.etcd
