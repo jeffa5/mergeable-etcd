@@ -37,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_millis(50))
+        .timeout(Duration::from_secs(1))
         .build()
         .unwrap();
 
@@ -51,15 +51,20 @@ async fn main() -> anyhow::Result<()> {
             retries += 1;
 
             let result = client.get(format!("{}/health", endpoint)).send().await;
-            if let Ok(response) = result {
-                if response.status() == StatusCode::OK {
-                    break;
-                } else {
-                    let text = response.text().await.unwrap();
-                    warn!(
-                        response = %text,
-                        "Found unhealthy node"
-                    );
+            match result {
+                Ok(response) => {
+                    if response.status() == StatusCode::OK {
+                        break;
+                    } else {
+                        let text = response.text().await.unwrap();
+                        warn!(
+                            response = %text,
+                            "Found unhealthy node"
+                        );
+                    }
+                }
+                Err(error) => {
+                    warn!(%error, "Failed to send get request")
                 }
             }
             sleep(Duration::from_secs(1)).await;
