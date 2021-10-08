@@ -4808,9 +4808,9 @@ rec {
       };
       "libc" = rec {
         crateName = "libc";
-        version = "0.2.98";
+        version = "0.2.103";
         edition = "2015";
-        sha256 = "144728k6d98k3hplzklqn18a134nq6nw0jzdxy1s98sx2xvzw31j";
+        sha256 = "1xpd65rnpdniyj565zvyn9pqr29vsrah1vr1yda76qksl5ap53yx";
         authors = [
           "The Rust Project Developers"
         ];
@@ -4837,9 +4837,9 @@ rec {
       };
       "lock_api" = rec {
         crateName = "lock_api";
-        version = "0.4.4";
+        version = "0.4.5";
         edition = "2018";
-        sha256 = "1sq7pw7h7jbfvnv5nq3vm912gdwhhv8idi3njifd3xnz0q38i0h3";
+        sha256 = "028izfyraynijd9h9x5miv1vmg6sjnw1v95wgm7f4xlr7h4lsaki";
         authors = [
           "Amanieu d'Antras <amanieu@gmail.com>"
         ];
@@ -5810,9 +5810,9 @@ rec {
       };
       "parking_lot" = rec {
         crateName = "parking_lot";
-        version = "0.11.1";
+        version = "0.11.2";
         edition = "2018";
-        sha256 = "1sqmgaia8zfd5fbnqw2w13ijh7crk3lf9vw4cb52vwlx0an48xvd";
+        sha256 = "16gzf41bxmm10x82bla8d6wfppy9ym3fxsmdjyvn61m66s0bf5vx";
         authors = [
           "Amanieu d'Antras <amanieu@gmail.com>"
         ];
@@ -5831,6 +5831,7 @@ rec {
           }
         ];
         features = {
+          "arc_lock" = [ "lock_api/arc_lock" ];
           "deadlock_detection" = [ "parking_lot_core/deadlock_detection" ];
           "nightly" = [ "parking_lot_core/nightly" "lock_api/nightly" ];
           "owning_ref" = [ "lock_api/owning_ref" ];
@@ -5842,9 +5843,9 @@ rec {
       };
       "parking_lot_core" = rec {
         crateName = "parking_lot_core";
-        version = "0.8.3";
+        version = "0.8.5";
         edition = "2018";
-        sha256 = "065hkylji0g0fkh1vqp7kzs74vclhsxcczwhwqzpcig770lphyps";
+        sha256 = "05ij4zxsylx99srbq8qd1k2wiwaq8krkf9y4cqkhvb5wjca8wvnp";
         authors = [
           "Amanieu d'Antras <amanieu@gmail.com>"
         ];
@@ -8330,9 +8331,9 @@ rec {
       };
       "sled" = rec {
         crateName = "sled";
-        version = "0.34.6";
+        version = "0.34.7";
         edition = "2018";
-        sha256 = "1p1c6vv6jay0jmziv8mppi84bkwqjiv4bfv01hwvgg4kwgrk408x";
+        sha256 = "0dcr2s7cylj5mb33ci3kpx7fz797jwvysnl5airrir9cgirv95kz";
         authors = [
           "Tyler Neely <t@jujit.su>"
         ];
