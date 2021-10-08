@@ -6,7 +6,7 @@ function usage() {
   echo "$0 [-r <repeats>] [-b <start_size>] [-e <end_size>] [-s]"
 }
 
-while getopts "r:b:sh" option; do
+while getopts "r:b:s:h" option; do
   case ${option} in
     r )
     num_repeats=$OPTARG
@@ -18,7 +18,7 @@ while getopts "r:b:sh" option; do
     max_node_count=$OPTARG
     ;;
     s )
-    only_sync=true
+    with_sync=$OPTARG
     ;;
     h )
     usage
@@ -34,6 +34,7 @@ done
 num_repeats=${num_repeats:-3}
 min_node_count=${min_node_count:-1}
 max_node_count=${max_node_count:-9}
+with_sync=${with_sync:true}
 
 function run() {
   node_image=$1
@@ -52,12 +53,9 @@ function run_sync() {
 }
 
 for node_count in $(seq $min_node_count 2 $max_node_count); do
-  if [[ ! $only_sync ]]; then
-    run "quay.io/coreos/etcd" false
-    run "jeffas/recetcd:latest" false
-    run "jeffas/recetcd:latest" true
-  else
+  run "quay.io/coreos/etcd" false
+  run "jeffas/recetcd:latest" false
+  if [[ $with_sync == "true" ]]; then
     run "jeffas/recetcd:latest" true
   fi
 done
-

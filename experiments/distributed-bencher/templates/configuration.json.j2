@@ -5,5 +5,6 @@
   "cluster_size": {{ node_count }},
   "bencher_count": {{ bencher_count }},
   "extra_args": "",
-  "sync": {{ sync | to_json }}
+  "sync": {{ sync | bool | to_json }}
+  "tmpfs": {{ tmpfs | bool | to_json }}
 }
