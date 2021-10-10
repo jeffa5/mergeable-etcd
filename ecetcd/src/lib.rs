@@ -108,55 +108,51 @@ where
         let mut frontends = Vec::new();
         let mut frontends_for_backend = Vec::new();
         let mut local_futures = Vec::new();
-        let num_frontends = 1; // TODO: once multiple frontends with a single backend is safe use num_cpus::get()
 
         let mut frontend_healths = Vec::new();
 
-        for i in 0..num_frontends {
-            // channel for client requests to reach a frontend
-            let (fc_sender, fc_receiver) = tokio::sync::mpsc::channel(WAITING_CLIENTS_PER_FRONTEND);
-            // channel for backend messages to reach a frontend
-            // this separation exists to have the frontend be able to prioritise backend messages
-            // for latency
-            let (fb_sender, fb_receiver) = tokio::sync::mpsc::unbounded_channel();
-            let shutdown_clone = shutdown.clone();
-            let backend_clone = backend.clone();
+        // channel for client requests to reach a frontend
+        let (fc_sender, fc_receiver) = tokio::sync::mpsc::channel(WAITING_CLIENTS_PER_FRONTEND);
+        // channel for backend messages to reach a frontend
+        // this separation exists to have the frontend be able to prioritise backend messages
+        // for latency
+        let (fb_sender, fb_receiver) = tokio::sync::mpsc::unbounded_channel();
+        let shutdown_clone = shutdown.clone();
+        let backend_clone = backend.clone();
 
-            let (send, recv) = tokio::sync::oneshot::channel();
-            let rt = Builder::new_current_thread().enable_all().build().unwrap();
-            let uuid = uuid::Uuid::new_v4();
-            let sync_changes = self.sync_changes;
+        let (send, recv) = tokio::sync::oneshot::channel();
+        let rt = Builder::new_current_thread().enable_all().build().unwrap();
+        let uuid = uuid::Uuid::new_v4();
+        let sync_changes = self.sync_changes;
 
-            let (frontend_health_sender, frontend_health_receiver) = mpsc::channel(1);
-            frontend_healths.push(frontend_health_sender);
+        let (frontend_health_sender, frontend_health_receiver) = mpsc::channel(1);
+        frontend_healths.push(frontend_health_sender);
 
-            std::thread::spawn(move || {
-                let local = LocalSet::new();
+        std::thread::spawn(move || {
+            let local = LocalSet::new();
 
-                local.block_on(&rt, async move {
-                    let mut actor = FrontendActor::<T, P::Error>::new(
-                        backend_clone,
-                        fc_receiver,
-                        fb_receiver,
-                        frontend_health_receiver,
-                        shutdown_clone,
-                        i,
-                        uuid,
-                        sync_changes,
-                    )
-                    .await
-                    .unwrap();
-                    actor.run().await.unwrap();
-                });
-
-                send.send(())
+            local.block_on(&rt, async move {
+                let mut actor = FrontendActor::<T, P::Error>::new(
+                    backend_clone,
+                    fc_receiver,
+                    fb_receiver,
+                    frontend_health_receiver,
+                    shutdown_clone,
+                    uuid,
+                    sync_changes,
+                )
+                .await
+                .unwrap();
+                actor.run().await.unwrap();
             });
 
-            let actor_id = ActorId::from(uuid);
-            frontends.push(FrontendHandle::new(fc_sender, actor_id.clone()));
-            frontends_for_backend.push(FrontendHandle::new_unbounded(fb_sender, actor_id.clone()));
-            local_futures.push(recv);
-        }
+            send.send(())
+        });
+
+        let actor_id = ActorId::from(uuid);
+        frontends.push(FrontendHandle::new(fc_sender, actor_id.clone()));
+        frontends_for_backend.push(FrontendHandle::new_unbounded(fb_sender, actor_id.clone()));
+        local_futures.push(recv);
 
         let shutdown_clone = shutdown.clone();
 

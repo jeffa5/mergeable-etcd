@@ -77,7 +77,6 @@ where
     backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage, Span)>,
     health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
     shutdown: watch::Receiver<()>,
-    id: usize,
     sync: bool,
 }
 
@@ -93,7 +92,6 @@ where
         backend_receiver: mpsc::UnboundedReceiver<(FrontendMessage, Span)>,
         health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
-        id: usize,
         actor_id: uuid::Uuid,
         sync: bool,
     ) -> Result<Self, FrontendError> {
@@ -119,8 +117,7 @@ where
         document.apply_patch(patch).unwrap();
         let watchers = HashMap::new();
         tracing::info!(
-            "Created frontend actor {} on thread {:?} with id {:?}",
-            id,
+            "Created frontend actor on thread {:?} with id {:?}",
             thread::current().id(),
             document.frontend.actor_id
         );
@@ -136,7 +133,6 @@ where
             backend_receiver,
             health_receiver,
             shutdown,
-            id,
             sync,
         })
     }
@@ -149,7 +145,7 @@ where
         loop {
             tokio::select! {
                 _ = self.shutdown.changed() => {
-                    info!("frontend {} shutting down", self.id);
+                    info!("frontend shutting down");
                     break
                 }
                 Some(s) = self.health_receiver.recv() => {
@@ -332,7 +328,7 @@ where
         // patch gets sent back asynchronously and we don't wait for it
     }
 
-    #[tracing::instrument(level="debug",skip(self), fields(key = %key, frontend = self.id))]
+    #[tracing::instrument(level="debug",skip(self), fields(key = %key))]
     async fn get(
         &self,
         key: Key,
@@ -379,7 +375,7 @@ where
         }
     }
 
-    #[tracing::instrument(level="debug",skip(self, value), fields(key = %key, frontend = self.id))]
+    #[tracing::instrument(level="debug",skip(self, value), fields(key = %key))]
     async fn insert(
         &mut self,
         key: Key,
@@ -440,7 +436,7 @@ where
         }
     }
 
-    #[tracing::instrument(level="debug",skip(self), fields(key = %key, frontend = self.id))]
+    #[tracing::instrument(level="debug",skip(self), fields(key = %key))]
     async fn remove(
         &mut self,
         key: Key,
@@ -500,7 +496,7 @@ where
         Ok((server, prev))
     }
 
-    #[tracing::instrument(level="debug",skip(self, request), fields(frontend = self.id))]
+    #[tracing::instrument(level = "debug", skip(self, request))]
     async fn txn(
         &mut self,
         request: TxnRequest,
@@ -594,7 +590,7 @@ where
         }
     }
 
-    #[tracing::instrument(level="debug",skip(self), fields(frontend = self.id))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn current_server(&self) -> Server {
         self.document.get().server().unwrap().clone()
     }
