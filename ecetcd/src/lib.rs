@@ -105,7 +105,6 @@ where
 
         let backend = BackendHandle::new(b_sender, flush_notify_send);
 
-        let mut frontends = Vec::new();
         let mut frontends_for_backend = Vec::new();
         let mut local_futures = Vec::new();
 
@@ -150,7 +149,7 @@ where
         });
 
         let actor_id = ActorId::from(uuid);
-        frontends.push(FrontendHandle::new(fc_sender, actor_id.clone()));
+        let frontend = FrontendHandle::new(fc_sender, actor_id.clone());
         frontends_for_backend.push(FrontendHandle::new_unbounded(fb_sender, actor_id.clone()));
         local_futures.push(recv);
 
@@ -172,7 +171,7 @@ where
 
         let health = HealthServer::new(frontend_healths, backend_health_sender);
 
-        let server = crate::server::Server::new(frontends.clone());
+        let server = crate::server::Server::new(frontend.clone());
         let client_urls = match (
             &self.listen_client_urls[..],
             &self.advertise_client_urls[..],
@@ -267,7 +266,6 @@ where
             tokio::spawn(async move { peer_server_clone.sync(change_notify2, peer_receive).await });
 
         let mut peer_clients = Vec::new();
-        let frontend = frontends.get(0).unwrap();
         for address in self.initial_cluster.iter() {
             if self.listen_peer_urls.contains(&address.address) {
                 // don't send sync messages to self

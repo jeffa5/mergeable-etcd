@@ -37,11 +37,10 @@ where
 
     async fn status(
         &self,
-        request: Request<StatusRequest>,
+        _request: Request<StatusRequest>,
     ) -> Result<Response<StatusResponse>, Status> {
         debug!("status request");
-        let remote_addr = request.remote_addr();
-        let server = self.server.current_server(remote_addr);
+        let server = self.server.current_server();
         let server = server.await;
         let db_size = self.backend.db_size().await as i64;
         let reply = StatusResponse {

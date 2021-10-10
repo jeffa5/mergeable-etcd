@@ -27,7 +27,6 @@ impl Kv for KV {
         &self,
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
-        let remote_addr = request.remote_addr();
         let request = request.into_inner();
 
         if let Some(s) = self.trace_out.as_ref() {
@@ -50,9 +49,7 @@ impl Kv for KV {
             Some(request.range_end.into())
         };
         let revision = Revision::new(request.revision as u64);
-        let get_result = self
-            .server
-            .get(request.key.into(), range_end, revision, remote_addr);
+        let get_result = self.server.get(request.key.into(), range_end, revision);
         let (server, kvs) = get_result.await.unwrap();
 
         if request.revision > 0 && server.revision < revision.unwrap() {
@@ -103,7 +100,6 @@ impl Kv for KV {
 
     #[tracing::instrument(skip(self, request))]
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
-        let remote_addr = request.remote_addr();
         let request = request.into_inner();
 
         if let Some(s) = self.trace_out.as_ref() {
@@ -134,7 +130,6 @@ impl Kv for KV {
                 },
                 request.prev_kv,
                 lease,
-                remote_addr,
             )
             .await;
         match insert_response {
@@ -163,7 +158,6 @@ impl Kv for KV {
         &self,
         request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
-        let remote_addr = request.remote_addr();
         let request = request.into_inner();
 
         if let Some(s) = self.trace_out.as_ref() {
@@ -180,9 +174,7 @@ impl Kv for KV {
             Some(request.range_end.into())
         };
 
-        let remove_response = self
-            .server
-            .remove(request.key.into(), range_end, remote_addr);
+        let remove_response = self.server.remove(request.key.into(), range_end);
         let (server, prev_kvs) = remove_response.await.unwrap();
         let deleted = prev_kvs.len() as i64;
         let prev_kvs = if request.prev_kv {
@@ -201,7 +193,6 @@ impl Kv for KV {
 
     #[tracing::instrument(skip(self, request))]
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
-        let remote_addr = request.remote_addr();
         let request = request.into_inner();
 
         if let Some(s) = self.trace_out.as_ref() {
@@ -209,7 +200,7 @@ impl Kv for KV {
         }
 
         debug!("txn: {:?}", request);
-        let txn_result = self.server.txn(request, remote_addr).await;
+        let txn_result = self.server.txn(request).await;
         match txn_result {
             Err(crate::store::FrontendError::MissingLease) => {
                 return Err(Status::not_found("etcdserver: requested lease not found"));

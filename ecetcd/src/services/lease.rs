@@ -28,7 +28,6 @@ impl LeaseTrait for Lease {
         &self,
         request: Request<LeaseGrantRequest>,
     ) -> Result<Response<LeaseGrantResponse>, Status> {
-        let remote_addr = request.remote_addr();
         let request = request.into_inner();
 
         debug!(?request, "lease grant");
@@ -46,7 +45,7 @@ impl LeaseTrait for Lease {
         // don't allow a zero ttl, at least make it a small value
         let ttl = max(MINIMUM_LEASE_TTL, request.ttl);
 
-        let (server, id, ttl) = match self.server.create_lease(id, ttl, remote_addr).await {
+        let (server, id, ttl) = match self.server.create_lease(id, ttl).await {
             Ok(res) => res,
             Err(FrontendError::LeaseAlreadyExists) => {
                 return Err(Status::failed_precondition(
@@ -69,7 +68,6 @@ impl LeaseTrait for Lease {
         request: Request<LeaseRevokeRequest>,
     ) -> Result<Response<LeaseRevokeResponse>, Status> {
         debug!("lease revoke");
-        let remote_addr = request.remote_addr();
         let request = request.into_inner();
 
         if let Some(s) = self.trace_out.as_ref() {
@@ -78,7 +76,7 @@ impl LeaseTrait for Lease {
                 .await;
         }
 
-        let server_result = self.server.revoke_lease(request.id, remote_addr);
+        let server_result = self.server.revoke_lease(request.id);
         let server = server_result.await.unwrap();
         Ok(Response::new(LeaseRevokeResponse {
             header: Some(server.header()),
@@ -94,14 +92,13 @@ impl LeaseTrait for Lease {
         request: Request<Streaming<LeaseKeepAliveRequest>>,
     ) -> Result<Response<Self::LeaseKeepAliveStream>, Status> {
         debug!("lease keep alive");
-        let remote_addr = request.remote_addr();
         let (tx, rx) = tokio::sync::mpsc::channel(1);
 
         let server = self.server.clone();
         tokio::spawn(async move {
             let mut request = request.into_inner();
             while let Some(Ok(request)) = request.next().await {
-                let refresh_result = server.refresh_lease(request.id, remote_addr);
+                let refresh_result = server.refresh_lease(request.id);
                 let (server, ttl) = refresh_result.await.unwrap();
                 let _ = tx
                     .send(Ok(LeaseKeepAliveResponse {
