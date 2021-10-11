@@ -2,7 +2,7 @@ binary_name: etcd
 node_image: quay.io/coreos/etcd:latest
 node_count: 3
 
-tmpfs: true
+tmpfs: false
 
 node_name_prefix: node-
 
