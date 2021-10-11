@@ -96,4 +96,8 @@ where
     ) -> Result<(), PersistentAutomergeError<P::Error>> {
         self.automerge.receive_sync_message(peer_id, message)
     }
+
+    pub fn flush(&mut self) {
+        self.automerge.flush().unwrap()
+    }
 }

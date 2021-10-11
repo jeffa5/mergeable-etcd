@@ -326,7 +326,7 @@ where
 
     #[tracing::instrument(level="debug",skip(self), fields(key = %key))]
     async fn get(
-        &self,
+        &mut self,
         key: Key,
         range_end: Option<Key>,
         revision: Option<Revision>,
@@ -344,7 +344,7 @@ where
         Ok((server, values))
     }
 
-    async fn wait_for_keys(&self, key_ranges: &[SingleKeyOrRange]) {
+    async fn wait_for_keys(&mut self, key_ranges: &[SingleKeyOrRange]) {
         let mut waits = Vec::new();
 
         let locked_key_ranges = self.locked_key_ranges.borrow();
@@ -362,9 +362,7 @@ where
         if !waits.is_empty() {
             // since we are waiting ask the backend to flush changes so that operations we are
             // waiting on can finish quicker
-            //
-            // TODO: think about when to flush
-            // self.backend.flush_now();
+            self.document.flush();
 
             for mut wait in waits {
                 // wait for the key to be unlocked
