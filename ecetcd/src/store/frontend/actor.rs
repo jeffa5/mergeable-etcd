@@ -252,7 +252,7 @@ where
             }
             FrontendMessage::DbSize { ret } => {
                 // TODO: actually calculate it and return the space amplification version for logical space too
-                let result = 0;
+                let result = self.document.db_size();
                 let _ = ret.send(result);
             }
             FrontendMessage::GenerateSyncMessage { peer_id, ret } => {

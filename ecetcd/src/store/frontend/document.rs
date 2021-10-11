@@ -98,4 +98,9 @@ where
     ) -> Result<(), PersistentAutomergeError<P::Error>> {
         self.automerge.receive_sync_message(peer_id, message)
     }
+
+    pub fn db_size(&self) -> u64 {
+        let sizes = self.automerge.persister().sizes();
+        (sizes.document + sizes.changes + sizes.sync_states) as u64
+    }
 }
