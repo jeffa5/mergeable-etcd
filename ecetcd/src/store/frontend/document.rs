@@ -43,7 +43,7 @@ where
         let changes = self.extract_changes(sc);
         self.apply_changes(changes);
         // TODO: buffer results before flushing?
-        self.automerge.flush();
+        self.automerge.flush().unwrap();
         Ok(result)
     }
 
@@ -97,9 +97,5 @@ where
         message: SyncMessage,
     ) -> Result<(), PersistentAutomergeError<P::Error>> {
         self.automerge.receive_sync_message(peer_id, message)
-    }
-
-    pub fn flush(&mut self) {
-        self.automerge.flush().unwrap()
     }
 }

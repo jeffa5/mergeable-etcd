@@ -16,14 +16,14 @@ impl SingleKeyOrRange {
         }
     }
 
-    pub fn overlaps(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Single(key), Self::Single(other_key)) => key == other_key,
-            (Self::Single(key), Self::Range(other_range)) => other_range.contains(key),
-            (Self::Range(range), Self::Single(other_key)) => range.contains(other_key),
-            (Self::Range(range), Self::Range(other_range)) => {
-                range.contains(&other_range.start) || range.contains(&other_range.end)
-            }
-        }
-    }
+    // pub fn overlaps(&self, other: &Self) -> bool {
+    //     match (self, other) {
+    //         (Self::Single(key), Self::Single(other_key)) => key == other_key,
+    //         (Self::Single(key), Self::Range(other_range)) => other_range.contains(key),
+    //         (Self::Range(range), Self::Single(other_key)) => range.contains(other_key),
+    //         (Self::Range(range), Self::Range(other_range)) => {
+    //             range.contains(&other_range.start) || range.contains(&other_range.end)
+    //         }
+    //     }
+    // }
 }

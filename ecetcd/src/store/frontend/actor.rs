@@ -1,10 +1,10 @@
-use std::{cell::RefCell, collections::HashMap, convert::TryFrom, rc::Rc, sync::Arc, thread};
+use std::{collections::HashMap, convert::TryFrom, sync::Arc, thread};
 
 use automerge_backend::SyncMessage;
 use automerge_persistent::{Error, PersistentAutomerge, PersistentAutomergeError, Persister};
 use automerge_persistent_sled::SledPersisterError;
 use automerge_protocol::ActorId;
-use etcd_proto::etcdserverpb::{request_op::Request, RequestOp, ResponseOp, TxnRequest};
+use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use lazy_static::lazy_static;
 use prometheus::{register_int_counter, IntCounter};
 use rand::random;
@@ -66,7 +66,6 @@ where
             mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
         ),
     >,
-    locked_key_ranges: Rc<RefCell<HashMap<SingleKeyOrRange, watch::Receiver<()>>>>,
     // receiver for requests from clients
     client_receiver: mpsc::Receiver<(FrontendMessage, Span)>,
     health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
@@ -126,13 +125,10 @@ where
             actor_id
         );
 
-        let locked_key_ranges = Rc::new(RefCell::new(HashMap::new()));
-
         Ok(Self {
             document,
             actor_id,
             watchers,
-            locked_key_ranges,
             client_receiver,
             health_receiver,
             shutdown,
@@ -233,9 +229,6 @@ where
                     })
                     .unwrap();
 
-                // no keys changed, just the server
-                self.release_locked_key_ranges(Vec::new()).await;
-
                 tokio::task::spawn_local(async move {
                     Self::watch_range(receiver, tx_events).await;
                 });
@@ -295,33 +288,6 @@ where
         self.document.receive_sync_message(peer_id, message)
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn release_locked_key_ranges(&mut self, key_ranges: Vec<SingleKeyOrRange>) {
-        let mut releases = Vec::new();
-        for key_range in &key_ranges {
-            let (send, recv) = watch::channel(());
-            releases.push(send);
-
-            let mut locked_key_ranges = self.locked_key_ranges.borrow_mut();
-
-            for existing_key_range in locked_key_ranges.keys() {
-                if existing_key_range.overlaps(key_range) {
-                    panic!("locked_key_ranges already contained key {:?}", key_range)
-                }
-            }
-
-            if locked_key_ranges.insert(key_range.clone(), recv).is_some() {
-                panic!("locked_key_ranges already contained key {:?}", key_range)
-            }
-        }
-
-        let mut locked = self.locked_key_ranges.borrow_mut();
-        for (key, release) in key_ranges.into_iter().zip(releases.into_iter()) {
-            locked.remove(&key);
-            let _ = release.send(());
-        }
-    }
-
     #[tracing::instrument(level="debug",skip(self), fields(key = %key))]
     async fn get(
         &mut self,
@@ -329,47 +295,10 @@ where
         range_end: Option<Key>,
         revision: Option<Revision>,
     ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
-        let wait_keys = if let Some(end) = range_end.as_ref() {
-            SingleKeyOrRange::Range(key.clone()..end.clone())
-        } else {
-            SingleKeyOrRange::Single(key.clone())
-        };
-        self.wait_for_keys(&[wait_keys]).await;
-
         let server = self.current_server();
         let revision = revision.unwrap_or(server.revision);
         let values = self.document.get().get_inner(key, range_end, revision);
         Ok((server, values))
-    }
-
-    /// Wait for the given key ranges to be unlocked.
-    ///
-    /// In practice they are locked when the backend has outstanding / unflushed changes to them.
-    async fn wait_for_keys(&mut self, key_ranges: &[SingleKeyOrRange]) {
-        let mut waits = Vec::new();
-
-        let locked_key_ranges = self.locked_key_ranges.borrow();
-
-        for key_range in key_ranges {
-            for (existing_key_range, wait) in locked_key_ranges.iter() {
-                if existing_key_range.overlaps(key_range) {
-                    waits.push(wait.clone());
-                }
-            }
-        }
-
-        drop(locked_key_ranges);
-
-        if !waits.is_empty() {
-            // since we are waiting ask the backend to flush changes so that operations we are
-            // waiting on can finish quicker
-            self.document.flush();
-
-            for mut wait in waits {
-                // wait for the key to be unlocked
-                wait.changed().await.unwrap();
-            }
-        }
     }
 
     #[tracing::instrument(level="debug",skip(self, value), fields(key = %key))]
@@ -381,9 +310,6 @@ where
         lease: Option<i64>,
         ret: oneshot::Sender<Result<(Server, Option<SnapshotValue>), FrontendError>>,
     ) {
-        let wait_key_range = vec![SingleKeyOrRange::Single(key.clone())];
-        self.wait_for_keys(&wait_key_range).await;
-
         let change_result = self
             .document
             .change::<_, _, FrontendError>(|store_contents| {
@@ -419,7 +345,6 @@ where
                     }
                 }
 
-                self.release_locked_key_ranges(wait_key_range).await;
                 let _ = ret.send(Ok((server, prev)));
             }
         }
@@ -431,14 +356,6 @@ where
         key: Key,
         range_end: Option<Key>,
     ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
-        let wait_keys = if let Some(end) = range_end.as_ref() {
-            SingleKeyOrRange::Range(key.clone()..end.clone())
-        } else {
-            SingleKeyOrRange::Single(key.clone())
-        };
-        let wait_key_range = vec![wait_keys];
-        self.wait_for_keys(&wait_key_range).await;
-
         let (server, prev) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
@@ -475,8 +392,6 @@ where
             }
         }
 
-        self.release_locked_key_ranges(wait_key_range).await;
-
         let prev = prev.into_iter().filter_map(|(_, p)| p).collect();
         Ok((server, prev))
     }
@@ -486,9 +401,6 @@ where
         &mut self,
         request: TxnRequest,
     ) -> Result<(Server, bool, Vec<ResponseOp>), FrontendError> {
-        let wait_for_keys = extract_keys_from_txn(&request);
-        self.wait_for_keys(&wait_for_keys).await;
-
         let dup_request = request.clone();
         let (server, success, results) =
             self.document
@@ -552,8 +464,6 @@ where
             }
         }
 
-        self.release_locked_key_ranges(wait_for_keys).await;
-
         Ok((server, success, results))
     }
 
@@ -601,8 +511,6 @@ where
                 Ok((server, id, ttl))
             })?;
 
-        self.release_locked_key_ranges(Vec::new()).await;
-
         Ok(result)
     }
 
@@ -619,8 +527,6 @@ where
                 Ok((server, ttl))
             })
             .unwrap();
-
-        self.release_locked_key_ranges(Vec::new()).await;
 
         Ok((server, ttl))
     }
@@ -672,8 +578,6 @@ where
             }
         }
 
-        self.release_locked_key_ranges(Vec::new()).await;
-
         Ok(server)
     }
 }
@@ -702,48 +606,48 @@ pub enum FrontendError {
     MissingLease,
 }
 
-fn extract_keys_from_txn(txn: &TxnRequest) -> Vec<SingleKeyOrRange> {
-    let mut key_ranges = Vec::new();
+// fn extract_keys_from_txn(txn: &TxnRequest) -> Vec<SingleKeyOrRange> {
+//     let mut key_ranges = Vec::new();
 
-    for compare in &txn.compare {
-        let wk = if compare.range_end.is_empty() {
-            SingleKeyOrRange::Single(compare.key.clone().into())
-        } else {
-            SingleKeyOrRange::Range(compare.key.clone().into()..compare.range_end.clone().into())
-        };
-        key_ranges.push(wk);
-    }
+//     for compare in &txn.compare {
+//         let wk = if compare.range_end.is_empty() {
+//             SingleKeyOrRange::Single(compare.key.clone().into())
+//         } else {
+//             SingleKeyOrRange::Range(compare.key.clone().into()..compare.range_end.clone().into())
+//         };
+//         key_ranges.push(wk);
+//     }
 
-    key_ranges.extend(extract_keys_from_txn_inner(&txn.success));
-    key_ranges.extend(extract_keys_from_txn_inner(&txn.failure));
-    key_ranges
-}
+//     key_ranges.extend(extract_keys_from_txn_inner(&txn.success));
+//     key_ranges.extend(extract_keys_from_txn_inner(&txn.failure));
+//     key_ranges
+// }
 
-fn extract_keys_from_txn_inner(request_ops: &[RequestOp]) -> Vec<SingleKeyOrRange> {
-    let mut key_ranges = Vec::new();
-    for op in request_ops {
-        match op.request.as_ref().unwrap() {
-            Request::RequestRange(r) => {
-                let wk = if !r.range_end.is_empty() {
-                    SingleKeyOrRange::Range(r.key.clone().into()..r.range_end.clone().into())
-                } else {
-                    SingleKeyOrRange::Single(r.key.clone().into())
-                };
-                key_ranges.push(wk);
-            }
-            Request::RequestPut(r) => {
-                key_ranges.push(SingleKeyOrRange::Single(r.key.clone().into()))
-            }
-            Request::RequestDeleteRange(r) => {
-                let wk = if !r.range_end.is_empty() {
-                    SingleKeyOrRange::Range(r.key.clone().into()..r.range_end.clone().into())
-                } else {
-                    SingleKeyOrRange::Single(r.key.clone().into())
-                };
-                key_ranges.push(wk);
-            }
-            Request::RequestTxn(r) => key_ranges.extend(extract_keys_from_txn(r)),
-        }
-    }
-    key_ranges
-}
+// fn extract_keys_from_txn_inner(request_ops: &[RequestOp]) -> Vec<SingleKeyOrRange> {
+//     let mut key_ranges = Vec::new();
+//     for op in request_ops {
+//         match op.request.as_ref().unwrap() {
+//             Request::RequestRange(r) => {
+//                 let wk = if !r.range_end.is_empty() {
+//                     SingleKeyOrRange::Range(r.key.clone().into()..r.range_end.clone().into())
+//                 } else {
+//                     SingleKeyOrRange::Single(r.key.clone().into())
+//                 };
+//                 key_ranges.push(wk);
+//             }
+//             Request::RequestPut(r) => {
+//                 key_ranges.push(SingleKeyOrRange::Single(r.key.clone().into()))
+//             }
+//             Request::RequestDeleteRange(r) => {
+//                 let wk = if !r.range_end.is_empty() {
+//                     SingleKeyOrRange::Range(r.key.clone().into()..r.range_end.clone().into())
+//                 } else {
+//                     SingleKeyOrRange::Single(r.key.clone().into())
+//                 };
+//                 key_ranges.push(wk);
+//             }
+//             Request::RequestTxn(r) => key_ranges.extend(extract_keys_from_txn(r)),
+//         }
+//     }
+//     key_ranges
+// }
