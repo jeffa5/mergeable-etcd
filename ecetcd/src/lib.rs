@@ -19,7 +19,6 @@ use std::{
 pub use address::Address;
 use automerge_persistent::Persister;
 use automerge_persistent_sled::SledPersister;
-use automerge_protocol::ActorId;
 use store::FrontendHandle;
 pub use store::StoreValue;
 use tokio::{
@@ -92,22 +91,23 @@ where
         let (fc_sender, fc_receiver) = tokio::sync::mpsc::channel(WAITING_CLIENTS_PER_FRONTEND);
         let shutdown_clone = shutdown.clone();
 
+        // oneshot for waiting for the frontend to stop before closing the server
         let (localset_finished_send, localset_finished_recv) = tokio::sync::oneshot::channel();
-        let rt = Builder::new_current_thread().enable_all().build().unwrap();
-        let uuid = uuid::Uuid::new_v4();
+
+        let local_runtime = Builder::new_current_thread().enable_all().build().unwrap();
 
         let (frontend_health_sender, frontend_health_receiver) = mpsc::channel(1);
 
         std::thread::spawn(move || {
             let local = LocalSet::new();
 
-            local.block_on(&rt, async move {
+            local.block_on(&local_runtime, async move {
                 let mut actor = FrontendActor::<T, P>::new(
                     persister,
                     fc_receiver,
                     frontend_health_receiver,
                     shutdown_clone,
-                    uuid,
+                    uuid::Uuid::new_v4(),
                     change_notify,
                 )
                 .await
@@ -118,12 +118,10 @@ where
             localset_finished_send.send(())
         });
 
-        let actor_id = ActorId::from(uuid);
-        let frontend = FrontendHandle::new(fc_sender, actor_id.clone());
-
-        let health = HealthServer::new(frontend_health_sender);
+        let frontend = FrontendHandle::new(fc_sender);
 
         let server = crate::server::Server::new(frontend.clone());
+
         let client_urls = match (
             &self.listen_client_urls[..],
             &self.advertise_client_urls[..],
@@ -264,8 +262,9 @@ where
             })
             .collect::<Vec<_>>();
 
+        let health = HealthServer::new(frontend_health_sender);
         let metrics_servers = self.listen_metrics_urls.iter().map(|metrics_url| {
-            // TODO: handle identity on metrics urls
+                // TODO: handle identity on metrics urls
                 let _identity = if let Scheme::Https = metrics_url.scheme {
                     match (self.cert_file.as_ref(), self.key_file.as_ref()) {
                         (Some(cert_file), Some(key_file)) => {

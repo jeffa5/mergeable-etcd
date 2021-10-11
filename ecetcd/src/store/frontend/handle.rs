@@ -1,5 +1,4 @@
 use automerge_backend::SyncMessage;
-use automerge_protocol::ActorId;
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, oneshot};
 use tracing::Span;
@@ -32,24 +31,18 @@ impl Sender {
 #[derive(Clone, Debug)]
 pub struct FrontendHandle {
     sender: Sender,
-    pub actor_id: ActorId,
 }
 
 impl FrontendHandle {
-    pub fn new(sender: mpsc::Sender<(FrontendMessage, Span)>, actor_id: ActorId) -> Self {
+    pub fn new(sender: mpsc::Sender<(FrontendMessage, Span)>) -> Self {
         Self {
             sender: Sender::Bounded(sender),
-            actor_id,
         }
     }
 
-    pub fn new_unbounded(
-        sender: mpsc::UnboundedSender<(FrontendMessage, Span)>,
-        actor_id: ActorId,
-    ) -> Self {
+    pub fn new_unbounded(sender: mpsc::UnboundedSender<(FrontendMessage, Span)>) -> Self {
         Self {
             sender: Sender::Unbounded(sender),
-            actor_id,
         }
     }
 
