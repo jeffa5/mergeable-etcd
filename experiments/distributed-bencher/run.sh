@@ -10,7 +10,7 @@ function usage() {
   echo "$0 [-r <repeats=$num_repeats>] [-b <start_size=$min_node_count>] [-e <end_size=$max_node_count>]"
 }
 
-while getopts "r:b:s:h" option; do
+while getopts "r:b:e:h" option; do
   case ${option} in
     r )
     num_repeats=$OPTARG
