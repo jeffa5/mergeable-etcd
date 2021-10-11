@@ -40,24 +40,33 @@ use crate::{
 const WAITING_CLIENTS_PER_FRONTEND: usize = 32;
 
 #[derive(Debug)]
-pub struct Ecetcd<T>
-where
-    T: StoreValue,
-{
+pub struct Ecetcd<T> {
+    /// Name of this node.
     pub name: String,
+    /// Addresses to listen for peer messages on.
     pub listen_peer_urls: Vec<Address>,
+    /// Addresses to listen for client messages on.
     pub listen_client_urls: Vec<Address>,
+    /// Peer urls.
     pub initial_advertise_peer_urls: Vec<Address>,
+    /// Initial peer addresses.
     pub initial_cluster: Vec<NamedAddress>,
     pub advertise_client_urls: Vec<Address>,
+    /// Addresses to listen for metrics on.
     pub listen_metrics_urls: Vec<Address>,
+    /// Certfile path if wanting tls.
     pub cert_file: Option<PathBuf>,
+    /// Keyfile path if wanting tls.
     pub key_file: Option<PathBuf>,
+    /// Certfile for peer connections, if wanting tls.
     pub peer_cert_file: Option<PathBuf>,
+    /// Keyfile for peer connections, if wanting tls.
     pub peer_key_file: Option<PathBuf>,
+    /// CA file for peer connections, if wanting tls.
     pub peer_trusted_ca_file: Option<PathBuf>,
     /// File to write request traces out to.
     pub trace_file: Option<PathBuf>,
+    /// Phantom so that this struct is typed by the data it wants to store.
     pub _data: PhantomData<T>,
 }
 
