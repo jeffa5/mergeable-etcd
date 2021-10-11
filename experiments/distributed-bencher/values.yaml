@@ -4,8 +4,6 @@ node_count: 3
 
 tmpfs: true
 
-sync: false
-
 node_name_prefix: node-
 
 bencher_name_prefix: bencher-
@@ -16,5 +14,5 @@ bench_clients: 100
 bench_iterations: 1000
 
 results_dir: results
-run_dir: "{{ results_dir }}/{{ binary_name }}-{{ node_count }}nodes-{{ bencher_count }}benchers{% if sync | bool %}-sync{% endif %}/repeat{{ repeat }}"
+run_dir: "{{ results_dir }}/{{ binary_name }}-{{ node_count }}nodes-{{ bencher_count }}benchers/repeat{{ repeat }}"
 logs_dir: "{{ run_dir }}/logs/"
