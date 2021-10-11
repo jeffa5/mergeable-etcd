@@ -11,23 +11,16 @@ use tokio::sync::mpsc;
 use tonic::{Request, Response, Status};
 use tracing::debug;
 
-use crate::{server::Server, store::BackendHandle, TraceValue};
+use crate::{server::Server, TraceValue};
 
 #[derive(Debug)]
-pub struct Maintenance<E>
-where
-    E: std::error::Error + 'static,
-{
+pub struct Maintenance {
     pub server: Server,
-    pub backend: BackendHandle<E>,
     pub trace_out: Option<mpsc::Sender<TraceValue>>,
 }
 
 #[tonic::async_trait]
-impl<E> MaintenanceTrait for Maintenance<E>
-where
-    E: std::error::Error + Send + 'static,
-{
+impl MaintenanceTrait for Maintenance {
     async fn alarm(
         &self,
         _request: Request<AlarmRequest>,
@@ -42,7 +35,7 @@ where
         debug!("status request");
         let server = self.server.current_server();
         let server = server.await;
-        let db_size = self.backend.db_size().await as i64;
+        let db_size = self.server.db_size().await as i64;
         let reply = StatusResponse {
             header: Some(server.header()),
             version: r#"{"etcdserver":"3.4.13","etcdcluster":"3.4.0"}"#.to_owned(),

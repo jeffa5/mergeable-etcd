@@ -26,8 +26,8 @@ use etcd_proto::etcdserverpb::{
     CompactionRequest, DeleteRangeRequest, LeaseGrantRequest, LeaseLeasesRequest,
     LeaseRevokeRequest, LeaseTimeToLiveRequest, PutRequest, RangeRequest, TxnRequest,
 };
+use store::FrontendHandle;
 pub use store::StoreValue;
-use store::{BackendActor, BackendHandle, FrontendHandle};
 use tokio::{
     runtime::Builder,
     sync::{mpsc, Notify},
@@ -74,8 +74,6 @@ where
     pub peer_cert_file: Option<PathBuf>,
     pub peer_key_file: Option<PathBuf>,
     pub peer_trusted_ca_file: Option<PathBuf>,
-    /// Whether to wait for the patch to be applied to the frontend before returning.
-    pub sync_changes: bool,
     /// File to write request traces out to.
     pub trace_file: Option<PathBuf>,
     pub _data: PhantomData<T>,
@@ -95,50 +93,32 @@ where
         P: Persister + Debug + Send + 'static,
         P::Error: Send,
     {
-        let (b_sender, b_receiver) = tokio::sync::mpsc::unbounded_channel();
-
         let change_notify = Arc::new(Notify::new());
         let change_notify2 = change_notify.clone();
 
-        let flush_notify_send = Arc::new(Notify::new());
-        let flush_notify_recv = flush_notify_send.clone();
-
-        let backend = BackendHandle::new(b_sender, flush_notify_send);
-
-        let mut frontends_for_backend = Vec::new();
         let mut local_futures = Vec::new();
-
-        let mut frontend_healths = Vec::new();
 
         // channel for client requests to reach a frontend
         let (fc_sender, fc_receiver) = tokio::sync::mpsc::channel(WAITING_CLIENTS_PER_FRONTEND);
-        // channel for backend messages to reach a frontend
-        // this separation exists to have the frontend be able to prioritise backend messages
-        // for latency
-        let (fb_sender, fb_receiver) = tokio::sync::mpsc::unbounded_channel();
         let shutdown_clone = shutdown.clone();
-        let backend_clone = backend.clone();
 
         let (send, recv) = tokio::sync::oneshot::channel();
         let rt = Builder::new_current_thread().enable_all().build().unwrap();
         let uuid = uuid::Uuid::new_v4();
-        let sync_changes = self.sync_changes;
 
         let (frontend_health_sender, frontend_health_receiver) = mpsc::channel(1);
-        frontend_healths.push(frontend_health_sender);
 
         std::thread::spawn(move || {
             let local = LocalSet::new();
 
             local.block_on(&rt, async move {
-                let mut actor = FrontendActor::<T, P::Error>::new(
-                    backend_clone,
+                let mut actor = FrontendActor::<T, P>::new(
+                    persister,
                     fc_receiver,
-                    fb_receiver,
                     frontend_health_receiver,
                     shutdown_clone,
                     uuid,
-                    sync_changes,
+                    change_notify,
                 )
                 .await
                 .unwrap();
@@ -150,26 +130,9 @@ where
 
         let actor_id = ActorId::from(uuid);
         let frontend = FrontendHandle::new(fc_sender, actor_id.clone());
-        frontends_for_backend.push(FrontendHandle::new_unbounded(fb_sender, actor_id.clone()));
         local_futures.push(recv);
 
-        let shutdown_clone = shutdown.clone();
-
-        let (backend_health_sender, backend_health_receiver) = mpsc::channel(1);
-        tokio::spawn(async move {
-            let mut actor = BackendActor::new(
-                persister,
-                frontends_for_backend,
-                b_receiver,
-                backend_health_receiver,
-                shutdown_clone,
-                change_notify,
-                flush_notify_recv,
-            );
-            actor.run().await;
-        });
-
-        let health = HealthServer::new(frontend_healths, backend_health_sender);
+        let health = HealthServer::new(frontend_health_sender);
 
         let server = crate::server::Server::new(frontend.clone());
         let client_urls = match (
@@ -250,7 +213,6 @@ where
                     identity,
                     shutdown.clone(),
                     server.clone(),
-                    backend.clone(),
                     trace_out.clone(),
                 );
                 info!("Listening to clients on {}", client_url);
@@ -260,7 +222,7 @@ where
 
         let (peer_send, peer_receive) = mpsc::channel(1);
 
-        let peer_server = crate::peer::Server::new(backend);
+        let peer_server = crate::peer::Server::new(frontend.clone());
         let peer_server_clone = peer_server.clone();
         let peer_server_task =
             tokio::spawn(async move { peer_server_clone.sync(change_notify2, peer_receive).await });

@@ -46,6 +46,10 @@ impl Server {
         }
     }
 
+    pub async fn db_size(&self) -> u64 {
+        self.select_frontend().db_size().await
+    }
+
     /// Select a frontend based on the source address.
     ///
     /// This aims to have requests from the same host repeatedly hit the same frontend

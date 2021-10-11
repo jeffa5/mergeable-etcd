@@ -1,4 +1,5 @@
-use automerge_protocol::{ActorId, Patch};
+use automerge_backend::SyncMessage;
+use automerge_protocol::ActorId;
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, oneshot};
 use tracing::Span;
@@ -181,9 +182,30 @@ impl FrontendHandle {
         recv.await.expect("Actor task has been killed")
     }
 
-    #[tracing::instrument(level = "debug", skip(self, patch))]
-    pub async fn apply_patch(&self, patch: Patch) {
-        let msg = FrontendMessage::ApplyPatch { patch };
+    pub async fn db_size(&self) -> u64 {
+        let (send, recv) = oneshot::channel();
+        let msg = FrontendMessage::DbSize { ret: send };
+
         let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        recv.await.expect("Actor task has been killed")
+    }
+
+    pub async fn generate_sync_message(&self, peer_id: Vec<u8>) -> Option<SyncMessage> {
+        let (send, recv) = oneshot::channel();
+        let msg = FrontendMessage::GenerateSyncMessage { peer_id, ret: send };
+
+        let _ = self.sender.send_to_frontend(msg).await;
+        recv.await.expect("Backend actor task has been killed")
+    }
+
+    pub async fn receive_sync_message(&self, peer_id: Vec<u8>, message: SyncMessage) {
+        let msg = FrontendMessage::ReceiveSyncMessage { peer_id, message };
+
+        let _ = self.sender.send_to_frontend(msg).await;
+    }
+
+    pub async fn new_sync_peer(&self) {
+        let msg = FrontendMessage::NewSyncPeer {};
+        let _ = self.sender.send_to_frontend(msg).await;
     }
 }

@@ -97,10 +97,6 @@ struct Options {
     #[structopt(long)]
     jaeger: bool,
 
-    /// Whether to require changes be applied before returning.
-    #[structopt(long)]
-    sync: bool,
-
     /// Where to save traces to, or nowhere to disable.
     #[structopt(long)]
     trace_file: Option<PathBuf>,
@@ -173,7 +169,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         peer_cert_file: options.peer_cert_file,
         peer_key_file: options.peer_key_file,
         peer_trusted_ca_file: options.peer_trusted_ca_file,
-        sync_changes: options.sync,
         trace_file: options.trace_file,
         _data: PhantomData::<Value>,
     };

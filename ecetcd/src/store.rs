@@ -1,4 +1,4 @@
-mod backend;
+// mod backend;
 mod content;
 mod frontend;
 mod key;
@@ -8,7 +8,6 @@ mod ttl;
 pub mod value;
 mod version;
 
-pub use backend::{BackendActor, BackendHandle};
 pub use content::StoreContents;
 pub use frontend::{FrontendActor, FrontendError, FrontendHandle};
 pub use key::Key;
