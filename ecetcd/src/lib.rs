@@ -1,17 +1,15 @@
 pub mod address;
-mod key_range;
-
 pub mod health;
+mod key_range;
 pub mod peer;
 pub mod server;
 pub mod services;
 pub mod store;
+mod trace;
 
 use std::{
     convert::TryFrom,
     fmt::Debug,
-    fs::{create_dir_all, File},
-    io::{BufWriter, Write},
     marker::PhantomData,
     path::{Path, PathBuf},
     sync::Arc,
@@ -22,10 +20,6 @@ pub use address::Address;
 use automerge_persistent::Persister;
 use automerge_persistent_sled::SledPersister;
 use automerge_protocol::ActorId;
-use etcd_proto::etcdserverpb::{
-    CompactionRequest, DeleteRangeRequest, LeaseGrantRequest, LeaseLeasesRequest,
-    LeaseRevokeRequest, LeaseTimeToLiveRequest, PutRequest, RangeRequest, TxnRequest,
-};
 use store::FrontendHandle;
 pub use store::StoreValue;
 use tokio::{
@@ -34,6 +28,7 @@ use tokio::{
     task::LocalSet,
 };
 use tonic::transport::Identity;
+pub use trace::TraceValue;
 use tracing::info;
 
 use crate::{
@@ -41,19 +36,6 @@ use crate::{
     health::HealthServer,
     store::FrontendActor,
 };
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub enum TraceValue {
-    RangeRequest(RangeRequest),
-    PutRequest(PutRequest),
-    DeleteRangeRequest(DeleteRangeRequest),
-    TxnRequest(TxnRequest),
-    CompactRequest(CompactionRequest),
-    LeaseGrantRequest(LeaseGrantRequest),
-    LeaseRevokeRequest(LeaseRevokeRequest),
-    LeaseTimeToLiveRequest(LeaseTimeToLiveRequest),
-    LeaseLeasesRequest(LeaseLeasesRequest),
-}
 
 const WAITING_CLIENTS_PER_FRONTEND: usize = 32;
 
@@ -158,37 +140,7 @@ where
         };
 
         let (trace_task, trace_out) = if let Some(f) = self.trace_file.as_ref() {
-            let (send, mut recv) = mpsc::channel(10);
-            let f = f.clone();
-            let mut shutdown_clone = shutdown.clone();
-            let file_out = tokio::spawn(async move {
-                create_dir_all(f.parent().unwrap()).unwrap();
-
-                let file = File::create(f).unwrap();
-                let mut bw = BufWriter::new(file);
-                let mut i = 0;
-                loop {
-                    tokio::select! {
-                        _ = shutdown_clone.changed() => break,
-                        _ = tokio::time::sleep(Duration::from_secs(1)) => {
-                            bw.flush().unwrap()
-                        },
-                        Some(tv) = recv.recv() => {
-                            let dt = chrono::Utc::now();
-                            let b = serde_json::to_string(&tv).unwrap();
-
-                            writeln!(bw, "{} {}", dt.to_rfc3339(), b).unwrap();
-
-                            i += 1;
-                            if i % 100 == 0 {
-                                bw.flush().unwrap()
-                            }
-                        }
-                    }
-                }
-                bw.flush().unwrap()
-            });
-            (Some(file_out), Some(send))
+            trace::trace_task(f.clone(), shutdown.clone())
         } else {
             (None, None)
         };
