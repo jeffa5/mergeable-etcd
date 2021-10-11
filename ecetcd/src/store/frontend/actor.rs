@@ -234,7 +234,7 @@ where
                     .unwrap();
 
                 // no keys changed, just the server
-                self.apply_local_change(Vec::new()).await;
+                self.release_locked_key_ranges(Vec::new()).await;
 
                 tokio::task::spawn_local(async move {
                     Self::watch_range(receiver, tx_events).await;
@@ -296,7 +296,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn apply_local_change(&mut self, key_ranges: Vec<SingleKeyOrRange>) {
+    async fn release_locked_key_ranges(&mut self, key_ranges: Vec<SingleKeyOrRange>) {
         let mut releases = Vec::new();
         for key_range in &key_ranges {
             let (send, recv) = watch::channel(());
@@ -315,9 +315,7 @@ where
             }
         }
 
-        let locked_key_ranges = self.locked_key_ranges.clone();
-
-        let mut locked = locked_key_ranges.borrow_mut();
+        let mut locked = self.locked_key_ranges.borrow_mut();
         for (key, release) in key_ranges.into_iter().zip(releases.into_iter()) {
             locked.remove(&key);
             let _ = release.send(());
@@ -344,6 +342,9 @@ where
         Ok((server, values))
     }
 
+    /// Wait for the given key ranges to be unlocked.
+    ///
+    /// In practice they are locked when the backend has outstanding / unflushed changes to them.
     async fn wait_for_keys(&mut self, key_ranges: &[SingleKeyOrRange]) {
         let mut waits = Vec::new();
 
@@ -418,7 +419,7 @@ where
                     }
                 }
 
-                self.apply_local_change(wait_key_range).await;
+                self.release_locked_key_ranges(wait_key_range).await;
                 let _ = ret.send(Ok((server, prev)));
             }
         }
@@ -474,7 +475,7 @@ where
             }
         }
 
-        self.apply_local_change(wait_key_range).await;
+        self.release_locked_key_ranges(wait_key_range).await;
 
         let prev = prev.into_iter().filter_map(|(_, p)| p).collect();
         Ok((server, prev))
@@ -551,7 +552,7 @@ where
             }
         }
 
-        self.apply_local_change(wait_for_keys).await;
+        self.release_locked_key_ranges(wait_for_keys).await;
 
         Ok((server, success, results))
     }
@@ -600,7 +601,7 @@ where
                 Ok((server, id, ttl))
             })?;
 
-        self.apply_local_change(Vec::new()).await;
+        self.release_locked_key_ranges(Vec::new()).await;
 
         Ok(result)
     }
@@ -619,7 +620,7 @@ where
             })
             .unwrap();
 
-        self.apply_local_change(Vec::new()).await;
+        self.release_locked_key_ranges(Vec::new()).await;
 
         Ok((server, ttl))
     }
@@ -671,7 +672,7 @@ where
             }
         }
 
-        self.apply_local_change(Vec::new()).await;
+        self.release_locked_key_ranges(Vec::new()).await;
 
         Ok(server)
     }
