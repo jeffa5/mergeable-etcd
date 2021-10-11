@@ -84,16 +84,15 @@ where
         P: Persister + Debug + Send + 'static,
         P::Error: Send,
     {
+        // for notifying the sync thread of changes to the document and triggering a new sync
         let change_notify = Arc::new(Notify::new());
         let change_notify2 = change_notify.clone();
-
-        let mut local_futures = Vec::new();
 
         // channel for client requests to reach a frontend
         let (fc_sender, fc_receiver) = tokio::sync::mpsc::channel(WAITING_CLIENTS_PER_FRONTEND);
         let shutdown_clone = shutdown.clone();
 
-        let (send, recv) = tokio::sync::oneshot::channel();
+        let (localset_finished_send, localset_finished_recv) = tokio::sync::oneshot::channel();
         let rt = Builder::new_current_thread().enable_all().build().unwrap();
         let uuid = uuid::Uuid::new_v4();
 
@@ -116,12 +115,11 @@ where
                 actor.run().await.unwrap();
             });
 
-            send.send(())
+            localset_finished_send.send(())
         });
 
         let actor_id = ActorId::from(uuid);
         let frontend = FrontendHandle::new(fc_sender, actor_id.clone());
-        local_futures.push(recv);
 
         let health = HealthServer::new(frontend_health_sender);
 
@@ -301,7 +299,7 @@ where
                     .await
                     .unwrap()
             },
-            async { futures::future::join_all(local_futures).await },
+            async { localset_finished_recv.await.unwrap() },
             async {
                 trace_task
                     .unwrap_or_else(|| tokio::spawn(async {}))
