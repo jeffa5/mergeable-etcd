@@ -2,11 +2,16 @@
 
 set -e
 
+num_repeats=3
+min_node_count=1
+max_node_count=9
+bencher_subcommand=""
+
 function usage() {
-  echo "$0 [-r <repeats>] [-b <start_size>] [-e <end_size>] [-s]"
+  echo "$0 [-r <repeats=$num_repeats>] [-b <start_size=$min_node_count>] [-e <end_size=$max_node_count>] [-c <bencher_subcommand>]"
 }
 
-while getopts "r:b:s:h" option; do
+while getopts "r:b:e:h" option; do
   case ${option} in
     r )
     num_repeats=$OPTARG
@@ -17,8 +22,8 @@ while getopts "r:b:s:h" option; do
     e )
     max_node_count=$OPTARG
     ;;
-    s )
-    with_sync=$OPTARG
+    c )
+    bencher_subcommand=$OPTARG
     ;;
     h )
     usage
@@ -31,31 +36,29 @@ while getopts "r:b:s:h" option; do
   esac
 done
 
-num_repeats=${num_repeats:-3}
-min_node_count=${min_node_count:-1}
-max_node_count=${max_node_count:-9}
-with_sync=${with_sync:true}
 
 function run() {
   node_image=$1
-  with_sync=$2
+  subcommand=$2
 
   binary_name="$(echo $node_image | rev | cut -d '/' -f 1 | rev | cut -d ':' -f 1)"
 
   for repeat in $(seq 1 $num_repeats); do
-    echo "Running with node_count=$node_count node_image=$node_image binary_name=$binary_name repeat=$repeat sync=$with_sync"
-   ansible-playbook main.yaml -e @values.yaml -e node_count="$node_count" -e node_image="$node_image" -e binary_name="$binary_name" -e repeat="$repeat" -e sync="$with_sync"
+    echo "Running with node_count=$node_count node_image=$node_image binary_name=$binary_name repeat=$repeat bench_type=$subcommand"
+   ansible-playbook main.yaml -e @values.yaml -e node_count="$node_count" -e node_image="$node_image" -e binary_name="$binary_name" -e repeat="$repeat" -e bench_type="$subcommand"
   done
 }
 
-function run_sync() {
-  run $@ false
-}
-
 for node_count in $(seq $min_node_count 2 $max_node_count); do
-  run "quay.io/coreos/etcd" false
-  run "jeffas/recetcd:latest" false
-  if [[ $with_sync == "true" ]]; then
-    run "jeffas/recetcd:latest" true
+  if [[ $bencher_subcommand != "" ]]; then
+    run "quay.io/coreos/etcd" $bencher_subcommand
+    run "jeffas/recetcd:latest" $bencher_subcommand
+  else
+    run "quay.io/coreos/etcd" "PutRange"
+    run "jeffas/recetcd:latest" "PutRange"
+    run "quay.io/coreos/etcd" "PutSingle"
+    run "jeffas/recetcd:latest" "PutSingle"
+    run "quay.io/coreos/etcd" "PutRandom"
+    run "jeffas/recetcd:latest" "PutRandom"
   fi
 done

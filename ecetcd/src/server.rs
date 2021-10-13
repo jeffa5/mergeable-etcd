@@ -1,7 +1,5 @@
 use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
-    hash::{Hash, Hasher},
-    net::SocketAddr,
+    collections::HashMap,
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -29,16 +27,16 @@ pub struct Server {
 
 #[derive(Debug)]
 struct Inner {
-    frontends: Vec<FrontendHandle>,
+    frontend: FrontendHandle,
     max_watcher_id: i64,
     watchers: HashMap<i64, (FrontendHandle, watcher::Watcher)>,
     leases: HashMap<i64, lease::Lease>,
 }
 
 impl Server {
-    pub fn new(frontends: Vec<FrontendHandle>) -> Self {
+    pub fn new(frontend: FrontendHandle) -> Self {
         let inner = Inner {
-            frontends,
+            frontend,
             max_watcher_id: 1,
             watchers: HashMap::new(),
             leases: HashMap::new(),
@@ -48,29 +46,25 @@ impl Server {
         }
     }
 
+    pub async fn db_size(&self) -> u64 {
+        self.select_frontend().db_size().await
+    }
+
     /// Select a frontend based on the source address.
     ///
     /// This aims to have requests from the same host repeatedly hit the same frontend
-    #[tracing::instrument(level = "debug", skip(self, remote_addr))]
-    fn select_frontend(&self, remote_addr: Option<SocketAddr>) -> FrontendHandle {
-        let remote_ip = remote_addr.map(|a| a.ip());
-        let mut hasher = DefaultHasher::new();
-        remote_ip.hash(&mut hasher);
-        let value = hasher.finish();
-
-        let frontends = &self.inner.lock().unwrap().frontends;
-        let index = value as usize % frontends.len();
-        frontends[index].clone()
+    #[tracing::instrument(level = "debug", skip(self))]
+    fn select_frontend(&self) -> FrontendHandle {
+        self.inner.lock().unwrap().frontend.clone()
     }
 
-    #[tracing::instrument(level = "debug", skip(self, key, range_end, tx_results, remote_addr))]
+    #[tracing::instrument(level = "debug", skip(self, key, range_end, tx_results))]
     pub async fn create_watcher(
         &self,
         key: Vec<u8>,
         range_end: Vec<u8>,
         prev_kv: bool,
         tx_results: tokio::sync::mpsc::Sender<Result<WatchResponse, Status>>,
-        remote_addr: Option<SocketAddr>,
     ) -> i64 {
         // TODO: have a more robust cancel mechanism
 
@@ -90,7 +84,7 @@ impl Server {
         let (send_watch_created, recv_watch_created) = oneshot::channel();
         tokio::spawn(async move {
             self_clone
-                .select_frontend(remote_addr)
+                .select_frontend()
                 .watch_range(id, key.into(), range_end, tx_events, send_watch_created)
                 .await
         });
@@ -122,7 +116,7 @@ impl Server {
 
         let watcher = watcher::Watcher::new(id, prev_kv, rx_events, tx_results);
 
-        let frontend = self.select_frontend(remote_addr);
+        let frontend = self.select_frontend();
 
         self.inner
             .lock()
@@ -153,10 +147,9 @@ impl Server {
         &self,
         id: Option<i64>,
         ttl: i64,
-        remote_addr: Option<SocketAddr>,
     ) -> Result<(crate::store::Server, i64, i64), FrontendError> {
         let (server, id, ttl) = self
-            .select_frontend(remote_addr)
+            .select_frontend()
             .create_lease(id, Ttl::new(ttl))
             .await?;
         // spawn task to handle timeouts stuff
@@ -165,7 +158,7 @@ impl Server {
         let self_clone = self.clone();
         tokio::spawn(async move {
             if let Ok(()) = rx_timeout.await {
-                self_clone.revoke_lease(id, remote_addr).await.unwrap();
+                self_clone.revoke_lease(id).await.unwrap();
             }
         });
 
@@ -177,32 +170,23 @@ impl Server {
     pub async fn refresh_lease(
         &self,
         id: i64,
-        remote_addr: Option<SocketAddr>,
     ) -> Result<(crate::store::Server, Ttl), FrontendError> {
-        let (store, ttl) = self
-            .select_frontend(remote_addr)
-            .refresh_lease(id)
-            .await
-            .unwrap();
+        let (store, ttl) = self.select_frontend().refresh_lease(id).await.unwrap();
         if let Some(lease) = self.inner.lock().unwrap().leases.get(&id) {
             lease.refresh(*ttl)
         }
         Ok((store, ttl))
     }
 
-    pub async fn revoke_lease(
-        &self,
-        id: i64,
-        remote_addr: Option<SocketAddr>,
-    ) -> Result<crate::store::Server, FrontendError> {
+    pub async fn revoke_lease(&self, id: i64) -> Result<crate::store::Server, FrontendError> {
         if let Some(lease) = self.inner.lock().unwrap().leases.remove(&id) {
             lease.revoke()
         }
-        self.select_frontend(remote_addr).revoke_lease(id).await
+        self.select_frontend().revoke_lease(id).await
     }
 
-    pub async fn current_server(&self, remote_addr: Option<SocketAddr>) -> crate::store::Server {
-        self.select_frontend(remote_addr).current_server().await
+    pub async fn current_server(&self) -> crate::store::Server {
+        self.select_frontend().current_server().await
     }
 
     pub async fn get(
@@ -210,27 +194,23 @@ impl Server {
         key: Key,
         range_end: Option<Key>,
         revision: Option<Revision>,
-        remote_addr: Option<SocketAddr>,
     ) -> Result<(crate::store::Server, Vec<SnapshotValue>), FrontendError> {
-        self.select_frontend(remote_addr)
-            .get(key, range_end, revision)
-            .await
+        self.select_frontend().get(key, range_end, revision).await
     }
 
     /// value is an option for the ignore_value put request field
     ///
     /// When the value is None we just update the revision etc of the ivalue and leave the value as
     /// is.
-    #[tracing::instrument(level = "debug", skip(self, key, value, prev_kv, remote_addr))]
+    #[tracing::instrument(level = "debug", skip(self, key, value, prev_kv))]
     pub async fn insert(
         &self,
         key: Key,
         value: Option<Vec<u8>>,
         prev_kv: bool,
         lease: Option<i64>,
-        remote_addr: Option<SocketAddr>,
     ) -> Result<(crate::store::Server, Option<SnapshotValue>), FrontendError> {
-        self.select_frontend(remote_addr)
+        self.select_frontend()
             .insert(key, value, prev_kv, lease)
             .await
     }
@@ -239,18 +219,14 @@ impl Server {
         &self,
         key: Key,
         range_end: Option<Key>,
-        remote_addr: Option<SocketAddr>,
     ) -> Result<(crate::store::Server, Vec<SnapshotValue>), FrontendError> {
-        self.select_frontend(remote_addr)
-            .remove(key, range_end)
-            .await
+        self.select_frontend().remove(key, range_end).await
     }
 
     pub async fn txn(
         &self,
         request: TxnRequest,
-        remote_addr: Option<SocketAddr>,
     ) -> Result<(crate::store::Server, bool, Vec<ResponseOp>), FrontendError> {
-        self.select_frontend(remote_addr).txn(request).await
+        self.select_frontend().txn(request).await
     }
 }

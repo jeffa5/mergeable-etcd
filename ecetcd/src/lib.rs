@@ -1,17 +1,15 @@
 pub mod address;
-mod key_range;
-
 pub mod health;
+mod key_range;
 pub mod peer;
 pub mod server;
 pub mod services;
 pub mod store;
+mod trace;
 
 use std::{
     convert::TryFrom,
     fmt::Debug,
-    fs::{create_dir_all, File},
-    io::{BufWriter, Write},
     marker::PhantomData,
     path::{Path, PathBuf},
     sync::Arc,
@@ -21,19 +19,15 @@ use std::{
 pub use address::Address;
 use automerge_persistent::Persister;
 use automerge_persistent_sled::SledPersister;
-use automerge_protocol::ActorId;
-use etcd_proto::etcdserverpb::{
-    CompactionRequest, DeleteRangeRequest, LeaseGrantRequest, LeaseLeasesRequest,
-    LeaseRevokeRequest, LeaseTimeToLiveRequest, PutRequest, RangeRequest, TxnRequest,
-};
+use store::FrontendHandle;
 pub use store::StoreValue;
-use store::{BackendActor, BackendHandle, FrontendHandle};
 use tokio::{
     runtime::Builder,
     sync::{mpsc, Notify},
     task::LocalSet,
 };
 use tonic::transport::Identity;
+pub use trace::TraceValue;
 use tracing::info;
 
 use crate::{
@@ -42,42 +36,36 @@ use crate::{
     store::FrontendActor,
 };
 
-#[derive(serde::Serialize, serde::Deserialize)]
-pub enum TraceValue {
-    RangeRequest(RangeRequest),
-    PutRequest(PutRequest),
-    DeleteRangeRequest(DeleteRangeRequest),
-    TxnRequest(TxnRequest),
-    CompactRequest(CompactionRequest),
-    LeaseGrantRequest(LeaseGrantRequest),
-    LeaseRevokeRequest(LeaseRevokeRequest),
-    LeaseTimeToLiveRequest(LeaseTimeToLiveRequest),
-    LeaseLeasesRequest(LeaseLeasesRequest),
-}
-
 const WAITING_CLIENTS_PER_FRONTEND: usize = 32;
 
 #[derive(Debug)]
-pub struct Ecetcd<T>
-where
-    T: StoreValue,
-{
+pub struct Ecetcd<T> {
+    /// Name of this node.
     pub name: String,
+    /// Addresses to listen for peer messages on.
     pub listen_peer_urls: Vec<Address>,
+    /// Addresses to listen for client messages on.
     pub listen_client_urls: Vec<Address>,
+    /// Peer urls.
     pub initial_advertise_peer_urls: Vec<Address>,
+    /// Initial peer addresses.
     pub initial_cluster: Vec<NamedAddress>,
     pub advertise_client_urls: Vec<Address>,
+    /// Addresses to listen for metrics on.
     pub listen_metrics_urls: Vec<Address>,
+    /// Certfile path if wanting tls.
     pub cert_file: Option<PathBuf>,
+    /// Keyfile path if wanting tls.
     pub key_file: Option<PathBuf>,
+    /// Certfile for peer connections, if wanting tls.
     pub peer_cert_file: Option<PathBuf>,
+    /// Keyfile for peer connections, if wanting tls.
     pub peer_key_file: Option<PathBuf>,
+    /// CA file for peer connections, if wanting tls.
     pub peer_trusted_ca_file: Option<PathBuf>,
-    /// Whether to wait for the patch to be applied to the frontend before returning.
-    pub sync_changes: bool,
     /// File to write request traces out to.
     pub trace_file: Option<PathBuf>,
+    /// Phantom so that this struct is typed by the data it wants to store.
     pub _data: PhantomData<T>,
 }
 
@@ -95,88 +83,45 @@ where
         P: Persister + Debug + Send + 'static,
         P::Error: Send,
     {
-        let (b_sender, b_receiver) = tokio::sync::mpsc::unbounded_channel();
-
+        // for notifying the sync thread of changes to the document and triggering a new sync
         let change_notify = Arc::new(Notify::new());
         let change_notify2 = change_notify.clone();
 
-        let flush_notify_send = Arc::new(Notify::new());
-        let flush_notify_recv = flush_notify_send.clone();
-
-        let backend = BackendHandle::new(b_sender, flush_notify_send);
-
-        let mut frontends = Vec::new();
-        let mut frontends_for_backend = Vec::new();
-        let mut local_futures = Vec::new();
-        let num_frontends = 1; // TODO: once multiple frontends with a single backend is safe use num_cpus::get()
-
-        let mut frontend_healths = Vec::new();
-
-        for i in 0..num_frontends {
-            // channel for client requests to reach a frontend
-            let (fc_sender, fc_receiver) = tokio::sync::mpsc::channel(WAITING_CLIENTS_PER_FRONTEND);
-            // channel for backend messages to reach a frontend
-            // this separation exists to have the frontend be able to prioritise backend messages
-            // for latency
-            let (fb_sender, fb_receiver) = tokio::sync::mpsc::unbounded_channel();
-            let shutdown_clone = shutdown.clone();
-            let backend_clone = backend.clone();
-
-            let (send, recv) = tokio::sync::oneshot::channel();
-            let rt = Builder::new_current_thread().enable_all().build().unwrap();
-            let uuid = uuid::Uuid::new_v4();
-            let sync_changes = self.sync_changes;
-
-            let (frontend_health_sender, frontend_health_receiver) = mpsc::channel(1);
-            frontend_healths.push(frontend_health_sender);
-
-            std::thread::spawn(move || {
-                let local = LocalSet::new();
-
-                local.block_on(&rt, async move {
-                    let mut actor = FrontendActor::<T, P::Error>::new(
-                        backend_clone,
-                        fc_receiver,
-                        fb_receiver,
-                        frontend_health_receiver,
-                        shutdown_clone,
-                        i,
-                        uuid,
-                        sync_changes,
-                    )
-                    .await
-                    .unwrap();
-                    actor.run().await.unwrap();
-                });
-
-                send.send(())
-            });
-
-            let actor_id = ActorId::from(uuid);
-            frontends.push(FrontendHandle::new(fc_sender, actor_id.clone()));
-            frontends_for_backend.push(FrontendHandle::new_unbounded(fb_sender, actor_id.clone()));
-            local_futures.push(recv);
-        }
-
+        // channel for client requests to reach a frontend
+        let (fc_sender, fc_receiver) = tokio::sync::mpsc::channel(WAITING_CLIENTS_PER_FRONTEND);
         let shutdown_clone = shutdown.clone();
 
-        let (backend_health_sender, backend_health_receiver) = mpsc::channel(1);
-        tokio::spawn(async move {
-            let mut actor = BackendActor::new(
-                persister,
-                frontends_for_backend,
-                b_receiver,
-                backend_health_receiver,
-                shutdown_clone,
-                change_notify,
-                flush_notify_recv,
-            );
-            actor.run().await;
+        // oneshot for waiting for the frontend to stop before closing the server
+        let (localset_finished_send, localset_finished_recv) = tokio::sync::oneshot::channel();
+
+        let local_runtime = Builder::new_current_thread().enable_all().build().unwrap();
+
+        let (frontend_health_sender, frontend_health_receiver) = mpsc::channel(1);
+
+        std::thread::spawn(move || {
+            let local = LocalSet::new();
+
+            local.block_on(&local_runtime, async move {
+                let mut actor = FrontendActor::<T, P>::new(
+                    persister,
+                    fc_receiver,
+                    frontend_health_receiver,
+                    shutdown_clone,
+                    uuid::Uuid::new_v4(),
+                    change_notify,
+                )
+                .await
+                .unwrap();
+                actor.run().await.unwrap();
+            });
+
+            localset_finished_send.send(())
         });
 
-        let health = HealthServer::new(frontend_healths, backend_health_sender);
+        let frontend = FrontendHandle::new(fc_sender);
 
-        let server = crate::server::Server::new(frontends.clone());
+        let server = crate::server::Server::new(frontend.clone());
+
         let client_urls = match (
             &self.listen_client_urls[..],
             &self.advertise_client_urls[..],
@@ -200,37 +145,7 @@ where
         };
 
         let (trace_task, trace_out) = if let Some(f) = self.trace_file.as_ref() {
-            let (send, mut recv) = mpsc::channel(10);
-            let f = f.clone();
-            let mut shutdown_clone = shutdown.clone();
-            let file_out = tokio::spawn(async move {
-                create_dir_all(f.parent().unwrap()).unwrap();
-
-                let file = File::create(f).unwrap();
-                let mut bw = BufWriter::new(file);
-                let mut i = 0;
-                loop {
-                    tokio::select! {
-                        _ = shutdown_clone.changed() => break,
-                        _ = tokio::time::sleep(Duration::from_secs(1)) => {
-                            bw.flush().unwrap()
-                        },
-                        Some(tv) = recv.recv() => {
-                            let dt = chrono::Utc::now();
-                            let b = serde_json::to_string(&tv).unwrap();
-
-                            writeln!(bw, "{} {}", dt.to_rfc3339(), b).unwrap();
-
-                            i += 1;
-                            if i % 100 == 0 {
-                                bw.flush().unwrap()
-                            }
-                        }
-                    }
-                }
-                bw.flush().unwrap()
-            });
-            (Some(file_out), Some(send))
+            trace::trace_task(f.clone(), shutdown.clone())
         } else {
             (None, None)
         };
@@ -255,7 +170,6 @@ where
                     identity,
                     shutdown.clone(),
                     server.clone(),
-                    backend.clone(),
                     trace_out.clone(),
                 );
                 info!("Listening to clients on {}", client_url);
@@ -265,13 +179,12 @@ where
 
         let (peer_send, peer_receive) = mpsc::channel(1);
 
-        let peer_server = crate::peer::Server::new(backend);
+        let peer_server = crate::peer::Server::new(frontend.clone());
         let peer_server_clone = peer_server.clone();
         let peer_server_task =
             tokio::spawn(async move { peer_server_clone.sync(change_notify2, peer_receive).await });
 
         let mut peer_clients = Vec::new();
-        let frontend = frontends.get(0).unwrap();
         for address in self.initial_cluster.iter() {
             if self.listen_peer_urls.contains(&address.address) {
                 // don't send sync messages to self
@@ -349,8 +262,9 @@ where
             })
             .collect::<Vec<_>>();
 
+        let health = HealthServer::new(frontend_health_sender);
         let metrics_servers = self.listen_metrics_urls.iter().map(|metrics_url| {
-            // TODO: handle identity on metrics urls
+                // TODO: handle identity on metrics urls
                 let _identity = if let Scheme::Https = metrics_url.scheme {
                     match (self.cert_file.as_ref(), self.key_file.as_ref()) {
                         (Some(cert_file), Some(key_file)) => {
@@ -384,7 +298,7 @@ where
                     .await
                     .unwrap()
             },
-            async { futures::future::join_all(local_futures).await },
+            async { localset_finished_recv.await.unwrap() },
             async {
                 trace_task
                     .unwrap_or_else(|| tokio::spawn(async {}))

@@ -2,9 +2,7 @@ binary_name: etcd
 node_image: quay.io/coreos/etcd:latest
 node_count: 3
 
-tmpfs: true
-
-sync: false
+tmpfs: false
 
 node_name_prefix: node-
 
@@ -12,9 +10,10 @@ bencher_name_prefix: bencher-
 bencher_image: docker.io/jeffas/bencher:latest
 bencher_count: 2
 
+bench_type: PutRange
 bench_clients: 100
 bench_iterations: 1000
 
 results_dir: results
-run_dir: "{{ results_dir }}/{{ binary_name }}-{{ node_count }}nodes-{{ bencher_count }}benchers{% if sync | bool %}-sync{% endif %}/repeat{{ repeat }}"
+run_dir: "{{ results_dir }}/{{ binary_name }}-{{ node_count }}nodes-{{ bencher_count }}benchers/repeat{{ repeat }}"
 logs_dir: "{{ run_dir }}/logs/"

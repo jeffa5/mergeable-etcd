@@ -2,11 +2,7 @@ use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use tonic::{transport::Endpoint, Request};
 
-pub async fn connect_and_sync<E: std::error::Error + Send>(
-    address: String,
-    server: super::server::Server<E>,
-    member_id: u64,
-) {
+pub async fn connect_and_sync(address: String, server: super::server::Server, member_id: u64) {
     let peer_endpoint = Endpoint::from_shared(address.clone()).unwrap();
     // connect to a peer
     let mut peer_client = match peer_proto::peer_client::PeerClient::connect(peer_endpoint).await {

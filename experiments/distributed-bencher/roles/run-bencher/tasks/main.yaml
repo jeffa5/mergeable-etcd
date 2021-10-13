@@ -21,4 +21,46 @@
       - bench
       - put-range
   with_sequence: start=0 count={{ bencher_count }}
-  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+  when:
+    - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+    - bench_type == "PutRange"
+
+- name: Start the bencher cluster
+  community.docker.docker_container:
+    name: "{{ bencher_name_prefix }}{{ item | int + 1 }}"
+    recreate: yes
+    image: "{{ bencher_image }}"
+    detach: false
+    network_mode: host
+    command:
+      - --endpoints={{ client_urls }}
+      - --metrics-endpoints={{ metrics_urls }}
+      - --clients={{ bench_clients }}
+      - --iterations={{ bench_iterations }}
+      - bench
+      - put-single
+      - benchkey
+  with_sequence: start=0 count={{ bencher_count }}
+  when:
+    - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+    - bench_type == "PutSingle"
+
+- name: Start the bencher cluster
+  community.docker.docker_container:
+    name: "{{ bencher_name_prefix }}{{ item | int + 1 }}"
+    recreate: yes
+    image: "{{ bencher_image }}"
+    detach: false
+    network_mode: host
+    command:
+      - --endpoints={{ client_urls }}
+      - --metrics-endpoints={{ metrics_urls }}
+      - --clients={{ bench_clients }}
+      - --iterations={{ bench_iterations }}
+      - bench
+      - put-random
+      - 1000
+  with_sequence: start=0 count={{ bencher_count }}
+  when:
+    - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+    - bench_type == "PutRandom"

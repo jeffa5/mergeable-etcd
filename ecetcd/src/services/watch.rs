@@ -27,7 +27,6 @@ impl WatchTrait for Watch {
         request: Request<tonic::Streaming<WatchRequest>>,
     ) -> Result<Response<Self::WatchStream>, Status> {
         let server_clone = self.server.clone();
-        let remote_addr = request.remote_addr();
 
         let (tx_response, rx_response) = tokio::sync::mpsc::channel(1);
 
@@ -53,13 +52,12 @@ impl WatchTrait for Watch {
                                     create.range_end,
                                     create.prev_kv,
                                     tx_response.clone(),
-                                    remote_addr,
                                 )
                                 .await;
 
                             watch_ids_created_here.insert(watch_id);
 
-                            let server = server_clone.current_server(remote_addr);
+                            let server = server_clone.current_server();
                             let header = server.await.header();
                             if tx_response
                                 .send(Ok(WatchResponse {
@@ -82,7 +80,7 @@ impl WatchTrait for Watch {
                             watch_ids_created_here.remove(&cancel.watch_id);
 
                             server_clone.cancel_watcher(cancel.watch_id).await;
-                            let server = server_clone.current_server(remote_addr);
+                            let server = server_clone.current_server();
                             let header = server.await.header();
                             if tx_response
                                 .send(Ok(WatchResponse {

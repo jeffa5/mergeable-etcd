@@ -5,7 +5,7 @@ mod handle;
 use std::fmt::Display;
 
 pub use actor::{FrontendActor, FrontendError};
-use automerge_protocol::Patch;
+use automerge_backend::SyncMessage;
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 pub use handle::FrontendHandle;
 use tokio::sync::{mpsc, oneshot};
@@ -63,9 +63,18 @@ pub enum FrontendMessage {
         id: i64,
         ret: oneshot::Sender<Result<Server, FrontendError>>,
     },
-    ApplyPatch {
-        patch: Patch,
+    DbSize {
+        ret: oneshot::Sender<u64>,
     },
+    GenerateSyncMessage {
+        peer_id: Vec<u8>,
+        ret: oneshot::Sender<Option<SyncMessage>>,
+    },
+    ReceiveSyncMessage {
+        peer_id: Vec<u8>,
+        message: SyncMessage,
+    },
+    NewSyncPeer {},
 }
 
 impl Display for FrontendMessage {
@@ -81,7 +90,10 @@ impl Display for FrontendMessage {
             FrontendMessage::CreateLease { .. } => "create_lease",
             FrontendMessage::RefreshLease { .. } => "refresh_lease",
             FrontendMessage::RevokeLease { .. } => "revoke_lease",
-            FrontendMessage::ApplyPatch { .. } => "apply_patch",
+            FrontendMessage::DbSize { .. } => "db_size",
+            FrontendMessage::GenerateSyncMessage { .. } => "generate_sync_message",
+            FrontendMessage::ReceiveSyncMessage { .. } => "receive_sync_message",
+            FrontendMessage::NewSyncPeer {} => "new_sync_peer",
         };
         write!(f, "{}", s)
     }

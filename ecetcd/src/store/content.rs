@@ -119,10 +119,9 @@ where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: Debug,
 {
-    pub fn new(frontend: &'a automerge::Frontend) -> Self {
-        let root_value_ref = frontend.value_ref();
+    pub fn new(root_ref: RootRef<'a>) -> Self {
         Self {
-            root_value_ref,
+            root_value_ref: root_ref,
             values: None,
             server: None,
             leases: None,
