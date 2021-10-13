@@ -15,17 +15,11 @@ members = [
 [profile.release]
 debug = true
 
-# [patch."https://github.com/automerge/automerge-rs"]
-# automerge = { git = "https://github.com//jeffa5/automerge-rs", branch = "state-tree-and-sync-improvements" }
-# automerge-protocol = { git = "https://github.com//jeffa5/automerge-rs", branch = "state-tree-and-sync-improvements" }
-# automerge-backend = { git = "https://github.com//jeffa5/automerge-rs", branch = "state-tree-and-sync-improvements" }
-# automerge-frontend = { git = "https://github.com//jeffa5/automerge-rs", branch = "state-tree-and-sync-improvements" }
-
 [patch."https://github.com/automerge/automerge-rs"]
-automerge = { git = "https://github.com//automerge/automerge-rs", branch = "frontend-sorted-map" }
-automerge-protocol = { git = "https://github.com//automerge/automerge-rs", branch = "frontend-sorted-map" }
-automerge-backend = { git = "https://github.com//automerge/automerge-rs", branch = "frontend-sorted-map" }
-automerge-frontend = { git = "https://github.com//automerge/automerge-rs", branch = "frontend-sorted-map" }
+automerge = { git = "https://github.com//jeffa5/automerge-rs", branch = "dev" }
+automerge-protocol = { git = "https://github.com//jeffa5/automerge-rs", branch = "dev" }
+automerge-backend = { git = "https://github.com//jeffa5/automerge-rs", branch = "dev" }
+automerge-frontend = { git = "https://github.com//jeffa5/automerge-rs", branch = "dev" }
 
 [patch."https://github.com/jeffa5/automergeable"]
 automergeable = { git = "https://github.com//jeffa5/automergeable", branch = "sorted-map" }

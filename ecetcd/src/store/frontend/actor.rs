@@ -20,7 +20,7 @@ use crate::{
         content::{LEASES_KEY, SERVER_KEY, VALUES_KEY},
         frontend::document::Document,
         value::{LEASE_ID_KEY, REVISIONS_KEY},
-        BackendHandle, Key, Revision, Server, SnapshotValue, StoreContents, Ttl,
+        Key, Revision, Server, SnapshotValue, StoreContents, Ttl,
     },
     StoreValue,
 };
@@ -112,8 +112,11 @@ where
         // sync into the same objects.
         //
         // TODO: find a better way of doing this when multiple peers are around
-        let starter_frontend =
-            automerge::Frontend::new_with_timestamper_and_actor_id(Box::new(|| None), &[0]);
+        let starter_frontend = automerge::Frontend::new(
+            FrontendOptions::default()
+                .with_actor_id(&[0][..])
+                .with_timestamper(|| None),
+        );
         let mut starter_automerge =
             PersistentAutomerge::load_with_frontend(persister, starter_frontend).unwrap();
 
