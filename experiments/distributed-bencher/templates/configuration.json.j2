@@ -1,9 +1,8 @@
 {
   "image_name": "{{ node_image }}",
   "repeat": {{ repeat }},
-  "bench_type": "PutRange",
+  "bench_type": "{{ bench_type }}",
   "cluster_size": {{ node_count }},
   "bencher_count": {{ bencher_count }},
-  "extra_args": "",
   "tmpfs": {{ tmpfs | bool | to_json }}
 }
