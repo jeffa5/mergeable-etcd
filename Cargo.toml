@@ -13,10 +13,13 @@ members = [
 ]
 
 [profile.release]
-debug = false
+debug = true
 
 [patch."https://github.com/automerge/automerge-rs"]
-automerge = { git = "https://github.com//jeffa5/automerge-rs", branch = "state-tree-and-sync-improvements" }
-automerge-protocol = { git = "https://github.com//jeffa5/automerge-rs", branch = "state-tree-and-sync-improvements" }
-automerge-backend = { git = "https://github.com//jeffa5/automerge-rs", branch = "state-tree-and-sync-improvements" }
-automerge-frontend = { git = "https://github.com//jeffa5/automerge-rs", branch = "state-tree-and-sync-improvements" }
+automerge = { git = "https://github.com//jeffa5/automerge-rs", branch = "dev" }
+automerge-protocol = { git = "https://github.com//jeffa5/automerge-rs", branch = "dev" }
+automerge-backend = { git = "https://github.com//jeffa5/automerge-rs", branch = "dev" }
+automerge-frontend = { git = "https://github.com//jeffa5/automerge-rs", branch = "dev" }
+
+[patch."https://github.com/jeffa5/automergeable"]
+automergeable = { git = "https://github.com//jeffa5/automergeable", branch = "sorted-map" }

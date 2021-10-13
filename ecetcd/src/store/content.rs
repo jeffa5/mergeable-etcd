@@ -6,7 +6,7 @@ use std::{
 };
 
 use automerge::{
-    value_ref::{RootRef, ValueRef},
+    frontend::value_ref::{RootRef, ValueRef},
     LocalChange, Path, Value,
 };
 use automergeable::{FromAutomerge, FromAutomergeError, ToAutomerge};
@@ -23,9 +23,9 @@ use crate::{
     StoreValue,
 };
 
-const VALUES_KEY: &str = "values";
-const SERVER_KEY: &str = "server";
-const LEASES_KEY: &str = "leases";
+pub const VALUES_KEY: &str = "values";
+pub const SERVER_KEY: &str = "server";
+pub const LEASES_KEY: &str = "leases";
 
 #[derive(Debug, Clone)]
 pub(crate) enum ValueState<T> {
@@ -130,7 +130,10 @@ where
 
     pub fn init() -> Vec<LocalChange> {
         vec![
-            LocalChange::set(Path::root().key(VALUES_KEY), Value::Map(HashMap::new())),
+            LocalChange::set(
+                Path::root().key(VALUES_KEY),
+                Value::SortedMap(BTreeMap::new()),
+            ),
             LocalChange::set(Path::root().key(SERVER_KEY), Value::Map(HashMap::new())),
             LocalChange::set(Path::root().key(LEASES_KEY), Value::Map(HashMap::new())),
         ]
@@ -138,9 +141,11 @@ where
 
     pub fn contains_key(&self, key: &Key) -> bool {
         self.root_value_ref
+            .map()
+            .unwrap()
             .get(VALUES_KEY)
             .unwrap()
-            .map()
+            .sorted_map()
             .unwrap()
             .contains_key(&key.to_string())
     }
@@ -153,6 +158,8 @@ where
 
     pub fn contains_lease(&self, id: i64) -> bool {
         self.root_value_ref
+            .map()
+            .unwrap()
             .get(LEASES_KEY)
             .unwrap()
             .map()
@@ -173,9 +180,11 @@ where
         } else {
             let v = self
                 .root_value_ref
+                .map()
+                .unwrap()
                 .get(VALUES_KEY)
                 .unwrap()
-                .map()
+                .sorted_map()
                 .unwrap()
                 .get(&key.to_string())
                 .map(|v| IValue::new(Some(v), Path::root().key(VALUES_KEY).key(key.to_string())))?;
@@ -196,9 +205,11 @@ where
         } else {
             let v = self
                 .root_value_ref
+                .map()
+                .unwrap()
                 .get(VALUES_KEY)
                 .unwrap()
-                .map()
+                .sorted_map()
                 .unwrap()
                 .get(&key.to_string())
                 .map(|v| IValue::new(Some(v), Path::root().key(VALUES_KEY).key(key.to_string())))?;
@@ -211,8 +222,8 @@ where
     }
 
     pub fn values(&mut self, range: Range<Key>) -> Option<btree_map::Range<Key, IValue<'a, T>>> {
-        let values = self.root_value_ref.get(VALUES_KEY);
-        if let Some(ValueRef::Map(m)) = values {
+        let values = self.root_value_ref.map().unwrap().get(VALUES_KEY);
+        if let Some(ValueRef::SortedMap(m)) = values {
             let mut keys_in_range = Vec::new();
             for key in m.keys() {
                 let key = key.parse::<Key>().unwrap();
@@ -236,8 +247,8 @@ where
         &mut self,
         range: Range<Key>,
     ) -> Option<btree_map::RangeMut<Key, IValue<'a, T>>> {
-        let values = self.root_value_ref.get(VALUES_KEY);
-        if let Some(ValueRef::Map(m)) = values {
+        let values = self.root_value_ref.map().unwrap().get(VALUES_KEY);
+        if let Some(ValueRef::SortedMap(m)) = values {
             let mut keys_in_range = Vec::new();
             for key in m.keys() {
                 let key = key.parse::<Key>().unwrap();
@@ -263,6 +274,8 @@ where
         } else {
             let v = self
                 .root_value_ref
+                .map()
+                .unwrap()
                 .get(LEASES_KEY)
                 .unwrap()
                 .map()
@@ -290,6 +303,8 @@ where
         } else {
             let v = self
                 .root_value_ref
+                .map()
+                .unwrap()
                 .get(LEASES_KEY)
                 .unwrap()
                 .map()
@@ -323,6 +338,8 @@ where
         } else {
             let v = self
                 .root_value_ref
+                .map()
+                .unwrap()
                 .get(SERVER_KEY)
                 .as_ref()
                 .map(|v| Server::from_automerge(&v.value()));
@@ -341,6 +358,8 @@ where
         } else {
             let v = self
                 .root_value_ref
+                .map()
+                .unwrap()
                 .get(SERVER_KEY)
                 .as_ref()
                 .map(|v| Server::from_automerge(&v.value()));
@@ -445,9 +464,11 @@ where
             None => {
                 let mut v = IValue::new(
                     self.root_value_ref
+                        .map()
+                        .unwrap()
                         .get(VALUES_KEY)
                         .unwrap()
-                        .map()
+                        .sorted_map()
                         .unwrap()
                         .get(&key.to_string()),
                     Path::root().key(VALUES_KEY).key(key.to_string()),

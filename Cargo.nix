@@ -422,8 +422,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com//jeffa5/automerge-rs";
-          rev = "9158e16e99ebbb7fd9d9146d30651202faf0743c";
-          sha256 = "0fg46l1m8sid9hhx69psgfmraqpfpc0wwkr4g91vclqn29jy5gnh";
+          rev = "13a1eb06092760ba25f3f58ae25bfdf6fd45956e";
+          sha256 = "127pczfq6k3c59hs9yk4b70ihnj4dvig5cscgig84ba2lsgigixc";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -469,8 +469,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com//jeffa5/automerge-rs";
-          rev = "9158e16e99ebbb7fd9d9146d30651202faf0743c";
-          sha256 = "0fg46l1m8sid9hhx69psgfmraqpfpc0wwkr4g91vclqn29jy5gnh";
+          rev = "13a1eb06092760ba25f3f58ae25bfdf6fd45956e";
+          sha256 = "127pczfq6k3c59hs9yk4b70ihnj4dvig5cscgig84ba2lsgigixc";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -562,8 +562,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com//jeffa5/automerge-rs";
-          rev = "9158e16e99ebbb7fd9d9146d30651202faf0743c";
-          sha256 = "0fg46l1m8sid9hhx69psgfmraqpfpc0wwkr4g91vclqn29jy5gnh";
+          rev = "13a1eb06092760ba25f3f58ae25bfdf6fd45956e";
+          sha256 = "127pczfq6k3c59hs9yk4b70ihnj4dvig5cscgig84ba2lsgigixc";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -617,10 +617,8 @@ rec {
           }
         ];
         features = {
-          "default" = [ "std" ];
           "derive-arbitrary" = [ "arbitrary" "smol_str/arbitrary" ];
         };
-        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "automerge-persistent" = rec {
         crateName = "automerge-persistent";
@@ -629,8 +627,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "5df84e992eef029ff70bc6019e8b2992f8f22e66";
-          sha256 = "0xih44sh2jcavcx7q7wz3czgpln7amava0cpjyk19224n0j84ij1";
+          rev = "196f3c9c41cbc2cb1f3a3bcfdff902619046a85b";
+          sha256 = "1nwx0whqp64d81jhk1b9h3mjxj657xnnskm0fflsbn0hmrrzr9dj";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -662,8 +660,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "5df84e992eef029ff70bc6019e8b2992f8f22e66";
-          sha256 = "0xih44sh2jcavcx7q7wz3czgpln7amava0cpjyk19224n0j84ij1";
+          rev = "196f3c9c41cbc2cb1f3a3bcfdff902619046a85b";
+          sha256 = "1nwx0whqp64d81jhk1b9h3mjxj657xnnskm0fflsbn0hmrrzr9dj";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -699,8 +697,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com//jeffa5/automerge-rs";
-          rev = "9158e16e99ebbb7fd9d9146d30651202faf0743c";
-          sha256 = "0fg46l1m8sid9hhx69psgfmraqpfpc0wwkr4g91vclqn29jy5gnh";
+          rev = "13a1eb06092760ba25f3f58ae25bfdf6fd45956e";
+          sha256 = "127pczfq6k3c59hs9yk4b70ihnj4dvig5cscgig84ba2lsgigixc";
         };
         authors = [
           "Alex Good <alex@memoryandthought.me>"
@@ -750,9 +748,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/jeffa5/automergeable";
-          rev = "e548064052793e2124e440084b003ae580e2103a";
-          sha256 = "13my4w4nvpndndsx4qjv0a6kwh2npq7q9fkkam5hwpjjyzp0yy04";
+          url = "https://github.com//jeffa5/automergeable";
+          rev = "495219068fad7bc145f46a67fcfec76132830f84";
+          sha256 = "10h88z15li9clkghgwfxnhsjdj4nbhfb9r5p1z6k8y8k3abgizq2";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -814,9 +812,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/jeffa5/automergeable";
-          rev = "e548064052793e2124e440084b003ae580e2103a";
-          sha256 = "13my4w4nvpndndsx4qjv0a6kwh2npq7q9fkkam5hwpjjyzp0yy04";
+          url = "https://github.com//jeffa5/automergeable";
+          rev = "495219068fad7bc145f46a67fcfec76132830f84";
+          sha256 = "10h88z15li9clkghgwfxnhsjdj4nbhfb9r5p1z6k8y8k3abgizq2";
         };
         procMacro = true;
         authors = [
@@ -852,9 +850,9 @@ rec {
         edition = "2018";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/jeffa5/automergeable";
-          rev = "e548064052793e2124e440084b003ae580e2103a";
-          sha256 = "13my4w4nvpndndsx4qjv0a6kwh2npq7q9fkkam5hwpjjyzp0yy04";
+          url = "https://github.com//jeffa5/automergeable";
+          rev = "495219068fad7bc145f46a67fcfec76132830f84";
+          sha256 = "10h88z15li9clkghgwfxnhsjdj4nbhfb9r5p1z6k8y8k3abgizq2";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -1559,9 +1557,9 @@ rec {
       };
       "cmake" = rec {
         crateName = "cmake";
-        version = "0.1.45";
+        version = "0.1.46";
         edition = "2015";
-        sha256 = "0m8868gi7wrfszjk6qfmb8bgawywqsd5fbm1rnjgn78p6yv10qpb";
+        sha256 = "1290ilzm0i09xva4wz8n24l5sp5flh4m4jmdmrjfdvv329a5if5p";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -1585,9 +1583,9 @@ rec {
       };
       "core-foundation" = rec {
         crateName = "core-foundation";
-        version = "0.9.1";
+        version = "0.9.2";
         edition = "2015";
-        sha256 = "0qhackx0i914nbhcwi6bbxnyyqqldgxc046gviak3a3f8apf528a";
+        sha256 = "1cs7dya58xf4px4b1953040fpz5lm3qhf7fzv0jf94xva42y3238";
         authors = [
           "The Servo Project Developers"
         ];
@@ -1610,9 +1608,9 @@ rec {
       };
       "core-foundation-sys" = rec {
         crateName = "core-foundation-sys";
-        version = "0.8.2";
+        version = "0.8.3";
         edition = "2015";
-        sha256 = "06wq7yb7mlkc4h2kbc0yjfi0xv44z4snzdpr7c1l0zm4hi91n8pa";
+        sha256 = "1p5r2wckarkpkyc4z83q08dwpvcafrb1h6fxfa3qnikh8szww9sq";
         authors = [
           "The Servo Project Developers"
         ];
@@ -6407,9 +6405,9 @@ rec {
       };
       "proc-macro2" = rec {
         crateName = "proc-macro2";
-        version = "1.0.29";
+        version = "1.0.30";
         edition = "2018";
-        sha256 = "0gfj25ksq90ifcssfnwv46v856sxd885wmm9bhrj1ays9xfi1xdr";
+        sha256 = "0w7fc5mvk7jsfgn1pmiphkvjd0min12zj1y0l1zqpg37pj73bhzd";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
           "David Tolnay <dtolnay@gmail.com>"
@@ -8180,9 +8178,9 @@ rec {
       };
       "sharded-slab" = rec {
         crateName = "sharded-slab";
-        version = "0.1.3";
+        version = "0.1.4";
         edition = "2018";
-        sha256 = "10lrjwcfikgc0z18k524wdi2nbr3sk9600y9wxgi9wsk332j60kl";
+        sha256 = "0cbb8kgwsyr3zzhsv8jrs3y1j3vsw4jxil42lfq31ikhdy0bl3wh";
         authors = [
           "Eliza Weisman <eliza@buoyant.io>"
         ];
@@ -8213,9 +8211,9 @@ rec {
       };
       "slab" = rec {
         crateName = "slab";
-        version = "0.4.4";
+        version = "0.4.5";
         edition = "2018";
-        sha256 = "1465rj4y59qjvzxik0v2m0mp71q50m9xfigxqww7yhsw3hna61y3";
+        sha256 = "1ddg01hf8h4bpfm027h0snhb7jfcs1jzi497083y13q13vyr3vwx";
         authors = [
           "Carl Lerche <me@carllerche.com>"
         ];
@@ -9036,9 +9034,9 @@ rec {
       };
       "tokio-macros" = rec {
         crateName = "tokio-macros";
-        version = "1.4.1";
+        version = "1.5.0";
         edition = "2018";
-        sha256 = "1sz5pq7yzm40x935zvrhfqpf7s838wlkks0rrnd63hlryk498iqm";
+        sha256 = "1zd0zklw6bwzhnfbz04ypr8pkj1nzdm7qddx77wqvdm7mfp8bpdj";
         procMacro = true;
         authors = [
           "Tokio Contributors <team@tokio.rs>"

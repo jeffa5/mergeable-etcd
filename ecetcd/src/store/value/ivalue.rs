@@ -5,13 +5,13 @@ use std::{
     num::NonZeroU64,
 };
 
-use automerge::{value_ref::ValueRef, Path, Primitive, Value};
+use automerge::{frontend::value_ref::ValueRef, Path, Primitive, Value};
 use automergeable::{Automergeable, FromAutomerge, ToAutomerge};
 
 use crate::store::{Key, Revision, SnapshotValue, Version};
 
-const REVISIONS_KEY: &str = "revisions";
-const LEASE_ID_KEY: &str = "lease_id";
+pub const REVISIONS_KEY: &str = "revisions";
+pub const LEASE_ID_KEY: &str = "lease_id";
 
 pub trait StoreValue:
     Automergeable + 'static + TryFrom<Vec<u8>> + Into<Vec<u8>> + Send + Sync + Debug + Clone
@@ -49,17 +49,17 @@ where
         if let Some(ValueRef::Map(m)) = value {
             if m.is_empty() {
                 values.push((path.clone(), Value::Map(HashMap::new())));
-                values.push((path.key(REVISIONS_KEY), Value::Map(HashMap::new())));
+                values.push((path.key(REVISIONS_KEY), Value::SortedMap(BTreeMap::new())));
             } else {
                 let revs = m.get(REVISIONS_KEY);
-                if let Some(ValueRef::Map(_)) = revs {
+                if let Some(ValueRef::SortedMap(_)) = revs {
                 } else {
-                    values.push((path.key(REVISIONS_KEY), Value::Map(HashMap::new())));
+                    values.push((path.key(REVISIONS_KEY), Value::SortedMap(BTreeMap::new())));
                 }
             }
         } else {
             values.push((path.clone(), Value::Map(HashMap::new())));
-            values.push((path.key(REVISIONS_KEY), Value::Map(HashMap::new())));
+            values.push((path.key(REVISIONS_KEY), Value::SortedMap(BTreeMap::new())));
         }
         values
     }
