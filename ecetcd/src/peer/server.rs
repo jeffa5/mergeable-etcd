@@ -5,11 +5,11 @@ use std::{
 
 use tokio::sync::{mpsc, Notify};
 
-use crate::store::FrontendHandle;
+use crate::store::DocumentHandle;
 
 pub struct Server {
     inner: Arc<Mutex<Inner>>,
-    backend: FrontendHandle,
+    backend: DocumentHandle,
 }
 
 impl Clone for Server {
@@ -26,7 +26,7 @@ pub struct Inner {
 }
 
 impl Server {
-    pub fn new(backend: FrontendHandle) -> Self {
+    pub fn new(backend: DocumentHandle) -> Self {
         Self {
             inner: Arc::new(Mutex::new(Inner {
                 sync_connections: HashMap::new(),

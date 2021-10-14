@@ -10,7 +10,7 @@ use prometheus::{register_int_gauge, IntGauge};
 use tokio::sync::oneshot;
 use tonic::Status;
 
-use crate::store::{FrontendError, FrontendHandle, Key, Revision, SnapshotValue, Ttl};
+use crate::store::{DocumentError, DocumentHandle, Key, Revision, SnapshotValue, Ttl};
 
 mod lease;
 mod watcher;
@@ -27,16 +27,16 @@ pub struct Server {
 
 #[derive(Debug)]
 struct Inner {
-    frontend: FrontendHandle,
+    document: DocumentHandle,
     max_watcher_id: i64,
-    watchers: HashMap<i64, (FrontendHandle, watcher::Watcher)>,
+    watchers: HashMap<i64, (DocumentHandle, watcher::Watcher)>,
     leases: HashMap<i64, lease::Lease>,
 }
 
 impl Server {
-    pub fn new(frontend: FrontendHandle) -> Self {
+    pub fn new(document: DocumentHandle) -> Self {
         let inner = Inner {
-            frontend,
+            document,
             max_watcher_id: 1,
             watchers: HashMap::new(),
             leases: HashMap::new(),
@@ -47,15 +47,13 @@ impl Server {
     }
 
     pub async fn db_size(&self) -> u64 {
-        self.select_frontend().db_size().await
+        self.select_document().db_size().await
     }
 
-    /// Select a frontend based on the source address.
-    ///
-    /// This aims to have requests from the same host repeatedly hit the same frontend
+    /// Select a document based on the source address.
     #[tracing::instrument(level = "debug", skip(self))]
-    fn select_frontend(&self) -> FrontendHandle {
-        self.inner.lock().unwrap().frontend.clone()
+    fn select_document(&self) -> DocumentHandle {
+        self.inner.lock().unwrap().document.clone()
     }
 
     #[tracing::instrument(level = "debug", skip(self, key, range_end, tx_results))]
@@ -84,7 +82,7 @@ impl Server {
         let (send_watch_created, recv_watch_created) = oneshot::channel();
         tokio::spawn(async move {
             self_clone
-                .select_frontend()
+                .select_document()
                 .watch_range(id, key.into(), range_end, tx_events, send_watch_created)
                 .await
         });
@@ -116,13 +114,13 @@ impl Server {
 
         let watcher = watcher::Watcher::new(id, prev_kv, rx_events, tx_results);
 
-        let frontend = self.select_frontend();
+        let document = self.select_document();
 
         self.inner
             .lock()
             .unwrap()
             .watchers
-            .insert(id, (frontend, watcher));
+            .insert(id, (document, watcher));
 
         WATCHERS_GAUGE.inc();
 
@@ -134,10 +132,10 @@ impl Server {
 
         let removed = self.inner.lock().unwrap().watchers.remove(&id);
 
-        if let Some((frontend, watcher)) = removed {
+        if let Some((document, watcher)) = removed {
             watcher.cancel();
 
-            frontend.remove_watch_range(id).await;
+            document.remove_watch_range(id).await;
 
             WATCHERS_GAUGE.dec();
         }
@@ -147,9 +145,9 @@ impl Server {
         &self,
         id: Option<i64>,
         ttl: i64,
-    ) -> Result<(crate::store::Server, i64, i64), FrontendError> {
+    ) -> Result<(crate::store::Server, i64, i64), DocumentError> {
         let (server, id, ttl) = self
-            .select_frontend()
+            .select_document()
             .create_lease(id, Ttl::new(ttl))
             .await?;
         // spawn task to handle timeouts stuff
@@ -170,23 +168,23 @@ impl Server {
     pub async fn refresh_lease(
         &self,
         id: i64,
-    ) -> Result<(crate::store::Server, Ttl), FrontendError> {
-        let (store, ttl) = self.select_frontend().refresh_lease(id).await.unwrap();
+    ) -> Result<(crate::store::Server, Ttl), DocumentError> {
+        let (store, ttl) = self.select_document().refresh_lease(id).await.unwrap();
         if let Some(lease) = self.inner.lock().unwrap().leases.get(&id) {
             lease.refresh(*ttl)
         }
         Ok((store, ttl))
     }
 
-    pub async fn revoke_lease(&self, id: i64) -> Result<crate::store::Server, FrontendError> {
+    pub async fn revoke_lease(&self, id: i64) -> Result<crate::store::Server, DocumentError> {
         if let Some(lease) = self.inner.lock().unwrap().leases.remove(&id) {
             lease.revoke()
         }
-        self.select_frontend().revoke_lease(id).await
+        self.select_document().revoke_lease(id).await
     }
 
     pub async fn current_server(&self) -> crate::store::Server {
-        self.select_frontend().current_server().await
+        self.select_document().current_server().await
     }
 
     pub async fn get(
@@ -194,8 +192,8 @@ impl Server {
         key: Key,
         range_end: Option<Key>,
         revision: Option<Revision>,
-    ) -> Result<(crate::store::Server, Vec<SnapshotValue>), FrontendError> {
-        self.select_frontend().get(key, range_end, revision).await
+    ) -> Result<(crate::store::Server, Vec<SnapshotValue>), DocumentError> {
+        self.select_document().get(key, range_end, revision).await
     }
 
     /// value is an option for the ignore_value put request field
@@ -209,8 +207,8 @@ impl Server {
         value: Option<Vec<u8>>,
         prev_kv: bool,
         lease: Option<i64>,
-    ) -> Result<(crate::store::Server, Option<SnapshotValue>), FrontendError> {
-        self.select_frontend()
+    ) -> Result<(crate::store::Server, Option<SnapshotValue>), DocumentError> {
+        self.select_document()
             .insert(key, value, prev_kv, lease)
             .await
     }
@@ -219,14 +217,14 @@ impl Server {
         &self,
         key: Key,
         range_end: Option<Key>,
-    ) -> Result<(crate::store::Server, Vec<SnapshotValue>), FrontendError> {
-        self.select_frontend().remove(key, range_end).await
+    ) -> Result<(crate::store::Server, Vec<SnapshotValue>), DocumentError> {
+        self.select_document().remove(key, range_end).await
     }
 
     pub async fn txn(
         &self,
         request: TxnRequest,
-    ) -> Result<(crate::store::Server, bool, Vec<ResponseOp>), FrontendError> {
-        self.select_frontend().txn(request).await
+    ) -> Result<(crate::store::Server, bool, Vec<ResponseOp>), DocumentError> {
+        self.select_document().txn(request).await
     }
 }

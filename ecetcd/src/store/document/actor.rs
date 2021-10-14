@@ -13,12 +13,12 @@ use rand::random;
 use tokio::sync::{mpsc, oneshot, watch, Notify};
 use tracing::{error, info, warn, Instrument, Span};
 
-use super::FrontendMessage;
+use super::DocumentMessage;
 use crate::{
     key_range::SingleKeyOrRange,
     store::{
         content::{LEASES_KEY, SERVER_KEY, VALUES_KEY},
-        frontend::document::Document,
+        document::inner::DocumentInner,
         value::{LEASE_ID_KEY, REVISIONS_KEY},
         Key, Revision, Server, SnapshotValue, StoreContents, Ttl,
     },
@@ -58,11 +58,11 @@ lazy_static! {
 }
 
 #[derive(Debug)]
-pub struct FrontendActor<T, P>
+pub struct DocumentActor<T, P>
 where
     T: StoreValue,
 {
-    document: Document<T, P>,
+    document: DocumentInner<T, P>,
     actor_id: uuid::Uuid,
     watchers: HashMap<
         i64,
@@ -72,7 +72,7 @@ where
         ),
     >,
     // receiver for requests from clients
-    client_receiver: mpsc::Receiver<(FrontendMessage, Span)>,
+    client_receiver: mpsc::Receiver<(DocumentMessage, Span)>,
     health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
     shutdown: watch::Receiver<()>,
     // notified when a new change has been made to the document so that the syncing thread can wake
@@ -80,7 +80,7 @@ where
     changed_notify: Arc<Notify>,
 }
 
-impl<T, P> FrontendActor<T, P>
+impl<T, P> DocumentActor<T, P>
 where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
@@ -88,12 +88,12 @@ where
 {
     pub async fn new(
         persister: P,
-        client_receiver: mpsc::Receiver<(FrontendMessage, Span)>,
+        client_receiver: mpsc::Receiver<(DocumentMessage, Span)>,
         health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
         actor_id: uuid::Uuid,
         changed_notify: Arc<Notify>,
-    ) -> Result<Self, FrontendError> {
+    ) -> Result<Self, DocumentError> {
         let schema = MapSchema::default()
             .with_kv(
                 VALUES_KEY,
@@ -140,7 +140,7 @@ where
         );
         let automerge = PersistentAutomerge::load_with_frontend(persister, f).unwrap();
 
-        let document = Document::new(automerge);
+        let document = DocumentInner::new(automerge);
 
         let watchers = HashMap::new();
         tracing::info!(
@@ -164,7 +164,7 @@ where
         ActorId::from(self.actor_id)
     }
 
-    pub async fn run(&mut self) -> Result<(), FrontendError> {
+    pub async fn run(&mut self) -> Result<(), DocumentError> {
         loop {
             tokio::select! {
                 _ = self.shutdown.changed() => {
@@ -183,13 +183,13 @@ where
     }
 
     #[tracing::instrument(level="debug",skip(self, msg), fields(%msg))]
-    async fn handle_frontend_message(&mut self, msg: FrontendMessage) {
+    async fn handle_frontend_message(&mut self, msg: DocumentMessage) {
         match msg {
-            FrontendMessage::CurrentServer { ret } => {
+            DocumentMessage::CurrentServer { ret } => {
                 let server = self.current_server();
                 let _ = ret.send(server);
             }
-            FrontendMessage::Get {
+            DocumentMessage::Get {
                 ret,
                 key,
                 range_end,
@@ -201,7 +201,7 @@ where
 
                 let _ = ret.send(result);
             }
-            FrontendMessage::Insert {
+            DocumentMessage::Insert {
                 key,
                 value,
                 prev_kv,
@@ -212,7 +212,7 @@ where
 
                 PUT_REQUEST_COUNTER.inc();
             }
-            FrontendMessage::Remove {
+            DocumentMessage::Remove {
                 key,
                 range_end,
                 ret,
@@ -223,14 +223,14 @@ where
 
                 let _ = ret.send(result);
             }
-            FrontendMessage::Txn { request, ret } => {
+            DocumentMessage::Txn { request, ret } => {
                 let result = self.txn(request).await;
 
                 TXN_REQUEST_COUNTER.inc();
 
                 let _ = ret.send(result);
             }
-            FrontendMessage::WatchRange {
+            DocumentMessage::WatchRange {
                 id,
                 key,
                 range_end,
@@ -259,36 +259,36 @@ where
 
                 send_watch_created.send(()).unwrap();
             }
-            FrontendMessage::RemoveWatchRange { id } => {
+            DocumentMessage::RemoveWatchRange { id } => {
                 self.watchers.remove(&id);
             }
-            FrontendMessage::CreateLease { id, ttl, ret } => {
+            DocumentMessage::CreateLease { id, ttl, ret } => {
                 let result = self.create_lease(id, ttl).await;
                 let _ = ret.send(result);
             }
-            FrontendMessage::RefreshLease { id, ret } => {
+            DocumentMessage::RefreshLease { id, ret } => {
                 let result = self.refresh_lease(id).await;
                 let _ = ret.send(result);
             }
-            FrontendMessage::RevokeLease { id, ret } => {
+            DocumentMessage::RevokeLease { id, ret } => {
                 let result = self.revoke_lease(id).await;
                 let _ = ret.send(result);
             }
-            FrontendMessage::DbSize { ret } => {
+            DocumentMessage::DbSize { ret } => {
                 // TODO: actually calculate it and return the space amplification version for logical space too
                 let result = self.document.db_size();
                 let _ = ret.send(result);
             }
-            FrontendMessage::GenerateSyncMessage { peer_id, ret } => {
+            DocumentMessage::GenerateSyncMessage { peer_id, ret } => {
                 let result = self.generate_sync_message(peer_id).unwrap();
                 let _ = ret.send(result);
             }
-            FrontendMessage::ReceiveSyncMessage { peer_id, message } => {
+            DocumentMessage::ReceiveSyncMessage { peer_id, message } => {
                 self.receive_sync_message(peer_id, message).unwrap();
 
                 let _ = self.changed_notify.notify_one();
             }
-            FrontendMessage::NewSyncPeer {} => {
+            DocumentMessage::NewSyncPeer {} => {
                 // trigger sync clients to try for new messages
                 let _ = self.changed_notify.notify_one();
             }
@@ -318,7 +318,7 @@ where
         key: Key,
         range_end: Option<Key>,
         revision: Option<Revision>,
-    ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
+    ) -> Result<(Server, Vec<SnapshotValue>), DocumentError> {
         let server = self.current_server();
         let revision = revision.unwrap_or(server.revision);
         let values = self.document.get().get_inner(key, range_end, revision);
@@ -332,11 +332,11 @@ where
         value: Option<Vec<u8>>,
         prev_kv: bool,
         lease: Option<i64>,
-        ret: oneshot::Sender<Result<(Server, Option<SnapshotValue>), FrontendError>>,
+        ret: oneshot::Sender<Result<(Server, Option<SnapshotValue>), DocumentError>>,
     ) {
         let change_result = self
             .document
-            .change::<_, _, FrontendError>(|store_contents| {
+            .change::<_, _, DocumentError>(|store_contents| {
                 let server = store_contents.server_mut().expect("Failed to get server");
                 server.increment_revision();
                 let server = server.clone();
@@ -379,7 +379,7 @@ where
         &mut self,
         key: Key,
         range_end: Option<Key>,
-    ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
+    ) -> Result<(Server, Vec<SnapshotValue>), DocumentError> {
         let (server, prev) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
@@ -424,11 +424,11 @@ where
     async fn txn(
         &mut self,
         request: TxnRequest,
-    ) -> Result<(Server, bool, Vec<ResponseOp>), FrontendError> {
+    ) -> Result<(Server, bool, Vec<ResponseOp>), DocumentError> {
         let dup_request = request.clone();
         let (server, success, results) =
             self.document
-                .change::<_, _, FrontendError>(|store_contents| {
+                .change::<_, _, DocumentError>(|store_contents| {
                     let (success, results) = store_contents.transaction_inner(request)?;
                     let server = store_contents
                         .server()
@@ -464,7 +464,7 @@ where
                         }
                     } else {
                         warn!(%key, "Missing value");
-                        return Err(FrontendError::MissingValue { key });
+                        return Err(DocumentError::MissingValue { key });
                     }
                 }
                 Request::RequestDeleteRange(del) => {
@@ -515,10 +515,10 @@ where
         &mut self,
         id: Option<i64>,
         ttl: Ttl,
-    ) -> Result<(Server, i64, Ttl), FrontendError> {
+    ) -> Result<(Server, i64, Ttl), DocumentError> {
         let result = self
             .document
-            .change::<_, _, FrontendError>(|store_contents| {
+            .change::<_, _, DocumentError>(|store_contents| {
                 let server = store_contents
                     .server_mut()
                     .expect("Failed to get server")
@@ -528,7 +528,7 @@ where
                 let id = id.unwrap_or_else(|| random::<i64>().abs());
 
                 if store_contents.contains_lease(id) {
-                    return Err(FrontendError::LeaseAlreadyExists);
+                    return Err(DocumentError::LeaseAlreadyExists);
                 } else {
                     store_contents.insert_lease(id, ttl);
                 }
@@ -539,7 +539,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn refresh_lease(&mut self, id: i64) -> Result<(Server, Ttl), FrontendError> {
+    async fn refresh_lease(&mut self, id: i64) -> Result<(Server, Ttl), DocumentError> {
         let (server, ttl) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
@@ -556,7 +556,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn revoke_lease(&mut self, id: i64) -> Result<Server, FrontendError> {
+    async fn revoke_lease(&mut self, id: i64) -> Result<Server, DocumentError> {
         let (server, prevs) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
@@ -607,7 +607,7 @@ where
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum FrontendError {
+pub enum DocumentError {
     #[error(transparent)]
     SledError(#[from] sled::Error),
     #[error(transparent)]

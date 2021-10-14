@@ -20,18 +20,18 @@ use tonic::{
 use tower::Service;
 use tracing::{info, warn};
 
-use crate::store::FrontendHandle;
+use crate::store::DocumentHandle;
 
 pub async fn serve(
     address: SocketAddr,
     identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
     sender: mpsc::Sender<(u64, Option<automerge_backend::SyncMessage>)>,
-    frontend: FrontendHandle,
+    document: DocumentHandle,
 ) -> Result<(), tonic::transport::Error> {
     let peer_service = PeerServer::new(Peer {
         sender,
-        frontend,
+        document,
         shutdown: shutdown.clone(),
     });
     let mut server = tonic::transport::Server::builder();

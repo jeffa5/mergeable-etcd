@@ -133,7 +133,7 @@ impl Kv for KV {
             )
             .await;
         match insert_response {
-            Err(crate::store::FrontendError::MissingLease) => {
+            Err(crate::store::DocumentError::MissingLease) => {
                 return Err(Status::not_found("etcdserver: requested lease not found"));
             }
             Err(e) => {
@@ -202,7 +202,7 @@ impl Kv for KV {
         debug!("txn: {:?}", request);
         let txn_result = self.server.txn(request).await;
         match txn_result {
-            Err(crate::store::FrontendError::MissingLease) => {
+            Err(crate::store::DocumentError::MissingLease) => {
                 return Err(Status::not_found("etcdserver: requested lease not found"));
             }
             Err(e) => Err(Status::internal(e.to_string())),

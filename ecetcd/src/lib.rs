@@ -19,7 +19,7 @@ use std::{
 pub use address::Address;
 use automerge_persistent::Persister;
 use automerge_persistent_sled::SledPersister;
-use store::FrontendHandle;
+use store::DocumentHandle;
 pub use store::StoreValue;
 use tokio::{
     runtime::Builder,
@@ -33,10 +33,10 @@ use tracing::info;
 use crate::{
     address::{NamedAddress, Scheme},
     health::HealthServer,
-    store::FrontendActor,
+    store::DocumentActor,
 };
 
-const WAITING_CLIENTS_PER_FRONTEND: usize = 32;
+const WAITING_CLIENTS_PER_DOCUMENT: usize = 32;
 
 #[derive(Debug)]
 pub struct Ecetcd<T> {
@@ -87,25 +87,25 @@ where
         let change_notify = Arc::new(Notify::new());
         let change_notify2 = change_notify.clone();
 
-        // channel for client requests to reach a frontend
-        let (fc_sender, fc_receiver) = tokio::sync::mpsc::channel(WAITING_CLIENTS_PER_FRONTEND);
+        // channel for client requests to reach a document
+        let (fc_sender, fc_receiver) = tokio::sync::mpsc::channel(WAITING_CLIENTS_PER_DOCUMENT);
         let shutdown_clone = shutdown.clone();
 
-        // oneshot for waiting for the frontend to stop before closing the server
+        // oneshot for waiting for the document to stop before closing the server
         let (localset_finished_send, localset_finished_recv) = tokio::sync::oneshot::channel();
 
         let local_runtime = Builder::new_current_thread().enable_all().build().unwrap();
 
-        let (frontend_health_sender, frontend_health_receiver) = mpsc::channel(1);
+        let (document_health_sender, document_health_receiver) = mpsc::channel(1);
 
         std::thread::spawn(move || {
             let local = LocalSet::new();
 
             local.block_on(&local_runtime, async move {
-                let mut actor = FrontendActor::<T, P>::new(
+                let mut actor = DocumentActor::<T, P>::new(
                     persister,
                     fc_receiver,
-                    frontend_health_receiver,
+                    document_health_receiver,
                     shutdown_clone,
                     uuid::Uuid::new_v4(),
                     change_notify,
@@ -118,9 +118,9 @@ where
             localset_finished_send.send(())
         });
 
-        let frontend = FrontendHandle::new(fc_sender);
+        let document = DocumentHandle::new(fc_sender);
 
-        let server = crate::server::Server::new(frontend.clone());
+        let server = crate::server::Server::new(document.clone());
 
         let client_urls = match (
             &self.listen_client_urls[..],
@@ -179,7 +179,7 @@ where
 
         let (peer_send, peer_receive) = mpsc::channel(1);
 
-        let peer_server = crate::peer::Server::new(frontend.clone());
+        let peer_server = crate::peer::Server::new(document.clone());
         let peer_server_clone = peer_server.clone();
         let peer_server_task =
             tokio::spawn(async move { peer_server_clone.sync(change_notify2, peer_receive).await });
@@ -192,12 +192,12 @@ where
             }
             let address = address.address.to_string();
             let peer_server = peer_server.clone();
-            let frontend = frontend.clone();
+            let document = document.clone();
             let mut shutdown = shutdown.clone();
             let c = tokio::spawn(async move {
                 // connect to the peer and keep trying if goes offline
 
-                let server = frontend.current_server().await;
+                let server = document.current_server().await;
                 let member_id = server.member_id();
 
                 let address_clone = address.clone();
@@ -255,14 +255,14 @@ where
                     identity,
                     shutdown.clone(),
                     peer_send.clone(),
-                    frontend.clone(),
+                    document.clone(),
                 );
                 info!("Listening to peers on {}", peer_url);
                 serving
             })
             .collect::<Vec<_>>();
 
-        let health = HealthServer::new(frontend_health_sender);
+        let health = HealthServer::new(document_health_sender);
         let metrics_servers = self.listen_metrics_urls.iter().map(|metrics_url| {
                 // TODO: handle identity on metrics urls
                 let _identity = if let Scheme::Https = metrics_url.scheme {

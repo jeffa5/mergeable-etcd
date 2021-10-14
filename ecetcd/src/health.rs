@@ -13,7 +13,7 @@ use crate::address::Address;
 
 #[derive(Debug, Clone)]
 pub struct HealthServer {
-    frontend: mpsc::Sender<oneshot::Sender<()>>,
+    document: mpsc::Sender<oneshot::Sender<()>>,
 }
 
 fn with_health_server(
@@ -51,8 +51,8 @@ pub async fn do_gather_metrics() -> Result<impl warp::Reply, warp::Rejection> {
 }
 
 impl HealthServer {
-    pub fn new(frontend: mpsc::Sender<oneshot::Sender<()>>) -> Self {
-        Self { frontend }
+    pub fn new(document: mpsc::Sender<oneshot::Sender<()>>) -> Self {
+        Self { document }
     }
 
     pub async fn is_healthy(&self) -> bool {
@@ -63,7 +63,7 @@ impl HealthServer {
 
     async fn do_checks(&self) {
         let (s, r) = oneshot::channel();
-        let _ = self.frontend.send(s).await;
+        let _ = self.document.send(s).await;
         r.await.unwrap()
     }
 

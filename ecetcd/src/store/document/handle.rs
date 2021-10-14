@@ -3,23 +3,23 @@ use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, oneshot};
 use tracing::Span;
 
-use super::{actor::FrontendError, FrontendMessage};
+use super::{actor::DocumentError, DocumentMessage};
 use crate::store::{Key, Revision, Server, SnapshotValue, Ttl};
 
 #[derive(Clone, Debug)]
 enum Sender {
-    Bounded(mpsc::Sender<(FrontendMessage, Span)>),
-    Unbounded(mpsc::UnboundedSender<(FrontendMessage, Span)>),
+    Bounded(mpsc::Sender<(DocumentMessage, Span)>),
+    Unbounded(mpsc::UnboundedSender<(DocumentMessage, Span)>),
 }
 
 impl Sender {
     // call send on the underlying sender
     #[tracing::instrument(level = "debug", skip(self, value))]
     #[inline]
-    async fn send_to_frontend(
+    async fn send_to_document(
         &self,
-        value: FrontendMessage,
-    ) -> Result<(), tokio::sync::mpsc::error::SendError<(FrontendMessage, Span)>> {
+        value: DocumentMessage,
+    ) -> Result<(), tokio::sync::mpsc::error::SendError<(DocumentMessage, Span)>> {
         let span = tracing::Span::current();
         match self {
             Self::Bounded(b) => b.send((value, span)).await,
@@ -29,18 +29,18 @@ impl Sender {
 }
 
 #[derive(Clone, Debug)]
-pub struct FrontendHandle {
+pub struct DocumentHandle {
     sender: Sender,
 }
 
-impl FrontendHandle {
-    pub fn new(sender: mpsc::Sender<(FrontendMessage, Span)>) -> Self {
+impl DocumentHandle {
+    pub fn new(sender: mpsc::Sender<(DocumentMessage, Span)>) -> Self {
         Self {
             sender: Sender::Bounded(sender),
         }
     }
 
-    pub fn new_unbounded(sender: mpsc::UnboundedSender<(FrontendMessage, Span)>) -> Self {
+    pub fn new_unbounded(sender: mpsc::UnboundedSender<(DocumentMessage, Span)>) -> Self {
         Self {
             sender: Sender::Unbounded(sender),
         }
@@ -48,9 +48,9 @@ impl FrontendHandle {
 
     pub async fn current_server(&self) -> Server {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::CurrentServer { ret: send };
+        let msg = DocumentMessage::CurrentServer { ret: send };
 
-        let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        let _ = self.sender.send_to_document(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -60,16 +60,16 @@ impl FrontendHandle {
         key: Key,
         range_end: Option<Key>,
         revision: Option<Revision>,
-    ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
+    ) -> Result<(Server, Vec<SnapshotValue>), DocumentError> {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::Get {
+        let msg = DocumentMessage::Get {
             key,
             range_end,
             revision,
             ret: send,
         };
 
-        let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        let _ = self.sender.send_to_document(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -80,9 +80,9 @@ impl FrontendHandle {
         value: Option<Vec<u8>>,
         prev_kv: bool,
         lease: Option<i64>,
-    ) -> Result<(Server, Option<SnapshotValue>), FrontendError> {
+    ) -> Result<(Server, Option<SnapshotValue>), DocumentError> {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::Insert {
+        let msg = DocumentMessage::Insert {
             key,
             value,
             prev_kv,
@@ -90,7 +90,7 @@ impl FrontendHandle {
             ret: send,
         };
 
-        let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        let _ = self.sender.send_to_document(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -99,26 +99,26 @@ impl FrontendHandle {
         &self,
         key: Key,
         range_end: Option<Key>,
-    ) -> Result<(Server, Vec<SnapshotValue>), FrontendError> {
+    ) -> Result<(Server, Vec<SnapshotValue>), DocumentError> {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::Remove {
+        let msg = DocumentMessage::Remove {
             key,
             range_end,
             ret: send,
         };
 
-        let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        let _ = self.sender.send_to_document(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
     pub async fn txn(
         &self,
         request: TxnRequest,
-    ) -> Result<(Server, bool, Vec<ResponseOp>), FrontendError> {
+    ) -> Result<(Server, bool, Vec<ResponseOp>), DocumentError> {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::Txn { request, ret: send };
+        let msg = DocumentMessage::Txn { request, ret: send };
 
-        let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        let _ = self.sender.send_to_document(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
@@ -130,7 +130,7 @@ impl FrontendHandle {
         tx_events: mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
         send_watch_created: oneshot::Sender<()>,
     ) {
-        let msg = FrontendMessage::WatchRange {
+        let msg = DocumentMessage::WatchRange {
             id,
             key,
             range_end,
@@ -138,67 +138,67 @@ impl FrontendHandle {
             send_watch_created,
         };
 
-        let _ = self.sender.send_to_frontend(msg).await;
+        let _ = self.sender.send_to_document(msg).await;
     }
 
     pub async fn remove_watch_range(&self, id: i64) {
-        let msg = FrontendMessage::RemoveWatchRange { id };
+        let msg = DocumentMessage::RemoveWatchRange { id };
 
-        let _ = self.sender.send_to_frontend(msg).await;
+        let _ = self.sender.send_to_document(msg).await;
     }
 
     pub async fn create_lease(
         &self,
         id: Option<i64>,
         ttl: Ttl,
-    ) -> Result<(Server, i64, Ttl), FrontendError> {
+    ) -> Result<(Server, i64, Ttl), DocumentError> {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::CreateLease { id, ttl, ret: send };
+        let msg = DocumentMessage::CreateLease { id, ttl, ret: send };
 
-        let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        let _ = self.sender.send_to_document(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
-    pub async fn refresh_lease(&self, id: i64) -> Result<(Server, Ttl), FrontendError> {
+    pub async fn refresh_lease(&self, id: i64) -> Result<(Server, Ttl), DocumentError> {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::RefreshLease { id, ret: send };
+        let msg = DocumentMessage::RefreshLease { id, ret: send };
 
-        let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        let _ = self.sender.send_to_document(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
-    pub async fn revoke_lease(&self, id: i64) -> Result<Server, FrontendError> {
+    pub async fn revoke_lease(&self, id: i64) -> Result<Server, DocumentError> {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::RevokeLease { id, ret: send };
+        let msg = DocumentMessage::RevokeLease { id, ret: send };
 
-        let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        let _ = self.sender.send_to_document(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
     pub async fn db_size(&self) -> u64 {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::DbSize { ret: send };
+        let msg = DocumentMessage::DbSize { ret: send };
 
-        let _ = self.sender.send_to_frontend(msg).await.unwrap();
+        let _ = self.sender.send_to_document(msg).await.unwrap();
         recv.await.expect("Actor task has been killed")
     }
 
     pub async fn generate_sync_message(&self, peer_id: Vec<u8>) -> Option<SyncMessage> {
         let (send, recv) = oneshot::channel();
-        let msg = FrontendMessage::GenerateSyncMessage { peer_id, ret: send };
+        let msg = DocumentMessage::GenerateSyncMessage { peer_id, ret: send };
 
-        let _ = self.sender.send_to_frontend(msg).await;
+        let _ = self.sender.send_to_document(msg).await;
         recv.await.expect("Backend actor task has been killed")
     }
 
     pub async fn receive_sync_message(&self, peer_id: Vec<u8>, message: SyncMessage) {
-        let msg = FrontendMessage::ReceiveSyncMessage { peer_id, message };
+        let msg = DocumentMessage::ReceiveSyncMessage { peer_id, message };
 
-        let _ = self.sender.send_to_frontend(msg).await;
+        let _ = self.sender.send_to_document(msg).await;
     }
 
     pub async fn new_sync_peer(&self) {
-        let msg = FrontendMessage::NewSyncPeer {};
-        let _ = self.sender.send_to_frontend(msg).await;
+        let msg = DocumentMessage::NewSyncPeer {};
+        let _ = self.sender.send_to_document(msg).await;
     }
 }
