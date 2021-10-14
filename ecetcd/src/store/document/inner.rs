@@ -10,12 +10,12 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub(super) struct Document<T, P> {
+pub(super) struct DocumentInner<T, P> {
     pub automerge: PersistentAutomerge<P>,
     _type: PhantomData<T>,
 }
 
-impl<T, P> Document<T, P>
+impl<T, P> DocumentInner<T, P>
 where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: Debug,

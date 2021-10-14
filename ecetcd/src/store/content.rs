@@ -19,7 +19,7 @@ use etcd_proto::etcdserverpb::{
 use tracing::warn;
 
 use crate::{
-    store::{FrontendError, IValue, Key, Revision, Server, SnapshotValue, Ttl},
+    store::{DocumentError, IValue, Key, Revision, Server, SnapshotValue, Ttl},
     StoreValue,
 };
 
@@ -439,7 +439,7 @@ where
         value: Option<Vec<u8>>,
         revision: Revision,
         lease: Option<i64>,
-    ) -> Result<Option<SnapshotValue>, FrontendError> {
+    ) -> Result<Option<SnapshotValue>, DocumentError> {
         tracing::debug!("inserting");
 
         if let Some(lease_id) = lease {
@@ -448,7 +448,7 @@ where
                 lease.add_key(key.clone());
             } else {
                 warn!(lease_id, "No lease found during insert");
-                return Err(FrontendError::MissingLease);
+                return Err(DocumentError::MissingLease);
             }
         }
 
@@ -460,7 +460,7 @@ where
                 v.insert(revision, value, lease);
                 Ok(prev)
             }
-            Some(Err(e)) => Err(FrontendError::FromAutomergeError(e)),
+            Some(Err(e)) => Err(DocumentError::FromAutomergeError(e)),
             None => {
                 let mut v = IValue::new(
                     self.root_value_ref
@@ -510,7 +510,7 @@ where
     pub(crate) fn transaction_inner(
         &mut self,
         request: TxnRequest,
-    ) -> Result<(bool, Vec<ResponseOp>), FrontendError> {
+    ) -> Result<(bool, Vec<ResponseOp>), DocumentError> {
         tracing::debug!("transacting");
         let server = self.server().unwrap().clone();
         let success = request.compare.iter().all(|compare| {
@@ -549,7 +549,7 @@ where
         } else {
             request.failure.iter()
         };
-        let results: Result<Vec<_>, FrontendError> = ops
+        let results: Result<Vec<_>, DocumentError> = ops
             .map(|op| match &op.request {
                 Some(Request::RequestRange(request)) => {
                     let kv = self.get_inner(

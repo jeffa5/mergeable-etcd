@@ -1,6 +1,6 @@
 // mod backend;
 mod content;
-mod frontend;
+mod document;
 mod key;
 mod revision;
 mod server;
@@ -9,7 +9,7 @@ pub mod value;
 mod version;
 
 pub use content::StoreContents;
-pub use frontend::{FrontendActor, FrontendError, FrontendHandle};
+pub use document::{DocumentActor, DocumentError, DocumentHandle};
 pub use key::Key;
 pub use revision::Revision;
 pub use server::Server;

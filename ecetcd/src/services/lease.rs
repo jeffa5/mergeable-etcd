@@ -10,7 +10,7 @@ use tokio::sync::mpsc;
 use tonic::{Request, Response, Status, Streaming};
 use tracing::{debug, warn};
 
-use crate::{server::Server, store::FrontendError, TraceValue};
+use crate::{server::Server, store::DocumentError, TraceValue};
 
 /// at least 2 seconds
 const MINIMUM_LEASE_TTL: i64 = 2;
@@ -47,7 +47,7 @@ impl LeaseTrait for Lease {
 
         let (server, id, ttl) = match self.server.create_lease(id, ttl).await {
             Ok(res) => res,
-            Err(FrontendError::LeaseAlreadyExists) => {
+            Err(DocumentError::LeaseAlreadyExists) => {
                 return Err(Status::failed_precondition(
                     "etcdserver: lease already exists",
                 ));

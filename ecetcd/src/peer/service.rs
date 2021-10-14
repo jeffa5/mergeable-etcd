@@ -3,11 +3,11 @@ use peer_proto::peer_server::Peer as PeerTrait;
 use tokio::sync::{mpsc, watch};
 use tonic::Response;
 
-use crate::store::FrontendHandle;
+use crate::store::DocumentHandle;
 
 pub struct Peer {
     pub sender: mpsc::Sender<(u64, Option<automerge_backend::SyncMessage>)>,
-    pub frontend: FrontendHandle,
+    pub document: DocumentHandle,
     pub shutdown: watch::Receiver<()>,
 }
 
@@ -44,7 +44,7 @@ impl PeerTrait for Peer {
         &self,
         _empty: tonic::Request<peer_proto::Empty>,
     ) -> Result<tonic::Response<peer_proto::GetMemberIdResponse>, tonic::Status> {
-        let server = self.frontend.current_server().await;
+        let server = self.document.current_server().await;
         let id = server.member_id();
         Ok(tonic::Response::new(peer_proto::GetMemberIdResponse { id }))
     }
