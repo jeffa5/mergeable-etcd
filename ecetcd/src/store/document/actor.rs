@@ -168,14 +168,14 @@ where
         loop {
             tokio::select! {
                 _ = self.shutdown.changed() => {
-                    info!("frontend shutting down");
+                    info!("document shutting down");
                     break
                 }
                 Some(s) = self.health_receiver.recv() => {
                     let _ = s.send(());
                 }
                 Some((msg,span)) = self.client_receiver.recv() => {
-                    self.handle_frontend_message(msg).instrument(span).await;
+                    self.handle_document_message(msg).instrument(span).await;
                 }
             }
         }
@@ -183,7 +183,7 @@ where
     }
 
     #[tracing::instrument(level="debug",skip(self, msg), fields(%msg))]
-    async fn handle_frontend_message(&mut self, msg: DocumentMessage) {
+    async fn handle_document_message(&mut self, msg: DocumentMessage) {
         match msg {
             DocumentMessage::CurrentServer { ret } => {
                 let server = self.current_server();
