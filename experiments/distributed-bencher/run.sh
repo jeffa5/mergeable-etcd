@@ -56,8 +56,8 @@ for node_count in $(seq $min_node_count 2 $max_node_count); do
   else
     run "quay.io/coreos/etcd" "PutRange"
     run "jeffas/recetcd:latest" "PutRange"
-    run "quay.io/coreos/etcd" "PutSingle"
-    run "jeffas/recetcd:latest" "PutSingle"
+    # run "quay.io/coreos/etcd" "PutSingle"
+    # run "jeffas/recetcd:latest" "PutSingle"
     run "quay.io/coreos/etcd" "PutRandom"
     run "jeffas/recetcd:latest" "PutRandom"
   fi

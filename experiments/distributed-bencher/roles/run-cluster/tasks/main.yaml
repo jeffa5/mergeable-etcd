@@ -9,6 +9,8 @@
     image: "{{ node_image }}"
     detach: true
     network_mode: host
+    cpus: "{{ node_cpus }}"
+    memory: "{{ node_memory }}"
     entrypoint:
       - etcd
       - --name={{ node_name_prefix }}{{ item | int + 1 }}
