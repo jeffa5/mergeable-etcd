@@ -51,14 +51,14 @@ function run() {
 
 for node_count in $(seq $min_node_count 2 $max_node_count); do
   if [[ $bencher_subcommand != "" ]]; then
-    run "quay.io/coreos/etcd" $bencher_subcommand
+    run "quay.io/coreos/etcd:v3.4.13" $bencher_subcommand
     run "jeffas/recetcd:latest" $bencher_subcommand
   else
-    run "quay.io/coreos/etcd" "PutRange"
+    run "quay.io/coreos/etcd:v3.4.13" "PutRange"
     run "jeffas/recetcd:latest" "PutRange"
-    # run "quay.io/coreos/etcd" "PutSingle"
+    # run "quay.io/coreos/etcd:v3.4.13" "PutSingle"
     # run "jeffas/recetcd:latest" "PutSingle"
-    run "quay.io/coreos/etcd" "PutRandom"
+    run "quay.io/coreos/etcd:v3.4.13" "PutRandom"
     run "jeffas/recetcd:latest" "PutRandom"
   fi
 done
