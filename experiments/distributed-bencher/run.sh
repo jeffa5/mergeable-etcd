@@ -40,6 +40,7 @@ done
 function run() {
   node_image=$1
   subcommand=$2
+  interval=$3
 
   binary_name="$(echo $node_image | rev | cut -d '/' -f 1 | rev | cut -d ':' -f 1)"
 
@@ -50,15 +51,17 @@ function run() {
 }
 
 for node_count in $(seq $min_node_count 2 $max_node_count); do
-  if [[ $bencher_subcommand != "" ]]; then
-    run "quay.io/coreos/etcd:v3.4.13" $bencher_subcommand
-    run "jeffas/recetcd:latest" $bencher_subcommand
-  else
-    run "quay.io/coreos/etcd:v3.4.13" "PutRange"
-    run "jeffas/recetcd:latest" "PutRange"
-    # run "quay.io/coreos/etcd:v3.4.13" "PutSingle"
-    # run "jeffas/recetcd:latest" "PutSingle"
-    run "quay.io/coreos/etcd:v3.4.13" "PutRandom"
-    run "jeffas/recetcd:latest" "PutRandom"
-  fi
+  for interval in "1 2 4 8"; do
+    if [[ $bencher_subcommand != "" ]]; then
+      run "quay.io/coreos/etcd:v3.4.13" $bencher_subcommand $interval
+      run "jeffas/recetcd:latest" $bencher_subcommand $interval
+    else
+      run "quay.io/coreos/etcd:v3.4.13" "PutRange" $interval
+      run "jeffas/recetcd:latest" "PutRange" $interval
+      # run "quay.io/coreos/etcd:v3.4.13" "PutSingle" $interval
+      # run "jeffas/recetcd:latest" "PutSingle" $interval
+      run "quay.io/coreos/etcd:v3.4.13" "PutRandom" $interval
+      run "jeffas/recetcd:latest" "PutRandom" $interval
+    fi
+  done
 done

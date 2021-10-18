@@ -4,6 +4,8 @@
   "bench_type": "{{ bench_type }}",
   "cluster_size": {{ node_count }},
   "bencher_count": {{ bencher_count }},
+  "bencher_clients": {{ bench_clients }},
+  "bencher_iterations": {{ bench_iterations }},
   "bencher_interval": {{ bencher_interval }},
   "tmpfs": {{ tmpfs | bool | to_json }}
 }
