@@ -24,3 +24,16 @@
   when:
     - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
     - logs is succeeded
+
+- name: Get dir size
+  shell: "du -sk /local/scratch/{{ node_name_prefix }}{{ item }} > /tmp/{{ node_name_prefix }}{{ item | int + 1 }}.dbsize"
+  with_sequence: start=0 count={{ node_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
+
+- name: Write db size out
+  fetch:
+    src: "/tmp/{{ node_name_prefix }}{{ item | int + 1 }}.dbsize"
+    dest: "{{ run_dir }}/dbsizes/{{ node_name_prefix }}{{ item | int + 1 }}"
+    flat: true
+  with_sequence: start=0 count={{ node_count }}
+  when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
