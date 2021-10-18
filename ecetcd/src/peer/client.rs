@@ -5,13 +5,14 @@ use tonic::{transport::Endpoint, Request};
 pub async fn connect_and_sync(address: String, server: super::server::Server, member_id: u64) {
     let peer_endpoint = Endpoint::from_shared(address.clone()).unwrap();
     // connect to a peer
-    let mut peer_client = match peer_proto::peer_client::PeerClient::connect(peer_endpoint).await {
-        Ok(c) => c,
-        Err(err) => {
-            tracing::warn!(?err, "Failed to connect to peer");
-            return;
-        }
-    };
+    let mut peer_client =
+        match peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone()).await {
+            Ok(c) => c,
+            Err(err) => {
+                tracing::warn!(?err, peer=?peer_endpoint, "Failed to connect to peer");
+                return;
+            }
+        };
 
     let their_member_id = match peer_client.get_member_id(peer_proto::Empty {}).await {
         Ok(id) => id.into_inner().id,
