@@ -19,5 +19,5 @@ bench_clients: 100
 bench_iterations: 1000
 
 results_dir: results
-run_dir: "{{ results_dir }}/{{ binary_name }}-{{ node_count }}nodes-{{ bencher_count }}benchers-{{ bench_type }}/repeat{{ repeat }}"
+run_dir: "{{ results_dir }}/{{ binary_name }}-{{ node_count }}nodes-{{ bencher_count }}benchers-{{ bench_type }}-{{ bencher_interval }}ms/repeat{{ repeat }}"
 logs_dir: "{{ run_dir }}/logs/"
