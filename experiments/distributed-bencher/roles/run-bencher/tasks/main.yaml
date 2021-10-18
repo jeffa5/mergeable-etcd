@@ -18,6 +18,7 @@
       - --metrics-endpoints={{ metrics_urls }}
       - --clients={{ bench_clients }}
       - --iterations={{ bench_iterations }}
+      - --interval={{ bencher_interval }}
       - bench
       - put-range
   with_sequence: start=0 count={{ bencher_count }}
