@@ -9,7 +9,7 @@ pub async fn connect_and_sync(address: String, server: super::server::Server, me
         match peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone()).await {
             Ok(c) => c,
             Err(err) => {
-                tracing::warn!(?err, peer=?peer_endpoint, "Failed to connect to peer");
+                tracing::warn!(?err, peer=?address, "Failed to connect to peer");
                 return;
             }
         };
