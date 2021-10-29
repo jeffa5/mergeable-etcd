@@ -6,7 +6,7 @@
   set_fact:
     metrics_urls: "http://{{ hostvars[groups['cluster'][0]]['ansible_default_ipv4']['address'] }}:2381{% for i in range(2, node_count | int + 1) %},http://{{ hostvars[groups['cluster'][(i - 1) % (groups['cluster'] | length)]]['ansible_default_ipv4']['address'] }}:{{ 2381 + ((i - 1) * 10) }}{% endfor %}"
 
-- name: Start the bencher cluster
+- name: Start the bencher cluster (PutRange)
   community.docker.docker_container:
     name: "{{ bencher_name_prefix }}{{ item | int + 1 }}"
     recreate: yes
@@ -26,7 +26,7 @@
     - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
     - bench_type == "PutRange"
 
-- name: Start the bencher cluster
+- name: Start the bencher cluster (PutSingle)
   community.docker.docker_container:
     name: "{{ bencher_name_prefix }}{{ item | int + 1 }}"
     recreate: yes
@@ -46,7 +46,7 @@
     - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
     - bench_type == "PutSingle"
 
-- name: Start the bencher cluster
+- name: Start the bencher cluster (PutRandom)
   community.docker.docker_container:
     name: "{{ bencher_name_prefix }}{{ item | int + 1 }}"
     recreate: yes
