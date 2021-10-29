@@ -172,6 +172,7 @@ where
                     break
                 }
                 Some(s) = self.health_receiver.recv() => {
+                    info!("Received sender from health server check");
                     let _ = s.send(());
                 }
                 Some((msg,span)) = self.client_receiver.recv() => {

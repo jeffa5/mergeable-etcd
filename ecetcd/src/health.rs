@@ -6,7 +6,7 @@ use tokio::{
     sync::{mpsc, oneshot},
     time::timeout,
 };
-use tracing::{debug, info, instrument};
+use tracing::{info, instrument, warn};
 use warp::Filter;
 
 use crate::address::Address;
@@ -32,7 +32,7 @@ pub async fn do_health_check(
         StatusCode::SERVICE_UNAVAILABLE
     };
 
-    debug!(%status);
+    info!(%status, "Got health request");
 
     Ok(status)
 }
@@ -56,9 +56,12 @@ impl HealthServer {
     }
 
     pub async fn is_healthy(&self) -> bool {
-        timeout(Duration::from_millis(5), self.do_checks())
-            .await
-            .is_ok()
+        if let Err(e) = timeout(Duration::from_millis(5), self.do_checks()).await {
+            warn!(error=%e, "Unhealthy");
+            false
+        }else {
+            true
+        }
     }
 
     async fn do_checks(&self) {
