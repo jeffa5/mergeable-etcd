@@ -29,11 +29,11 @@ run-etcd: $(SERVER_KEYS)
 
 .PHONY: bench
 bench: $(SERVER_KEYS)
-	nix run .\#etcd-benchmark -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem put key
+	time nix run .\#etcd-benchmark -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem --clients 100 put --total 100000
 
 .PHONY: bencher
 bencher: $(SERVER_KEYS)
-	nix run .\#bencher -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem bench put-range
+	time nix run .\#bencher -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem --clients 100 --iterations 1000 bench put-random 100
 
 .PHONY: run-trace
 run-trace: $(SERVER_KEYS)
