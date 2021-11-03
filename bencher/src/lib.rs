@@ -149,12 +149,11 @@ pub async fn put_random(
         ignore_lease: false,
     };
     let mut output = Output::start(client, iteration);
-    sleep(Duration::from_millis(10)).await;
-    // let response = kv_client.put(request).await?.into_inner();
-    // let header = response.header.unwrap();
-    // let member_id = header.member_id;
-    // let raft_term = header.raft_term;
-    output.stop(0, 0);
+    let response = kv_client.put(request).await?.into_inner();
+    let header = response.header.unwrap();
+    let member_id = header.member_id;
+    let raft_term = header.raft_term;
+    output.stop(member_id, raft_term);
     Ok(output)
 }
 
