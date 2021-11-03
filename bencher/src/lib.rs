@@ -60,22 +60,19 @@ pub enum Scenario {
 impl Scenario {
     pub async fn execute(
         &self,
-        channel: Channel,
+        clients: Vec<KvClient<Channel>>,
         options: &Options,
         out_writer: &Arc<Mutex<BufWriter<Box<dyn Write + Send>>>>,
     ) -> Vec<JoinHandle<Result<(), anyhow::Error>>> {
         let mut client_tasks = Vec::new();
-        for client in 0..options.clients {
-            let channel = channel.clone();
+        for (client, mut kv_client) in clients.into_iter().enumerate() {
             let options = options.clone();
             let out_writer = Arc::clone(out_writer);
             let self_clone = self.clone();
             let client_task = tokio::spawn(async move {
-                let mut kv_client = KvClient::new(channel);
-
                 for i in 0..options.iterations {
                     let output = self_clone
-                        .inner_execute(&mut kv_client, client, i, options.iterations)
+                        .inner_execute(&mut kv_client, client as u32, i, options.iterations)
                         .await
                         .with_context(|| {
                             format!("Failed doing request client {} iteration {}", client, i)
@@ -152,11 +149,12 @@ pub async fn put_random(
         ignore_lease: false,
     };
     let mut output = Output::start(client, iteration);
-    let response = kv_client.put(request).await?.into_inner();
-    let header = response.header.unwrap();
-    let member_id = header.member_id;
-    let raft_term = header.raft_term;
-    output.stop(member_id, raft_term);
+    sleep(Duration::from_millis(10)).await;
+    // let response = kv_client.put(request).await?.into_inner();
+    // let header = response.header.unwrap();
+    // let member_id = header.member_id;
+    // let raft_term = header.raft_term;
+    output.stop(0, 0);
     Ok(output)
 }
 

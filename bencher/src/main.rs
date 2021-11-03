@@ -8,6 +8,7 @@ use std::{
 use anyhow::{bail, Context};
 use bencher::{execute_trace, Options, Scheme, Type};
 use chrono::Utc;
+use etcd_proto::etcdserverpb::kv_client::KvClient;
 use hyper::StatusCode;
 use structopt::StructOpt;
 use tokio::time::sleep;
@@ -72,34 +73,6 @@ async fn main() -> anyhow::Result<()> {
         info!("Finished waiting for {} to be ready", endpoint);
     }
 
-    let mut endpoints = Vec::new();
-    for endpoint in &options.endpoints {
-        match endpoint.scheme {
-            Scheme::Http => endpoints.push(Channel::from_shared(endpoint.to_string())?),
-            Scheme::Https => {
-                if let Some(ref cacert) = options.cacert {
-                    let pem = tokio::fs::read(cacert)
-                        .await
-                        .context("Failed to read cacert")?;
-                    let ca = Certificate::from_pem(pem);
-
-                    let tls = ClientTlsConfig::new().ca_certificate(ca);
-
-                    endpoints
-                        .push(Channel::from_shared(endpoint.to_string())?.tls_config(tls.clone())?)
-                } else {
-                    bail!("https endpoint without a cacert!")
-                }
-            }
-        }
-    }
-
-    let endpoints = endpoints
-        .into_iter()
-        .map(|e| e.timeout(Duration::from_millis(options.timeout)));
-
-    let channel = Channel::balance_list(endpoints);
-
     let out_writer = Arc::new(Mutex::new(BufWriter::new(
         if let Some(ref out_file) = options.out_file {
             Box::new(File::create(out_file).context("Failed to create out file")?)
@@ -110,8 +83,75 @@ async fn main() -> anyhow::Result<()> {
     )));
 
     let client_tasks = match options.ty {
-        Type::Bench(ref scenario) => scenario.execute(channel, &options, &out_writer).await,
-        Type::Trace { in_file, out_file } => execute_trace(in_file, out_file, channel).await?,
+        Type::Bench(ref scenario) => {
+            let mut clients = Vec::new();
+            for _ in 0..options.clients {
+                let mut endpoints = Vec::new();
+                for endpoint in &options.endpoints {
+                    match endpoint.scheme {
+                        Scheme::Http => endpoints.push(Channel::from_shared(endpoint.to_string())?),
+                        Scheme::Https => {
+                            if let Some(ref cacert) = options.cacert {
+                                let pem = tokio::fs::read(cacert)
+                                    .await
+                                    .context("Failed to read cacert")?;
+                                let ca = Certificate::from_pem(pem);
+
+                                let tls = ClientTlsConfig::new().ca_certificate(ca);
+
+                                endpoints.push(
+                                    Channel::from_shared(endpoint.to_string())?
+                                        .tls_config(tls.clone())?,
+                                )
+                            } else {
+                                bail!("https endpoint without a cacert!")
+                            }
+                        }
+                    }
+                }
+                let endpoints = endpoints
+                    .into_iter()
+                    .map(|e| e.timeout(Duration::from_millis(options.timeout)));
+
+                let channel = Channel::balance_list(endpoints);
+                clients.push(KvClient::new(channel))
+            }
+
+            scenario.execute(clients, &options, &out_writer).await
+        }
+        Type::Trace { in_file, out_file } => {
+            let mut endpoints = Vec::new();
+            for endpoint in &options.endpoints {
+                match endpoint.scheme {
+                    Scheme::Http => endpoints.push(Channel::from_shared(endpoint.to_string())?),
+                    Scheme::Https => {
+                        if let Some(ref cacert) = options.cacert {
+                            let pem = tokio::fs::read(cacert)
+                                .await
+                                .context("Failed to read cacert")?;
+                            let ca = Certificate::from_pem(pem);
+
+                            let tls = ClientTlsConfig::new().ca_certificate(ca);
+
+                            endpoints.push(
+                                Channel::from_shared(endpoint.to_string())?
+                                    .tls_config(tls.clone())?,
+                            )
+                        } else {
+                            bail!("https endpoint without a cacert!")
+                        }
+                    }
+                }
+            }
+            let timeout = options.timeout;
+            let endpoints = endpoints
+                .into_iter()
+                .map(|e| e.timeout(Duration::from_millis(timeout)));
+
+            let channel = Channel::balance_list(endpoints);
+
+            execute_trace(in_file, out_file, channel).await?
+        }
     };
 
     futures::future::try_join_all(client_tasks)
