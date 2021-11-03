@@ -6,8 +6,7 @@ edition = "2018"
 
 [dependencies]
 etcd-proto = { path = "../etcd-proto" }
-kubernetes-proto = { path = "../kubernetes-proto" }
-tonic = { version = "0.4.0", features = ["transport", "tls"] }
+tonic = { version = "0.6.0", features = ["transport", "tls"] }
 tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread", "fs", "signal", "sync"] }
 hyper = "0.14.2"
 tower = "0.4.4"

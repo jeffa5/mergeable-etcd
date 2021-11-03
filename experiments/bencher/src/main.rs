@@ -1,7 +1,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use async_trait::async_trait;
-use clap::Clap;
+use clap::Parser;
 use exp::{
     docker_runner::{self, ContainerConfig, Runner},
     Environment, ExperimentConfiguration,
@@ -374,7 +374,7 @@ impl ExperimentConfiguration for Config {
     }
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct CliOptions {
     #[clap(long, default_value = "experiments/bencher/results")]
     results_dir: PathBuf,

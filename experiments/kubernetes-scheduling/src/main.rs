@@ -8,7 +8,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use clap::Clap;
+use clap::Parser;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Event;
 use kube::{
@@ -409,7 +409,7 @@ impl exp::ExperimentConfiguration for Config {
     }
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct CliOptions {
     /// Run all the experiments
     #[clap(long)]

@@ -7,7 +7,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use clap::Clap;
+use clap::Parser;
 use exp::{
     docker_runner::{ContainerConfig, Logs, Runner, Stats, Tops},
     Environment, ExperimentConfiguration,
@@ -467,7 +467,7 @@ impl ExperimentConfiguration for Config {
     }
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct CliOptions {
     /// Run all the experiments
     #[clap(long)]

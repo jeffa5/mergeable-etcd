@@ -26,9 +26,6 @@ pub struct Options {
     /// The number of clients to use
     #[structopt(long, default_value = "1")]
     pub clients: u32,
-    /// The file to write data to, stdout if not specified
-    #[structopt(short, long)]
-    pub out_file: Option<PathBuf>,
 
     /// The timeout to apply to requests, in milliseconds
     #[structopt(long, default_value = "60000")]

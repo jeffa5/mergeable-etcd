@@ -79,7 +79,9 @@ impl Service<HyperRequest<Body>> for CatchAllService {
     fn call(&mut self, req: HyperRequest<Body>) -> Self::Future {
         Box::pin(async move {
             warn!("Missed request: {:?} {:?}", req.method(), req.uri());
-            HyperResponse::builder().status(404).body(BoxBody::empty())
+            HyperResponse::builder()
+                .status(404)
+                .body(BoxBody::default())
         })
     }
 }
