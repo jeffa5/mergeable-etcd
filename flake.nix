@@ -13,13 +13,15 @@
         let
           pkgs = import nixpkgs
             {
-              overlays = [ rust-overlay.overlay ];
+              overlays = [ (import rust-overlay) ];
               system = system;
             };
           lib = pkgs.lib;
           rust = pkgs.rust-bin.nightly.latest.rust;
+          buildRustCrate = pkgs.buildRustCrate.override { rustc = rust; };
           makeCargoNix = release: import ./Cargo.nix {
             inherit pkgs release;
+            buildRustCrateForPkgs = pkg: buildRustCrate;
 
             defaultCrateOverrides = pkgs.defaultCrateOverrides // {
               etcd-proto = attrs: {
@@ -32,6 +34,9 @@
               };
               kubernetes-proto = attrs: {
                 buildInputs = [ pkgs.protobuf pkgs.rustfmt ];
+                PROTOC = "${pkgs.protobuf}/bin/protoc";
+              };
+              prost-build = attrs: {
                 PROTOC = "${pkgs.protobuf}/bin/protoc";
               };
               expat-sys = attrs: {
