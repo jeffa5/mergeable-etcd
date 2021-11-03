@@ -10,7 +10,6 @@ use std::{
 
 pub use address::{Address, Error, Scheme};
 use anyhow::Context;
-use arbitrary::{Arbitrary, Unstructured};
 use etcd_proto::etcdserverpb::{kv_client::KvClient, PutRequest};
 pub use options::{Options, Type};
 use rand::{distributions::Standard, thread_rng, Rng};
@@ -126,10 +125,7 @@ fn value() -> Vec<u8> {
         .sample_iter(&Standard)
         .take(100)
         .collect();
-    let mut unstructured = Unstructured::new(&raw);
-    let pod = kubernetes_proto::api::core::v1::Pod::arbitrary(&mut unstructured).unwrap();
-    // TODO: use protobuf encoding
-    serde_json::to_vec(&pod).unwrap()
+    raw
 }
 
 pub async fn put_random(
