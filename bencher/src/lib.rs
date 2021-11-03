@@ -2,11 +2,7 @@ mod address;
 mod options;
 mod trace;
 
-use std::{
-    io::{BufWriter, Write},
-    sync::{Arc, Mutex},
-    time::{Duration, SystemTime},
-};
+use std::time::{Duration, SystemTime};
 
 pub use address::{Address, Error, Scheme};
 use anyhow::Context;
@@ -61,14 +57,14 @@ impl Scenario {
         &self,
         clients: Vec<KvClient<Channel>>,
         options: &Options,
-        out_writer: &Arc<Mutex<BufWriter<Box<dyn Write + Send>>>>,
-    ) -> Vec<JoinHandle<Result<(), anyhow::Error>>> {
+    ) -> Vec<JoinHandle<Result<Vec<Output>, anyhow::Error>>> {
         let mut client_tasks = Vec::new();
         for (client, mut kv_client) in clients.into_iter().enumerate() {
             let options = options.clone();
-            let out_writer = Arc::clone(out_writer);
             let self_clone = self.clone();
             let client_task = tokio::spawn(async move {
+                let mut outputs = Vec::with_capacity(options.iterations as usize);
+
                 for i in 0..options.iterations {
                     let output = self_clone
                         .inner_execute(&mut kv_client, client as u32, i, options.iterations)
@@ -77,14 +73,11 @@ impl Scenario {
                             format!("Failed doing request client {} iteration {}", client, i)
                         })?;
 
-                    {
-                        let mut out = out_writer.lock().unwrap();
-                        writeln!(out, "{}", serde_json::to_string(&output).unwrap())?;
-                    }
+                    outputs.push(output);
 
                     sleep(Duration::from_millis(options.interval)).await;
                 }
-                let res: Result<(), anyhow::Error> = Ok(());
+                let res: Result<Vec<Output>, anyhow::Error> = Ok(outputs);
                 res
             });
             client_tasks.push(client_task);

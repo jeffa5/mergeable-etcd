@@ -1,9 +1,4 @@
-use std::{
-    fs::File,
-    io::{stdout, BufWriter, Write},
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::time::{Duration, Instant};
 
 use anyhow::{bail, Context};
 use bencher::{execute_trace, Options, Scheme, Type};
@@ -73,16 +68,8 @@ async fn main() -> anyhow::Result<()> {
         info!("Finished waiting for {} to be ready", endpoint);
     }
 
-    let out_writer = Arc::new(Mutex::new(BufWriter::new(
-        if let Some(ref out_file) = options.out_file {
-            Box::new(File::create(out_file).context("Failed to create out file")?)
-                as Box<dyn Write + Send>
-        } else {
-            Box::new(stdout())
-        },
-    )));
-
-    let client_tasks = match options.ty {
+    let start = Instant::now();
+    match options.ty {
         Type::Bench(ref scenario) => {
             let mut clients = Vec::new();
             for _ in 0..options.clients {
@@ -117,7 +104,27 @@ async fn main() -> anyhow::Result<()> {
                 clients.push(KvClient::new(channel))
             }
 
-            scenario.execute(clients, &options, &out_writer).await
+            let client_tasks = scenario.execute(clients, &options).await;
+            let outputs = futures::future::try_join_all(client_tasks)
+                .await?
+                .into_iter()
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let runtime = start.elapsed();
+
+            for outs in outputs {
+                for output in outs {
+                    println!("{}", serde_json::to_string(&output).unwrap());
+                }
+            }
+
+            println!();
+            println!("Total: {:?}", runtime);
+            println!(
+                "Throughput (r/s): {:?}",
+                ((options.clients * options.iterations) as f64 / runtime.as_millis() as f64)
+                    * 1000.
+            );
         }
         Type::Trace { in_file, out_file } => {
             let mut endpoints = Vec::new();
@@ -150,16 +157,14 @@ async fn main() -> anyhow::Result<()> {
 
             let channel = Channel::balance_list(endpoints);
 
-            execute_trace(in_file, out_file, channel).await?
+            let client_tasks = execute_trace(in_file, out_file, channel).await?;
+
+            futures::future::try_join_all(client_tasks)
+                .await?
+                .into_iter()
+                .collect::<Result<_, _>>()?;
         }
-    };
-
-    futures::future::try_join_all(client_tasks)
-        .await?
-        .into_iter()
-        .collect::<Result<_, _>>()?;
-
-    out_writer.lock().unwrap().flush()?;
+    }
 
     Ok(())
 }
