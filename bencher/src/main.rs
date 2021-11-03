@@ -12,7 +12,7 @@ use tracing::{info, subscriber::set_global_default, warn, Level};
 
 const MAX_HEALTH_RETRIES: u32 = 50;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
     set_global_default(
         tracing_subscriber::fmt()
