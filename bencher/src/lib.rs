@@ -65,17 +65,28 @@ impl Scenario {
             let client_task = tokio::spawn(async move {
                 let mut outputs = Vec::with_capacity(options.iterations as usize);
 
+                // try and offset when each client starts so that they don't all send at the same
+                // times.
+                let offset = rand::thread_rng().gen_range(0..options.interval);
+                sleep(Duration::from_millis(offset)).await;
+
                 for i in 0..options.iterations {
-                    let output = self_clone
-                        .inner_execute(&mut kv_client, client as u32, i, options.iterations)
-                        .await
-                        .with_context(|| {
-                            format!("Failed doing request client {} iteration {}", client, i)
-                        })?;
+                    let execution = self_clone.inner_execute(
+                        &mut kv_client,
+                        client as u32,
+                        i,
+                        options.iterations,
+                    );
+
+                    let s = sleep(Duration::from_millis(options.interval));
+
+                    let (output, ()) = tokio::join!(execution, s);
+
+                    let output = output.with_context(|| {
+                        format!("Failed doing request client {} iteration {}", client, i)
+                    })?;
 
                     outputs.push(output);
-
-                    sleep(Duration::from_millis(options.interval)).await;
                 }
                 let res: Result<Vec<Output>, anyhow::Error> = Ok(outputs);
                 res
