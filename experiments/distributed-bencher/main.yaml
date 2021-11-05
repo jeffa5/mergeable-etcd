@@ -1,20 +1,4 @@
 ---
-- name: Set up cluster
-  hosts: cluster
-  become: true
-  tags: setup
-  any_errors_fatal: true
-  roles:
-    - role: roles/setup-cluster
-
-- name: Set up bencher
-  hosts: bencher
-  become: true
-  tags: setup
-  any_errors_fatal: true
-  roles:
-    - role: roles/setup-bencher
-
 - name: Run cluster
   hosts: cluster
   become: true

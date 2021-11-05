@@ -8,7 +8,7 @@
 
 - name: Remove db dir directory
   ansible.builtin.file:
-    path: "/local/scratch/{{ node_name_prefix }}{{ item }}"
+    path: "{{ data_dir_prefix }}/{{ node_name_prefix }}{{ item }}"
     state: absent
   with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)

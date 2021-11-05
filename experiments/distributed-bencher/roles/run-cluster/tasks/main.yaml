@@ -1,6 +1,12 @@
+- name: Pull etcd docker images
+  docker_image:
+    name: "{{ node_image }}"
+    source: pull
+    force_source: true
+
 - name: Create db dir directory
   ansible.builtin.file:
-    path: "/local/scratch/{{ node_name_prefix }}{{ item }}"
+    path: "{{ data_dir_prefix }}/{{ node_name_prefix }}{{ item }}"
     state: directory
     mode: "0755"
   with_sequence: start=0 count={{ node_count }}
@@ -30,7 +36,7 @@
       - --listen-metrics-urls=http://0.0.0.0:{{ 2381 + ((item | int) * 10) }}
     tmpfs: "{% if tmpfs | bool %}/data{% else %}/null{% endif %}"
     volumes:
-      - "/local/scratch/{{ node_name_prefix }}{{ item }}:/data"
+      - "{{ data_dir_prefix }}/{{ node_name_prefix }}{{ item }}:/data"
   with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
 
@@ -47,7 +53,3 @@
   retries: 60
   delay: 1
   with_items: "{{ metrics_urls.split(',') }}"
-
-- name: Pause to wait for etcd to come up fully
-  pause:
-    seconds: 10

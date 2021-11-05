@@ -16,9 +16,3 @@
 - name: Install docker pip package
   pip:
     name: docker
-
-- name: Pull bencher docker images
-  docker_image:
-    name: "{{ bencher_image }}"
-    source: pull
-    force_source: true

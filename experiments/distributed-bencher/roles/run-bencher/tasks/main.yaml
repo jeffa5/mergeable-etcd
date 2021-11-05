@@ -1,3 +1,9 @@
+- name: Pull bencher docker images
+  docker_image:
+    name: "{{ bencher_image }}"
+    source: pull
+    force_source: true
+
 - name: Build client_urls variable
   set_fact:
     client_urls: "http://{{ hostvars[groups['cluster'][0]]['ansible_default_ipv4']['address'] }}:2379{% for i in range(2, node_count | int + 1) %},http://{{ hostvars[groups['cluster'][(i - 1) % (groups['cluster'] | length)]]['ansible_default_ipv4']['address'] }}:{{ 2379 + ((i - 1) * 10) }}{% endfor %}"
@@ -38,6 +44,7 @@
       - --metrics-endpoints={{ metrics_urls }}
       - --clients={{ bench_clients }}
       - --iterations={{ bench_iterations }}
+      - --interval={{ bencher_interval }}
       - bench
       - put-single
       - benchkey
@@ -58,6 +65,7 @@
       - --metrics-endpoints={{ metrics_urls }}
       - --clients={{ bench_clients }}
       - --iterations={{ bench_iterations }}
+      - --interval={{ bencher_interval }}
       - bench
       - put-random
       - 1000

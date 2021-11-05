@@ -16,9 +16,3 @@
 - name: Install docker pip package
   pip:
     name: docker
-
-- name: Pull etcd docker images
-  docker_image:
-    name: "{{ node_image }}"
-    source: pull
-    force_source: true
