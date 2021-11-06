@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use anyhow::{bail, Context};
-use bencher::{execute_trace, Options, Scheme, Type};
+use bencher::{execute_trace, loadgen, Options, Scheme, Type};
 use chrono::Utc;
 use etcd_proto::etcdserverpb::kv_client::KvClient;
 use hyper::StatusCode;
@@ -71,59 +71,57 @@ async fn main() -> anyhow::Result<()> {
     let start = Instant::now();
     match options.ty {
         Type::Bench(ref scenario) => {
-            let mut clients = Vec::new();
-            for _ in 0..options.clients {
-                let mut endpoints = Vec::new();
-                for endpoint in &options.endpoints {
-                    match endpoint.scheme {
-                        Scheme::Http => endpoints.push(Channel::from_shared(endpoint.to_string())?),
-                        Scheme::Https => {
-                            if let Some(ref cacert) = options.cacert {
-                                let pem = tokio::fs::read(cacert)
-                                    .await
-                                    .context("Failed to read cacert")?;
-                                let ca = Certificate::from_pem(pem);
+            let mut endpoints = Vec::new();
+            for endpoint in &options.endpoints {
+                match endpoint.scheme {
+                    Scheme::Http => endpoints.push(Channel::from_shared(endpoint.to_string())?),
+                    Scheme::Https => {
+                        if let Some(ref cacert) = options.cacert {
+                            let pem = tokio::fs::read(cacert)
+                                .await
+                                .context("Failed to read cacert")?;
+                            let ca = Certificate::from_pem(pem);
 
-                                let tls = ClientTlsConfig::new().ca_certificate(ca);
+                            let tls = ClientTlsConfig::new().ca_certificate(ca);
 
-                                endpoints.push(
-                                    Channel::from_shared(endpoint.to_string())?
-                                        .tls_config(tls.clone())?,
-                                )
-                            } else {
-                                bail!("https endpoint without a cacert!")
-                            }
+                            endpoints.push(
+                                Channel::from_shared(endpoint.to_string())?
+                                    .tls_config(tls.clone())?,
+                            )
+                        } else {
+                            bail!("https endpoint without a cacert!")
                         }
                     }
                 }
-                let endpoints = endpoints
-                    .into_iter()
-                    .map(|e| e.timeout(Duration::from_millis(options.timeout)));
-
-                let channel = Channel::balance_list(endpoints);
-                clients.push(KvClient::new(channel))
             }
-
-            let client_tasks = scenario.execute(clients, &options).await;
-            let outputs = futures::future::try_join_all(client_tasks)
-                .await?
+            let timeout = options.timeout;
+            let endpoints = endpoints
                 .into_iter()
-                .collect::<Result<Vec<_>, _>>()?;
+                .map(move |e| e.timeout(Duration::from_millis(timeout)));
+
+            info!("generating load");
+            loadgen::generate_load(
+                &options,
+                scenario.clone(),
+                Box::new(move || {
+                    let channel = Channel::balance_list(endpoints.clone());
+                    KvClient::new(channel)
+                }),
+            )
+            .await;
+            info!("generated load");
 
             let runtime = start.elapsed();
 
-            for outs in outputs {
-                for output in outs {
-                    println!("{}", serde_json::to_string(&output).unwrap());
-                }
-            }
-
             println!();
             println!("Total: {:?}", runtime);
+            let throughput = 1000. * options.total as f64 / runtime.as_millis() as f64;
+            println!("Actual Throughput (r/s): {:?}", throughput);
+            let ideal_throughput = 1_000_000_000. / options.interval as f64;
+            println!(" Ideal Throughput (r/s): {:?}", ideal_throughput);
             println!(
-                "Throughput (r/s): {:?}",
-                ((options.clients * options.iterations) as f64 / runtime.as_millis() as f64)
-                    * 1000.
+                "  % of Ideal Throughput: {:?}",
+                (throughput / ideal_throughput) * 100.
             );
         }
         Type::Trace { in_file, out_file } => {

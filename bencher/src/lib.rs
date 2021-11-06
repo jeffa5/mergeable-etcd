@@ -1,18 +1,18 @@
 mod address;
+mod client;
+pub mod loadgen;
 mod options;
 mod trace;
 
 use std::time::{Duration, SystemTime};
 
 pub use address::{Address, Error, Scheme};
-use anyhow::Context;
-use etcd_proto::etcdserverpb::{kv_client::KvClient, PutRequest};
+use etcd_proto::etcdserverpb::PutRequest;
+use loadgen::Msg;
 pub use options::{Options, Type};
 use rand::{distributions::Standard, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
-use tokio::{task::JoinHandle, time::sleep};
-use tonic::transport::Channel;
 pub use trace::{execute_trace, TraceValue};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -47,79 +47,76 @@ impl Output {
 
 #[derive(StructOpt, Debug, Clone)]
 pub enum Scenario {
+    Sleep { milliseconds: u64 },
     PutSingle { key: String },
     PutRange,
     PutRandom { size: usize },
 }
 
-impl Scenario {
-    pub async fn execute(
-        &self,
-        clients: Vec<KvClient<Channel>>,
-        options: &Options,
-    ) -> Vec<JoinHandle<Result<Vec<Output>, anyhow::Error>>> {
-        let mut client_tasks = Vec::new();
-        for (client, mut kv_client) in clients.into_iter().enumerate() {
-            let options = options.clone();
-            let self_clone = self.clone();
-            let client_task = tokio::spawn(async move {
-                let mut outputs = Vec::with_capacity(options.iterations as usize);
+pub struct ScenarioIterator {
+    iteration: u64,
+    scenario: Scenario,
+}
 
-                // try and offset when each client starts so that they don't all send at the same
-                // times.
-                let offset = rand::thread_rng().gen_range(0..options.interval);
-                sleep(Duration::from_millis(offset)).await;
+impl Iterator for ScenarioIterator {
+    type Item = Msg;
 
-                for i in 0..options.iterations {
-                    let execution = self_clone.inner_execute(
-                        &mut kv_client,
-                        client as u32,
-                        i,
-                        options.iterations,
-                    );
-
-                    let s = sleep(Duration::from_millis(options.interval));
-
-                    let (output, ()) = tokio::join!(execution, s);
-
-                    let output = output.with_context(|| {
-                        format!("Failed doing request client {} iteration {}", client, i)
-                    })?;
-
-                    outputs.push(output);
-                }
-                let res: Result<Vec<Output>, anyhow::Error> = Ok(outputs);
-                res
-            });
-            client_tasks.push(client_task);
-        }
-
-        client_tasks
-    }
-
-    async fn inner_execute(
-        &self,
-        kv_client: &mut KvClient<Channel>,
-        client_id: u32,
-        iteration: u32,
-        total_iterations: u32,
-    ) -> Result<Output, tonic::Status> {
-        match self {
-            Scenario::PutSingle { ref key } => {
-                put_single(kv_client, client_id, iteration, key.clone()).await
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iteration += 1;
+        match &self.scenario {
+            Scenario::Sleep { milliseconds } => {
+                Some(Msg::Sleep(Duration::from_millis(*milliseconds)))
             }
             Scenario::PutRange => {
-                put_range(
-                    kv_client,
-                    client_id,
-                    iteration,
-                    (client_id * total_iterations) + iteration,
-                )
-                .await
+                let value = value();
+                let request = PutRequest {
+                    key: self.iteration.to_string().into_bytes(),
+                    value,
+                    lease: 0,
+                    prev_kv: false,
+                    ignore_value: false,
+                    ignore_lease: false,
+                };
+                Some(Msg::Put(request))
+            }
+            Scenario::PutSingle { key } => {
+                let value = value();
+                let request = PutRequest {
+                    key: key.as_bytes().to_vec(),
+                    value,
+                    lease: 0,
+                    prev_kv: false,
+                    ignore_value: false,
+                    ignore_lease: false,
+                };
+                Some(Msg::Put(request))
             }
             Scenario::PutRandom { size } => {
-                put_random(kv_client, client_id, iteration, *size).await
+                let key: usize = thread_rng().gen_range(0..*size);
+                let value = value();
+                let request = PutRequest {
+                    key: key.to_string().into_bytes(),
+                    value,
+                    lease: 0,
+                    prev_kv: false,
+                    ignore_value: false,
+                    ignore_lease: false,
+                };
+                Some(Msg::Put(request))
             }
+        }
+    }
+}
+
+impl IntoIterator for Scenario {
+    type Item = Msg;
+
+    type IntoIter = ScenarioIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ScenarioIterator {
+            iteration: 0,
+            scenario: self,
         }
     }
 }
@@ -130,77 +127,4 @@ fn value() -> Vec<u8> {
         .take(100)
         .collect();
     raw
-}
-
-pub async fn put_random(
-    kv_client: &mut KvClient<Channel>,
-    client: u32,
-    iteration: u32,
-    limit: usize,
-) -> Result<Output, tonic::Status> {
-    let key = thread_rng().gen_range(0..limit);
-    let value = value();
-    let request = PutRequest {
-        key: key.to_string().into_bytes(),
-        value,
-        lease: 0,
-        prev_kv: false,
-        ignore_value: false,
-        ignore_lease: false,
-    };
-    let mut output = Output::start(client, iteration);
-    let response = kv_client.put(request).await?.into_inner();
-    let header = response.header.unwrap();
-    let member_id = header.member_id;
-    let raft_term = header.raft_term;
-    output.stop(member_id, raft_term);
-    Ok(output)
-}
-
-pub async fn put_range(
-    kv_client: &mut KvClient<Channel>,
-    client: u32,
-    iteration: u32,
-    key: u32,
-) -> Result<Output, tonic::Status> {
-    let value = value();
-    let request = PutRequest {
-        key: key.to_string().into_bytes(),
-        value,
-        lease: 0,
-        prev_kv: false,
-        ignore_value: false,
-        ignore_lease: false,
-    };
-    let mut output = Output::start(client, iteration);
-    let response = kv_client.put(request).await?.into_inner();
-    let header = response.header.unwrap();
-    let member_id = header.member_id;
-    let raft_term = header.raft_term;
-    output.stop(member_id, raft_term);
-    Ok(output)
-}
-
-pub async fn put_single(
-    kv_client: &mut KvClient<Channel>,
-    client: u32,
-    iteration: u32,
-    key: String,
-) -> Result<Output, tonic::Status> {
-    let value = value();
-    let request = PutRequest {
-        key: key.into_bytes(),
-        value,
-        lease: 0,
-        prev_kv: false,
-        ignore_value: false,
-        ignore_lease: false,
-    };
-    let mut output = Output::start(client, iteration);
-    let response = kv_client.put(request).await?.into_inner();
-    let header = response.header.unwrap();
-    let member_id = header.member_id;
-    let raft_term = header.raft_term;
-    output.stop(member_id, raft_term);
-    Ok(output)
 }

@@ -304,6 +304,30 @@ rec {
         ];
 
       };
+      "async-channel" = rec {
+        crateName = "async-channel";
+        version = "1.6.1";
+        edition = "2018";
+        sha256 = "06b3sq2hd8qwl2xxlc4qalg6xw3l9b41w4sym9g0q70mf93dc511";
+        authors = [
+          "Stjepan Glavina <stjepang@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "concurrent-queue";
+            packageId = "concurrent-queue";
+          }
+          {
+            name = "event-listener";
+            packageId = "event-listener";
+          }
+          {
+            name = "futures-core";
+            packageId = "futures-core";
+          }
+        ];
+
+      };
       "async-stream" = rec {
         crateName = "async-stream";
         version = "0.3.2";
@@ -923,6 +947,10 @@ rec {
             packageId = "arbitrary";
           }
           {
+            name = "async-channel";
+            packageId = "async-channel";
+          }
+          {
             name = "chrono";
             packageId = "chrono";
           }
@@ -1304,6 +1332,16 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
+      "cache-padded" = rec {
+        crateName = "cache-padded";
+        version = "1.1.1";
+        edition = "2018";
+        sha256 = "1fkdwv9vjazm6fs3s5v56mm4carwswdmw8fcwm9ygrcvihcya6k3";
+        authors = [
+          "Stjepan Glavina <stjepang@gmail.com>"
+        ];
+
+      };
       "cc" = rec {
         crateName = "cc";
         version = "1.0.71";
@@ -1574,6 +1612,22 @@ rec {
         sha256 = "12q1n427h2bbmmm1mnglr57jaz2dj9apk0plcxw7nwqiai7qjyrx";
         authors = [
           "nwin <nwin@users.noreply.github.com>"
+        ];
+
+      };
+      "concurrent-queue" = rec {
+        crateName = "concurrent-queue";
+        version = "1.2.2";
+        edition = "2018";
+        sha256 = "18w6hblcjjk9d0my3657ra1zdj79gwfjmzvc0b3985g01dahgv9h";
+        authors = [
+          "Stjepan Glavina <stjepang@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "cache-padded";
+            packageId = "cache-padded";
+          }
         ];
 
       };
@@ -2619,6 +2673,16 @@ rec {
             name = "tonic-build";
             packageId = "tonic-build";
           }
+        ];
+
+      };
+      "event-listener" = rec {
+        crateName = "event-listener";
+        version = "2.5.1";
+        edition = "2018";
+        sha256 = "0ndyp41pb2cx7gxijqh4ymnc47nyrvhvir7rvjlw6x09ayb10lzp";
+        authors = [
+          "Stjepan Glavina <stjepang@gmail.com>"
         ];
 
       };
