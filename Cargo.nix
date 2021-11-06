@@ -988,6 +988,10 @@ rec {
             packageId = "structopt";
           }
           {
+            name = "taskwait";
+            packageId = "taskwait";
+          }
+          {
             name = "thiserror";
             packageId = "thiserror";
           }
@@ -8723,6 +8727,23 @@ rec {
           "test" = [ "syn-test-suite/all-features" ];
         };
         resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "full" "parsing" "printing" "proc-macro" "quote" "visit" "visit-mut" ];
+      };
+      "taskwait" = rec {
+        crateName = "taskwait";
+        version = "0.4.1";
+        edition = "2018";
+        sha256 = "0hclp7mi2h8lmax0bcz8mjq3y6bzk3391lb7c3dhalf0hddaqwa4";
+        authors = [
+          "staticgc <metanym3@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "futures-util";
+            packageId = "futures-util";
+            features = [ "async-await" ];
+          }
+        ];
+
       };
       "tempfile" = rec {
         crateName = "tempfile";
