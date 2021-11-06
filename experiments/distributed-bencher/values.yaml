@@ -20,5 +20,5 @@ bench_clients: 100000
 data_dir_prefix: /local/scratch
 
 results_dir: results
-run_dir: "{{ results_dir }}/{{ binary_name }}-{{ node_count }}nodes-{{ bencher_count }}benchers-{{ bench_type }}-{{ bencher_interval }}ms-{{ bench_iterations }}iters/repeat{{ repeat }}"
+run_dir: "{{ results_dir }}/{{ binary_name }}-{{ node_count }}nodes-{{ bencher_count }}benchers-{{ bench_type }}-{{ bencher_interval }}ns-{{ bench_total }}iters/repeat{{ repeat }}"
 logs_dir: "{{ run_dir }}/logs/"

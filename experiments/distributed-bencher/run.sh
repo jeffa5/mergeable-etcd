@@ -51,11 +51,11 @@ function run() {
   binary_name="$(echo $node_image | rev | cut -d '/' -f 1 | rev | cut -d ':' -f 1)"
 
   for repeat in $(seq 1 $num_repeats); do
-    run_dir="results/$binary_name-${node_count}nodes-1benchers-${subcommand}-${interval}ms-${iterations}iters/repeat${repeat}"
+    run_dir="results/$binary_name-${node_count}nodes-1benchers-${subcommand}-${interval}ns-${iterations}iters/repeat${repeat}"
     # only run the playbook if the directory (results) doesn't already exist
     if [[ ! -d $run_dir  ]]; then
         echo "Running with node_count=$node_count node_image=$node_image binary_name=$binary_name repeat=$repeat bench_type=$subcommand interval=$interval"
-        ansible-playbook main.yaml -e @values.yaml -e node_count="$node_count" -e node_image="$node_image" -e binary_name="$binary_name" -e repeat="$repeat" -e bench_type="$subcommand" -e bencher_interval="$interval" -e bench_iterations="$iterations"
+        ansible-playbook main.yaml -e @values.yaml -e node_count="$node_count" -e node_image="$node_image" -e binary_name="$binary_name" -e repeat="$repeat" -e bench_type="$subcommand" -e bencher_interval="$interval" -e bench_total="$iterations"
     else
         echo "Skipping with node_count=$node_count node_image=$node_image binary_name=$binary_name repeat=$repeat bench_type=$subcommand interval=$interval"
     fi
