@@ -1,6 +1,7 @@
 use etcd_proto::etcdserverpb::kv_client::KvClient;
 use tokio::time::sleep;
 use tonic::transport::Channel;
+use tracing::warn;
 
 use crate::{loadgen::Msg, Output};
 
@@ -19,11 +20,17 @@ pub async fn run(
                 output.stop(0, 0);
             }
             Msg::Put(request) => {
-                let response = kv_client.put(request).await.unwrap().into_inner();
-                let header = response.header.unwrap();
-                let member_id = header.member_id;
-                let raft_term = header.raft_term;
-                output.stop(member_id, raft_term);
+                match kv_client.put(request).await {
+                    Ok(response) => {
+                        let header = response.into_inner().header.unwrap();
+                        let member_id = header.member_id;
+                        let raft_term = header.raft_term;
+                        output.stop(member_id, raft_term);
+                    }
+                    Err(error) => {
+                        warn!(%error, "Got an error sending the request")
+                    }
+                };
             }
         }
         outputs.push(output);
@@ -33,7 +40,7 @@ pub async fn run(
 
     // println!("stopped {}", counter);
 
-    // for output in outputs {
-    // println!("{}", serde_json::to_string(&output).unwrap());
-    // }
+    for output in outputs {
+        println!("{}", serde_json::to_string(&output).unwrap());
+    }
 }
