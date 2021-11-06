@@ -11,12 +11,11 @@ node_name_prefix: node-
 bencher_name_prefix: bencher-
 bencher_image: docker.io/jeffas/bencher:latest
 bencher_count: 1
-# interval between requests in bencher, ms
-bencher_interval: 1
+# interval between requests in bencher, nanoseconds
+bencher_interval: 10000
 
 bench_type: PutRange
-bench_clients: 100
-bench_iterations: 1000
+bench_clients: 100000
 
 data_dir_prefix: /local/scratch
 

@@ -36,7 +36,7 @@
       - --listen-metrics-urls=http://0.0.0.0:{{ 2381 + ((item | int) * 10) }}
     tmpfs: "{% if tmpfs | bool %}/data{% else %}/null{% endif %}"
     volumes:
-      - "{{ data_dir_prefix }}/{{ node_name_prefix }}{{ item }}:/data"
+      - "{{ data_dir_prefix }}/{{ node_name_prefix }}{{ item }}:{% if tmpfs | bool %}/null{% else %}/data{% endif %}"
   with_sequence: start=0 count={{ node_count }}
   when: (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)
 

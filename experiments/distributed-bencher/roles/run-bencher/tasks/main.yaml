@@ -22,8 +22,7 @@
     command:
       - --endpoints={{ client_urls }}
       - --metrics-endpoints={{ metrics_urls }}
-      - --clients={{ bench_clients }}
-      - --iterations={{ bench_iterations }}
+      - --total={{ bench_total }}
       - --interval={{ bencher_interval }}
       - bench
       - put-range
@@ -42,8 +41,7 @@
     command:
       - --endpoints={{ client_urls }}
       - --metrics-endpoints={{ metrics_urls }}
-      - --clients={{ bench_clients }}
-      - --iterations={{ bench_iterations }}
+      - --total={{ bench_total }}
       - --interval={{ bencher_interval }}
       - bench
       - put-single
@@ -63,8 +61,7 @@
     command:
       - --endpoints={{ client_urls }}
       - --metrics-endpoints={{ metrics_urls }}
-      - --clients={{ bench_clients }}
-      - --iterations={{ bench_iterations }}
+      - --total={{ bench_total }}
       - --interval={{ bencher_interval }}
       - bench
       - put-random
