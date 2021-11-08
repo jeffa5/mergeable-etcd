@@ -6,7 +6,7 @@ num_repeats=3
 min_node_count=1
 max_node_count=15
 bencher_subcommand=""
-iterations=1000
+iterations=100000
 
 function usage() {
   echo "$0 [-r <repeats=$num_repeats>] [-b <start_size=$min_node_count>] [-e <end_size=$max_node_count>] [-c <bencher_subcommand>] [-d <delay>] [-i <iterations>]"

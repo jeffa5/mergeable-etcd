@@ -15,7 +15,7 @@ bencher_count: 1
 bencher_interval: 10000
 
 bench_type: PutRange
-bench_clients: 100000
+bench_total: 100000
 
 data_dir_prefix: /local/scratch
 
