@@ -1,7 +1,7 @@
 binary_name: etcd
 node_image: quay.io/coreos/etcd:v3.4.13
 node_count: 3
-node_cpus: 3
+node_cpus: 2
 node_memory: 10G
 
 tmpfs: false
