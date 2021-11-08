@@ -29,6 +29,9 @@ pub struct Options {
     #[structopt(long, default_value = "60000")]
     pub timeout: u64,
 
+    #[structopt(short, long)]
+    pub quiet: bool,
+
     #[structopt(subcommand)]
     pub ty: Type,
 }

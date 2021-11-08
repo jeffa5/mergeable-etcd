@@ -42,8 +42,9 @@ pub async fn generate_load(
                 active_clients.add();
                 let active_clients = active_clients.clone();
                 let kv_client = kv_client.clone();
+                let quiet = options.quiet;
                 tokio::spawn(async move {
-                    client::run(receiver, client_counter, kv_client).await;
+                    client::run(receiver, client_counter, kv_client, quiet).await;
                     active_clients.done();
                 });
                 sender.send(value).await.unwrap()

@@ -9,6 +9,7 @@ pub async fn run(
     receiver: async_channel::Receiver<Msg>,
     counter: usize,
     mut kv_client: KvClient<Channel>,
+    quiet: bool,
 ) {
     let mut outputs: Vec<Output> = Vec::with_capacity(100);
     let mut iteration = 0;
@@ -40,7 +41,9 @@ pub async fn run(
 
     // println!("stopped {}", counter);
 
-    for output in outputs {
-        println!("{}", serde_json::to_string(&output).unwrap());
+    if !quiet {
+        for output in outputs {
+            println!("{}", serde_json::to_string(&output).unwrap());
+        }
     }
 }
