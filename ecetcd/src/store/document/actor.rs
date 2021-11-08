@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryFrom, sync::Arc, thread};
+use std::{collections::HashMap, convert::TryFrom, sync::Arc, thread, time::Duration};
 
 use automerge::{frontend::schema::MapSchema, FrontendOptions};
 use automerge_backend::SyncMessage;
@@ -10,7 +10,10 @@ use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use lazy_static::lazy_static;
 use prometheus::{register_int_counter, IntCounter};
 use rand::random;
-use tokio::sync::{mpsc, oneshot, watch, Notify};
+use tokio::{
+    sync::{mpsc, oneshot, watch, Notify},
+    time::{interval, Interval},
+};
 use tracing::{error, info, warn, Instrument, Span};
 
 use super::DocumentMessage;
@@ -78,6 +81,10 @@ where
     // notified when a new change has been made to the document so that the syncing thread can wake
     // up and try and send new updates.
     changed_notify: Arc<Notify>,
+    // interval to ensure flushes happen regularly.
+    interval: Interval,
+    // functions to call in order to return values to clients.
+    outstanding_requests: Vec<oneshot::Sender<()>>,
 }
 
 impl<T, P> DocumentActor<T, P>
@@ -149,6 +156,8 @@ where
             actor_id
         );
 
+        let interval = interval(Duration::from_millis(10));
+
         Ok(Self {
             document,
             actor_id,
@@ -157,11 +166,20 @@ where
             health_receiver,
             shutdown,
             changed_notify,
+            interval,
+            outstanding_requests: Vec::new(),
         })
     }
 
     pub fn actor_id(&self) -> ActorId {
         ActorId::from(self.actor_id)
+    }
+
+    pub async fn flush(&mut self) {
+        self.document.automerge.flush().unwrap();
+        for sender in std::mem::take(&mut self.outstanding_requests) {
+            sender.send(()).unwrap()
+        }
     }
 
     pub async fn run(&mut self) -> Result<(), DocumentError> {
@@ -170,6 +188,9 @@ where
                 _ = self.shutdown.changed() => {
                     info!("document shutting down");
                     break
+                }
+                _ = self.interval.tick() => {
+                    self.flush().await;
                 }
                 Some(s) = self.health_receiver.recv() => {
                     info!("Received sender from health server check");
@@ -218,11 +239,9 @@ where
                 range_end,
                 ret,
             } => {
-                let result = self.remove(key, range_end).await;
+                self.remove(key, range_end, ret).await;
 
                 DELETE_RANGE_REQUEST_COUNTER.inc();
-
-                let _ = ret.send(result);
             }
             DocumentMessage::Txn { request, ret } => {
                 let result = self.txn(request).await;
@@ -281,10 +300,12 @@ where
                 let _ = ret.send(result);
             }
             DocumentMessage::GenerateSyncMessage { peer_id, ret } => {
+                self.flush().await;
                 let result = self.generate_sync_message(peer_id).unwrap();
                 let _ = ret.send(result);
             }
             DocumentMessage::ReceiveSyncMessage { peer_id, message } => {
+                self.flush().await;
                 self.receive_sync_message(peer_id, message).unwrap();
 
                 let _ = self.changed_notify.notify_one();
@@ -355,22 +376,27 @@ where
                 let _ = ret.send(Err(e));
             }
             Ok((server, prev)) => {
-                if !self.watchers.is_empty() {
-                    let mut doc = self.document.get();
-                    let value = doc.value_mut(&key).unwrap().unwrap();
-                    for (range, sender) in self.watchers.values() {
-                        if range.contains(&key) {
-                            let latest_value = value.latest_value(key.clone()).unwrap();
-                            let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
-                                .and_then(|rev| value.value_at_revision(rev, key.clone()));
-                            let _ = sender
-                                .send((server.clone(), vec![(latest_value, prev_value)]))
-                                .await;
-                        }
-                    }
-                }
+                let (sender, receiver) = oneshot::channel();
+                self.outstanding_requests.push(sender);
+                tokio::spawn(async move {
+                    let s = receiver.await.unwrap();
+                    // if !s.watchers.is_empty() {
+                    //     let mut doc = s.document.get();
+                    //     let value = doc.value_mut(&key).unwrap().unwrap();
+                    //     for (range, sender) in s.watchers.values() {
+                    //         if range.contains(&key) {
+                    //             let latest_value = value.latest_value(key.clone()).unwrap();
+                    //             let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
+                    //                 .and_then(|rev| value.value_at_revision(rev, key.clone()));
+                    //             let _ = sender
+                    //                 .send((server.clone(), vec![(latest_value, prev_value)]))
+                    //                 .await;
+                    //         }
+                    //     }
+                    // }
 
-                let _ = ret.send(Ok((server, prev)));
+                    let _ = ret.send(Ok((server, prev)));
+                });
             }
         }
     }
@@ -380,7 +406,8 @@ where
         &mut self,
         key: Key,
         range_end: Option<Key>,
-    ) -> Result<(Server, Vec<SnapshotValue>), DocumentError> {
+        ret: oneshot::Sender<Result<(Server, Vec<SnapshotValue>), DocumentError>>,
+    ) {
         let (server, prev) = self
             .document
             .change::<_, _, std::convert::Infallible>(|store_contents| {
@@ -401,24 +428,28 @@ where
             })
             .unwrap();
 
-        if !self.watchers.is_empty() {
-            let mut doc = self.document.get();
-            for (key, prev) in &prev {
-                for (range, sender) in self.watchers.values() {
-                    if range.contains(key) {
-                        if let Some(Ok(value)) = doc.value_mut(key) {
-                            let latest_value = value.latest_value(key.clone()).unwrap();
-                            let _ = sender
-                                .send((server.clone(), vec![(latest_value, prev.clone())]))
-                                .await;
-                        }
-                    }
-                }
-            }
-        }
-
-        let prev = prev.into_iter().filter_map(|(_, p)| p).collect();
-        Ok((server, prev))
+        let (sender, receiver) = oneshot::channel();
+        self.outstanding_requests.push(sender);
+        tokio::spawn(async move {
+            let s = receiver.await.unwrap();
+            // if !self.watchers.is_empty() {
+            //     let mut doc = self.document.get();
+            //     for (key, prev) in &prev {
+            //         for (range, sender) in self.watchers.values() {
+            //             if range.contains(key) {
+            //                 if let Some(Ok(value)) = doc.value_mut(key) {
+            //                     let latest_value = value.latest_value(key.clone()).unwrap();
+            //                     let _ = sender
+            //                         .send((server.clone(), vec![(latest_value, prev.clone())]))
+            //                         .await;
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+            let prev = prev.into_iter().filter_map(|(_, p)| p).collect();
+            let _ = ret.send(Ok((server, prev)));
+        });
     }
 
     #[tracing::instrument(level = "debug", skip(self, request))]

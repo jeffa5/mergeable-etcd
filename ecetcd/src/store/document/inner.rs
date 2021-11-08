@@ -42,8 +42,6 @@ where
         let result = change_closure(&mut sc)?;
         let changes = self.extract_changes(sc);
         self.apply_changes(changes);
-        // TODO: buffer results before flushing?
-        self.automerge.flush().unwrap();
         Ok(result)
     }
 
