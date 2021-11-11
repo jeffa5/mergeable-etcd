@@ -192,9 +192,10 @@
               python3Packages.numpy
               python3Packages.pandas
               python3Packages.matplotlib
+              python3Packages.isort
+              black
               # for the latex font bits
               pkgs.texlive.combined.scheme-full
-
 
               linuxPackages.perf
 
