@@ -18,3 +18,4 @@ perf.data.old
 
 /experiments/kubespray/inventory/caelum/artifacts/
 /experiments/kubespray/contrib/packaging/
+/experiments/distributed-bencher/facts_cache
