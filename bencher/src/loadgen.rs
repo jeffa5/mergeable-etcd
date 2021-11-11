@@ -28,7 +28,6 @@ pub async fn generate_load(
     let active_clients = TaskGroup::new();
 
     let mut client_counter = 0;
-    let kv_client = kv_client_generator();
     for message in scenario.into_iter().take(options.total) {
         match sender.try_send(message) {
             Ok(()) => {
@@ -41,7 +40,7 @@ pub async fn generate_load(
 
                 active_clients.add();
                 let active_clients = active_clients.clone();
-                let kv_client = kv_client.clone();
+                let kv_client = kv_client_generator();
                 let quiet = options.quiet;
                 tokio::spawn(async move {
                     client::run(receiver, client_counter, kv_client, quiet).await;
