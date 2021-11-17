@@ -99,13 +99,23 @@ async fn main() -> anyhow::Result<()> {
                 .into_iter()
                 .map(move |e| e.timeout(Duration::from_millis(timeout)));
 
+            let clients = (0..options.clients)
+                .map(|_| {
+                    let channel = Channel::balance_list(endpoints.clone());
+                    KvClient::new(channel)
+                })
+                .collect::<Vec<_>>();
+            let mut client_index = 0;
+
             info!("generating load");
             loadgen::generate_load(
                 &options,
                 scenario.clone(),
                 Box::new(move || {
-                    let channel = Channel::balance_list(endpoints.clone());
-                    KvClient::new(channel)
+                    let client = clients[client_index].clone();
+                    client_index += 1;
+                    client_index %= clients.len();
+                    client
                 }),
             )
             .await;

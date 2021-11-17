@@ -25,6 +25,10 @@ pub struct Options {
     #[structopt(long)]
     pub start_at: Option<DateTime<Utc>>,
 
+    /// Number of clients (connections) to create.
+    #[structopt(long, default_value = "10")]
+    pub clients: u32,
+
     /// The timeout to apply to requests, in milliseconds
     #[structopt(long, default_value = "60000")]
     pub timeout: u64,

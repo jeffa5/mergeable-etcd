@@ -19,7 +19,7 @@ pub enum Msg {
 pub async fn generate_load(
     options: &Options,
     scenario: Scenario,
-    kv_client_generator: Box<dyn Fn() -> KvClient<Channel>>,
+    mut kv_client_generator: Box<dyn FnMut() -> KvClient<Channel>>,
 ) {
     let (sender, receiver) = async_channel::bounded(1);
 
@@ -60,7 +60,7 @@ pub async fn generate_load(
     info!("closing load sender");
     sender.close();
 
-    info!("waiting on clients to finish");
+    info!(clients=%client_counter, "waiting on clients to finish");
     active_clients.wait().await;
-    info!("finished generating load, made {} clients", client_counter);
+    info!(clients=%client_counter, "finished generating load");
 }
