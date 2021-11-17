@@ -4,7 +4,7 @@ node_count: 3
 node_cpus: 2
 node_memory: 10G
 
-tmpfs: false
+tmpfs: true
 
 node_name_prefix: node-
 
