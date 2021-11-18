@@ -303,19 +303,21 @@ where
                 let _ = ret.send(result);
             }
             DocumentMessage::GenerateSyncMessage { peer_id, ret } => {
+                // ensure that we write in-progress requests to disk before sharing them
                 self.flush().await;
                 let result = self.generate_sync_message(peer_id).unwrap();
                 let _ = ret.send(result);
             }
             DocumentMessage::ReceiveSyncMessage { peer_id, message } => {
+                // ensure we have written in-progress requests to disk before we add new changes
                 self.flush().await;
                 self.receive_sync_message(peer_id, message).unwrap();
-
-                let _ = self.changed_notify.notify_one();
+                // Ensure that we save the new changes to disk
+                self.flush().await;
             }
             DocumentMessage::NewSyncPeer {} => {
                 // trigger sync clients to try for new messages
-                let _ = self.changed_notify.notify_one();
+                self.changed_notify.notify_one();
             }
         }
     }
