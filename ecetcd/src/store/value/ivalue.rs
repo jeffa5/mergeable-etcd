@@ -117,14 +117,9 @@ where
 
     /// Return true if the value exists at the given revision and is not deleted.
     fn value_is_present(&self, revision: &Revision) -> bool {
-        if self
-            .revisions
-            .as_ref()
-            .and_then(|revs| revs.get(revision))
-            .is_some()
-        {
-            // was in cache and is some
-            true
+        if let Some(v) = self.revisions.as_ref().and_then(|revs| revs.get(revision)) {
+            // was in cache
+            v.is_some()
         } else {
             let v = self
                 .value
