@@ -176,7 +176,10 @@ where
     }
 
     pub async fn flush(&mut self) {
-        self.document.automerge.flush().unwrap();
+        let bytes_flushed = self.document.automerge.flush().unwrap();
+        if bytes_flushed > 0 {
+            self.changed_notify.notify_one();
+        }
         for sender in std::mem::take(&mut self.outstanding_requests) {
             sender.send(()).unwrap()
         }
