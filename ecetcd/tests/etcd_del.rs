@@ -93,6 +93,23 @@ async fn del_simple_different_options() {
                     };
                     test_put(&request).await;
 
+                    let request = etcd_proto::etcdserverpb::RangeRequest {
+                        key: key.clone(),
+                        range_end: vec![],
+                        limit: 0,
+                        revision: 0,
+                        sort_order: 0,
+                        sort_target: 0,
+                        serializable: false,
+                        keys_only,
+                        count_only,
+                        min_mod_revision: 0,
+                        max_mod_revision: 0,
+                        min_create_revision: 0,
+                        max_create_revision: 0,
+                    };
+                    test_range(&request).await;
+
                     let request = etcd_proto::etcdserverpb::DeleteRangeRequest {
                         key: key.clone(),
                         range_end: vec![],
