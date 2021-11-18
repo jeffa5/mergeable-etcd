@@ -91,20 +91,26 @@ where
                 .as_ref()
                 .and_then(|v| v.map().unwrap().get(REVISIONS_KEY));
 
-            if let Some(ValueRef::Map(m)) = value {
-                revisions.reserve(m.len());
-                for k in m.keys().map(|k| k.parse::<Revision>().unwrap()) {
-                    revisions.insert(k);
-                }
-                if let Some(revs) = self.revisions.as_ref() {
-                    for k in revs.keys() {
-                        revisions.insert(*k);
+            match value {
+                Some(ValueRef::SortedMap(m)) => {
+                    revisions.reserve(m.len());
+                    for k in m.keys().map(|k| k.parse::<Revision>().unwrap()) {
+                        revisions.insert(k);
                     }
-                }
-                let mut revisions = revisions.into_iter().collect::<Vec<_>>();
-                revisions.sort_unstable();
+                    if let Some(revs) = self.revisions.as_ref() {
+                        for k in revs.keys() {
+                            revisions.insert(*k);
+                        }
+                    }
+                    let mut revisions = revisions.into_iter().collect::<Vec<_>>();
+                    revisions.sort_unstable();
 
-                self.revs = revisions;
+                    self.revs = revisions;
+                }
+                None => {}
+                Some(v) => {
+                    panic!("Unexpected value type: {:?}", v)
+                }
             }
         }
     }
@@ -128,7 +134,7 @@ where
                         .unwrap()
                         .get(REVISIONS_KEY)
                         .unwrap()
-                        .map()
+                        .sorted_map()
                         .unwrap()
                         .get(&revision.to_string())
                 })
@@ -165,7 +171,7 @@ where
                     .unwrap()
                     .get(REVISIONS_KEY)
                     .unwrap()
-                    .map()
+                    .sorted_map()
                     .unwrap()
                     .get(&revision.to_string())
             })?;
