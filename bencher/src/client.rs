@@ -29,6 +29,7 @@ pub async fn run(
                         output.stop(member_id, raft_term);
                     }
                     Err(error) => {
+                        output.error(error.message().to_string());
                         warn!(%error, "Got an error sending the request")
                     }
                 };

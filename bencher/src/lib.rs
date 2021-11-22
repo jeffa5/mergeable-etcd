@@ -19,6 +19,7 @@ pub use trace::{execute_trace, TraceValue};
 pub struct Output {
     pub start: SystemTime,
     pub end: SystemTime,
+    pub error: Option<String>,
     pub client: u32,
     pub iteration: u32,
     pub member_id: u64,
@@ -31,6 +32,7 @@ impl Output {
         Self {
             start: now,
             end: now,
+            error: None,
             client,
             iteration,
             member_id: 0,
@@ -41,6 +43,11 @@ impl Output {
     pub fn stop(&mut self, member_id: u64, raft_term: u64) {
         self.member_id = member_id;
         self.raft_term = raft_term;
+        self.end = SystemTime::now();
+    }
+
+    pub fn error(&mut self, error: String) {
+        self.error = Some(error);
         self.end = SystemTime::now();
     }
 }
