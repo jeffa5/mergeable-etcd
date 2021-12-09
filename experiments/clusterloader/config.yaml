@@ -14,7 +14,7 @@ steps:
     Params:
       action: start
       labelSelector: group = test-pod
-      threshold: 20s
+      threshold: 60s
   - Identifier: WaitForControlledPodsRunning
     Method: WaitForControlledPodsRunning
     Params:
@@ -32,7 +32,7 @@ steps:
     tuningSet: Uniform1qps
     objectBundle:
     - basename: test-deployment
-      objectTemplatePath: "deployment.yaml"
+      objectTemplatePath: deployment.yaml
       templateFillMap:
         Replicas: 50
 - name: Wait for pods to be running
