@@ -1,0 +1,8 @@
+start:
+    kind create cluster --image=kindest/node:v1.21.1 --name=clusterloader-cluster --wait=5m
+    clusterloader2 --testconfig=config.yaml --provider=kind --kubeconfig=$HOME/.kube/config --v=2
+
+stop:
+    kind delete cluster --name=clusterloader-cluster
+
+run: stop start stop

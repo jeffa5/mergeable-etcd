@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Name}}
+  labels:
+    group: test-deployment
+spec:
+  replicas: {{.Replicas}}
+  selector:
+    matchLabels:
+      group: test-pod
+  template:
+    metadata:
+      labels:
+        group: test-pod
+    spec:
+      containers:
+      - image: k8s.gcr.io/pause:3.1
+        name: {{.Name}}
