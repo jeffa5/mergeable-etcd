@@ -5,9 +5,10 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
+    perf-tests.url = "github:jeffa5/perf-tests";
   };
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils }:
+  outputs = { self, nixpkgs, rust-overlay, flake-utils, perf-tests }:
     flake-utils.lib.eachDefaultSystem
       (system:
         let
@@ -174,11 +175,12 @@
             debugCargoNix.workspaceMembers;
 
           devShell = pkgs.mkShell {
-            buildInputs = with pkgs;[
+            packages = with pkgs;[
               (rust.override {
                 extensions = [ "rust-src" "rustfmt" ];
                 targets = [ "x86_64-unknown-linux-musl" ];
               })
+              mold
               cargo-edit
               cargo-watch
               cargo-udeps
@@ -187,6 +189,8 @@
               crate2nix
               kubectl
               k9s
+
+              perf-tests.packages.${system}.clusterloader2
 
               jupyter
               python3Packages.numpy

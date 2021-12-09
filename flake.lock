@@ -17,6 +17,21 @@
     },
     "flake-utils_2": {
       "locked": {
+        "lastModified": 1634851050,
+        "narHash": "sha256-N83GlSGPJJdcqhUxSCS/WwW5pksYf3VP1M13cDRTSVA=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "c91f3de5adaf1de973b797ef7485e441a65b8935",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "flake-utils_3": {
+      "locked": {
         "lastModified": 1637014545,
         "narHash": "sha256-26IZAc5yzlD9FlDT54io1oqG/bBoyka+FJk5guaX4x4=",
         "owner": "numtide",
@@ -48,6 +63,20 @@
     },
     "nixpkgs_2": {
       "locked": {
+        "lastModified": 1635518521,
+        "narHash": "sha256-gBIdE3P3u/S9uPHdNjq/CGLxG5MBhZz+IJEhNlxFW9E=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "31b495592feadb2785279988a2d7db6e2bdd7ed2",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "nixpkgs_3": {
+      "locked": {
         "lastModified": 1637453606,
         "narHash": "sha256-Gy6cwUswft9xqsjWxFYEnx/63/qzaFUwatcbV5GF/GQ=",
         "owner": "NixOS",
@@ -62,17 +91,37 @@
         "type": "github"
       }
     },
+    "perf-tests": {
+      "inputs": {
+        "flake-utils": "flake-utils_2",
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1639050527,
+        "narHash": "sha256-MjXgCcF26kdWYNcyw0KUAvVDsUPGLjDtSJsOD+Uxbgc=",
+        "owner": "jeffa5",
+        "repo": "perf-tests",
+        "rev": "a56821d305d1052f0fa0646417f6c050b09d5cfa",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeffa5",
+        "repo": "perf-tests",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs",
+        "perf-tests": "perf-tests",
         "rust-overlay": "rust-overlay"
       }
     },
     "rust-overlay": {
       "inputs": {
-        "flake-utils": "flake-utils_2",
-        "nixpkgs": "nixpkgs_2"
+        "flake-utils": "flake-utils_3",
+        "nixpkgs": "nixpkgs_3"
       },
       "locked": {
         "lastModified": 1637547617,
