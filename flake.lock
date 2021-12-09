@@ -97,11 +97,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1639055852,
-        "narHash": "sha256-8A73mlWkYos6Rc5r5eUJW1QrH+6TebcJsFlcfl5YRbw=",
+        "lastModified": 1639071949,
+        "narHash": "sha256-wOJnubHQwwcfDa4e/dP7kU9FLShRsQnJ6HLGp925/BY=",
         "owner": "jeffa5",
         "repo": "perf-tests",
-        "rev": "f5f07cbeea499679bb7b1b41d3bc49388764fd7a",
+        "rev": "5fc159bbd76d7b725b083c3aeb4f08cb4de41034",
         "type": "github"
       },
       "original": {
