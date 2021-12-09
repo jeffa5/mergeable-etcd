@@ -1,5 +1,5 @@
 start:
-    kind create cluster --image=kindest/node:v1.21.1 --name=clusterloader-cluster --wait=5m
+    kind create cluster --image=kindest/node:v1.21.1 --name=clusterloader-cluster --wait=5m --config=kind-config.yaml
 
 stop:
     kind delete cluster --name=clusterloader-cluster

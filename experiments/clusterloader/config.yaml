@@ -34,7 +34,7 @@ steps:
     - basename: test-deployment
       objectTemplatePath: deployment.yaml
       templateFillMap:
-        Replicas: 50
+        Replicas: 10
 - name: Wait for pods to be running
   measurements:
   - Identifier: WaitForControlledPodsRunning
