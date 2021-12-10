@@ -190,8 +190,6 @@
               kubectl
               k9s
 
-              perf-tests.packages.${system}.clusterloader2
-
               jupyter
               python3Packages.numpy
               python3Packages.pandas
