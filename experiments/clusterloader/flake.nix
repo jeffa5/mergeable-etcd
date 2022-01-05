@@ -30,8 +30,18 @@
               packages = with pkgs;[
                 just
                 kind
+                kubectl
+                k9s
+                ansible_2_11
+                kubernetes-helm
+
+                jupyter
+                python3Packages.seaborn
+
                 perf-tests.packages.${system}.clusterloader2
               ];
+
+              # KUBECONFIG="./admin.conf";
             };
         }
       );
