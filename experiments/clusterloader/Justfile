@@ -1,8 +1,29 @@
+# start a local kind cluster
 start:
     kind create cluster --image=kindest/node:v1.21.1 --name=clusterloader-cluster --wait=5m --config=kind-config.yaml
 
+# stop a local kind cluster
 stop:
     kind delete cluster --name=clusterloader-cluster
 
+# run clusterloader against the current kubernetes context
 run:
-    clusterloader2 --testconfig=config.yaml --provider=kind --kubeconfig=$HOME/.kube/config --report-dir=results --v=2
+    clusterloader2 --testconfig config.yaml --provider kind --kubeconfig $HOME/.kube/config --report-dir results --v 2
+
+# build the docker image for clusterloader2 and push it
+build-clusterloader2-image:
+    nix build ../..#clusterloader2-docker
+    docker load -i result
+    docker push jeffas/clusterloader2:kind
+
+run-caelum-single:
+    rsync -r -vv caelum-single caelum-401.cl.cam.ac.uk:/local/scratch/caelum-single
+    ssh caelum-401.cl.cam.ac.uk -- kind create cluster
+    ssh caelum-401.cl.cam.ac.uk -- sudo docker run -v /local/scratch/caelum-single:/data -v /local/scratch/clusterloader-results:/results -v /home/apj39/.kube/config:/kubeconfig jeffas/clusterloader2:kind
+
+# run kubespray to setup the cluster on caelum
+build-caelum-cluster:
+    ansible-playbook -i caelum/inventory/inventory.ini kubespray/cluster.yml --become -v
+
+ssh-tunnel:
+    ssh -L 6443:localhost:6443 caelum-401.cl.cam.ac.uk
