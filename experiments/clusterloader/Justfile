@@ -27,3 +27,10 @@ build-caelum-cluster:
 
 ssh-tunnel:
     ssh -L 6443:localhost:6443 caelum-401.cl.cam.ac.uk
+
+# deploy chaos mesh
+deploy-chaosmesh:
+    helm repo add chaos-mesh https://charts.chaos-mesh.org
+    kubectl create ns chaos-testing || true
+    helm upgrade -i chaos-mesh chaos-mesh/chaos-mesh -n=chaos-testing --values ./chaos-values.yaml --version 2.1.2
+    # Try setting up a port forward to the dashboard service
