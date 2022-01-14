@@ -4,7 +4,7 @@ namespace:
 tuningSets:
 - name: Uniform1qps
   qpsLoad:
-    qps: 1
+    qps: 2
 
 steps:
 - name: Start measurements
@@ -34,7 +34,7 @@ steps:
     - basename: test-deployment
       objectTemplatePath: deployment.yaml
       templateFillMap:
-        Replicas: 10
+        Replicas: 50
 - name: Wait for pods to be running
   measurements:
   - Identifier: WaitForControlledPodsRunning
