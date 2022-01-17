@@ -34,6 +34,7 @@
                 k9s
                 ansible_2_11
                 kubernetes-helm
+                openssl
 
                 jupyter
                 python3Packages.seaborn
