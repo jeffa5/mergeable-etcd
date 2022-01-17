@@ -23,6 +23,8 @@ steps:
       kind: Deployment
       labelSelector: group = test-deployment
       operationTimeout: 120s
+# gradually increase the number of pods requested
+{{range $replica := Loop 40}}
 - name: Create deployment
   phases:
   - namespaceRange:
@@ -34,7 +36,8 @@ steps:
     - basename: test-deployment
       objectTemplatePath: deployment.yaml
       templateFillMap:
-        Replicas: 50
+        Replicas: {{$replica}}
+{{end}}
 - name: Wait for pods to be running
   measurements:
   - Identifier: WaitForControlledPodsRunning
