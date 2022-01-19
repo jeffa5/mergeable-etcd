@@ -11,7 +11,8 @@ function write_config() {
     cat <<EOF > $results_path/config_$file.json
     {
         "delay": $delay,
-        "masters": $masters
+        "masters": $masters,
+        "image": $image
     }
 EOF
 }
@@ -27,6 +28,23 @@ EOF
     for master in $(seq 1 $masters); do
         echo "- role: control-plane" >> $config_file
     done
+
+    if [[ $image =~ "mergeable-etcd" ]]; then
+        cat <<EOF >> $config_file
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  etcd:
+    local:
+      imageRepository: docker.io/jeffas
+      imageTag: latest
+      # extraArgs:
+        # persister: sled
+        # debug: ""
+        # trace-file: /tmp/trace.out
+EOF
+    fi
+
     echo $config_file
 }
 
@@ -43,38 +61,42 @@ function delete_cluster() {
 
 cluster_name=clusterloader-cluster
 
-masters_options=(1 3 5 7)
+masters_options=(1 3 5)
 delays=(1 2 3 4 5 10)
 
 results_subdir=$(date --rfc-3339=seconds | tr ' ' 'T')
-results_path="results/$results_subdir"
+results_path="results/delay/$results_subdir"
 log "Making results subdir ($results_path)"
 mkdir -p $results_path
 
-for masters in "${masters_options[@]}"; do
-    delay=0
-    delete_cluster
-    create_cluster
+images=(etcd mergeable-etcd)
+for image in "${images[@]}"; do
+    log "Running for image $image"
+    for masters in "${masters_options[@]}"; do
+        delay=0
+        delete_cluster
+        create_cluster
 
-    log "Allowing pods to run on control-plane nodes"
-    kubectl taint nodes --all node-role.kubernetes.io/master-
+        log "Allowing pods to run on control-plane nodes"
+        kubectl taint nodes --all node-role.kubernetes.io/master-
 
-    log "Running baseline experiment"
-    write_config
-    ./scripts/run-clusterloader.sh $results_path
-
-    sleep 5
-
-    for delay in "${delays[@]}"; do
-        log "Clearing any current tc rules"
-        ./scripts/clear-tc.sh
-
-        log "Running experiment with delay '${delay}ms'"
-        ./scripts/control-plane-delay.sh --delay ${delay}ms
+        log "Running baseline experiment"
         write_config
         ./scripts/run-clusterloader.sh $results_path
 
         sleep 5
+
+        for delay in "${delays[@]}"; do
+            log "Clearing any current tc rules"
+            ./scripts/clear-tc.sh
+
+            log "Running experiment with delay '${delay}ms'"
+            ./scripts/control-plane-delay.sh --delay ${delay}ms
+            write_config
+            ./scripts/run-clusterloader.sh $results_path
+
+            sleep 5
+        done
     done
 done
 
