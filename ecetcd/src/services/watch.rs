@@ -41,7 +41,6 @@ impl WatchTrait for Watch {
                     Ok(request) => match request.request_union {
                         Some(RequestUnion::CreateRequest(create)) => {
                             // assert_eq!(create.start_revision, 0);
-                            assert_eq!(create.progress_notify, false);
                             assert_eq!(create.filters.len(), 0);
                             assert_eq!(create.watch_id, 0);
                             assert_eq!(create.fragment, false);
@@ -51,6 +50,7 @@ impl WatchTrait for Watch {
                                     create.key,
                                     create.range_end,
                                     create.prev_kv,
+                                    create.progress_notify,
                                     tx_response.clone(),
                                 )
                                 .await;

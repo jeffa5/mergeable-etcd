@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use etcd_proto::{etcdserverpb::WatchResponse, mvccpb};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tonic::Status;
@@ -14,14 +16,24 @@ impl Watcher {
     pub(super) fn new(
         id: i64,
         prev_kv: bool,
+        progress_notify: bool,
         mut changes: Receiver<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
         tx: Sender<Result<WatchResponse, Status>>,
     ) -> Self {
         let (cancel, mut should_cancel) = tokio::sync::oneshot::channel();
         tokio::spawn(async move {
             loop {
+                // sleeper for progress notify
+                // TODO: change sleep based on system load
+                let sleep = tokio::time::sleep(Duration::from_secs(1));
+                tokio::pin!(sleep);
                 tokio::select! {
                     _ = &mut should_cancel => break,
+                    _ = &mut sleep => {
+                        if progress_notify && handle_progress(id, &tx).await {
+                            break
+                        }
+                    }
                     Some((server, keys)) = changes.recv() => if handle_event(id,prev_kv, &tx, server, keys).await { break },
                     else => break,
                 };
@@ -36,6 +48,26 @@ impl Watcher {
 
     pub(super) fn is_dead(&self) -> bool {
         self.cancel.is_closed()
+    }
+}
+
+async fn handle_progress(watch_id: i64, tx: &Sender<Result<WatchResponse, Status>>) -> bool {
+    let resp = WatchResponse {
+        header: None,
+        watch_id,
+        created: false,
+        canceled: false,
+        compact_revision: 0,
+        cancel_reason: String::new(),
+        fragment: false,
+        events: Vec::new(),
+    };
+    debug!(?resp, "Sending progress notify watch response");
+    if tx.send(Ok(resp)).await.is_err() {
+        warn!("Got an error while sending progress notify watch response");
+        true
+    } else {
+        false
     }
 }
 

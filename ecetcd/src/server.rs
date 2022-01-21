@@ -62,6 +62,7 @@ impl Server {
         key: Vec<u8>,
         range_end: Vec<u8>,
         prev_kv: bool,
+        progress_notify: bool,
         tx_results: tokio::sync::mpsc::Sender<Result<WatchResponse, Status>>,
     ) -> i64 {
         // TODO: have a more robust cancel mechanism
@@ -112,7 +113,7 @@ impl Server {
             }
         });
 
-        let watcher = watcher::Watcher::new(id, prev_kv, rx_events, tx_results);
+        let watcher = watcher::Watcher::new(id, prev_kv, progress_notify, rx_events, tx_results);
 
         let document = self.select_document();
 
