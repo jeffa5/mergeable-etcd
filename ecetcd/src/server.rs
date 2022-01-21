@@ -113,7 +113,14 @@ impl Server {
             }
         });
 
-        let watcher = watcher::Watcher::new(id, prev_kv, progress_notify, rx_events, tx_results);
+        let watcher = watcher::Watcher::new(
+            id,
+            prev_kv,
+            progress_notify,
+            rx_events,
+            tx_results,
+            self.clone(),
+        );
 
         let document = self.select_document();
 

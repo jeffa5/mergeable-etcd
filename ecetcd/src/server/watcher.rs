@@ -19,6 +19,7 @@ impl Watcher {
         progress_notify: bool,
         mut changes: Receiver<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
         tx: Sender<Result<WatchResponse, Status>>,
+        server: crate::server::Server,
     ) -> Self {
         let (cancel, mut should_cancel) = tokio::sync::oneshot::channel();
         tokio::spawn(async move {
@@ -30,7 +31,7 @@ impl Watcher {
                 tokio::select! {
                     _ = &mut should_cancel => break,
                     _ = &mut sleep => {
-                        if progress_notify && handle_progress(id, &tx).await {
+                        if progress_notify && handle_progress(id, &server, &tx).await {
                             break
                         }
                     }
@@ -51,9 +52,14 @@ impl Watcher {
     }
 }
 
-async fn handle_progress(watch_id: i64, tx: &Sender<Result<WatchResponse, Status>>) -> bool {
+async fn handle_progress(
+    watch_id: i64,
+    server: &crate::server::Server,
+    tx: &Sender<Result<WatchResponse, Status>>,
+) -> bool {
+    let server = server.current_server().await.header();
     let resp = WatchResponse {
-        header: None,
+        header: Some(server),
         watch_id,
         created: false,
         canceled: false,
