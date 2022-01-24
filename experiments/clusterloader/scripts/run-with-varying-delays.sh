@@ -12,7 +12,7 @@ function write_config() {
     {
         "delay": $delay,
         "masters": $masters,
-        "image": $image
+        "image": "$image"
     }
 EOF
 }
