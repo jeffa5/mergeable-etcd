@@ -86,7 +86,7 @@ for image in "${images[@]}"; do
 
         log "Running baseline experiment"
         write_config
-        ./scripts/run-clusterloader.sh $results_path
+        ./scripts/run-clusterloader.sh $results_path $masters
         sleep 5
 
         partitioned=1
@@ -104,7 +104,7 @@ for image in "${images[@]}"; do
         write_config
         sleep_and_clear &
         log "Running experiment with partitioned '${partitioned}'"
-        ./scripts/run-clusterloader.sh $results_path
+        ./scripts/run-clusterloader.sh $results_path $masters
 
         wait
 

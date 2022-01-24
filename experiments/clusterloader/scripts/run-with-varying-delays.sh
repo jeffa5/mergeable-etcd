@@ -82,7 +82,7 @@ for image in "${images[@]}"; do
 
         log "Running baseline experiment"
         write_config
-        ./scripts/run-clusterloader.sh $results_path
+        ./scripts/run-clusterloader.sh $results_path $masters
 
         sleep 5
 
@@ -93,7 +93,7 @@ for image in "${images[@]}"; do
             log "Running experiment with delay '${delay}ms'"
             ./scripts/control-plane-delay.sh --delay ${delay}ms
             write_config
-            ./scripts/run-clusterloader.sh $results_path
+            ./scripts/run-clusterloader.sh $results_path $masters
 
             sleep 5
         done

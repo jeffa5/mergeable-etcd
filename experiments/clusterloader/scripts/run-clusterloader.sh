@@ -7,7 +7,11 @@ if [[ -z "$1" ]]; then
 fi
 report_dir="$1"
 
-nodes=$(kubectl get nodes -o name | wc -l)
+if [[ -z "$2" ]]; then
+    echo "missing nodes argument"
+    exit 1
+fi
+nodes="$2"
 
 d=$(date --rfc-3339=seconds | tr ' ' 'T')
 
