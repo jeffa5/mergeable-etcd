@@ -7,7 +7,7 @@ kubeadmConfigPatches:
     local:
       imageRepository: docker.io/jeffas
       imageTag: latest
-      extraArgs:
-        persister: sled
+      # extraArgs:
+        # persister: sled
         # debug: ""
-        trace-file: /tmp/trace.out
+        # trace-file: /tmp/trace.out
