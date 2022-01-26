@@ -38,8 +38,12 @@ else
     # handle number
     h=55
     for node_ip in $node_ips; do
-        echo "filtering $node_ip"
+        # stop traffic for the node_ip leaving this node (still allows incoming)
+        echo "filtering outgoing to $node_ip"
         docker exec $target_node tc filter add dev eth0 parent 1:0 protocol ip pref 55 handle ::$h u32 match ip dst $node_ip flowid 2:1
+        h=$((h+1))
+        echo "filtering incoming from $node_ip"
+        docker exec $target_node tc filter add dev eth0 parent 1:0 protocol ip pref 55 handle ::$h u32 match ip src $node_ip flowid 2:1
         h=$((h+1))
     done
 fi
