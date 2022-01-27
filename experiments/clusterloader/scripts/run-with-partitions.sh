@@ -69,7 +69,7 @@ log "Making results subdir ($results_path)"
 mkdir -p $results_path
 
 function sleep_and_clear() {
-    sleep 120 && echo "Clearing partition" && ./scripts/clear-tc.sh
+    sleep 120 && echo "Clearing partition" && ./scripts/clear-iptables.sh
 }
 
 images=(etcd)
@@ -93,8 +93,8 @@ for image in "${images[@]}"; do
 
         # partition i for up to a majority
         # for partitioned in $(seq 1 $(( masters / 2 ))); do
-        log "Clearing any current tc rules"
-        ./scripts/clear-tc.sh
+        log "Clearing any current iptables rules"
+        ./scripts/clear-iptables.sh
 
         node=$(kubectl get nodes -o name | head -n 1)
         node=${node##*/}

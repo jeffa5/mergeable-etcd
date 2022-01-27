@@ -27,23 +27,9 @@ fi
 
 node_ips=$(kubectl get nodes -o json | jq -r ".items[] | select(.status.addresses[1].address != \"$target_node\").status.addresses[0].address")
 
-set +x
 echo "Partitioning $target_node"
-out=$(docker exec $target_node tc qdisc add dev eth0 root handle 1: prio 2>&1)
-if [[ $out =~ "Exclusivity flag on, cannot modify." ]]; then
-    echo $out
-    exit 1
-else
-    docker exec $target_node tc qdisc add dev eth0 parent 1:1 handle 2: netem loss 100%
-    # handle number
-    h=55
-    for node_ip in $node_ips; do
-        # stop traffic for the node_ip leaving this node (still allows incoming)
-        echo "filtering outgoing to $node_ip"
-        docker exec $target_node tc filter add dev eth0 parent 1:0 protocol ip pref 55 handle ::$h u32 match ip dst $node_ip flowid 2:1
-        h=$((h+1))
-        echo "filtering incoming from $node_ip"
-        docker exec $target_node tc filter add dev eth0 parent 1:0 protocol ip pref 55 handle ::$h u32 match ip src $node_ip flowid 2:1
-        h=$((h+1))
-    done
-fi
+
+for node_ip in $node_ips; do
+    docker exec $target_node iptables -A OUTPUT -d $node_ip -j DROP
+    docker exec $target_node iptables -A INPUT -s $node_ip -j DROP
+done
