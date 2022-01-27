@@ -25,11 +25,13 @@ if [[ -z $target_node ]]; then
     exit 1
 fi
 
-node_ips=$(kubectl get nodes -o json | jq -r ".items[] | select(.status.addresses[1].address != \"$target_node\").status.addresses[0].address")
+nodes=$(docker ps --format "{{.Names}}" | grep "clusterloader")
 
-echo "Partitioning $target_node"
-
-for node_ip in $node_ips; do
+for node in $nodes; do
+    if [[ $target_node == $node ]]; then
+        continue
+    fi
+    node_ip=$(docker inspect $node | jq -r '.[0].NetworkSettings.Networks.kind.IPAddress')
     docker exec $target_node iptables -A OUTPUT -d $node_ip -j DROP
     docker exec $target_node iptables -A INPUT -s $node_ip -j DROP
 done
