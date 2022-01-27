@@ -9,14 +9,14 @@ use crate::store::DocumentHandle;
 
 pub struct Server {
     inner: Arc<Mutex<Inner>>,
-    backend: DocumentHandle,
+    document: DocumentHandle,
 }
 
 impl Clone for Server {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
-            backend: self.backend.clone(),
+            document: self.document.clone(),
         }
     }
 }
@@ -26,12 +26,12 @@ pub struct Inner {
 }
 
 impl Server {
-    pub fn new(backend: DocumentHandle) -> Self {
+    pub fn new(document: DocumentHandle) -> Self {
         Self {
             inner: Arc::new(Mutex::new(Inner {
                 sync_connections: HashMap::new(),
             })),
-            backend,
+            document,
         }
     }
 
@@ -42,11 +42,11 @@ impl Server {
         mut receiver: mpsc::Receiver<(u64, Option<automerge_backend::SyncMessage>)>,
     ) {
         let inner = Arc::clone(&self.inner);
-        let backend = self.backend.clone();
+        let document = self.document.clone();
         tokio::spawn(async move {
-            // handle changes in backend and sending generated messages
+            // handle changes in document and sending generated messages
             loop {
-                // wait to be notified of a new change in the backend
+                // wait to be notified of a new change in the document
                 //
                 // Using notify here stops us getting lots of duplicate values and unnecessary
                 // sends
@@ -59,7 +59,7 @@ impl Server {
 
                 for (peer_id, sender) in connections {
                     let peer_id = peer_id.to_be_bytes().to_vec();
-                    let msg = backend.generate_sync_message(peer_id.clone()).await;
+                    let msg = document.generate_sync_message(peer_id.clone()).await;
                     if let Some(msg) = msg {
                         let _ = sender.send(msg);
                     }
@@ -67,20 +67,20 @@ impl Server {
             }
         });
 
-        let backend = self.backend.clone();
+        let document = self.document.clone();
         tokio::spawn(async move {
-            // handle any received messages and apply them to the backend
+            // handle any received messages and apply them to the document
             while let Some((peer_id, message)) = receiver.recv().await {
                 let peer_id = peer_id.to_be_bytes().to_vec();
                 if let Some(message) = message {
-                    backend.receive_sync_message(peer_id, message).await;
+                    document.receive_sync_message(peer_id, message).await;
                 } else {
                     // new connection to the server
                     //
                     // This will trigger clients to check for new messages
                     //
                     // Works when the client is already connected and set up.
-                    backend.new_sync_peer().await;
+                    document.new_sync_peer().await;
                 }
             }
         });
@@ -104,7 +104,7 @@ impl Server {
             }
         };
         // newly connected client so should see if there is anything to send to the peer
-        self.backend.new_sync_peer().await;
+        self.document.new_sync_peer().await;
         res
     }
 
