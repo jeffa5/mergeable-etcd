@@ -1,3 +1,4 @@
+pub mod cluster;
 pub mod kv;
 pub mod lease;
 pub mod maintenance;
@@ -10,8 +11,8 @@ use std::{
 };
 
 use etcd_proto::etcdserverpb::{
-    kv_server::KvServer, lease_server::LeaseServer, maintenance_server::MaintenanceServer,
-    watch_server::WatchServer,
+    cluster_server::ClusterServer, kv_server::KvServer, lease_server::LeaseServer,
+    maintenance_server::MaintenanceServer, watch_server::WatchServer,
 };
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use tokio::sync::mpsc;
@@ -39,6 +40,10 @@ pub async fn serve(
         server: server.clone(),
         trace_out: trace_out.clone(),
     });
+    let cluster_service = ClusterServer::new(cluster::Cluster {
+        server: server.clone(),
+        trace_out: trace_out.clone(),
+    });
     let watch_service = WatchServer::new(watch::Watch {
         server: server.clone(),
         trace_out: trace_out.clone(),
@@ -57,6 +62,7 @@ pub async fn serve(
         .add_service(maintenance_service)
         .add_service(watch_service)
         .add_service(lease_service)
+        .add_service(cluster_service)
         .serve_with_shutdown(address, async {
             shutdown.changed().await.unwrap();
             info!("Gracefully shutting down client server")

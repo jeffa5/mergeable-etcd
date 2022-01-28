@@ -28,7 +28,7 @@ use tokio::{
 };
 use tonic::transport::Identity;
 pub use trace::TraceValue;
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{
     address::{NamedAddress, Scheme},
@@ -119,6 +119,22 @@ where
         });
 
         let document = DocumentHandle::new(fc_sender);
+
+        // create the default server with the configuration
+        debug!("Setting server on document");
+        document
+            .set_server(crate::store::Server::new(
+                self.name.clone(),
+                self.initial_advertise_peer_urls
+                    .iter()
+                    .map(|a| a.to_string())
+                    .collect(),
+                self.advertise_client_urls
+                    .iter()
+                    .map(|a| a.to_string())
+                    .collect(),
+            ))
+            .await;
 
         let server = crate::server::Server::new(document.clone());
 

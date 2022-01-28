@@ -23,7 +23,7 @@ use crate::{
         content::{LEASES_KEY, SERVER_KEY, VALUES_KEY},
         document::inner::DocumentInner,
         value::{LEASE_ID_KEY, REVISIONS_KEY},
-        Key, Revision, Server, SnapshotValue, StoreContents, Ttl,
+        Key, Peer, Revision, Server, SnapshotValue, StoreContents, Ttl,
     },
     StoreValue,
 };
@@ -319,7 +319,61 @@ where
                 // trigger sync clients to try for new messages
                 self.changed_notify.notify_one();
             }
+            DocumentMessage::SetServer { server } => self.set_server(server).await,
+            DocumentMessage::AddPeer { urls, ret } => {
+                let result = self.add_peer(urls);
+                self.flush().await;
+                let _ = ret.send(result);
+            }
+            DocumentMessage::RemovePeer { id } => {
+                self.remove_peer(id);
+                self.flush().await;
+            }
+            DocumentMessage::UpdatePeer { id, urls } => {
+                self.update_peer(id, urls);
+                self.flush().await;
+            }
         }
+    }
+
+    fn add_peer(&mut self, peer_urls: Vec<String>) -> Peer {
+        self.document
+            .change::<_, _, DocumentError>(|store_contents| {
+                let server = store_contents.server_mut().expect("Failed to get server");
+                let id = random();
+                let peer = Peer {
+                    id,
+                    name: String::new(),
+                    peer_urls,
+                    client_urls: Vec::new(),
+                };
+                server.upsert_peer(peer.clone());
+                Ok(peer)
+            })
+            .unwrap()
+    }
+
+    fn remove_peer(&mut self, id: u64) {
+        self.document
+            .change::<_, _, DocumentError>(|store_contents| {
+                let server = store_contents.server_mut().expect("Failed to get server");
+                server.remove_peer(id);
+                Ok(())
+            })
+            .unwrap();
+    }
+
+    fn update_peer(&mut self, id: u64, urls: Vec<String>) {
+        self.document
+            .change::<_, _, DocumentError>(|store_contents| {
+                let server = store_contents.server_mut().expect("Failed to get server");
+                if let Some(mut peer) = server.get_peer(id).cloned() {
+                    peer.peer_urls = urls;
+                    server.upsert_peer(peer);
+                }
+                Ok(())
+            })
+            .unwrap();
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -640,6 +694,16 @@ where
         }
 
         Ok(server)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn set_server(&mut self, server: crate::store::Server) {
+        self.document
+            .change::<_, _, DocumentError>(|store_contents| {
+                store_contents.set_server(server);
+                Ok(())
+            })
+            .unwrap();
     }
 }
 

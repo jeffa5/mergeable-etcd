@@ -10,7 +10,7 @@ use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 pub use handle::DocumentHandle;
 use tokio::sync::{mpsc, oneshot};
 
-use super::{SnapshotValue, Ttl};
+use super::{Peer, SnapshotValue, Ttl};
 use crate::store::{Key, Revision, Server};
 
 #[derive(Debug)]
@@ -75,6 +75,20 @@ pub enum DocumentMessage {
         message: SyncMessage,
     },
     NewSyncPeer {},
+    SetServer {
+        server: crate::store::Server,
+    },
+    AddPeer {
+        urls: Vec<String>,
+        ret: oneshot::Sender<Peer>,
+    },
+    RemovePeer {
+        id: u64,
+    },
+    UpdatePeer {
+        id: u64,
+        urls: Vec<String>,
+    },
 }
 
 impl Display for DocumentMessage {
@@ -94,6 +108,10 @@ impl Display for DocumentMessage {
             DocumentMessage::GenerateSyncMessage { .. } => "generate_sync_message",
             DocumentMessage::ReceiveSyncMessage { .. } => "receive_sync_message",
             DocumentMessage::NewSyncPeer {} => "new_sync_peer",
+            DocumentMessage::SetServer { .. } => "set_server",
+            DocumentMessage::AddPeer { .. } => "add_peer",
+            DocumentMessage::RemovePeer { .. } => "remove_peer",
+            DocumentMessage::UpdatePeer { .. } => "update_peer",
         };
         write!(f, "{}", s)
     }

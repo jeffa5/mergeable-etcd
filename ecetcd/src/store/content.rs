@@ -174,6 +174,10 @@ where
             .insert(id, ValueState::Present(Lease::new(ttl)));
     }
 
+    pub fn set_server(&mut self, server: crate::store::Server) {
+        self.server = Some(server)
+    }
+
     pub fn value(&mut self, key: &Key) -> Option<Result<&IValue<'a, T>, FromAutomergeError>> {
         if self.values.as_ref().and_then(|v| v.get(key)).is_some() {
             // already in the cache so do nothing
@@ -346,7 +350,7 @@ where
             match v {
                 Some(Ok(server)) => self.server = Some(server),
                 Some(Err(e)) => return Err(e),
-                None => self.server = Some(Server::default()),
+                None => panic!("no server in the document, should have been created on startup"),
             }
             Ok(self.server.as_ref().unwrap())
         }
@@ -366,7 +370,7 @@ where
             match v {
                 Some(Ok(server)) => self.server = Some(server),
                 Some(Err(e)) => return Err(e),
-                None => self.server = Some(Server::default()),
+                None => panic!("no server in the document, should have been created on startup"),
             }
             Ok(self.server.as_mut().unwrap())
         }

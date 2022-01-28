@@ -2,6 +2,7 @@
 mod content;
 mod document;
 mod key;
+mod peer;
 mod revision;
 mod server;
 mod ttl;
@@ -11,6 +12,7 @@ mod version;
 pub use content::StoreContents;
 pub use document::{DocumentActor, DocumentError, DocumentHandle};
 pub use key::Key;
+pub use peer::Peer;
 pub use revision::Revision;
 pub use server::Server;
 pub use ttl::Ttl;

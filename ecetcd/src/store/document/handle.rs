@@ -4,7 +4,7 @@ use tokio::sync::{mpsc, oneshot};
 use tracing::Span;
 
 use super::{actor::DocumentError, DocumentMessage};
-use crate::store::{Key, Revision, Server, SnapshotValue, Ttl};
+use crate::store::{Key, Peer, Revision, Server, SnapshotValue, Ttl};
 
 #[derive(Clone, Debug)]
 enum Sender {
@@ -199,6 +199,29 @@ impl DocumentHandle {
 
     pub async fn new_sync_peer(&self) {
         let msg = DocumentMessage::NewSyncPeer {};
+        let _ = self.sender.send_to_document(msg).await;
+    }
+
+    pub async fn set_server(&self, server: crate::store::Server) {
+        let msg = DocumentMessage::SetServer { server };
+        let _ = self.sender.send_to_document(msg).await;
+    }
+
+    pub async fn add_peer(&self, urls: Vec<String>) -> Peer {
+        let (send, recv) = oneshot::channel();
+        let msg = DocumentMessage::AddPeer { urls, ret: send };
+
+        let _ = self.sender.send_to_document(msg).await;
+        recv.await.expect("Backend actor task has been killed")
+    }
+
+    pub async fn remove_peer(&self, id: u64) {
+        let msg = DocumentMessage::RemovePeer { id };
+        let _ = self.sender.send_to_document(msg).await;
+    }
+
+    pub async fn update_peer(&self, id: u64, urls: Vec<String>) {
+        let msg = DocumentMessage::UpdatePeer { id, urls };
         let _ = self.sender.send_to_document(msg).await;
     }
 }

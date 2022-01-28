@@ -235,4 +235,16 @@ impl Server {
     ) -> Result<(crate::store::Server, bool, Vec<ResponseOp>), DocumentError> {
         self.select_document().txn(request).await
     }
+
+    pub async fn add_peer(&self, urls: Vec<String>) -> crate::store::Peer {
+        self.select_document().add_peer(urls).await
+    }
+
+    pub async fn remove_peer(&self, id: u64) {
+        self.select_document().remove_peer(id).await
+    }
+
+    pub async fn update_peer(&self, id: u64, urls: Vec<String>) {
+        self.select_document().update_peer(id, urls).await
+    }
 }
