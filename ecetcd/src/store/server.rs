@@ -10,8 +10,7 @@ use super::{peer::Peer, Revision};
 /// Contains the global revision for the server and information to generate the header for API requests
 #[derive(Debug, Clone, Serialize, Deserialize, automergeable::Automergeable)]
 pub struct Server {
-    cluster_id: u64,
-    member_id: u64,
+    pub cluster_id: u64,
     /// The global revision of this server
     pub revision: Revision,
     raft_term: u64,
@@ -19,9 +18,14 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(name: String, peer_urls: Vec<String>, client_urls: Vec<String>) -> Self {
+    pub fn new(
+        cluster_id: u64,
+        member_id: u64,
+        name: String,
+        peer_urls: Vec<String>,
+        client_urls: Vec<String>,
+    ) -> Self {
         let mut members = HashMap::new();
-        let member_id = rand::random();
         members.insert(
             member_id,
             Peer {
@@ -32,25 +36,20 @@ impl Server {
             },
         );
         Self {
-            cluster_id: 2345,
-            member_id,
+            cluster_id,
             revision: Revision::default(),
             raft_term: 1,
             cluster_members: members,
         }
     }
 
-    pub const fn header(&self) -> ResponseHeader {
+    pub const fn header(&self, member_id: u64) -> ResponseHeader {
         ResponseHeader {
             cluster_id: self.cluster_id,
-            member_id: self.member_id,
+            member_id,
             revision: self.revision.get() as i64,
             raft_term: self.raft_term,
         }
-    }
-
-    pub const fn member_id(&self) -> u64 {
-        self.member_id
     }
 
     /// Increment the revision of the server and return the new value.

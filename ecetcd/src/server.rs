@@ -28,15 +28,17 @@ pub struct Server {
 #[derive(Debug)]
 struct Inner {
     document: DocumentHandle,
+    peer_server: crate::peer::Server,
     max_watcher_id: i64,
     watchers: HashMap<i64, (DocumentHandle, watcher::Watcher)>,
     leases: HashMap<i64, lease::Lease>,
 }
 
 impl Server {
-    pub fn new(document: DocumentHandle) -> Self {
+    pub fn new(document: DocumentHandle, peer_server: crate::peer::Server) -> Self {
         let inner = Inner {
             document,
+            peer_server,
             max_watcher_id: 1,
             watchers: HashMap::new(),
             leases: HashMap::new(),
@@ -120,7 +122,8 @@ impl Server {
             rx_events,
             tx_results,
             self.clone(),
-        );
+        )
+        .await;
 
         let document = self.select_document();
 
@@ -195,6 +198,10 @@ impl Server {
         self.select_document().current_server().await
     }
 
+    pub async fn member_id(&self) -> u64 {
+        self.select_document().member_id().await
+    }
+
     pub async fn get(
         &self,
         key: Key,
@@ -237,14 +244,26 @@ impl Server {
     }
 
     pub async fn add_peer(&self, urls: Vec<String>) -> crate::store::Peer {
-        self.select_document().add_peer(urls).await
+        let peer = self.select_document().add_peer(urls).await;
+        // let peer_server = self.inner.lock().unwrap().peer_server.clone();
+        // for url in &peer.peer_urls {
+        //     tokio::spawn(async move {
+        //         loop {
+        //             connect_and_sync(url.clone(), peer_server.clone(), peer.id).await;
+        //             tokio::time::sleep(Duration::from_secs(1)).await;
+        //         }
+        //     });
+        // }
+        peer
     }
 
     pub async fn remove_peer(&self, id: u64) {
-        self.select_document().remove_peer(id).await
+        self.select_document().remove_peer(id).await;
+        // todo handle peer server removal
     }
 
     pub async fn update_peer(&self, id: u64, urls: Vec<String>) {
         self.select_document().update_peer(id, urls).await
+        // todo handle peer server changes for urls
     }
 }

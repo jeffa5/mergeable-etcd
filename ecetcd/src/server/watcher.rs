@@ -13,7 +13,7 @@ pub struct Watcher {
 }
 
 impl Watcher {
-    pub(super) fn new(
+    pub(super) async fn new(
         id: i64,
         prev_kv: bool,
         progress_notify: bool,
@@ -22,6 +22,7 @@ impl Watcher {
         server: crate::server::Server,
     ) -> Self {
         let (cancel, mut should_cancel) = tokio::sync::oneshot::channel();
+        let member_id = server.member_id().await;
         tokio::spawn(async move {
             loop {
                 // sleeper for progress notify
@@ -31,11 +32,11 @@ impl Watcher {
                 tokio::select! {
                     _ = &mut should_cancel => break,
                     _ = &mut sleep => {
-                        if progress_notify && handle_progress(id, &server, &tx).await {
+                        if progress_notify && handle_progress(id, &server, &tx, member_id).await {
                             break
                         }
                     }
-                    Some((server, keys)) = changes.recv() => if handle_event(id,prev_kv, &tx, server, keys).await { break },
+                    Some((server, keys)) = changes.recv() => if handle_event(id,prev_kv, &tx, server, keys, member_id).await { break },
                     else => break,
                 };
             }
@@ -56,8 +57,9 @@ async fn handle_progress(
     watch_id: i64,
     server: &crate::server::Server,
     tx: &Sender<Result<WatchResponse, Status>>,
+    member_id: u64,
 ) -> bool {
-    let server = server.current_server().await.header();
+    let server = server.current_server().await.header(member_id);
     let resp = WatchResponse {
         header: Some(server),
         watch_id,
@@ -83,6 +85,7 @@ async fn handle_event(
     tx: &Sender<Result<WatchResponse, Status>>,
     server: Server,
     changes: Vec<(SnapshotValue, Option<SnapshotValue>)>,
+    member_id: u64,
 ) -> bool {
     debug!("Got a watch event {:?}", changes);
     let events = changes
@@ -108,7 +111,7 @@ async fn handle_event(
         .collect::<Vec<_>>();
 
     let resp = WatchResponse {
-        header: Some(server.header()),
+        header: Some(server.header(member_id)),
         watch_id: id,
         created: false,
         canceled: false,

@@ -1,4 +1,3 @@
-mod client;
 mod server;
 mod service;
 
@@ -7,7 +6,6 @@ use std::{
     task::{Context, Poll},
 };
 
-pub use client::connect_and_sync;
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use peer_proto::peer_server::PeerServer;
 pub use server::Server;

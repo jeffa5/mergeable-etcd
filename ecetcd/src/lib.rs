@@ -8,16 +8,10 @@ pub mod store;
 mod trace;
 
 use std::{
-    convert::TryFrom,
-    fmt::Debug,
-    marker::PhantomData,
-    path::{Path, PathBuf},
-    sync::Arc,
-    time::Duration,
+    convert::TryFrom, fmt::Debug, marker::PhantomData, path::PathBuf, str::FromStr, sync::Arc,
 };
 
 pub use address::Address;
-use automerge_persistent::Persister;
 use automerge_persistent_sled::SledPersister;
 use store::DocumentHandle;
 pub use store::StoreValue;
@@ -26,9 +20,12 @@ use tokio::{
     sync::{mpsc, Notify},
     task::LocalSet,
 };
-use tonic::transport::Identity;
+use tonic::{
+    transport::{Endpoint, Identity},
+    Request,
+};
 pub use trace::TraceValue;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::{
     address::{NamedAddress, Scheme},
@@ -37,6 +34,26 @@ use crate::{
 };
 
 const WAITING_CLIENTS_PER_DOCUMENT: usize = 32;
+
+#[derive(Debug, PartialEq, PartialOrd)]
+pub enum InitialClusterState {
+    New,
+    Existing,
+}
+
+impl FromStr for InitialClusterState {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "new" => Ok(Self::New),
+            "existing" => Ok(Self::Existing),
+            _ => {
+                Err("Invalid initial cluster state, must be one of [`new`, `existing`]".to_owned())
+            }
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Ecetcd<T> {
@@ -50,6 +67,8 @@ pub struct Ecetcd<T> {
     pub initial_advertise_peer_urls: Vec<Address>,
     /// Initial peer addresses.
     pub initial_cluster: Vec<NamedAddress>,
+    /// State of the initial cluster.
+    pub initial_cluster_state: InitialClusterState,
     pub advertise_client_urls: Vec<Address>,
     /// Addresses to listen for metrics on.
     pub listen_metrics_urls: Vec<Address>,
@@ -74,15 +93,77 @@ where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {
-    pub async fn serve<P>(
+    pub async fn serve(
         self,
         shutdown: tokio::sync::watch::Receiver<()>,
-        persister: P,
-    ) -> Result<(), Box<dyn std::error::Error>>
-    where
-        P: Persister + Debug + Send + 'static,
-        P::Error: Send,
-    {
+        sled_config: sled::Config,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let client_urls = match (
+            &self.listen_client_urls[..],
+            &self.advertise_client_urls[..],
+        ) {
+            ([], []) => {
+                panic!("no client urls to advertise")
+            }
+            ([], urls) => urls,
+            (urls, _) => urls,
+        };
+
+        let peer_urls = match (
+            &self.listen_peer_urls[..],
+            &self.initial_advertise_peer_urls[..],
+        ) {
+            ([], []) => {
+                panic!("no peer urls to advertise")
+            }
+            ([], urls) => urls,
+            (urls, _) => urls,
+        };
+
+        let db = sled_config.open().unwrap();
+
+        // if there is an existing cluster then we need to connect to it to get the cluster
+        // information before setting up
+        let (cluster_id, member_id) = if self.initial_cluster_state == InitialClusterState::Existing
+        {
+            // pick a peer and try to connect to them
+            let peer = self.initial_cluster.first().unwrap();
+            let peer_endpoint = Endpoint::from_shared(peer.address.to_string()).unwrap();
+            let mut peer_client = peer_proto::peer_client::PeerClient::connect(peer_endpoint)
+                .await
+                .unwrap();
+            let members = peer_client
+                .member_list(Request::new(peer_proto::MemberListRequest {}))
+                .await
+                .unwrap()
+                .into_inner();
+            let string_initial_advertise_peer_urls = self
+                .initial_advertise_peer_urls
+                .iter()
+                .map(|u| u.to_string())
+                .collect::<Vec<_>>();
+            let member = members
+                .members
+                .iter()
+                .find(|member| {
+                    member
+                        .peer_ur_ls
+                        .iter()
+                        .any(|url| string_initial_advertise_peer_urls.contains(url))
+                })
+                .expect("Failed to find member with given initial advertise peer url");
+
+            (members.cluster_id, member.id)
+        } else {
+            let member_id = if let Ok(Some(member_id)) = db.get("member_id".as_bytes()) {
+                u64::from_le_bytes(member_id.to_vec().try_into().unwrap())
+            } else {
+                rand::random()
+            };
+            // for a new cluster we just create them ourselves
+            (rand::random(), member_id)
+        };
+
         // for notifying the sync thread of changes to the document and triggering a new sync
         let change_notify = Arc::new(Notify::new());
         let change_notify2 = change_notify.clone();
@@ -98,12 +179,16 @@ where
 
         let (document_health_sender, document_health_receiver) = mpsc::channel(1);
 
+        db.insert("member_id".as_bytes(), &member_id.to_le_bytes())
+            .unwrap();
+        let persister = sled_persister(db);
         std::thread::spawn(move || {
             let local = LocalSet::new();
 
             local.block_on(&local_runtime, async move {
-                let mut actor = DocumentActor::<T, P>::new(
+                let mut actor = DocumentActor::<T, SledPersister>::new(
                     persister,
+                    member_id,
                     fc_receiver,
                     document_health_receiver,
                     shutdown_clone,
@@ -122,43 +207,23 @@ where
 
         // create the default server with the configuration
         debug!("Setting server on document");
-        document
-            .set_server(crate::store::Server::new(
-                self.name.clone(),
-                self.initial_advertise_peer_urls
-                    .iter()
-                    .map(|a| a.to_string())
-                    .collect(),
-                self.advertise_client_urls
-                    .iter()
-                    .map(|a| a.to_string())
-                    .collect(),
-            ))
-            .await;
+        let s = crate::store::Server::new(
+            cluster_id,
+            member_id,
+            self.name.clone(),
+            self.initial_advertise_peer_urls
+                .iter()
+                .map(|a| a.to_string())
+                .collect(),
+            self.advertise_client_urls
+                .iter()
+                .map(|a| a.to_string())
+                .collect(),
+        );
+        document.set_server(s).await;
 
-        let server = crate::server::Server::new(document.clone());
-
-        let client_urls = match (
-            &self.listen_client_urls[..],
-            &self.advertise_client_urls[..],
-        ) {
-            ([], []) => {
-                panic!("no client urls to advertise")
-            }
-            ([], urls) => urls,
-            (urls, _) => urls,
-        };
-
-        let peer_urls = match (
-            &self.listen_peer_urls[..],
-            &self.initial_advertise_peer_urls[..],
-        ) {
-            ([], []) => {
-                panic!("no client urls to advertise")
-            }
-            ([], urls) => urls,
-            (urls, _) => urls,
-        };
+        let peer_server = crate::peer::Server::new(document.clone(), member_id);
+        let server = crate::server::Server::new(document.clone(), peer_server.clone());
 
         let (trace_task, trace_out) = if let Some(f) = self.trace_file.as_ref() {
             trace::trace_task(f.clone(), shutdown.clone())
@@ -195,40 +260,24 @@ where
 
         let (peer_send, peer_receive) = mpsc::channel(1);
 
-        let peer_server = crate::peer::Server::new(document.clone());
         let peer_server_clone = peer_server.clone();
         let peer_server_task =
             tokio::spawn(async move { peer_server_clone.sync(change_notify2, peer_receive).await });
 
         let mut peer_clients = Vec::new();
         for address in self.initial_cluster.iter() {
-            if self.listen_peer_urls.contains(&address.address) {
+            if peer_urls.contains(&address.address) {
                 // don't send sync messages to self
                 continue;
             }
             let address = address.address.to_string();
             let peer_server = peer_server.clone();
-            let document = document.clone();
             let mut shutdown = shutdown.clone();
             let c = tokio::spawn(async move {
                 // connect to the peer and keep trying if goes offline
 
-                let server = document.current_server().await;
-                let member_id = server.member_id();
-
                 let address_clone = address.clone();
-                let l = tokio::spawn(async move {
-                    loop {
-                        crate::peer::connect_and_sync(
-                            address.clone(),
-                            peer_server.clone(),
-                            member_id,
-                        )
-                        .await;
-                        // TODO: use backoff
-                        tokio::time::sleep(Duration::from_secs(1)).await;
-                    }
-                });
+                let l = peer_server.spawn_client_handler(address.clone());
 
                 // loop won't terminate so just wait for it and the shutdown
                 tokio::select! {
@@ -274,7 +323,14 @@ where
                     document.clone(),
                 );
                 info!("Listening to peers on {}", peer_url);
-                serving
+                async move {
+                    match serving.await {
+                        Ok(()) => {}
+                        Err(err) => {
+                            warn!(%peer_url, %err, "Failed to create peer server");
+                        }
+                    }
+                }
             })
             .collect::<Vec<_>>();
 
@@ -306,7 +362,7 @@ where
 
         tokio::join![
             async { futures::future::try_join_all(client_servers).await.unwrap() },
-            async { futures::future::try_join_all(peer_servers).await.unwrap() },
+            async { futures::future::join_all(peer_servers).await },
             async { peer_server_task.await.unwrap() },
             async { futures::future::join_all(peer_clients).await },
             async {
@@ -326,9 +382,7 @@ where
     }
 }
 
-pub fn sled_persister<P: AsRef<Path>>(config: sled::Config, data_dir: P) -> SledPersister {
-    let config = config.path(data_dir);
-    let db = config.open().unwrap();
+pub fn sled_persister(db: sled::Db) -> SledPersister {
     let changes_tree = db.open_tree("changes").unwrap();
     let document_tree = db.open_tree("document").unwrap();
     let sync_states_tree = db.open_tree("syncstates").unwrap();

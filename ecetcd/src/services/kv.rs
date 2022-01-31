@@ -89,8 +89,9 @@ impl Kv for KV {
 
         let more = total_len > kvs.len();
 
+        let member_id = self.server.member_id().await;
         let reply = RangeResponse {
-            header: Some(server.header()),
+            header: Some(server.header(member_id)),
             kvs,
             count,
             more,
@@ -143,8 +144,9 @@ impl Kv for KV {
             Ok((server, prev_kv)) => {
                 let prev_kv = prev_kv.map(SnapshotValue::key_value);
 
+                let member_id = self.server.member_id().await;
                 let reply = PutResponse {
-                    header: Some(server.header()),
+                    header: Some(server.header(member_id)),
                     prev_kv,
                 };
                 tracing::event!(Level::DEBUG, "finished request");
@@ -183,8 +185,9 @@ impl Kv for KV {
             Vec::new()
         };
 
+        let member_id = self.server.member_id().await;
         let reply = DeleteRangeResponse {
-            header: Some(server.header()),
+            header: Some(server.header(member_id)),
             deleted,
             prev_kvs,
         };
@@ -201,6 +204,7 @@ impl Kv for KV {
 
         debug!("txn: {:?}", request);
         let txn_result = self.server.txn(request).await;
+        let member_id = self.server.member_id().await;
         match txn_result {
             Err(crate::store::DocumentError::MissingLease) => {
                 return Err(Status::not_found("etcdserver: requested lease not found"));
@@ -208,7 +212,7 @@ impl Kv for KV {
             Err(e) => Err(Status::internal(e.to_string())),
             Ok((server, success, results)) => {
                 let reply = TxnResponse {
-                    header: Some(server.header()),
+                    header: Some(server.header(member_id)),
                     responses: results,
                     succeeded: success,
                 };

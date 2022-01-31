@@ -54,8 +54,9 @@ impl LeaseTrait for Lease {
             }
             Err(e) => return Err(Status::unknown(e.to_string())),
         };
+        let member_id = self.server.member_id().await;
         Ok(Response::new(LeaseGrantResponse {
-            header: Some(server.header()),
+            header: Some(server.header(member_id)),
             id,
             ttl,
             error: String::new(),
@@ -78,8 +79,9 @@ impl LeaseTrait for Lease {
 
         let server_result = self.server.revoke_lease(request.id);
         let server = server_result.await.unwrap();
+        let member_id = self.server.member_id().await;
         Ok(Response::new(LeaseRevokeResponse {
-            header: Some(server.header()),
+            header: Some(server.header(member_id)),
         }))
     }
 
@@ -95,6 +97,7 @@ impl LeaseTrait for Lease {
         let (tx, rx) = tokio::sync::mpsc::channel(1);
 
         let server = self.server.clone();
+        let member_id = self.server.member_id().await;
         tokio::spawn(async move {
             let mut request = request.into_inner();
             while let Some(Ok(request)) = request.next().await {
@@ -102,7 +105,7 @@ impl LeaseTrait for Lease {
                 let (server, ttl) = refresh_result.await.unwrap();
                 let _ = tx
                     .send(Ok(LeaseKeepAliveResponse {
-                        header: Some(server.header()),
+                        header: Some(server.header(member_id)),
                         id: request.id,
                         ttl: *ttl,
                     }))

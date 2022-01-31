@@ -33,14 +33,14 @@ impl MaintenanceTrait for Maintenance {
         _request: Request<StatusRequest>,
     ) -> Result<Response<StatusResponse>, Status> {
         debug!("status request");
-        let server = self.server.current_server();
-        let server = server.await;
+        let server = self.server.current_server().await;
+        let member_id = self.server.member_id().await;
         let db_size = self.server.db_size().await as i64;
         let reply = StatusResponse {
-            header: Some(server.header()),
+            header: Some(server.header(member_id)),
             version: r#"{"etcdserver":"3.4.13","etcdcluster":"3.4.0"}"#.to_owned(),
             db_size,
-            leader: server.member_id(),
+            leader: member_id,
             raft_index: 0,
             raft_term: 0,
             raft_applied_index: 0,

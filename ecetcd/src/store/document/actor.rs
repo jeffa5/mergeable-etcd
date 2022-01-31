@@ -67,6 +67,7 @@ where
 {
     document: DocumentInner<T, P>,
     actor_id: uuid::Uuid,
+    member_id: u64,
     watchers: HashMap<
         i64,
         (
@@ -95,6 +96,7 @@ where
 {
     pub async fn new(
         persister: P,
+        member_id: u64,
         client_receiver: mpsc::Receiver<(DocumentMessage, Span)>,
         health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
         shutdown: watch::Receiver<()>,
@@ -160,6 +162,7 @@ where
 
         Ok(Self {
             document,
+            member_id,
             actor_id,
             watchers,
             client_receiver,
@@ -332,6 +335,9 @@ where
             DocumentMessage::UpdatePeer { id, urls } => {
                 self.update_peer(id, urls);
                 self.flush().await;
+            }
+            DocumentMessage::MemberId { ret } => {
+                let _ = ret.send(self.member_id);
             }
         }
     }
@@ -520,7 +526,8 @@ where
         let (server, success, results) =
             self.document
                 .change::<_, _, DocumentError>(|store_contents| {
-                    let (success, results) = store_contents.transaction_inner(request)?;
+                    let (success, results) =
+                        store_contents.transaction_inner(request, self.member_id)?;
                     let server = store_contents
                         .server()
                         .expect("Failed to get server")

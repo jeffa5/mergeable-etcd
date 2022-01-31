@@ -30,6 +30,7 @@ impl WatchTrait for Watch {
 
         let (tx_response, rx_response) = tokio::sync::mpsc::channel(1);
 
+        let member_id = self.server.member_id().await;
         tokio::spawn(async move {
             debug!("Waiting on watch requests");
             let mut in_stream = request.into_inner();
@@ -58,7 +59,7 @@ impl WatchTrait for Watch {
                             watch_ids_created_here.insert(watch_id);
 
                             let server = server_clone.current_server();
-                            let header = server.await.header();
+                            let header = server.await.header(member_id);
                             if tx_response
                                 .send(Ok(WatchResponse {
                                     header: Some(header),
@@ -81,7 +82,7 @@ impl WatchTrait for Watch {
 
                             server_clone.cancel_watcher(cancel.watch_id).await;
                             let server = server_clone.current_server();
-                            let header = server.await.header();
+                            let header = server.await.header(member_id);
                             if tx_response
                                 .send(Ok(WatchResponse {
                                     header: Some(header),

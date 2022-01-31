@@ -7,7 +7,7 @@ use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 use clap::arg_enum;
 use ecetcd::{
     address::{Address, NamedAddress},
-    sled_persister, Ecetcd,
+    sled_persister, Ecetcd, InitialClusterState,
 };
 use opentelemetry::global;
 use structopt::StructOpt;
@@ -28,7 +28,7 @@ struct Options {
     data_dir: PathBuf,
 
     /// List of URLs to listen on for peer traffic.
-    #[structopt(long, parse(try_from_str = Address::try_from), default_value = "http://localhost:2380", use_delimiter=true)]
+    #[structopt(long, parse(try_from_str = Address::try_from), use_delimiter=true)]
     listen_peer_urls: Vec<Address>,
 
     /// List of URLs to listen on for client traffic.
@@ -46,6 +46,10 @@ struct Options {
     /// Initial cluster configuration for bootstrapping.
     #[structopt(long, parse(try_from_str = NamedAddress::try_from), default_value = "default=http://localhost:2380", use_delimiter=true)]
     initial_cluster: Vec<NamedAddress>,
+
+    /// Initial cluster state.
+    #[structopt(long, default_value = "new")]
+    initial_cluster_state: InitialClusterState,
 
     /// List of this member's client URLs to advertise to the public.
     ///
@@ -160,6 +164,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         listen_client_urls: options.listen_client_urls,
         initial_advertise_peer_urls: options.initial_advertise_peer_urls,
         initial_cluster: options.initial_cluster,
+        initial_cluster_state: options.initial_cluster_state,
         advertise_client_urls: options.advertise_client_urls,
         listen_metrics_urls: options.listen_metrics_urls,
         cert_file: options.cert_file,
@@ -184,9 +189,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match options.persister {
         Persister::Sled => {
-            let config = sled::Config::default().mode(sled::Mode::HighThroughput);
-            let persister = sled_persister(config, options.data_dir);
-            server.serve(shutdown_rx, persister).await?;
+            let config = sled::Config::default()
+                .mode(sled::Mode::HighThroughput)
+                .path(options.data_dir);
+            server.serve(shutdown_rx, config).await?;
         }
     };
 

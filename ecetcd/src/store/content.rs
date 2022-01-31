@@ -135,6 +135,10 @@ where
                 Value::SortedMap(BTreeMap::new()),
             ),
             LocalChange::set(Path::root().key(SERVER_KEY), Value::Map(HashMap::new())),
+            LocalChange::set(
+                Path::root().key(SERVER_KEY).key("cluster_members"),
+                Value::Map(HashMap::new()),
+            ),
             LocalChange::set(Path::root().key(LEASES_KEY), Value::Map(HashMap::new())),
         ]
     }
@@ -514,6 +518,7 @@ where
     pub(crate) fn transaction_inner(
         &mut self,
         request: TxnRequest,
+        member_id: u64,
     ) -> Result<(bool, Vec<ResponseOp>), DocumentError> {
         tracing::debug!("transacting");
         let server = self.server().unwrap().clone();
@@ -570,7 +575,7 @@ where
                     let count = kvs.len() as i64;
 
                     let response = etcd_proto::etcdserverpb::RangeResponse {
-                        header: Some(server.header()),
+                        header: Some(server.header(member_id)),
                         kvs,
                         count,
                         more: false,
@@ -603,7 +608,7 @@ where
                                 None
                             };
                             let reply = etcd_proto::etcdserverpb::PutResponse {
-                                header: Some(server.header()),
+                                header: Some(server.header(member_id)),
                                 prev_kv,
                             };
                             Ok(ResponseOp {
@@ -632,7 +637,7 @@ where
                         Vec::new()
                     };
                     let reply = etcd_proto::etcdserverpb::DeleteRangeResponse {
-                        header: Some(server.header()),
+                        header: Some(server.header(member_id)),
                         deleted: 1,
                         prev_kvs,
                     };

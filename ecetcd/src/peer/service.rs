@@ -1,7 +1,8 @@
 use futures::StreamExt;
-use peer_proto::peer_server::Peer as PeerTrait;
+use peer_proto::{peer_server::Peer as PeerTrait, Member, MemberListResponse};
 use tokio::sync::{mpsc, watch};
 use tonic::Response;
+use tracing::debug;
 
 use crate::store::DocumentHandle;
 
@@ -44,8 +45,32 @@ impl PeerTrait for Peer {
         &self,
         _empty: tonic::Request<peer_proto::Empty>,
     ) -> Result<tonic::Response<peer_proto::GetMemberIdResponse>, tonic::Status> {
+        let member_id = self.document.member_id().await;
+        Ok(tonic::Response::new(peer_proto::GetMemberIdResponse {
+            id: member_id,
+        }))
+    }
+
+    async fn member_list(
+        &self,
+        _empty: tonic::Request<peer_proto::MemberListRequest>,
+    ) -> Result<tonic::Response<peer_proto::MemberListResponse>, tonic::Status> {
+        debug!("member_list");
         let server = self.document.current_server().await;
-        let id = server.member_id();
-        Ok(tonic::Response::new(peer_proto::GetMemberIdResponse { id }))
+        // get a list of all the current members
+        let members = server
+            .cluster_members()
+            .iter()
+            .map(|p| Member {
+                id: p.id,
+                name: p.name.clone(),
+                client_ur_ls: p.client_urls.clone(),
+                peer_ur_ls: p.peer_urls.clone(),
+            })
+            .collect();
+        Ok(Response::new(MemberListResponse {
+            cluster_id: server.cluster_id,
+            members,
+        }))
     }
 }
