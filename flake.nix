@@ -18,7 +18,7 @@
               system = system;
             };
           lib = pkgs.lib;
-          rust = pkgs.rust-bin.nightly.latest.rust;
+          rust = pkgs.rust-bin.nightly.latest.default;
           buildRustCrate = pkgs.buildRustCrate.override { rustc = rust; };
           makeCargoNix = release: import ./Cargo.nix {
             inherit pkgs release;
