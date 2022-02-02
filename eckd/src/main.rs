@@ -7,7 +7,7 @@ use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 use clap::arg_enum;
 use ecetcd::{
     address::{Address, NamedAddress},
-    sled_persister, Ecetcd, InitialClusterState,
+    Ecetcd, InitialClusterState,
 };
 use opentelemetry::global;
 use structopt::StructOpt;

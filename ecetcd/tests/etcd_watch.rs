@@ -7,7 +7,7 @@ use std::{
 };
 
 use etcd_proto::etcdserverpb::RequestOp;
-use test_env_log::test;
+use test_log::test;
 
 use crate::common::{test_del, test_lease_grant, test_put, test_txn, test_watch};
 

@@ -2,7 +2,7 @@ mod common;
 use std::sync::atomic::{AtomicI64, AtomicUsize, Ordering};
 
 use common::{test_lease_grant, test_lease_revoke, test_put, test_range};
-use test_env_log::test;
+use test_log::test;
 
 static KEY_COUNT: AtomicUsize = AtomicUsize::new(0);
 static LEASE_COUNT: AtomicI64 = AtomicI64::new(1);

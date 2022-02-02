@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use common::test_range;
 use etcd_proto::etcdserverpb;
-use test_env_log::test;
+use test_log::test;
 
 static KEY_COUNT: AtomicUsize = AtomicUsize::new(0);
 

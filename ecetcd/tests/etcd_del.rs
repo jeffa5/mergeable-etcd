@@ -5,7 +5,7 @@ use std::{
 };
 
 use common::{test_del, test_put, test_range};
-use test_env_log::test;
+use test_log::test;
 
 static KEY_COUNT: AtomicUsize = AtomicUsize::new(0);
 
