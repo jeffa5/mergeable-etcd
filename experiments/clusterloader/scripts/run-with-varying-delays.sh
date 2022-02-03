@@ -69,7 +69,7 @@ results_path="results/delay/$results_subdir"
 log "Making results subdir ($results_path)"
 mkdir -p $results_path
 
-images=(etcd mergeable-etcd)
+images=(etcd)
 for image in "${images[@]}"; do
     log "Running for image $image"
     for masters in "${masters_options[@]}"; do
