@@ -2266,7 +2266,7 @@ rec {
       "ecetcd" = rec {
         crateName = "ecetcd";
         version = "0.1.0";
-        edition = "2018";
+        edition = "2021";
         src = lib.cleanSourceWith { filter = sourceFilter;  src = ./ecetcd; };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -2418,8 +2418,8 @@ rec {
             packageId = "pretty_assertions";
           }
           {
-            name = "test-env-log";
-            packageId = "test-env-log";
+            name = "test-log";
+            packageId = "test-log";
             usesDefaultFeatures = false;
             features = [ "trace" ];
           }
@@ -8789,11 +8789,11 @@ rec {
         ];
 
       };
-      "test-env-log" = rec {
-        crateName = "test-env-log";
+      "test-log" = rec {
+        crateName = "test-log";
         version = "0.2.8";
         edition = "2018";
-        sha256 = "12jgf169r87q5kaa44rw2hx8n63cbl86hhgrbvv6j60hh3b8jwc7";
+        sha256 = "194i7mb4gi3a1mpid3n29q2xj8mr6l78qycc0wng8h4savncly7b";
         procMacro = true;
         authors = [
           "Daniel Mueller <deso@posteo.net>"
