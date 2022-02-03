@@ -1,10 +1,10 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, time::Duration};
 
 use etcd_proto::etcdserverpb::{
     kv_server::Kv, CompactionRequest, CompactionResponse, DeleteRangeRequest, DeleteRangeResponse,
     PutRequest, PutResponse, RangeRequest, RangeResponse, TxnRequest, TxnResponse,
 };
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, time::Instant};
 use tonic::{Request, Response, Status};
 use tracing::{debug, info, warn, Level};
 
@@ -13,6 +13,8 @@ use crate::{
     store::{Revision, SnapshotValue},
     TraceValue,
 };
+
+const DURATION_THRESHOLD: Duration = Duration::from_millis(100);
 
 #[derive(Debug)]
 pub struct KV {
@@ -27,6 +29,7 @@ impl Kv for KV {
         &self,
         request: Request<RangeRequest>,
     ) -> Result<Response<RangeResponse>, Status> {
+        let start = Instant::now();
         let request = request.into_inner();
 
         if let Some(s) = self.trace_out.as_ref() {
@@ -96,11 +99,15 @@ impl Kv for KV {
             count,
             more,
         };
+        if start.elapsed() > DURATION_THRESHOLD {
+            warn!(duration=?start.elapsed(), "Range request took too long");
+        }
         Ok(Response::new(reply))
     }
 
     #[tracing::instrument(skip(self, request))]
     async fn put(&self, request: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
+        let start = Instant::now();
         let request = request.into_inner();
 
         if let Some(s) = self.trace_out.as_ref() {
@@ -150,6 +157,9 @@ impl Kv for KV {
                     prev_kv,
                 };
                 tracing::event!(Level::DEBUG, "finished request");
+                if start.elapsed() > DURATION_THRESHOLD {
+                    warn!(duration=?start.elapsed(), "Put request took too long");
+                }
                 Ok(Response::new(reply))
             }
         }
@@ -160,6 +170,7 @@ impl Kv for KV {
         &self,
         request: Request<DeleteRangeRequest>,
     ) -> Result<Response<DeleteRangeResponse>, Status> {
+        let start = Instant::now();
         let request = request.into_inner();
 
         if let Some(s) = self.trace_out.as_ref() {
@@ -191,11 +202,15 @@ impl Kv for KV {
             deleted,
             prev_kvs,
         };
+        if start.elapsed() > DURATION_THRESHOLD {
+            warn!(duration=?start.elapsed(), "Delete range request took too long");
+        }
         Ok(Response::new(reply))
     }
 
     #[tracing::instrument(skip(self, request))]
     async fn txn(&self, request: Request<TxnRequest>) -> Result<Response<TxnResponse>, Status> {
+        let start = Instant::now();
         let request = request.into_inner();
 
         if let Some(s) = self.trace_out.as_ref() {
@@ -216,6 +231,9 @@ impl Kv for KV {
                     responses: results,
                     succeeded: success,
                 };
+                if start.elapsed() > DURATION_THRESHOLD {
+                    warn!(duration=?start.elapsed(), "Txn request took too long");
+                }
                 Ok(Response::new(reply))
             }
         }
