@@ -7,7 +7,8 @@ use std::{
 
 use etcd_proto::etcdserverpb::{
     CompactionRequest, DeleteRangeRequest, LeaseGrantRequest, LeaseLeasesRequest,
-    LeaseRevokeRequest, LeaseTimeToLiveRequest, PutRequest, RangeRequest, TxnRequest,
+    LeaseRevokeRequest, LeaseTimeToLiveRequest, MemberAddRequest, MemberRemoveRequest,
+    MemberUpdateRequest, PutRequest, RangeRequest, TxnRequest,
 };
 use tokio::{
     sync::{mpsc, watch},
@@ -25,6 +26,10 @@ pub enum TraceValue {
     LeaseRevokeRequest(LeaseRevokeRequest),
     LeaseTimeToLiveRequest(LeaseTimeToLiveRequest),
     LeaseLeasesRequest(LeaseLeasesRequest),
+    MemberAdd(MemberAddRequest),
+    MemberRemove(MemberRemoveRequest),
+    MemberUpdate(MemberUpdateRequest),
+    MemberList,
 }
 
 pub fn trace_task(

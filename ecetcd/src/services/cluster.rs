@@ -21,6 +21,11 @@ impl ClusterTrait for Cluster {
         request: Request<etcd_proto::etcdserverpb::MemberAddRequest>,
     ) -> Result<Response<etcd_proto::etcdserverpb::MemberAddResponse>, Status> {
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s.send(TraceValue::MemberAdd(request.clone())).await;
+        }
+
         debug!(?request, "member_add");
         let server = self.server.current_server().await;
         // add the member to the server struct so that it can be propagated to others
@@ -44,6 +49,11 @@ impl ClusterTrait for Cluster {
         request: Request<etcd_proto::etcdserverpb::MemberRemoveRequest>,
     ) -> Result<Response<etcd_proto::etcdserverpb::MemberRemoveResponse>, Status> {
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s.send(TraceValue::MemberRemove(request.clone())).await;
+        }
+
         debug!(?request, "member_remove");
         let server = self.server.current_server().await;
         // remove the member from the server struct so that it can be propagated to others
@@ -63,6 +73,11 @@ impl ClusterTrait for Cluster {
         request: Request<etcd_proto::etcdserverpb::MemberUpdateRequest>,
     ) -> Result<Response<etcd_proto::etcdserverpb::MemberUpdateResponse>, Status> {
         let request = request.into_inner();
+
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s.send(TraceValue::MemberUpdate(request.clone())).await;
+        }
+
         debug!(?request, "member_update");
         let server = self.server.current_server().await;
         // update the member so that peers can get the updates
@@ -83,6 +98,10 @@ impl ClusterTrait for Cluster {
         &self,
         _request: Request<etcd_proto::etcdserverpb::MemberListRequest>,
     ) -> Result<Response<etcd_proto::etcdserverpb::MemberListResponse>, Status> {
+        if let Some(s) = self.trace_out.as_ref() {
+            let _ = s.send(TraceValue::MemberList).await;
+        }
+
         debug!("member_list");
         let server = self.server.current_server().await;
         // get a list of all the current members
