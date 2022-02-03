@@ -99,6 +99,7 @@ for image in "${images[@]}"; do
         node=$(kubectl get nodes -o name | head -n 1)
         node=${node##*/}
 
+        log "Partitioning node $node"
         ./scripts/control-plane-full-loss.sh --node "$node"
         log "Writing config"
         write_config
