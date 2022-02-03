@@ -14,6 +14,7 @@ use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
 };
+use tracing::info;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum TraceValue {
@@ -37,10 +38,11 @@ pub fn trace_task(
     mut shutdown: watch::Receiver<()>,
 ) -> (Option<JoinHandle<()>>, Option<mpsc::Sender<TraceValue>>) {
     let (send, mut recv) = mpsc::channel(10);
+    info!(?file, "Creating parent directories for trace file");
+    create_dir_all(file.parent().unwrap()).unwrap();
     let file_out = tokio::spawn(async move {
-        create_dir_all(file.parent().unwrap()).unwrap();
-
         let file = File::create(file).unwrap();
+        info!(?file, "Created trace file");
         let mut bw = BufWriter::new(file);
         let mut i = 0;
         loop {
