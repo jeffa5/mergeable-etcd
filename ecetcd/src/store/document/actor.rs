@@ -521,6 +521,7 @@ where
         } else {
             dup_request.failure
         };
+        self.flush().await;
         let mut doc = self.document.get();
         for request_op in iter {
             match request_op.request.unwrap() {
