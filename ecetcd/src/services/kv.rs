@@ -156,7 +156,7 @@ impl Kv for KV {
                     header: Some(server.header(member_id)),
                     prev_kv,
                 };
-                tracing::event!(Level::DEBUG, "finished request");
+                debug!(duration=?start.elapsed(), "finished request");
                 if start.elapsed() > DURATION_THRESHOLD {
                     warn!(duration=?start.elapsed(), "Put request took too long");
                 }
