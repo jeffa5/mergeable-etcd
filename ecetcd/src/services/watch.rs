@@ -60,7 +60,7 @@ impl WatchTrait for Watch {
 
                             let server = server_clone.current_server();
                             let header = server.await.header(member_id);
-                            if tx_response
+                            if let Err(err) = tx_response
                                 .send(Ok(WatchResponse {
                                     header: Some(header),
                                     watch_id,
@@ -72,9 +72,8 @@ impl WatchTrait for Watch {
                                     events: vec![],
                                 }))
                                 .await
-                                .is_err()
                             {
-                                warn!("error sending watch creation response")
+                                warn!(%err,"error sending watch creation response");
                             }
                         }
                         Some(RequestUnion::CancelRequest(cancel)) => {
@@ -83,7 +82,7 @@ impl WatchTrait for Watch {
                             server_clone.cancel_watcher(cancel.watch_id).await;
                             let server = server_clone.current_server();
                             let header = server.await.header(member_id);
-                            if tx_response
+                            if let Err(err) = tx_response
                                 .send(Ok(WatchResponse {
                                     header: Some(header),
                                     watch_id: cancel.watch_id,
@@ -95,9 +94,8 @@ impl WatchTrait for Watch {
                                     events: vec![],
                                 }))
                                 .await
-                                .is_err()
                             {
-                                warn!("error sending watch cancelation response")
+                                warn!(%err, "error sending watch cancelation response");
                             };
                         }
                         Some(RequestUnion::ProgressRequest(progress)) => {
@@ -106,13 +104,12 @@ impl WatchTrait for Watch {
                         }
                         None => {
                             warn!("Got an empty watch request");
-                            if tx_response
+                            if let Err(err) = tx_response
                                 .send(Err(Status::invalid_argument("empty message")))
                                 .await
-                                .is_err()
                             {
                                 // receiver has closed
-                                warn!("Got an error while sending watch empty message error");
+                                warn!(%err, "Got an error while sending watch empty message error");
 
                                 for id in watch_ids_created_here {
                                     server_clone.cancel_watcher(id).await;

@@ -71,8 +71,8 @@ async fn handle_progress(
         events: Vec::new(),
     };
     debug!(?resp, "Sending progress notify watch response");
-    if tx.send(Ok(resp)).await.is_err() {
-        warn!("Got an error while sending progress notify watch response");
+    if let Err(err) = tx.send(Ok(resp)).await {
+        warn!(%err, "Got an error while sending progress notify watch response");
         true
     } else {
         false
@@ -121,9 +121,9 @@ async fn handle_event(
         events,
     };
     debug!(?resp, "Sending watch response");
-    if tx.send(Ok(resp)).await.is_err() {
+    if let Err(err) = tx.send(Ok(resp)).await {
         // receiver has closed
-        warn!("Got an error while sending watch response");
+        warn!(%err, "Got an error while sending watch response");
         true
     } else {
         false

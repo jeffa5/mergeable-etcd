@@ -595,9 +595,9 @@ where
         tx: mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
     ) {
         while let Some((server, events)) = receiver.recv().await {
-            if tx.send((server, events)).await.is_err() {
+            if let Err(err) = tx.send((server, events)).await {
                 // receiver has closed
-                warn!("Got an error while sending watch event");
+                warn!(%err, "Got an error while sending watch event");
                 break;
             }
         }
