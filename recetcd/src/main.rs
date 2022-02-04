@@ -4,7 +4,6 @@
 
 use std::{convert::TryFrom, marker::PhantomData, path::PathBuf};
 
-use clap::arg_enum;
 use ecetcd::{
     address::{Address, NamedAddress},
     Ecetcd, InitialClusterState,
@@ -104,16 +103,6 @@ struct Options {
     /// Where to save traces to, or nowhere to disable.
     #[structopt(long)]
     trace_file: Option<PathBuf>,
-
-    #[structopt(long, possible_values = &Persister::variants(), case_insensitive = true, default_value = "sled")]
-    persister: Persister,
-}
-
-arg_enum! {
-    #[derive(Debug)]
-    enum Persister {
-        Sled,
-    }
 }
 
 #[tokio::main]
@@ -187,14 +176,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1)
     });
 
-    match options.persister {
-        Persister::Sled => {
-            let config = sled::Config::default()
-                .mode(sled::Mode::HighThroughput)
-                .path(options.data_dir);
-            server.serve(shutdown_rx, config).await?;
-        }
-    };
+    let config = sled::Config::default()
+        .mode(sled::Mode::HighThroughput)
+        .path(options.data_dir);
+    server.serve(shutdown_rx, config).await?;
 
     Ok(())
 }
