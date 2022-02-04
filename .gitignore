@@ -22,3 +22,6 @@ perf.data.old
 
 *.out
 *.err
+
+.vscode
+*.tar.gz
