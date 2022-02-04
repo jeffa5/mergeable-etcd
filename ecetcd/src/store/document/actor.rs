@@ -16,7 +16,10 @@ use tokio::{
 };
 use tracing::{debug, error, info, warn, Instrument, Span};
 
-use super::DocumentMessage;
+use super::{
+    outstanding::{OutstandingInsert, OutstandingRemove, OutstandingRequest},
+    DocumentMessage,
+};
 use crate::{
     key_range::SingleKeyOrRange,
     store::{
@@ -60,21 +63,23 @@ lazy_static! {
     .unwrap();
 }
 
+type WatchersMap = HashMap<
+    i64,
+    (
+        SingleKeyOrRange,
+        mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
+    ),
+>;
+
 #[derive(Debug)]
 pub struct DocumentActor<T, P>
 where
     T: StoreValue,
 {
-    document: DocumentInner<T, P>,
+    pub(super) document: DocumentInner<T, P>,
     actor_id: uuid::Uuid,
     member_id: u64,
-    watchers: HashMap<
-        i64,
-        (
-            SingleKeyOrRange,
-            mpsc::Sender<(Server, Vec<(SnapshotValue, Option<SnapshotValue>)>)>,
-        ),
-    >,
+    pub(super) watchers: WatchersMap,
     // receiver for requests from clients
     client_receiver: mpsc::Receiver<(DocumentMessage, Span)>,
     health_receiver: mpsc::Receiver<oneshot::Sender<()>>,
@@ -85,7 +90,7 @@ where
     // interval to ensure flushes happen regularly.
     interval: Interval,
     // functions to call in order to return values to clients.
-    outstanding_requests: Vec<oneshot::Sender<()>>,
+    outstanding_requests: Vec<OutstandingRequest>,
 }
 
 impl<T, P> DocumentActor<T, P>
@@ -185,8 +190,8 @@ where
         }
         let outstanding_requests = std::mem::take(&mut self.outstanding_requests);
         let outstanding_requests_len = outstanding_requests.len();
-        for sender in outstanding_requests {
-            sender.send(()).unwrap()
+        for request in outstanding_requests {
+            request.handle(self).await;
         }
         if bytes_flushed > 0 || outstanding_requests_len > 0 {
             debug!(outstanding_requests=%outstanding_requests_len, %bytes_flushed, "flushed");
@@ -446,27 +451,13 @@ where
                 let _ = ret.send(Err(e));
             }
             Ok((server, prev)) => {
-                let (sender, receiver) = oneshot::channel();
-                self.outstanding_requests.push(sender);
-                tokio::spawn(async move {
-                    let s = receiver.await.unwrap();
-                    // if !s.watchers.is_empty() {
-                    //     let mut doc = s.document.get();
-                    //     let value = doc.value_mut(&key).unwrap().unwrap();
-                    //     for (range, sender) in s.watchers.values() {
-                    //         if range.contains(&key) {
-                    //             let latest_value = value.latest_value(key.clone()).unwrap();
-                    //             let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
-                    //                 .and_then(|rev| value.value_at_revision(rev, key.clone()));
-                    //             let _ = sender
-                    //                 .send((server.clone(), vec![(latest_value, prev_value)]))
-                    //                 .await;
-                    //         }
-                    //     }
-                    // }
-
-                    let _ = ret.send(Ok((server, prev)));
-                });
+                self.outstanding_requests
+                    .push(OutstandingRequest::Insert(OutstandingInsert {
+                        key,
+                        ret,
+                        server,
+                        prev,
+                    }));
             }
         }
     }
@@ -498,28 +489,13 @@ where
             })
             .unwrap();
 
-        let (sender, receiver) = oneshot::channel();
-        self.outstanding_requests.push(sender);
-        tokio::spawn(async move {
-            let s = receiver.await.unwrap();
-            // if !self.watchers.is_empty() {
-            //     let mut doc = self.document.get();
-            //     for (key, prev) in &prev {
-            //         for (range, sender) in self.watchers.values() {
-            //             if range.contains(key) {
-            //                 if let Some(Ok(value)) = doc.value_mut(key) {
-            //                     let latest_value = value.latest_value(key.clone()).unwrap();
-            //                     let _ = sender
-            //                         .send((server.clone(), vec![(latest_value, prev.clone())]))
-            //                         .await;
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
-            let prev = prev.into_iter().filter_map(|(_, p)| p).collect();
-            let _ = ret.send(Ok((server, prev)));
-        });
+        self.outstanding_requests
+            .push(OutstandingRequest::Remove(OutstandingRemove {
+                key,
+                ret,
+                server,
+                prev,
+            }));
     }
 
     #[tracing::instrument(level = "debug", skip(self, request))]
