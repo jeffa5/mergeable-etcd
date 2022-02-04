@@ -14,7 +14,7 @@ use tokio::{
     sync::{mpsc, oneshot, watch, Notify},
     time::{interval, Interval},
 };
-use tracing::{error, info, warn, Instrument, Span};
+use tracing::{debug, error, info, warn, Instrument, Span};
 
 use super::DocumentMessage;
 use crate::{
@@ -183,8 +183,13 @@ where
         if bytes_flushed > 0 {
             self.changed_notify.notify_one();
         }
-        for sender in std::mem::take(&mut self.outstanding_requests) {
+        let outstanding_requests = std::mem::take(&mut self.outstanding_requests);
+        let outstanding_requests_len = outstanding_requests.len();
+        for sender in outstanding_requests {
             sender.send(()).unwrap()
+        }
+        if bytes_flushed > 0 || outstanding_requests_len > 0 {
+            debug!(outstanding_requests=%outstanding_requests_len, %bytes_flushed, "flushed");
         }
     }
 
