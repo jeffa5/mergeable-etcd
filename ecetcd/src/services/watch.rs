@@ -44,7 +44,7 @@ impl WatchTrait for Watch {
                             // assert_eq!(create.start_revision, 0);
                             assert_eq!(create.filters.len(), 0);
                             assert_eq!(create.watch_id, 0);
-                            assert_eq!(create.fragment, false);
+                            assert!(!create.fragment);
                             // TODO: implement filters
                             let watch_id = server_clone
                                 .create_watcher(

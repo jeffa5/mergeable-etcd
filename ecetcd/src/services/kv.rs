@@ -6,7 +6,7 @@ use etcd_proto::etcdserverpb::{
 };
 use tokio::{sync::mpsc, time::Instant};
 use tonic::{Request, Response, Status};
-use tracing::{debug, info, warn, Level};
+use tracing::{debug, info, warn};
 
 use crate::{
     server::Server,
