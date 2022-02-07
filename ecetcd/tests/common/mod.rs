@@ -70,7 +70,11 @@ pub async fn test_range(request: &etcd_proto::etcdserverpb::RangeRequest) {
         let response = match clients.kv.range(request.clone()).await {
             Ok(r) => {
                 let mut r = r.into_inner();
-                r.header = None;
+                if let Some(header) = r.header.as_mut() {
+                    header.cluster_id = 0;
+                    header.member_id = 0;
+                    header.raft_term = 0;
+                }
                 Ok(Response::Range(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
@@ -87,7 +91,11 @@ pub async fn test_put(request: &etcd_proto::etcdserverpb::PutRequest) {
         let response = match clients.kv.put(request.clone()).await {
             Ok(r) => {
                 let mut r = r.into_inner();
-                r.header = None;
+                if let Some(header) = r.header.as_mut() {
+                    header.cluster_id = 0;
+                    header.member_id = 0;
+                    header.raft_term = 0;
+                }
                 Ok(Response::Put(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
@@ -104,7 +112,11 @@ pub async fn test_del(request: &etcd_proto::etcdserverpb::DeleteRangeRequest) {
         let response = match clients.kv.delete_range(request.clone()).await {
             Ok(r) => {
                 let mut r = r.into_inner();
-                r.header = None;
+                if let Some(header) = r.header.as_mut() {
+                    header.cluster_id = 0;
+                    header.member_id = 0;
+                    header.raft_term = 0;
+                }
                 Ok(Response::DeleteRange(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
@@ -127,7 +139,11 @@ pub async fn test_watch(request: &etcd_proto::etcdserverpb::WatchRequest) {
                 let r = r.into_inner();
                 r.map(|m| match m {
                     Ok(mut m) => {
-                        m.header = None;
+                        if let Some(header) = m.header.as_mut() {
+                            header.cluster_id = 0;
+                            header.member_id = 0;
+                            header.raft_term = 0;
+                        }
                         // watch id depends on the server so ignore it
                         m.watch_id = 0;
                         Ok(m)
@@ -149,20 +165,42 @@ pub async fn test_txn(request: &etcd_proto::etcdserverpb::TxnRequest) {
         let response = match clients.kv.txn(request.clone()).await {
             Ok(r) => {
                 let mut r = r.into_inner();
-                r.header = None;
+                if let Some(header) = r.header.as_mut() {
+                    header.cluster_id = 0;
+                    header.member_id = 0;
+                    header.raft_term = 0;
+                }
                 for res in &mut r.responses {
                     match res.response.as_mut().unwrap() {
                         etcd_proto::etcdserverpb::response_op::Response::ResponsePut(res) => {
-                            res.header = None
+                            if let Some(header) = res.header.as_mut() {
+                                header.cluster_id = 0;
+                                header.member_id = 0;
+                                header.raft_term = 0;
+                            }
                         }
                         etcd_proto::etcdserverpb::response_op::Response::ResponseRange(res) => {
-                            res.header = None
+                            if let Some(header) = res.header.as_mut() {
+                                header.cluster_id = 0;
+                                header.member_id = 0;
+                                header.raft_term = 0;
+                            }
                         }
                         etcd_proto::etcdserverpb::response_op::Response::ResponseDeleteRange(
                             res,
-                        ) => res.header = None,
+                        ) => {
+                            if let Some(header) = res.header.as_mut() {
+                                header.cluster_id = 0;
+                                header.member_id = 0;
+                                header.raft_term = 0;
+                            }
+                        }
                         etcd_proto::etcdserverpb::response_op::Response::ResponseTxn(res) => {
-                            res.header = None
+                            if let Some(header) = res.header.as_mut() {
+                                header.cluster_id = 0;
+                                header.member_id = 0;
+                                header.raft_term = 0;
+                            }
                         }
                     }
                 }
@@ -182,7 +220,11 @@ pub async fn test_lease_grant(request: &etcd_proto::etcdserverpb::LeaseGrantRequ
         let response = match clients.lease.lease_grant(request.clone()).await {
             Ok(r) => {
                 let mut r = r.into_inner();
-                r.header = None;
+                if let Some(header) = r.header.as_mut() {
+                    header.cluster_id = 0;
+                    header.member_id = 0;
+                    header.raft_term = 0;
+                }
                 // ids are random if not provided so we should just ignore it
                 if request.id == 0 {
                     r.id = 1000;
@@ -203,7 +245,11 @@ pub async fn test_lease_revoke(request: &etcd_proto::etcdserverpb::LeaseRevokeRe
         let response = match clients.lease.lease_revoke(request.clone()).await {
             Ok(r) => {
                 let mut r = r.into_inner();
-                r.header = None;
+                if let Some(header) = r.header.as_mut() {
+                    header.cluster_id = 0;
+                    header.member_id = 0;
+                    header.raft_term = 0;
+                }
                 Ok(Response::LeaseRevoke(r))
             }
             Err(status) => Err((status.code(), status.message().to_owned())),
