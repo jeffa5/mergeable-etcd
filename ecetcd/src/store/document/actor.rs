@@ -401,7 +401,7 @@ where
         self.document.receive_sync_message(peer_id, message)
     }
 
-    #[tracing::instrument(level="debug",skip(self), fields(key = %key))]
+    #[tracing::instrument(level = "debug", skip(self, key, range_end, revision))]
     async fn get(
         &mut self,
         key: Key,
@@ -414,7 +414,7 @@ where
         Ok((server, values))
     }
 
-    #[tracing::instrument(level="debug",skip(self, value), fields(key = %key))]
+    #[tracing::instrument(level = "debug", skip(self, key, value, ret))]
     async fn insert(
         &mut self,
         key: Key,
@@ -454,7 +454,7 @@ where
         }
     }
 
-    #[tracing::instrument(level="debug",skip(self), fields(key = %key))]
+    #[tracing::instrument(level = "debug", skip(self, key, ret))]
     async fn remove(
         &mut self,
         key: Key,

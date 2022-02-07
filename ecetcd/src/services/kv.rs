@@ -115,7 +115,7 @@ impl Kv for KV {
         }
 
         assert!(!request.ignore_lease);
-        debug!("put: {:?}", request);
+        debug!("put: {:?}", String::from_utf8(request.key.clone()));
 
         let lease = if request.lease == 0 {
             None
@@ -217,7 +217,7 @@ impl Kv for KV {
             let _ = s.send(TraceValue::TxnRequest(request.clone())).await;
         }
 
-        debug!("txn: {:?}", request);
+        debug!("txn");
         let txn_result = self.server.txn(request).await;
         let member_id = self.server.member_id().await;
         match txn_result {
@@ -251,7 +251,7 @@ impl Kv for KV {
             let _ = s.send(TraceValue::CompactRequest(request.clone())).await;
         }
 
-        debug!("compact: {:?}", request);
+        debug!("compact");
         let reply = CompactionResponse { header: None };
         Ok(Response::new(reply))
     }

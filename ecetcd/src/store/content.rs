@@ -514,7 +514,7 @@ where
         values
     }
 
-    #[tracing::instrument(level = "debug", skip(self, request))]
+    #[tracing::instrument(level = "debug", skip(self, request, member_id))]
     pub(crate) fn transaction_inner(
         &mut self,
         request: TxnRequest,

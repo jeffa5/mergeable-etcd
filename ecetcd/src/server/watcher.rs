@@ -3,7 +3,7 @@ use std::time::Duration;
 use etcd_proto::{etcdserverpb::WatchResponse, mvccpb};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tonic::Status;
-use tracing::{debug, warn};
+use tracing::{debug, instrument, warn};
 
 use crate::store::{Server, SnapshotValue};
 
@@ -70,7 +70,11 @@ async fn handle_progress(
         fragment: false,
         events: Vec::new(),
     };
-    debug!(?resp, "Sending progress notify watch response");
+    debug!(
+        revision = resp.header.as_ref().unwrap().revision,
+        watch_id = resp.watch_id,
+        "Sending progress notify watch response"
+    );
     if let Err(err) = tx.send(Ok(resp)).await {
         warn!(%err, "Got an error while sending progress notify watch response");
         true
@@ -79,6 +83,7 @@ async fn handle_progress(
     }
 }
 
+#[instrument(level = "debug", skip(tx, server, changes, member_id))]
 async fn handle_event(
     id: i64,
     prev_kv: bool,
@@ -87,7 +92,7 @@ async fn handle_event(
     changes: Vec<(SnapshotValue, Option<SnapshotValue>)>,
     member_id: u64,
 ) -> bool {
-    debug!("Got a watch event {:?}", changes);
+    debug!(change_count = changes.len(), "Got a watch event");
     let events = changes
         .into_iter()
         .map(|(latest_value, prev)| {
@@ -120,7 +125,11 @@ async fn handle_event(
         fragment: false,
         events,
     };
-    debug!(?resp, "Sending watch response");
+    debug!(
+        revision = resp.header.as_ref().unwrap().revision,
+        watch_id = resp.watch_id,
+        "Sending watch response"
+    );
     if let Err(err) = tx.send(Ok(resp)).await {
         // receiver has closed
         warn!(%err, "Got an error while sending watch response");

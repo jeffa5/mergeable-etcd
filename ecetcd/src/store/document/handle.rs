@@ -54,7 +54,7 @@ impl DocumentHandle {
         recv.await.expect("Actor task has been killed")
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self), fields(key=%key))]
     pub async fn get(
         &self,
         key: Key,
@@ -73,7 +73,7 @@ impl DocumentHandle {
         recv.await.expect("Actor task has been killed")
     }
 
-    #[tracing::instrument(level = "debug", skip(self, key, value, prev_kv))]
+    #[tracing::instrument(level = "debug", skip(self, value), fields(key=%key))]
     pub async fn insert(
         &self,
         key: Key,
@@ -94,7 +94,7 @@ impl DocumentHandle {
         recv.await.expect("Actor task has been killed")
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self), fields(key=%key))]
     pub async fn remove(
         &self,
         key: Key,
