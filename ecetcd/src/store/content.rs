@@ -522,7 +522,8 @@ where
         mut revision_incremented: bool,
     ) -> Result<(Server, bool, Vec<ResponseOp>), DocumentError> {
         tracing::debug!("transacting");
-        let mut server = self.server_mut().unwrap().clone();
+        // make a copy of the server so that we can mutate it locally and use it in the headers
+        let mut server = self.server().unwrap().clone();
         let success = request.compare.iter().all(|compare| {
             let values = self.get_inner(compare.key.clone().into(), None, server.revision);
             let value = values.first();
@@ -658,6 +659,10 @@ where
                 None => unimplemented!(),
             })
             .collect();
+        // if we had to increment the revision then increment it on the actual server instance too
+        if revision_incremented {
+            self.server_mut().unwrap().increment_revision();
+        }
         Ok((server, success, results?))
     }
 }
