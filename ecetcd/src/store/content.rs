@@ -519,9 +519,10 @@ where
         &mut self,
         request: TxnRequest,
         member_id: u64,
-    ) -> Result<(bool, Vec<ResponseOp>), DocumentError> {
+        mut revision_incremented: bool,
+    ) -> Result<(Server, bool, Vec<ResponseOp>), DocumentError> {
         tracing::debug!("transacting");
-        let server = self.server().unwrap().clone();
+        let mut server = self.server_mut().unwrap().clone();
         let success = request.compare.iter().all(|compare| {
             let values = self.get_inner(compare.key.clone().into(), None, server.revision);
             let value = values.first();
@@ -585,6 +586,10 @@ where
                     })
                 }
                 Some(Request::RequestPut(request)) => {
+                    if !revision_incremented {
+                        server.increment_revision();
+                        revision_incremented = true;
+                    }
                     let prev_kv = self.insert_inner(
                         request.key.clone().into(),
                         if request.ignore_value {
@@ -618,6 +623,10 @@ where
                     }
                 }
                 Some(Request::RequestDeleteRange(request)) => {
+                    if !revision_incremented {
+                        server.increment_revision();
+                        revision_incremented = true;
+                    }
                     let prev_kvs = self.remove_inner(
                         request.key.clone().into(),
                         if request.range_end.is_empty() {
@@ -649,7 +658,7 @@ where
                 None => unimplemented!(),
             })
             .collect();
-        Ok((success, results?))
+        Ok((server, success, results?))
     }
 }
 

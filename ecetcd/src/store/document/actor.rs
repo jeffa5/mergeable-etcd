@@ -507,12 +507,8 @@ where
         let (server, success, results) =
             self.document
                 .change::<_, _, DocumentError>(|store_contents| {
-                    let (success, results) =
-                        store_contents.transaction_inner(request, self.member_id)?;
-                    let server = store_contents
-                        .server()
-                        .expect("Failed to get server")
-                        .clone();
+                    let (server, success, results) =
+                        store_contents.transaction_inner(request, self.member_id, false)?;
                     Ok((server, success, results))
                 })?;
 
