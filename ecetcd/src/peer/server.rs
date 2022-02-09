@@ -76,7 +76,7 @@ impl Server {
                     .cloned()
                     .collect::<Vec<_>>();
                 let connections = {
-                    let inner = inner.lock().unwrap();
+                    let inner = inner.lock().expect("Failed to lock peer server inner");
                     inner.sync_connections.clone()
                 };
 
@@ -89,7 +89,10 @@ impl Server {
                         tokio::spawn(async move {
                             peer_server
                                 .spawn_client_handler_with_id(
-                                    peer.peer_urls.first().unwrap().clone(),
+                                    peer.peer_urls
+                                        .first()
+                                        .expect("Failed to find a peer_url in the list")
+                                        .clone(),
                                     peer.id,
                                 )
                                 .await;
@@ -136,7 +139,8 @@ impl Server {
         // create a stream
         let (send, recv) = mpsc::unbounded_channel();
 
-        let peer_endpoint = Endpoint::from_shared(address.clone()).unwrap();
+        let peer_endpoint = Endpoint::from_shared(address.clone())
+            .expect("Failed to build peer endpoint from address");
         // connect to a peer
         let mut peer_client =
             match peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone()).await {
@@ -161,7 +165,7 @@ impl Server {
                 tokio_stream::wrappers::UnboundedReceiverStream::new(recv).map(move |msg| {
                     peer_proto::SyncMessage {
                         id,
-                        data: msg.encode().unwrap(),
+                        data: msg.encode().expect("Failed to encode sync message data"),
                     }
                 }),
             ));
@@ -189,7 +193,8 @@ impl Server {
 
         if self.register_client(peer_id, send).await {
             debug!("Successfully registered client");
-            let peer_endpoint = Endpoint::from_shared(address.clone()).unwrap();
+            let peer_endpoint = Endpoint::from_shared(address.clone())
+                .expect("Failed to build endpoint from peer address");
             // connect to a peer
             let mut peer_client =
                 match peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone()).await {
@@ -224,7 +229,7 @@ impl Server {
                 tokio_stream::wrappers::UnboundedReceiverStream::new(recv).map(move |msg| {
                     peer_proto::SyncMessage {
                         id,
-                        data: msg.encode().unwrap(),
+                        data: msg.encode().expect("Failed to encode sync message data"),
                     }
                 }),
             ));
@@ -289,7 +294,7 @@ impl Server {
         sender: UnboundedSender<automerge_backend::SyncMessage>,
     ) -> bool {
         let res = {
-            let mut inner = self.inner.lock().unwrap();
+            let mut inner = self.inner.lock().expect("Failed to lock peer server inner");
             if inner.sync_connections.contains_key(&id) {
                 false
             } else {
@@ -303,7 +308,7 @@ impl Server {
     }
 
     pub fn unregister_client(&self, id: u64) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().expect("Failed to lock peer server inner");
         inner.sync_connections.remove(&id);
     }
 }
