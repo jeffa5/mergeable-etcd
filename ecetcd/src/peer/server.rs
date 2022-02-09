@@ -17,6 +17,8 @@ use tracing::{debug, instrument, warn};
 
 use crate::store::DocumentHandle;
 
+const RETRY_INTERVAL: Duration = Duration::from_secs(2);
+
 #[derive(Debug)]
 pub struct Server {
     inner: Arc<Mutex<Inner>>,
@@ -253,7 +255,7 @@ impl Server {
         tokio::spawn(async move {
             loop {
                 if s.connect_client(address.clone()).await {
-                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    tokio::time::sleep(RETRY_INTERVAL).await;
                 } else {
                     // didn't manage to register (someone else already doing it so we can stop
                     // trying)
@@ -275,7 +277,7 @@ impl Server {
             loop {
                 if s.connect_client_with_id(address.clone(), peer_id).await {
                     debug!("failed to connect to peer, sleeping before retrying");
-                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    tokio::time::sleep(RETRY_INTERVAL).await;
                 } else {
                     // didn't manage to register (someone else already doing it so we can stop
                     // trying)
