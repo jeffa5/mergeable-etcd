@@ -127,16 +127,24 @@ where
         let (cluster_id, member_id) = if self.initial_cluster_state == InitialClusterState::Existing
         {
             // pick a peer and try to connect to them
-            let peer = self.initial_cluster.first().unwrap();
-            let peer_endpoint = Endpoint::from_shared(peer.address.to_string()).unwrap();
-            let mut peer_client = peer_proto::peer_client::PeerClient::connect(peer_endpoint)
-                .await
-                .unwrap();
+            let peer = self
+                .initial_cluster
+                .first()
+                .expect("No first address in initial cluster");
+            let peer_endpoint = Endpoint::from_shared(peer.address.to_string())
+                .expect("Failed to build endpoint from peer address");
+            debug!(peer=%peer.address, "Connecting to peer");
+            let mut peer_client =
+                peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone())
+                    .await
+                    .expect("Failed to connect to peer");
+            debug!(peer=%peer.address, "Listing members");
             let members = peer_client
                 .member_list(Request::new(peer_proto::MemberListRequest {}))
                 .await
-                .unwrap()
+                .expect("Failed to list members")
                 .into_inner();
+            debug!(peer=%peer.address, ?members, "Found members");
             let string_initial_advertise_peer_urls = self
                 .initial_advertise_peer_urls
                 .iter()
