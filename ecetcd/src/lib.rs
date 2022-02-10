@@ -21,6 +21,7 @@ use tokio::{
     sync::{mpsc, Notify},
     task::LocalSet,
 };
+use tonic::transport::{channel::ClientTlsConfig, Certificate};
 use tonic::{
     transport::{Endpoint, Identity},
     Request,
@@ -124,6 +125,16 @@ where
 
         let db = sled_config.open().unwrap();
 
+        let peer_tls_config = if let Some(ref peer_trusted_ca_file) = self.peer_trusted_ca_file {
+            let peer_ca_cert_pem = tokio::fs::read(peer_trusted_ca_file)
+                .await
+                .expect("Failed to read peer trusted ca file");
+            let peer_ca_cert = Certificate::from_pem(peer_ca_cert_pem);
+            Some(ClientTlsConfig::new().ca_certificate(peer_ca_cert))
+        } else {
+            None
+        };
+
         // if there is an existing cluster then we need to connect to it to get the cluster
         // information before setting up
         let (cluster_id, member_id) = if self.initial_cluster_state == InitialClusterState::Existing
@@ -134,8 +145,13 @@ where
                     .initial_cluster
                     .first()
                     .expect("No first address in initial cluster");
-                let peer_endpoint = Endpoint::from_shared(peer.address.to_string())
+                let mut peer_endpoint = Endpoint::from_shared(peer.address.to_string())
                     .expect("Failed to build endpoint from peer address");
+                if let Some(ref tls_config) = peer_tls_config {
+                    peer_endpoint = peer_endpoint
+                        .tls_config(tls_config.clone())
+                        .expect("Failed to configure peer client with tls config");
+                }
                 debug!(peer=%peer.address, "Connecting to peer");
                 let mut peer_client =
                     match peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone()).await
@@ -248,8 +264,14 @@ where
         let (peer_send, peer_receive) = mpsc::channel(1);
 
         let peer_server_clone = peer_server.clone();
-        let peer_server_task =
-            tokio::spawn(async move { peer_server_clone.sync(change_notify2, peer_receive).await });
+        let peer_server_task = {
+            let peer_tls_config = peer_tls_config.clone();
+            tokio::spawn(async move {
+                peer_server_clone
+                    .sync(change_notify2, peer_receive, peer_tls_config)
+                    .await
+            })
+        };
 
         let mut peer_clients = Vec::new();
         for address in self.initial_cluster.iter() {
@@ -260,11 +282,14 @@ where
             let address = address.address.to_string();
             let peer_server = peer_server.clone();
             let shutdown = shutdown.clone();
-            let c = tokio::spawn(async move {
-                peer_server
-                    .spawn_client_handler(address.clone(), shutdown)
-                    .await
-            });
+            let c = {
+                let peer_tls_config = peer_tls_config.clone();
+                tokio::spawn(async move {
+                    peer_server
+                        .spawn_client_handler(address.clone(), shutdown, peer_tls_config)
+                        .await
+                })
+            };
             peer_clients.push(c);
         }
 

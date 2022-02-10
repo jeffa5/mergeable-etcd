@@ -12,7 +12,10 @@ use tokio::{
     task::JoinHandle,
 };
 use tokio_stream::StreamExt;
-use tonic::{transport::Endpoint, Request};
+use tonic::{
+    transport::{ClientTlsConfig, Endpoint},
+    Request,
+};
 use tracing::{debug, instrument, warn};
 
 use crate::store::DocumentHandle;
@@ -58,6 +61,7 @@ impl Server {
         changed_notify: Arc<Notify>,
         // receive messages from servers (streamed from clients)
         mut receiver: mpsc::Receiver<(u64, Option<automerge_backend::SyncMessage>)>,
+        tls_config: Option<ClientTlsConfig>,
     ) {
         let inner = Arc::clone(&self.inner);
         let document = self.document.clone();
@@ -88,6 +92,7 @@ impl Server {
                     {
                         warn!(id=%peer.id, "Connections didn't have id, spawning a client handler for them");
                         let peer_server = peer_server.clone();
+                        let tls_config = tls_config.clone();
                         tokio::spawn(async move {
                             peer_server
                                 .spawn_client_handler_with_id(
@@ -96,6 +101,7 @@ impl Server {
                                         .expect("Failed to find a peer_url in the list")
                                         .clone(),
                                     peer.id,
+                                    tls_config,
                                 )
                                 .await;
                         });
@@ -136,16 +142,25 @@ impl Server {
     /// Returns whether to keep trying, false meaning that some other task is already handling this
     /// client.
     #[instrument(level = "debug", skip(self))]
-    pub async fn connect_client(&self, address: String) -> bool {
+    pub async fn connect_client(
+        &self,
+        address: String,
+        tls_config: Option<ClientTlsConfig>,
+    ) -> bool {
         debug!("Trying to connect to peer");
         // create a stream
         let (send, recv) = mpsc::unbounded_channel();
 
-        let peer_endpoint = Endpoint::from_shared(address.clone())
+        let mut peer_endpoint = Endpoint::from_shared(address.clone())
             .expect("Failed to build peer endpoint from address");
+        if let Some(tls_config) = tls_config {
+            peer_endpoint = peer_endpoint
+                .tls_config(tls_config)
+                .expect("Failed to configure peer client with tls config")
+        }
         // connect to a peer
         let mut peer_client =
-            match peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone()).await {
+            match peer_proto::peer_client::PeerClient::connect(peer_endpoint).await {
                 Ok(c) => c,
                 Err(err) => {
                     tracing::warn!(?err, peer=?address, "Failed to connect to peer");
@@ -188,18 +203,28 @@ impl Server {
     /// Returns whether to keep trying, false meaning that some other task is already handling this
     /// client.
     #[instrument(level = "debug", skip(self))]
-    pub async fn connect_client_with_id(&self, address: String, peer_id: u64) -> bool {
+    pub async fn connect_client_with_id(
+        &self,
+        address: String,
+        peer_id: u64,
+        tls_config: Option<ClientTlsConfig>,
+    ) -> bool {
         debug!("Trying to connect to peer");
         // create a stream
         let (send, recv) = mpsc::unbounded_channel();
 
         if self.register_client(peer_id, send).await {
             debug!("Successfully registered client");
-            let peer_endpoint = Endpoint::from_shared(address.clone())
+            let mut peer_endpoint = Endpoint::from_shared(address.clone())
                 .expect("Failed to build endpoint from peer address");
+            if let Some(tls_config) = tls_config {
+                peer_endpoint = peer_endpoint
+                    .tls_config(tls_config)
+                    .expect("Failed to configure peer client with tls config")
+            }
             // connect to a peer
             let mut peer_client =
-                match peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone()).await {
+                match peer_proto::peer_client::PeerClient::connect(peer_endpoint).await {
                     Ok(c) => c,
                     Err(err) => {
                         tracing::warn!(?err, peer=?address, "Failed to connect to peer");
@@ -250,12 +275,20 @@ impl Server {
 
     // connect to the peer and keep trying if goes offline
     #[instrument(level = "debug", skip(self, shutdown))]
-    pub async fn spawn_client_handler(self, address: String, mut shutdown: watch::Receiver<()>) {
+    pub async fn spawn_client_handler(
+        self,
+        address: String,
+        mut shutdown: watch::Receiver<()>,
+        tls_config: Option<ClientTlsConfig>,
+    ) {
         debug!("Spawning handler for peer");
         let address_clone = address.clone();
         let l = tokio::spawn(async move {
             loop {
-                if self.connect_client(address.clone()).await {
+                if self
+                    .connect_client(address.clone(), tls_config.clone())
+                    .await
+                {
                     tokio::time::sleep(RETRY_INTERVAL).await;
                 } else {
                     // didn't manage to register (someone else already doing it so we can stop
@@ -284,12 +317,15 @@ impl Server {
         &self,
         address: String,
         peer_id: u64,
+        tls_config: Option<ClientTlsConfig>,
     ) -> JoinHandle<()> {
         debug!("Spawning handler for peer");
         let s = self.clone();
         tokio::spawn(async move {
             loop {
-                if s.connect_client_with_id(address.clone(), peer_id).await {
+                if s.connect_client_with_id(address.clone(), peer_id, tls_config.clone())
+                    .await
+                {
                     debug!("failed to connect to peer, sleeping before retrying");
                     tokio::time::sleep(RETRY_INTERVAL).await;
                 } else {
