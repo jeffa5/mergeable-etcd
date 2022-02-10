@@ -235,23 +235,6 @@ where
 
         let document = DocumentHandle::new(fc_sender);
 
-        // create the default server with the configuration
-        debug!("Setting server on document");
-        let s = crate::store::Server::new(
-            cluster_id,
-            member_id,
-            self.name.clone(),
-            self.initial_advertise_peer_urls
-                .iter()
-                .map(|a| a.to_string())
-                .collect(),
-            self.advertise_client_urls
-                .iter()
-                .map(|a| a.to_string())
-                .collect(),
-        );
-        document.set_server(s).await;
-
         let peer_server = crate::peer::Server::new(document.clone(), member_id);
         let server = crate::server::Server::new(document.clone(), peer_server.clone());
 
@@ -336,6 +319,28 @@ where
                 }
             })
             .collect::<Vec<_>>();
+
+        // TODO: if there is an existing cluster state then we need to wait for a first sync to
+        // ensure we update the existing server entry
+
+        // create the default server with the configuration
+        debug!("Setting server on document");
+        let s = crate::store::Server::new(
+            cluster_id,
+            member_id,
+            self.name.clone(),
+            self.initial_advertise_peer_urls
+                .iter()
+                .map(|a| a.to_string())
+                .collect(),
+            self.advertise_client_urls
+                .iter()
+                .map(|a| a.to_string())
+                .collect(),
+        );
+        debug!(server=?document.current_server().await, "Before setting server");
+        document.set_server(s).await;
+        debug!(server=?document.current_server().await, "After setting server");
 
         let health = HealthServer::new(document_health_sender);
         let metrics_servers = self.listen_metrics_urls.iter().map(|metrics_url| {
