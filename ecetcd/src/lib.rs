@@ -31,7 +31,7 @@ use tracing::{debug, info, warn};
 use crate::{
     address::{NamedAddress, Scheme},
     health::HealthServer,
-    store::DocumentActor,
+    store::{DocumentActor, Peer},
 };
 
 const WAITING_CLIENTS_PER_DOCUMENT: usize = 32;
@@ -258,26 +258,18 @@ where
             }
             let address = address.address.to_string();
             let peer_server = peer_server.clone();
-            let mut shutdown = shutdown.clone();
+            let shutdown = shutdown.clone();
             let c = tokio::spawn(async move {
-                // connect to the peer and keep trying if goes offline
-
-                let address_clone = address.clone();
-                let l = peer_server.spawn_client_handler(address.clone());
-
-                // loop won't terminate so just wait for it and the shutdown
-                tokio::select! {
-                    _ = shutdown.changed() => {},
-                    _ = l => {},
-                    else => {},
-                }
-                tracing::info!(address = ?address_clone, "Shutting down peer client loop")
+                peer_server
+                    .spawn_client_handler(address.clone(), shutdown)
+                    .await
             });
             peer_clients.push(c);
         }
 
         let peer_servers = peer_urls
             .iter()
+            .cloned()
             .map(|peer_url| {
                 let identity = if let Scheme::Https = peer_url.scheme {
                     match (self.peer_cert_file.as_ref(), self.peer_key_file.as_ref()) {
@@ -309,38 +301,72 @@ where
                     document.clone(),
                 );
                 info!("Listening to peers on {}", peer_url);
-                async move {
+                tokio::spawn(async move {
                     match serving.await {
                         Ok(()) => {}
                         Err(err) => {
                             warn!(%peer_url, %err, "Failed to create peer server");
                         }
                     }
-                }
+                })
             })
             .collect::<Vec<_>>();
 
-        // TODO: if there is an existing cluster state then we need to wait for a first sync to
-        // ensure we update the existing server entry
+        if self.initial_cluster_state == InitialClusterState::Existing {
+            // if there is an existing cluster state then we need to wait for a first sync to
+            // ensure we update the existing server entry
+            loop {
+                // get the current server and try to find ourselves in the peer list.
+                // When find have ourselves we can update the entry to include our name and client
+                // urls.
 
-        // create the default server with the configuration
-        debug!("Setting server on document");
-        let s = crate::store::Server::new(
-            cluster_id,
-            member_id,
-            self.name.clone(),
-            self.initial_advertise_peer_urls
-                .iter()
-                .map(|a| a.to_string())
-                .collect(),
-            self.advertise_client_urls
-                .iter()
-                .map(|a| a.to_string())
-                .collect(),
-        );
-        debug!(server=?document.current_server().await, "Before setting server");
-        document.set_server(s).await;
-        debug!(server=?document.current_server().await, "After setting server");
+                let server = document.current_server().await;
+                if server.get_peer(member_id).is_some() {
+                    debug!("Found ourselves in the cluster_members, continuing to set the server");
+                    break;
+                } else {
+                    debug!(%member_id, ?server, "Didn't find ourselves in the cluster_members, retrying");
+                    tokio::time::sleep(RETRY_INTERVAL).await;
+                }
+            }
+            debug!(server=?document.current_server().await, "Before setting server");
+            document
+                .upsert_peer(Peer {
+                    id: member_id,
+                    name: self.name.clone(),
+                    peer_urls: self
+                        .initial_advertise_peer_urls
+                        .iter()
+                        .map(|a| a.to_string())
+                        .collect(),
+                    client_urls: self
+                        .advertise_client_urls
+                        .iter()
+                        .map(|a| a.to_string())
+                        .collect(),
+                })
+                .await;
+            debug!(server=?document.current_server().await, "After setting server");
+            debug!(server=?document.current_server().await, "Upserted peer")
+        } else {
+            // new cluster so no need to wait for a sync
+            // create the default server with the configuration
+            let s = crate::store::Server::new(
+                cluster_id,
+                member_id,
+                self.name.clone(),
+                self.initial_advertise_peer_urls
+                    .iter()
+                    .map(|a| a.to_string())
+                    .collect(),
+                self.advertise_client_urls
+                    .iter()
+                    .map(|a| a.to_string())
+                    .collect(),
+            );
+            document.set_server(s.clone()).await;
+            debug!(server=?s, "Set server")
+        }
 
         let health = HealthServer::new(document_health_sender);
         let metrics_servers = self.listen_metrics_urls.iter().map(|metrics_url| {

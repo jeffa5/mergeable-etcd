@@ -90,6 +90,9 @@ pub enum DocumentMessage {
         id: u64,
         urls: Vec<String>,
     },
+    UpsertPeer {
+        peer: Peer,
+    },
     MemberId {
         ret: oneshot::Sender<u64>,
     },
@@ -116,6 +119,7 @@ impl Display for DocumentMessage {
             DocumentMessage::AddPeer { .. } => "add_peer",
             DocumentMessage::RemovePeer { .. } => "remove_peer",
             DocumentMessage::UpdatePeer { .. } => "update_peer",
+            DocumentMessage::UpsertPeer { .. } => "upsert_peer",
             DocumentMessage::MemberId { .. } => "member_id",
         };
         write!(f, "{}", s)

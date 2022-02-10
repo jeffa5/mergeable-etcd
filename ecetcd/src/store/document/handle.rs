@@ -225,6 +225,11 @@ impl DocumentHandle {
         let _ = self.sender.send_to_document(msg).await;
     }
 
+    pub async fn upsert_peer(&self, peer: Peer) {
+        let msg = DocumentMessage::UpsertPeer { peer };
+        let _ = self.sender.send_to_document(msg).await;
+    }
+
     pub async fn member_id(&self) -> u64 {
         let (send, recv) = oneshot::channel();
         let msg = DocumentMessage::MemberId { ret: send };

@@ -7,7 +7,7 @@ use std::{
 use tokio::{
     sync::{
         mpsc::{self, UnboundedSender},
-        Notify,
+        watch, Notify,
     },
     task::JoinHandle,
 };
@@ -248,13 +248,14 @@ impl Server {
         }
     }
 
-    #[instrument(level = "debug", skip(self))]
-    pub async fn spawn_client_handler(&self, address: String) -> JoinHandle<()> {
+    // connect to the peer and keep trying if goes offline
+    #[instrument(level = "debug", skip(self, shutdown))]
+    pub async fn spawn_client_handler(self, address: String, mut shutdown: watch::Receiver<()>) {
         debug!("Spawning handler for peer");
-        let s = self.clone();
-        tokio::spawn(async move {
+        let address_clone = address.clone();
+        let l = tokio::spawn(async move {
             loop {
-                if s.connect_client(address.clone()).await {
+                if self.connect_client(address.clone()).await {
                     tokio::time::sleep(RETRY_INTERVAL).await;
                 } else {
                     // didn't manage to register (someone else already doing it so we can stop
@@ -262,7 +263,20 @@ impl Server {
                     break;
                 }
             }
-        })
+        });
+        // loop won't terminate so just wait for it and the shutdown
+        tokio::select! {
+            _ = shutdown.changed() => {
+                debug!(address=?address_clone,"shutting down peer client loop");
+            },
+            _ = l => {
+                debug!(address=?address_clone, "peer client loop broke");
+            },
+            else => {
+                debug!(address=?address_clone, "peer client else");
+            },
+        }
+        tracing::info!(address = ?address_clone, "Shutting down peer client loop");
     }
 
     #[instrument(level = "debug", skip(self))]

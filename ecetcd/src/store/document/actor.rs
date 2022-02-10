@@ -338,6 +338,10 @@ where
                 self.update_peer(id, urls);
                 self.flush().await;
             }
+            DocumentMessage::UpsertPeer { peer } => {
+                self.upsert_peer(peer);
+                self.flush().await;
+            }
             DocumentMessage::MemberId { ret } => {
                 let _ = ret.send(self.member_id);
             }
@@ -379,6 +383,16 @@ where
                     peer.peer_urls = urls;
                     server.upsert_peer(peer);
                 }
+                Ok(())
+            })
+            .unwrap();
+    }
+
+    fn upsert_peer(&mut self, peer: Peer) {
+        self.document
+            .change::<_, _, DocumentError>(|store_contents| {
+                let server = store_contents.server_mut().expect("Failed to get server");
+                server.upsert_peer(peer);
                 Ok(())
             })
             .unwrap();
