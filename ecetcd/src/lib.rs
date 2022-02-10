@@ -280,13 +280,13 @@ where
                             Some(Identity::from_pem(cert, key))
                         }
                         (Some(_), None) => {
-                            panic!("Requested peer url '{}', but missing --cert-file", peer_url)
+                            panic!("Requested peer url '{}', but missing --peer-cert-file", peer_url)
                         }
                         (None, Some(_)) => {
-                            panic!("Requested peer url '{}', but missing --key-file", peer_url)
+                            panic!("Requested peer url '{}', but missing --peer-key-file", peer_url)
                         }
                         (None, None) => panic!(
-                            "Requested peer url '{}', but missing both --cert-file and --key-file",
+                            "Requested peer url '{}', but missing both --peer-cert-file and --peer-key-file",
                             peer_url
                         ),
                     }
