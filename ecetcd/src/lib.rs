@@ -142,7 +142,7 @@ where
                     {
                         Ok(peer_client) => peer_client,
                         Err(err) => {
-                            warn!(%err, "Failed to connect to peer");
+                            warn!(%err, peer=%peer.address, "Failed to connect to peer");
                             tokio::time::sleep(RETRY_INTERVAL).await;
                             continue;
                         }
@@ -154,7 +154,7 @@ where
                 {
                     Ok(reply) => reply.into_inner(),
                     Err(err) => {
-                        warn!(%err, "Failed to list members");
+                        warn!(%err, peer=%peer.address, "Failed to list members");
                         tokio::time::sleep(RETRY_INTERVAL).await;
                         continue;
                     }
@@ -175,6 +175,7 @@ where
                     None => {
                         warn!(
                             initial_advertise_peer_urls = ?string_initial_advertise_peer_urls,
+                            peer=%peer.address,
                             "Failed to find member with given initial advertise peer urls"
                         );
                         tokio::time::sleep(RETRY_INTERVAL).await;
