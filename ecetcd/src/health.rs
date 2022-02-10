@@ -59,7 +59,7 @@ impl HealthServer {
         if let Err(e) = timeout(Duration::from_millis(5), self.do_checks()).await {
             warn!(error=%e, "Unhealthy");
             false
-        }else {
+        } else {
             true
         }
     }
