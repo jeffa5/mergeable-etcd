@@ -9,6 +9,7 @@ mod trace;
 
 use std::{
     convert::TryFrom, fmt::Debug, marker::PhantomData, path::PathBuf, str::FromStr, sync::Arc,
+    time::Duration,
 };
 
 pub use address::Address;
@@ -34,6 +35,7 @@ use crate::{
 };
 
 const WAITING_CLIENTS_PER_DOCUMENT: usize = 32;
+const RETRY_INTERVAL: Duration = Duration::from_secs(2);
 
 #[derive(Debug, PartialEq, PartialOrd)]
 pub enum InitialClusterState {
@@ -126,42 +128,62 @@ where
         // information before setting up
         let (cluster_id, member_id) = if self.initial_cluster_state == InitialClusterState::Existing
         {
-            // pick a peer and try to connect to them
-            let peer = self
-                .initial_cluster
-                .first()
-                .expect("No first address in initial cluster");
-            let peer_endpoint = Endpoint::from_shared(peer.address.to_string())
-                .expect("Failed to build endpoint from peer address");
-            debug!(peer=%peer.address, "Connecting to peer");
-            let mut peer_client =
-                peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone())
+            loop {
+                // pick a peer and try to connect to them
+                let peer = self
+                    .initial_cluster
+                    .first()
+                    .expect("No first address in initial cluster");
+                let peer_endpoint = Endpoint::from_shared(peer.address.to_string())
+                    .expect("Failed to build endpoint from peer address");
+                debug!(peer=%peer.address, "Connecting to peer");
+                let mut peer_client =
+                    match peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone()).await
+                    {
+                        Ok(peer_client) => peer_client,
+                        Err(err) => {
+                            warn!(%err, "Failed to connect to peer");
+                            tokio::time::sleep(RETRY_INTERVAL).await;
+                            continue;
+                        }
+                    };
+                debug!(peer=%peer.address, "Listing members");
+                let members = match peer_client
+                    .member_list(Request::new(peer_proto::MemberListRequest {}))
                     .await
-                    .expect("Failed to connect to peer");
-            debug!(peer=%peer.address, "Listing members");
-            let members = peer_client
-                .member_list(Request::new(peer_proto::MemberListRequest {}))
-                .await
-                .expect("Failed to list members")
-                .into_inner();
-            debug!(peer=%peer.address, ?members, "Found members");
-            let string_initial_advertise_peer_urls = self
-                .initial_advertise_peer_urls
-                .iter()
-                .map(|u| u.to_string())
-                .collect::<Vec<_>>();
-            let member = members
-                .members
-                .iter()
-                .find(|member| {
+                {
+                    Ok(reply) => reply.into_inner(),
+                    Err(err) => {
+                        warn!(%err, "Failed to list members");
+                        tokio::time::sleep(RETRY_INTERVAL).await;
+                        continue;
+                    }
+                };
+                debug!(peer=%peer.address, members=?members.members, "Found members");
+                let string_initial_advertise_peer_urls = self
+                    .initial_advertise_peer_urls
+                    .iter()
+                    .map(|u| u.to_string())
+                    .collect::<Vec<_>>();
+                let member = match members.members.iter().find(|member| {
                     member
                         .peer_ur_ls
                         .iter()
                         .any(|url| string_initial_advertise_peer_urls.contains(url))
-                })
-                .expect("Failed to find member with given initial advertise peer url");
+                }) {
+                    Some(member) => member,
+                    None => {
+                        warn!(
+                            initial_advertise_peer_urls = ?string_initial_advertise_peer_urls,
+                            "Failed to find member with given initial advertise peer urls"
+                        );
+                        tokio::time::sleep(RETRY_INTERVAL).await;
+                        continue;
+                    }
+                };
 
-            (members.cluster_id, member.id)
+                break (members.cluster_id, member.id);
+            }
         } else {
             let member_id = if let Ok(Some(member_id)) = db.get("member_id".as_bytes()) {
                 u64::from_le_bytes(member_id.to_vec().try_into().unwrap())
