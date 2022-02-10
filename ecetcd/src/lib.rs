@@ -261,33 +261,6 @@ where
             (None, None)
         };
 
-        let client_servers = client_urls.iter().map(|client_url| {
-                let identity = if let Scheme::Https = client_url.scheme {
-                    match (self.cert_file.as_ref(), self.key_file.as_ref()) {
-                        (Some(cert_file), Some(key_file)) => {
-                            let cert = std::fs::read(&cert_file).expect("reading server cert");
-                            let key = std::fs::read(&key_file).expect("reading server key");
-                            Some(Identity::from_pem(cert, key))
-                        }
-                        (Some(_), None) => panic!("Requested client_url '{}', but missing --cert-file", client_url),
-                        (None, Some(_)) => panic!("Requested client url '{}', but missing --key-file", client_url),
-                        (None, None) => panic!("Requested client url '{}', but missing both --cert-file and --key-file", client_url),
-                    }
-                } else {
-                    None
-                };
-                let serving = crate::services::serve(
-                    client_url.socket_address(),
-                    identity,
-                    shutdown.clone(),
-                    server.clone(),
-                    trace_out.clone(),
-                );
-                info!("Listening to clients on {}", client_url);
-                serving
-            })
-            .collect::<Vec<_>>();
-
         let (peer_send, peer_receive) = mpsc::channel(1);
 
         let peer_server_clone = peer_server.clone();
@@ -387,6 +360,33 @@ where
                     shutdown.clone(),
                 )
 
+            })
+            .collect::<Vec<_>>();
+
+        let client_servers = client_urls.iter().map(|client_url| {
+                let identity = if let Scheme::Https = client_url.scheme {
+                    match (self.cert_file.as_ref(), self.key_file.as_ref()) {
+                        (Some(cert_file), Some(key_file)) => {
+                            let cert = std::fs::read(&cert_file).expect("reading server cert");
+                            let key = std::fs::read(&key_file).expect("reading server key");
+                            Some(Identity::from_pem(cert, key))
+                        }
+                        (Some(_), None) => panic!("Requested client_url '{}', but missing --cert-file", client_url),
+                        (None, Some(_)) => panic!("Requested client url '{}', but missing --key-file", client_url),
+                        (None, None) => panic!("Requested client url '{}', but missing both --cert-file and --key-file", client_url),
+                    }
+                } else {
+                    None
+                };
+                let serving = crate::services::serve(
+                    client_url.socket_address(),
+                    identity,
+                    shutdown.clone(),
+                    server.clone(),
+                    trace_out.clone(),
+                );
+                info!("Listening to clients on {}", client_url);
+                serving
             })
             .collect::<Vec<_>>();
 
