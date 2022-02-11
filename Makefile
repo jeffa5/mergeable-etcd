@@ -2,6 +2,7 @@ TRACE_FILE ?= trace.requests
 CERTS_DIR ?= certs
 CA_KEYS := $(CERTS_DIR)/ca.pem $(CERTS_DIR)/ca-key.pem $(CERTS_DIR)/ca.csr
 SERVER_KEYS := $(CERTS_DIR)/server.crt $(CERTS_DIR)/server.key $(CERTS_DIR)/server.csr
+PEER_KEYS := $(CERTS_DIR)/peer.crt $(CERTS_DIR)/peer.key $(CERTS_DIR)/peer.csr
 RUN_ARGS ?=
 DOT_FILES := $(shell find -name '*.dot')
 SVG_FILES := $(patsubst %.dot, %.svg, $(DOT_FILES))
@@ -51,9 +52,14 @@ $(SERVER_KEYS): $(CA_KEYS) $(CERTS_DIR)/ca-config.json $(CERTS_DIR)/server.json
 	mv $(CERTS_DIR)/server.pem $(CERTS_DIR)/server.crt
 	mv $(CERTS_DIR)/server-key.pem $(CERTS_DIR)/server.key
 
+$(PEER_KEYS): $(CA_KEYS) $(CERTS_DIR)/ca-config.json $(CERTS_DIR)/peer.json
+	cfssl gencert -ca=$(CERTS_DIR)/ca.pem -ca-key=$(CERTS_DIR)/ca-key.pem -config=$(CERTS_DIR)/ca-config.json -profile=server $(CERTS_DIR)/peer.json | cfssljson -bare $(CERTS_DIR)/peer -
+	mv $(CERTS_DIR)/peer.pem $(CERTS_DIR)/peer.crt
+	mv $(CERTS_DIR)/peer-key.pem $(CERTS_DIR)/peer.key
+
 .PHONY: clean
 clean:
-	rm -f $(CA_KEYS) $(SERVER_KEYS)
+	rm -f $(CA_KEYS) $(SERVER_KEYS) $(PEER_KEYS)
 	rm -rf default.{eckd,etcd}
 	rm -f result result-lib
 	cargo clean
