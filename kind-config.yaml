@@ -2,24 +2,14 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
-    kubeadmConfigPatches:
-    - |
-      kind: ClusterConfiguration
-      etcd:
-        local:
-          imageRepository: docker.io/jeffas
-          imageTag: latest
-          # extraArgs:
-            # debug: ""
-            # trace-file: /tmp/trace.out
   - role: control-plane
-    kubeadmConfigPatches:
-    - |
-      kind: ClusterConfiguration
-      etcd:
-        local:
-          imageRepository: docker.io/jeffas
-          imageTag: latest
-          # extraArgs:
-            # debug: ""
-            # trace-file: /tmp/trace.out
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  etcd:
+    local:
+      imageRepository: docker.io/jeffas
+      imageTag: latest
+      # extraArgs:
+      #   debug: ""
+        # trace-file: /tmp/trace.out
