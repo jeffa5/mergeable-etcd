@@ -20,6 +20,21 @@ pub struct Clients {
     pub lease: etcd_proto::etcdserverpb::lease_client::LeaseClient<Channel>,
 }
 
+impl Clients {
+    pub async fn new(address: &'static str) -> Self {
+        let kv = etcd_proto::etcdserverpb::kv_client::KvClient::connect(address)
+            .await
+            .unwrap();
+        let watch = etcd_proto::etcdserverpb::watch_client::WatchClient::connect(address)
+            .await
+            .unwrap();
+        let lease = etcd_proto::etcdserverpb::lease_client::LeaseClient::connect(address)
+            .await
+            .unwrap();
+        Clients { kv, watch, lease }
+    }
+}
+
 pub async fn run_requests<F, FO, FOI>(f: F)
 where
     F: Fn(Clients) -> FO,
@@ -27,32 +42,10 @@ where
     FO::Output: Stream<Item = FOI>,
     FOI: std::fmt::Debug + PartialEq,
 {
-    let kv = etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2389")
-        .await
-        .unwrap();
-    let watch =
-        etcd_proto::etcdserverpb::watch_client::WatchClient::connect("http://127.0.0.1:2389")
-            .await
-            .unwrap();
-    let lease =
-        etcd_proto::etcdserverpb::lease_client::LeaseClient::connect("http://127.0.0.1:2389")
-            .await
-            .unwrap();
-    let recetcd_clients = Clients { kv, watch, lease };
+    let recetcd_clients = Clients::new("http://127.0.0.1:2389").await;
     let recetcd_results = f(recetcd_clients).await;
 
-    let kv = etcd_proto::etcdserverpb::kv_client::KvClient::connect("http://127.0.0.1:2379")
-        .await
-        .unwrap();
-    let watch =
-        etcd_proto::etcdserverpb::watch_client::WatchClient::connect("http://127.0.0.1:2379")
-            .await
-            .unwrap();
-    let lease =
-        etcd_proto::etcdserverpb::lease_client::LeaseClient::connect("http://127.0.0.1:2379")
-            .await
-            .unwrap();
-    let etcd_clients = Clients { kv, watch, lease };
+    let etcd_clients = Clients::new("http://127.0.0.1:2379").await;
     let etcd_results = f(etcd_clients).await;
 
     let results = etcd_results.zip(recetcd_results);
