@@ -9383,9 +9383,9 @@ rec {
       };
       "tonic" = rec {
         crateName = "tonic";
-        version = "0.6.1";
-        edition = "2021";
-        sha256 = "1yjsnfkkq3c7xcyxkid0zgpm8w774qqdny0im6fr0s1drxwkn814";
+        version = "0.6.2";
+        edition = "2018";
+        sha256 = "02jxiy0n2mw2c1fchykj3m18wp986685bji26px0z9qhkmjg827z";
         authors = [
           "Lucio Franco <luciofranco14@gmail.com>"
         ];
