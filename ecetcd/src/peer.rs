@@ -13,7 +13,7 @@ use service::Peer;
 use tokio::sync::mpsc;
 use tonic::{
     body::BoxBody,
-    transport::{Identity, NamedService, ServerTlsConfig},
+    transport::{Identity, NamedService},
 };
 use tower::Service;
 use tracing::{info, warn};
@@ -22,7 +22,7 @@ use crate::store::DocumentHandle;
 
 pub async fn serve(
     address: SocketAddr,
-    identity: Option<Identity>,
+    _identity: Option<Identity>,
     mut shutdown: tokio::sync::watch::Receiver<()>,
     sender: mpsc::Sender<(u64, Option<automerge_backend::SyncMessage>)>,
     document: DocumentHandle,
@@ -32,10 +32,11 @@ pub async fn serve(
         document,
         shutdown: shutdown.clone(),
     });
-    let mut server = tonic::transport::Server::builder();
-    if let Some(identity) = identity {
-        server = server.tls_config(ServerTlsConfig::new().identity(identity))?;
-    }
+    let server = tonic::transport::Server::builder();
+    // TODO: re-enable tls connections once IP addresses have been shown to work with rustls
+    // if let Some(identity) = identity {
+    //     server = server.tls_config(ServerTlsConfig::new().identity(identity))?;
+    // }
 
     server
         .trace_fn(|_| tracing::info_span!(""))

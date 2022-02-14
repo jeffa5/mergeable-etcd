@@ -141,23 +141,24 @@ impl Server {
     ///
     /// Returns whether to keep trying, false meaning that some other task is already handling this
     /// client.
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "debug", skip(self, _tls_config))]
     pub async fn connect_client(
         &self,
         address: String,
-        tls_config: Option<ClientTlsConfig>,
+        _tls_config: Option<ClientTlsConfig>,
     ) -> bool {
         debug!("Trying to connect to peer");
         // create a stream
         let (send, recv) = mpsc::unbounded_channel();
 
-        let mut peer_endpoint = Endpoint::from_shared(address.clone())
+        let peer_endpoint = Endpoint::from_shared(address.clone())
             .expect("Failed to build peer endpoint from address");
-        if let Some(tls_config) = tls_config {
-            peer_endpoint = peer_endpoint
-                .tls_config(tls_config)
-                .expect("Failed to configure peer client with tls config")
-        }
+        // TODO: re-enable tls connection once rustls supports IP addresses in SAN
+        // if let Some(tls_config) = tls_config {
+        //     peer_endpoint = peer_endpoint
+        //         .tls_config(tls_config)
+        //         .expect("Failed to configure peer client with tls config")
+        // }
         // connect to a peer
         let mut peer_client =
             match peer_proto::peer_client::PeerClient::connect(peer_endpoint).await {
@@ -202,12 +203,12 @@ impl Server {
     ///
     /// Returns whether to keep trying, false meaning that some other task is already handling this
     /// client.
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "debug", skip(self, _tls_config))]
     pub async fn connect_client_with_id(
         &self,
         address: String,
         peer_id: u64,
-        tls_config: Option<ClientTlsConfig>,
+        _tls_config: Option<ClientTlsConfig>,
     ) -> bool {
         debug!("Trying to connect to peer");
         // create a stream
@@ -215,13 +216,14 @@ impl Server {
 
         if self.register_client(peer_id, send).await {
             debug!("Successfully registered client");
-            let mut peer_endpoint = Endpoint::from_shared(address.clone())
+            let peer_endpoint = Endpoint::from_shared(address.clone())
                 .expect("Failed to build endpoint from peer address");
-            if let Some(tls_config) = tls_config {
-                peer_endpoint = peer_endpoint
-                    .tls_config(tls_config)
-                    .expect("Failed to configure peer client with tls config")
-            }
+            // TODO: re-enable tls connections once rustls supports IP Addresses in SANs
+            // if let Some(tls_config) = tls_config {
+            //     peer_endpoint = peer_endpoint
+            //         .tls_config(tls_config)
+            //         .expect("Failed to configure peer client with tls config")
+            // }
             // connect to a peer
             let mut peer_client =
                 match peer_proto::peer_client::PeerClient::connect(peer_endpoint).await {
@@ -274,7 +276,7 @@ impl Server {
     }
 
     // connect to the peer and keep trying if goes offline
-    #[instrument(level = "debug", skip(self, shutdown))]
+    #[instrument(level = "debug", skip(self, shutdown, tls_config))]
     pub async fn spawn_client_handler(
         self,
         address: String,
@@ -312,7 +314,7 @@ impl Server {
         tracing::info!(address = ?address_clone, "Shutting down peer client loop");
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "debug", skip(self, tls_config))]
     pub async fn spawn_client_handler_with_id(
         &self,
         address: String,

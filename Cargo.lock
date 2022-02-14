@@ -776,7 +776,6 @@ dependencies = [
  "hyper",
  "lazy_static",
  "num_cpus",
- "openssl",
  "opentelemetry 0.15.0",
  "peer-proto",
  "pretty_assertions",

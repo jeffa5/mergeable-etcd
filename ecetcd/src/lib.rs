@@ -145,13 +145,14 @@ where
                     .initial_cluster
                     .first()
                     .expect("No first address in initial cluster");
-                let mut peer_endpoint = Endpoint::from_shared(peer.address.to_string())
+                let peer_endpoint = Endpoint::from_shared(peer.address.to_string())
                     .expect("Failed to build endpoint from peer address");
-                if let Some(ref tls_config) = peer_tls_config {
-                    peer_endpoint = peer_endpoint
-                        .tls_config(tls_config.clone())
-                        .expect("Failed to configure peer client with tls config");
-                }
+                // TODO: re-enable tls connections once IP addresses are supported in SANs in rustls
+                // if let Some(ref tls_config) = peer_tls_config {
+                //     peer_endpoint = peer_endpoint
+                //         .tls_config(tls_config.clone())
+                //         .expect("Failed to configure peer client with tls config");
+                // }
                 debug!(peer=%peer.address, "Connecting to peer");
                 let mut peer_client =
                     match peer_proto::peer_client::PeerClient::connect(peer_endpoint.clone()).await
@@ -348,14 +349,13 @@ where
 
                 let server = document.current_server().await;
                 if server.get_peer(member_id).is_some() {
-                    debug!("Found ourselves in the cluster_members, continuing to set the server");
+                    debug!("Found ourselves in the cluster_members, continuing to update our information");
                     break;
                 } else {
                     debug!(%member_id, ?server, "Didn't find ourselves in the cluster_members, retrying");
                     tokio::time::sleep(RETRY_INTERVAL).await;
                 }
             }
-            debug!(server=?document.current_server().await, "Before setting server");
             document
                 .upsert_peer(Peer {
                     id: member_id,
@@ -372,7 +372,6 @@ where
                         .collect(),
                 })
                 .await;
-            debug!(server=?document.current_server().await, "After setting server");
             debug!(server=?document.current_server().await, "Upserted peer")
         } else {
             // new cluster so no need to wait for a sync
