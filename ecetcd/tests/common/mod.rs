@@ -21,11 +21,12 @@ pub struct Clients {
 }
 
 impl Clients {
-    pub async fn new(address: &'static str) -> Self {
-        let kv = etcd_proto::etcdserverpb::kv_client::KvClient::connect(address)
+    pub async fn new<S: Into<String>>(address: S) -> Self {
+        let address = address.into();
+        let kv = etcd_proto::etcdserverpb::kv_client::KvClient::connect(address.clone())
             .await
             .unwrap();
-        let watch = etcd_proto::etcdserverpb::watch_client::WatchClient::connect(address)
+        let watch = etcd_proto::etcdserverpb::watch_client::WatchClient::connect(address.clone())
             .await
             .unwrap();
         let lease = etcd_proto::etcdserverpb::lease_client::LeaseClient::connect(address)

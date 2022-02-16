@@ -87,6 +87,14 @@ impl TryFrom<&str> for Address {
     }
 }
 
+impl TryFrom<String> for Address {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Address::try_from(value.as_str())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct NamedAddress {
     name: String,
