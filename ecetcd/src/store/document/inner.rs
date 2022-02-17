@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Debug)]
 pub(super) struct DocumentInner<T, P> {
-    pub automerge: PersistentAutomerge<P>,
+    automerge: PersistentAutomerge<P>,
     _type: PhantomData<T>,
 }
 
@@ -26,6 +26,10 @@ where
             automerge,
             _type: PhantomData::default(),
         }
+    }
+
+    pub fn flush(&mut self) -> Result<usize, P::Error> {
+        self.automerge.flush()
     }
 
     pub fn get(&self) -> StoreContents<T> {

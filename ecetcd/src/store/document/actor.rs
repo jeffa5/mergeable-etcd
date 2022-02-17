@@ -184,7 +184,7 @@ where
     }
 
     pub async fn flush(&mut self) {
-        let bytes_flushed = self.document.automerge.flush().unwrap();
+        let bytes_flushed = self.document.flush().unwrap();
         if bytes_flushed > 0 {
             self.changed_notify.notify_one();
         }
