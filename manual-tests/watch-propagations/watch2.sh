@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-etcdctl watch /a --endpoints http://localhost:2389
+etcdctl watch /a --prev-kv --endpoints http://localhost:2389
