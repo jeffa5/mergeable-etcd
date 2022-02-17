@@ -1,11 +1,11 @@
 use std::{collections::HashMap, convert::TryFrom, sync::Arc, thread, time::Duration};
 
-use automerge::{frontend::schema::MapSchema, FrontendOptions};
+use automerge::{frontend::schema::MapSchema, FrontendOptions, ScalarValue};
 use automerge_backend::SyncMessage;
 use automerge_frontend::schema::SortedMapSchema;
-use automerge_persistent::{Error, PersistentAutomerge, PersistentAutomergeError, Persister};
+use automerge_persistent::{Error, PersistentAutomerge, PersistentBackend, Persister};
 use automerge_persistent_sled::SledPersisterError;
-use automerge_protocol::ActorId;
+use automerge_protocol::{ActorId, Diff};
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use lazy_static::lazy_static;
 use prometheus::{register_int_counter, IntCounter};
@@ -17,7 +17,10 @@ use tokio::{
 use tracing::{debug, error, info, warn, Instrument, Span};
 
 use super::{
-    outstanding::{OutstandingInsert, OutstandingRemove, OutstandingRequest},
+    outstanding::{
+        notify_watchers_insert, notify_watchers_remove, OutstandingInsert, OutstandingRemove,
+        OutstandingRequest,
+    },
     DocumentMessage,
 };
 use crate::{
@@ -147,14 +150,16 @@ where
 
         let persister = starter_automerge.close().unwrap();
         // load the document from the changes we've just made.
-        let f = automerge::Frontend::new(
+        let mut f = automerge::Frontend::new(
             FrontendOptions::default()
                 .with_actor_id(actor_id)
                 .with_schema(schema),
         );
-        let automerge = PersistentAutomerge::load_with_frontend(persister, f).unwrap();
+        let backend = PersistentBackend::load(persister).unwrap();
+        let patch = backend.get_patch().unwrap();
+        f.apply_patch(patch).unwrap();
 
-        let document = DocumentInner::new(automerge);
+        let document = DocumentInner::new(f, backend);
 
         let watchers = HashMap::new();
         tracing::info!(
@@ -316,7 +321,7 @@ where
             DocumentMessage::ReceiveSyncMessage { peer_id, message } => {
                 // ensure we have written in-progress requests to disk before we add new changes
                 self.flush().await;
-                self.receive_sync_message(peer_id, message).unwrap();
+                self.receive_sync_message(peer_id, message).await.unwrap();
                 // Ensure that we save the new changes to disk
                 self.flush().await;
             }
@@ -402,17 +407,63 @@ where
     fn generate_sync_message(
         &mut self,
         peer_id: Vec<u8>,
-    ) -> Result<Option<SyncMessage>, PersistentAutomergeError<P::Error>> {
+    ) -> Result<Option<SyncMessage>, automerge_persistent::Error<P::Error, automerge::BackendError>>
+    {
         self.document.generate_sync_message(peer_id)
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    fn receive_sync_message(
+    async fn receive_sync_message(
         &mut self,
         peer_id: Vec<u8>,
         message: SyncMessage,
-    ) -> Result<(), PersistentAutomergeError<P::Error>> {
-        self.document.receive_sync_message(peer_id, message)
+    ) -> Result<(), automerge_persistent::Error<P::Error, automerge::BackendError>> {
+        let server = self.current_server();
+        if let Some(patch) = self.document.receive_sync_message(peer_id, message)? {
+            let diff = patch.diffs;
+            if let Some(values) = diff.props.get("values") {
+                let values_map = values.values().next().unwrap();
+                if let Diff::Map(mapdiff) = values_map {
+                    for (key, diff) in &mapdiff.props {
+                        let revisions_map = diff.values().next().unwrap();
+                        if let Diff::Map(mapdiff) = revisions_map {
+                            if let Some(revisions_map) = mapdiff.props.get("revisions") {
+                                let revision = revisions_map.values().next().unwrap();
+                                if let Diff::Map(revisiondiff) = revision {
+                                    for (revision, values) in &revisiondiff.props {
+                                        let value = values.values().next().unwrap();
+                                        if let Diff::Value(value) = value {
+                                            let key: Key = key.as_str().parse().unwrap();
+                                            if let ScalarValue::Null = value {
+                                                let prev_value = Revision::new(
+                                                    revision.as_str().parse::<u64>().unwrap() - 1,
+                                                )
+                                                .and_then(|rev| {
+                                                    self.document
+                                                        .get()
+                                                        .get_inner(key.clone(), None, rev)
+                                                        .first()
+                                                        .cloned()
+                                                });
+                                                notify_watchers_remove(
+                                                    self,
+                                                    &server,
+                                                    &[(key, prev_value)],
+                                                )
+                                                .await;
+                                            } else {
+                                                notify_watchers_insert(self, &key, &server).await;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, key, range_end, revision))]

@@ -1,8 +1,9 @@
 use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
-use automerge::LocalChange;
+use automerge::{Backend, BackendError, Frontend, LocalChange};
 use automerge_backend::SyncMessage;
-use automerge_persistent::{PersistentAutomerge, PersistentAutomergeError, Persister};
+use automerge_persistent::{PersistentBackend, Persister};
+use automerge_protocol::Patch;
 
 use crate::{
     store::{content::ValueState, StoreContents},
@@ -11,7 +12,8 @@ use crate::{
 
 #[derive(Debug)]
 pub(super) struct DocumentInner<T, P> {
-    automerge: PersistentAutomerge<P>,
+    frontend: Frontend,
+    backend: PersistentBackend<P, Backend>,
     _type: PhantomData<T>,
 }
 
@@ -21,19 +23,20 @@ where
     <T as TryFrom<Vec<u8>>>::Error: Debug,
     P: Persister + 'static,
 {
-    pub fn new(automerge: PersistentAutomerge<P>) -> Self {
+    pub fn new(frontend: Frontend, backend: PersistentBackend<P, Backend>) -> Self {
         Self {
-            automerge,
+            frontend,
+            backend,
             _type: PhantomData::default(),
         }
     }
 
     pub fn flush(&mut self) -> Result<usize, P::Error> {
-        self.automerge.flush()
+        self.backend.flush()
     }
 
     pub fn get(&self) -> StoreContents<T> {
-        StoreContents::new(self.automerge.value_ref())
+        StoreContents::new(self.frontend.value_ref())
     }
 
     #[tracing::instrument(level = "debug", skip(self, change_closure), err)]
@@ -42,7 +45,7 @@ where
         E: std::error::Error,
         F: FnOnce(&mut StoreContents<T>) -> Result<O, E>,
     {
-        let mut sc = StoreContents::new(self.automerge.value_ref());
+        let mut sc = StoreContents::new(self.frontend.value_ref());
         let result = change_closure(&mut sc)?;
         let changes = self.extract_changes(sc);
         self.apply_changes(changes);
@@ -54,7 +57,7 @@ where
         let kvs = store_contents.changes();
         let mut changes = Vec::new();
         for (path, value) in kvs {
-            let old = self.automerge.get_value(&path);
+            let old = self.frontend.get_value(&path);
             let mut local_changes = match value {
                 ValueState::Present(v) => {
                     automergeable::diff_with_path(Some(&v), old.as_ref(), path).unwrap()
@@ -70,7 +73,8 @@ where
 
     #[tracing::instrument(level = "debug", skip(self, changes))]
     pub fn apply_changes(&mut self, changes: Vec<LocalChange>) {
-        self.automerge
+        let ((), change) = self
+            .frontend
             .change::<_, _, std::convert::Infallible>(None, |d| {
                 for c in changes {
                     match d.add_change(c.clone()) {
@@ -84,25 +88,34 @@ where
                 Ok(())
             })
             .unwrap();
+        if let Some(change) = change {
+            let patch = self.backend.apply_local_change(change).unwrap();
+            self.frontend.apply_patch(patch).unwrap();
+        }
     }
 
     pub fn generate_sync_message(
         &mut self,
         peer_id: Vec<u8>,
-    ) -> Result<Option<SyncMessage>, PersistentAutomergeError<P::Error>> {
-        self.automerge.generate_sync_message(peer_id)
+    ) -> Result<Option<SyncMessage>, automerge_persistent::Error<P::Error, BackendError>> {
+        self.backend.generate_sync_message(peer_id)
     }
 
     pub fn receive_sync_message(
         &mut self,
         peer_id: Vec<u8>,
         message: SyncMessage,
-    ) -> Result<(), PersistentAutomergeError<P::Error>> {
-        self.automerge.receive_sync_message(peer_id, message)
+    ) -> Result<Option<Patch>, automerge_persistent::Error<P::Error, BackendError>> {
+        if let Some(patch) = self.backend.receive_sync_message(peer_id, message)? {
+            self.frontend.apply_patch(patch.clone()).unwrap();
+            Ok(Some(patch))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn db_size(&self) -> u64 {
-        let sizes = self.automerge.persister().sizes();
+        let sizes = self.backend.persister().sizes();
         (sizes.document + sizes.changes + sizes.sync_states) as u64
     }
 }
