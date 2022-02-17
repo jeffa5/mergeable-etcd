@@ -51,21 +51,33 @@ impl OutstandingInsert {
         <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
         P: Persister + 'static,
     {
-        if !doc_actor.watchers.is_empty() {
-            let mut doc = doc_actor.document.get();
-            let value = doc.value_mut(&self.key).unwrap().unwrap();
-            for (range, sender) in doc_actor.watchers.values() {
-                if range.contains(&self.key) {
-                    let latest_value = value.latest_value(self.key.clone()).unwrap();
-                    let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
-                        .and_then(|rev| value.value_at_revision(rev, self.key.clone()));
-                    let _ = sender
-                        .send((self.server.clone(), vec![(latest_value, prev_value)]))
-                        .await;
-                }
+        notify_watchers_insert(doc_actor, &self.key, &self.server).await;
+        let _ = self.ret.send(Ok((self.server, self.prev)));
+    }
+}
+
+pub async fn notify_watchers_insert<T, P>(
+    doc_actor: &DocumentActor<T, P>,
+    key: &Key,
+    server: &Server,
+) where
+    T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+    P: Persister + 'static,
+{
+    if !doc_actor.watchers.is_empty() {
+        let mut doc = doc_actor.document.get();
+        let value = doc.value_mut(key).unwrap().unwrap();
+        for (range, sender) in doc_actor.watchers.values() {
+            if range.contains(key) {
+                let latest_value = value.latest_value(key.clone()).unwrap();
+                let prev_value = Revision::new(latest_value.mod_revision.get() - 1)
+                    .and_then(|rev| value.value_at_revision(rev, key.clone()));
+                let _ = sender
+                    .send((server.clone(), vec![(latest_value, prev_value)]))
+                    .await;
             }
         }
-        let _ = self.ret.send(Ok((self.server, self.prev)));
     }
 }
 
@@ -76,22 +88,34 @@ impl OutstandingRemove {
         <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
         P: Persister + 'static,
     {
-        if !doc_actor.watchers.is_empty() {
-            let mut doc = doc_actor.document.get();
-            for (key, prev) in &self.prev {
-                for (range, sender) in doc_actor.watchers.values() {
-                    if range.contains(key) {
-                        if let Some(Ok(value)) = doc.value_mut(key) {
-                            let latest_value = value.latest_value(key.clone()).unwrap();
-                            let _ = sender
-                                .send((self.server.clone(), vec![(latest_value, prev.clone())]))
-                                .await;
-                        }
+        notify_watchers_remove(doc_actor, &self.server, &self.prev).await;
+        let prev = self.prev.into_iter().filter_map(|(_, p)| p).collect();
+        let _ = self.ret.send(Ok((self.server, prev)));
+    }
+}
+
+pub async fn notify_watchers_remove<T, P>(
+    doc_actor: &DocumentActor<T, P>,
+    server: &Server,
+    prev: &[(Key, Option<SnapshotValue>)],
+) where
+    T: StoreValue,
+    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+    P: Persister + 'static,
+{
+    if !doc_actor.watchers.is_empty() {
+        let mut doc = doc_actor.document.get();
+        for (key, prev) in prev {
+            for (range, sender) in doc_actor.watchers.values() {
+                if range.contains(key) {
+                    if let Some(Ok(value)) = doc.value_mut(key) {
+                        let latest_value = value.latest_value(key.clone()).unwrap();
+                        let _ = sender
+                            .send((server.clone(), vec![(latest_value, prev.clone())]))
+                            .await;
                     }
                 }
             }
         }
-        let prev = self.prev.into_iter().filter_map(|(_, p)| p).collect();
-        let _ = self.ret.send(Ok((self.server, prev)));
     }
 }
