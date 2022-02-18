@@ -99,6 +99,7 @@ test:
 kind:
 	kind delete cluster
 	kind create cluster --config kind-config.yaml --image kindest/node:v1.20.7 --retain || sleep 5 && docker cp kind-control-plane:/var/log/pods logs
+	kubectl taint nodes --all node-role.kubernetes.io/master-
 
 .PHONY: diagrams
 diagrams: $(SVG_FILES)
