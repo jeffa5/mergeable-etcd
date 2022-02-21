@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashMap},
     convert::{TryFrom, TryInto},
     fmt::Debug,
     num::NonZeroU64,
@@ -22,7 +22,6 @@ pub trait StoreValue:
 #[derive(Debug, Clone)]
 pub struct IValue<'a, T: StoreValue> {
     value: Option<ValueRef<'a>>,
-    revs: Vec<Revision>,
     revisions: Option<BTreeMap<Revision, Option<T>>>,
     lease_id: Option<Option<i64>>,
     init: Vec<(Path, Value)>,
@@ -37,7 +36,6 @@ where
         let init = Self::init(&value, path);
         Self {
             value,
-            revs: Vec::new(),
             revisions: None,
             lease_id: None,
             init,
@@ -65,89 +63,27 @@ where
     }
 
     fn version_and_create_revision(&mut self, revision: Revision) -> (Version, Option<Revision>) {
-        self.get_revisions();
+        let value = self
+            .value
+            .as_ref()
+            .and_then(|v| v.map().unwrap().get(REVISIONS_KEY));
 
-        let (version, create_revision) = self
-            .revs
-            .iter()
-            .rev()
-            .skip_while(|&&k| k > revision)
-            .take_while(|rev| self.value_is_present(rev))
-            .fold((0, None), |(version, _), rev| (version + 1, Some(rev)));
+        match value {
+            Some(ValueRef::SortedMap(m)) => {
+                let revisions_map = m.iter();
+                let revision_string = revision.to_string().into();
+                let (version, create_revision) = revisions_map
+                    .rev()
+                    .skip_while(|(rev, _)| rev > &&revision_string)
+                    .take_while(|(_, value)| !matches!(value.primitive(), Some(Primitive::Null)))
+                    .fold((0, None), |(version, _), (rev, _)| (version + 1, Some(rev)));
 
-        (
-            NonZeroU64::new(version.try_into().unwrap()),
-            create_revision.cloned(),
-        )
-    }
-
-    /// Populate the revisions list from the value if it is already empty
-    fn get_revisions(&mut self) {
-        if self.revs.is_empty() {
-            // may have duplicate keys in value and revisions cache
-            let mut revisions: HashSet<Revision> = HashSet::new();
-            let value = self
-                .value
-                .as_ref()
-                .and_then(|v| v.map().unwrap().get(REVISIONS_KEY));
-
-            match value {
-                Some(ValueRef::SortedMap(m)) => {
-                    revisions.reserve(m.len());
-                    for k in m.keys().map(|k| k.parse::<Revision>().unwrap()) {
-                        revisions.insert(k);
-                    }
-                    if let Some(revs) = self.revisions.as_ref() {
-                        for k in revs.keys() {
-                            revisions.insert(*k);
-                        }
-                    }
-                    let mut revisions = revisions.into_iter().collect::<Vec<_>>();
-                    revisions.sort_unstable();
-
-                    self.revs = revisions;
-                }
-                None => {}
-                Some(v) => {
-                    panic!("Unexpected value type: {:?}", v)
-                }
+                (
+                    NonZeroU64::new(version.try_into().unwrap()),
+                    create_revision.as_ref().and_then(|s| s.parse().ok()),
+                )
             }
-        }
-    }
-
-    /// Return true if the value exists at the given revision and is not deleted.
-    fn value_is_present(&self, revision: &Revision) -> bool {
-        if let Some(v) = self.revisions.as_ref().and_then(|revs| revs.get(revision)) {
-            // was in cache
-            v.is_some()
-        } else {
-            let v = self
-                .value
-                .as_ref()
-                .and_then(|v| {
-                    v.map()
-                        .unwrap()
-                        .get(REVISIONS_KEY)
-                        .unwrap()
-                        .sorted_map()
-                        .unwrap()
-                        .get(&revision.to_string())
-                })
-                .unwrap();
-
-            !matches!(v.primitive(), Some(Primitive::Null))
-            // if let Some(Primitive::Null) = v.primitive() {
-            //     // null represents Option::None in the automerge representation
-            //     false
-            // } else {
-            //     true
-            //     // TODO: if we can make it cheaper it may be worth checking the actual value
-            //     // // otherwise it may be a mismatching type so try the conversion and test the
-            //     // // option
-            //     // let v = Option::<T>::from_automerge(&v.value()).unwrap();
-            //     // // wasn't in cache but was some after construction
-            //     // v.is_some()
-            // }
+            _ => panic!("revisions not a sorted map"),
         }
     }
 
@@ -199,10 +135,6 @@ where
     ///
     /// `key` is required to be able to build the RawValue
     pub fn value_at_revision(&mut self, revision: Revision, key: Key) -> Option<SnapshotValue> {
-        self.get_revisions();
-
-        let revision = *self.revs.iter().rfind(|&&k| k <= revision)?;
-
         let value = self.get_value(&revision)?;
         let svalue = value.as_ref().map(|i| i.clone().into());
 
@@ -222,22 +154,42 @@ where
     ///
     /// `key` is required to be able to build the RawValue
     pub fn latest_value(&mut self, key: Key) -> Option<SnapshotValue> {
-        self.get_revisions();
+        let value = self
+            .value
+            .as_ref()
+            .and_then(|v| v.map().unwrap().get(REVISIONS_KEY));
 
-        let last_revision = *self.revs.last()?;
+        match value {
+            Some(ValueRef::SortedMap(m)) => {
+                let last_revision = m.keys().last()?.parse().ok()?;
 
-        self.value_at_revision(last_revision, key)
+                self.value_at_revision(last_revision, key)
+            }
+            _ => panic!("revisions not a sorted map"),
+        }
+    }
+
+    fn latest_revision(&self) -> Option<Revision> {
+        let value = self
+            .value
+            .as_ref()
+            .and_then(|v| v.map().unwrap().get(REVISIONS_KEY));
+
+        match value {
+            Some(ValueRef::SortedMap(m)) => {
+                return m.keys().last()?.parse().ok();
+            }
+            _ => panic!("revisions not a sorted map"),
+        }
     }
 
     /// Insert a new value (or update an existing value) at the given revision
     ///
     /// If the value is None then the last value is used and given a new revision.
     pub fn insert(&mut self, revision: Revision, value: Option<Vec<u8>>, lease: Option<i64>) {
-        self.get_revisions();
-
         let value = if let Some(value) = value {
             T::try_from(value).unwrap()
-        } else if let Some(last) = self.revs.last().cloned() {
+        } else if let Some(last) = self.latest_revision() {
             // we've just gotten the last revision so it should exist
             let value = self.get_value(&last).unwrap();
             value.as_ref().unwrap().clone()
@@ -245,8 +197,6 @@ where
             // TODO: probably return an error
             return;
         };
-
-        self.revs.push(revision);
 
         self.revisions
             .get_or_insert_with(Default::default)
@@ -259,11 +209,7 @@ where
 
     /// Delete the value with the given revision
     pub fn delete(&mut self, revision: Revision, key: Key) -> Option<SnapshotValue> {
-        self.get_revisions();
-
         let prev = self.value_at_revision(revision, key);
-
-        self.revs.push(revision);
 
         self.revisions
             .get_or_insert_with(Default::default)

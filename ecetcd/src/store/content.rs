@@ -507,9 +507,19 @@ where
                     values.push((key.clone(), prev))
                 }
             }
-        } else if let Some(Ok(value)) = self.value_mut(&key) {
-            let prev = value.delete(revision, key.clone());
-            values.push((key, prev))
+        } else {
+            match self.value_mut(&key) {
+                Some(Ok(value)) => {
+                    let prev = value.delete(revision, key.clone());
+                    values.push((key, prev))
+                }
+                Some(Err(error)) => {
+                    warn!(%error, "Error getting value in remove_inner");
+                }
+                None => {
+                    warn!("No value mut in remove_inner call")
+                }
+            }
         }
         values
     }

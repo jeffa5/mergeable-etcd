@@ -125,7 +125,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "automerge"
 version = "0.0.2"
-source = "git+https://github.com//jeffa5/automerge-rs?branch=dev#13a1eb06092760ba25f3f58ae25bfdf6fd45956e"
+source = "git+https://github.com//jeffa5/automerge-rs?branch=dev#9e7ea14217a98bc9cf826cc7580830c36f1134af"
 dependencies = [
  "automerge-backend",
  "automerge-frontend",
@@ -139,7 +139,7 @@ dependencies = [
 [[package]]
 name = "automerge-backend"
 version = "0.0.1"
-source = "git+https://github.com//jeffa5/automerge-rs?branch=dev#13a1eb06092760ba25f3f58ae25bfdf6fd45956e"
+source = "git+https://github.com//jeffa5/automerge-rs?branch=dev#9e7ea14217a98bc9cf826cc7580830c36f1134af"
 dependencies = [
  "automerge-protocol",
  "flate2",
@@ -164,7 +164,7 @@ dependencies = [
 [[package]]
 name = "automerge-frontend"
 version = "0.1.0"
-source = "git+https://github.com//jeffa5/automerge-rs?branch=dev#13a1eb06092760ba25f3f58ae25bfdf6fd45956e"
+source = "git+https://github.com//jeffa5/automerge-rs?branch=dev#9e7ea14217a98bc9cf826cc7580830c36f1134af"
 dependencies = [
  "automerge-protocol",
  "getrandom 0.2.3",
@@ -203,7 +203,7 @@ dependencies = [
 [[package]]
 name = "automerge-protocol"
 version = "0.1.0"
-source = "git+https://github.com//jeffa5/automerge-rs?branch=dev#13a1eb06092760ba25f3f58ae25bfdf6fd45956e"
+source = "git+https://github.com//jeffa5/automerge-rs?branch=dev#9e7ea14217a98bc9cf826cc7580830c36f1134af"
 dependencies = [
  "hex",
  "serde",
