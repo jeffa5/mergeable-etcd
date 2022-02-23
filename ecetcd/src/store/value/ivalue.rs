@@ -67,23 +67,56 @@ where
             .value
             .as_ref()
             .and_then(|v| v.map().unwrap().get(REVISIONS_KEY));
-
         match value {
-            Some(ValueRef::SortedMap(m)) => {
-                let revisions_map = m.iter();
+            Some(ValueRef::SortedMap(revisions_map)) => {
+                let first_stored_revision = revisions_map
+                    .keys()
+                    .last()
+                    .cloned()
+                    .unwrap_or_default()
+                    .parse()
+                    .unwrap_or_default();
+                let (version, create_revision) = if let Some(revisions) = self.revisions.as_ref() {
+                    revisions
+                        .iter()
+                        .rev()
+                        .skip_while(|(rev, _)| rev > &&revision)
+                        .take_while(|(rev, value)| rev > &&first_stored_revision && value.is_some())
+                        .fold((0, None), |(version, _), (rev, _)| {
+                            (version + 1, Some(rev.to_string().into()))
+                        })
+                } else {
+                    (0, None)
+                };
                 let revision_string = revision.to_string().into();
                 let (version, create_revision) = revisions_map
+                    .iter()
                     .rev()
                     .skip_while(|(rev, _)| rev > &&revision_string)
                     .take_while(|(_, value)| !matches!(value.primitive(), Some(Primitive::Null)))
-                    .fold((0, None), |(version, _), (rev, _)| (version + 1, Some(rev)));
+                    .fold((version, create_revision), |(version, _), (rev, _)| {
+                        (version + 1, Some(rev.clone()))
+                    });
 
                 (
                     NonZeroU64::new(version.try_into().unwrap()),
                     create_revision.as_ref().and_then(|s| s.parse().ok()),
                 )
             }
-            _ => panic!("revisions not a sorted map"),
+            None => {
+                let (version, create_revision) = if let Some(revisions) = self.revisions.as_ref() {
+                    revisions
+                        .iter()
+                        .rev()
+                        .skip_while(|(rev, _)| rev > &&revision)
+                        .take_while(|(_, value)| value.is_some())
+                        .fold((0, None), |(version, _), (rev, _)| (version + 1, Some(rev)))
+                } else {
+                    (0, None)
+                };
+                (NonZeroU64::new(version), create_revision.cloned())
+            }
+            _ => panic!("revisions not a sorted map, {:?}", value),
         }
     }
 
@@ -135,6 +168,7 @@ where
     ///
     /// `key` is required to be able to build the RawValue
     pub fn value_at_revision(&mut self, revision: Revision, key: Key) -> Option<SnapshotValue> {
+        let revision = self.first_revision_before(&revision)?;
         let value = self.get_value(&revision)?;
         let svalue = value.as_ref().map(|i| i.clone().into());
 
@@ -154,6 +188,13 @@ where
     ///
     /// `key` is required to be able to build the RawValue
     pub fn latest_value(&mut self, key: Key) -> Option<SnapshotValue> {
+        // try and get it first from the revisions
+        if let Some(revisions) = self.revisions.as_ref() {
+            if let Some(last_revision) = revisions.keys().last().cloned() {
+                return self.value_at_revision(last_revision, key);
+            }
+        }
+
         let value = self
             .value
             .as_ref()
@@ -170,6 +211,13 @@ where
     }
 
     fn latest_revision(&self) -> Option<Revision> {
+        // try and get it first from the revisions
+        if let Some(revisions) = self.revisions.as_ref() {
+            if let Some(last) = revisions.keys().last() {
+                return Some(last.clone());
+            }
+        }
+
         let value = self
             .value
             .as_ref()
@@ -180,6 +228,30 @@ where
                 return m.keys().last()?.parse().ok();
             }
             _ => panic!("revisions not a sorted map"),
+        }
+    }
+
+    /// Find the first revision, before or equal to the given one, that has a value.
+    fn first_revision_before(&self, revision: &Revision) -> Option<Revision> {
+        // try and get it from the in progress edits first
+        if let Some(revisions) = self.revisions.as_ref() {
+            let rev = revisions.keys().rfind(|&k| k <= &revision).cloned();
+            if rev.is_some() {
+                return rev;
+            }
+            // otherwise try and find it in the history
+        }
+
+        let value = self
+            .value
+            .as_ref()
+            .and_then(|v| v.map().unwrap().get(REVISIONS_KEY))?;
+        match value {
+            ValueRef::SortedMap(m) => {
+                let revision_string = revision.to_string().into();
+                return m.keys().rfind(|&k| k <= &revision_string)?.parse().ok();
+            }
+            _ => panic!("revisions not a sorted map, {:?}", value),
         }
     }
 
