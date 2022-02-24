@@ -6,7 +6,7 @@ use tokio::{
     sync::{mpsc, oneshot},
     time::timeout,
 };
-use tracing::{info, instrument, warn};
+use tracing::{debug, info, instrument, warn};
 use warp::Filter;
 
 use crate::address::Address;
@@ -32,7 +32,7 @@ pub async fn do_health_check(
         StatusCode::SERVICE_UNAVAILABLE
     };
 
-    info!(%status, "Got health request");
+    debug!(%status, "Got health request");
 
     Ok(status)
 }
