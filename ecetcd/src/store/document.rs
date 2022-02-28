@@ -19,6 +19,9 @@ pub enum DocumentMessage {
     CurrentServer {
         ret: oneshot::Sender<Server>,
     },
+    TryGetCurrentServer {
+        ret: oneshot::Sender<Option<Server>>,
+    },
     Get {
         key: Key,
         range_end: Option<Key>,
@@ -102,6 +105,7 @@ impl Display for DocumentMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         let s = match self {
             DocumentMessage::CurrentServer { .. } => "current_server",
+            DocumentMessage::TryGetCurrentServer { .. } => "try_get_current_server",
             DocumentMessage::Get { .. } => "get",
             DocumentMessage::Insert { .. } => "insert",
             DocumentMessage::Remove { .. } => "remove",

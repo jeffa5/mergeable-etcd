@@ -54,6 +54,14 @@ impl DocumentHandle {
         recv.await.expect("Actor task has been killed")
     }
 
+    pub async fn try_get_current_server(&self) -> Option<Server> {
+        let (send, recv) = oneshot::channel();
+        let msg = DocumentMessage::TryGetCurrentServer { ret: send };
+
+        let _ = self.sender.send_to_document(msg).await.unwrap();
+        recv.await.expect("Actor task has been killed")
+    }
+
     #[tracing::instrument(level = "debug", skip(self), fields(key=%key))]
     pub async fn get(
         &self,

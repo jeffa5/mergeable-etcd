@@ -340,6 +340,25 @@ where
             .insert(id, ValueState::Absent);
     }
 
+    pub fn try_get_server(&mut self) -> Option<&Server> {
+        if let Some(ref server) = self.server {
+            Some(server)
+        } else {
+            let v = self
+                .root_value_ref
+                .map()
+                .unwrap()
+                .get(SERVER_KEY)
+                .as_ref()
+                .map(|v| Server::from_automerge(&v.value()));
+            match v {
+                Some(Ok(server)) => self.server = Some(server),
+                Some(Err(_)) | None => return None,
+            }
+            self.server.as_ref()
+        }
+    }
+
     pub fn server(&mut self) -> Result<&Server, FromAutomergeError> {
         if let Some(ref server) = self.server {
             Ok(server)
@@ -413,7 +432,7 @@ where
     T: StoreValue,
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {
-    #[tracing::instrument(level="debug",skip(self, range_end), fields(key = %key))]
+    #[tracing::instrument(level="debug", skip(self), fields(key = %key))]
     pub(crate) fn get_inner(
         &mut self,
         key: Key,

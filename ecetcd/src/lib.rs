@@ -376,21 +376,23 @@ where
         } else {
             // new cluster so no need to wait for a sync
             // create the default server with the configuration
-            let s = crate::store::Server::new(
-                cluster_id,
-                member_id,
-                self.name.clone(),
-                self.initial_advertise_peer_urls
-                    .iter()
-                    .map(|a| a.to_string())
-                    .collect(),
-                self.advertise_client_urls
-                    .iter()
-                    .map(|a| a.to_string())
-                    .collect(),
-            );
-            document.set_server(s.clone()).await;
-            debug!(server=?s, "Set server")
+            if document.try_get_current_server().await.is_none() {
+                let s = crate::store::Server::new(
+                    cluster_id,
+                    member_id,
+                    self.name.clone(),
+                    self.initial_advertise_peer_urls
+                        .iter()
+                        .map(|a| a.to_string())
+                        .collect(),
+                    self.advertise_client_urls
+                        .iter()
+                        .map(|a| a.to_string())
+                        .collect(),
+                );
+                document.set_server(s.clone()).await;
+                debug!(server=?s, "Set server")
+            }
         }
 
         let health = HealthServer::new(document_health_sender);

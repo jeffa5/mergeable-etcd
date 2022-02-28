@@ -232,6 +232,10 @@ where
                 let server = self.current_server();
                 let _ = ret.send(server);
             }
+            DocumentMessage::TryGetCurrentServer { ret } => {
+                let server = self.try_get_current_server();
+                let _ = ret.send(server);
+            }
             DocumentMessage::Get {
                 ret,
                 key,
@@ -641,6 +645,11 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     fn current_server(&self) -> Server {
         self.document.get().server().unwrap().clone()
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    fn try_get_current_server(&self) -> Option<Server> {
+        self.document.get().try_get_server().cloned()
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
