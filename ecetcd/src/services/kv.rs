@@ -49,10 +49,12 @@ impl Kv for KV {
         let range_end = if request.range_end.is_empty() {
             None
         } else {
-            Some(request.range_end.into())
+            Some(request.range_end.clone().into())
         };
         let revision = Revision::new(request.revision as u64);
-        let get_result = self.server.get(request.key.into(), range_end, revision);
+        let get_result = self
+            .server
+            .get(request.key.clone().into(), range_end, revision);
         let (server, kvs) = get_result.await.unwrap();
 
         if request.revision > 0 && server.revision < revision.unwrap() {
@@ -100,7 +102,7 @@ impl Kv for KV {
             more,
         };
         if start.elapsed() > DURATION_THRESHOLD {
-            warn!(duration=?start.elapsed(), "Range request took too long");
+            warn!(duration=?start.elapsed(), key=?String::from_utf8(request.key.clone()), range_end=?String::from_utf8(request.range_end.clone()), "Range request took too long");
         }
         Ok(Response::new(reply))
     }
@@ -130,7 +132,7 @@ impl Kv for KV {
         let insert_response = self
             .server
             .insert(
-                request.key.into(),
+                request.key.clone().into(),
                 if request.ignore_value {
                     None
                 } else {
@@ -158,7 +160,7 @@ impl Kv for KV {
                 };
                 debug!(duration=?start.elapsed(), "finished request");
                 if start.elapsed() > DURATION_THRESHOLD {
-                    warn!(duration=?start.elapsed(), "Put request took too long");
+                    warn!(duration=?start.elapsed(), key=?String::from_utf8(request.key.clone()), "Put request took too long");
                 }
                 Ok(Response::new(reply))
             }
