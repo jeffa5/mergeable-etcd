@@ -38,6 +38,7 @@
 
                 jupyter
                 python3Packages.seaborn
+                python3Packages.kubernetes
 
                 perf-tests.packages.${system}.clusterloader2
               ];
