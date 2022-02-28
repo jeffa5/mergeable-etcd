@@ -25,3 +25,5 @@ perf.data.old
 
 .vscode
 *.tar.gz
+
+plots
