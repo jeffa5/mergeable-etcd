@@ -65,7 +65,7 @@ function delete_cluster() {
 
 cluster_name=clusterloader-cluster
 
-masters_options=(3)
+masters_options=(3 5)
 
 results_path="results/loss"
 log "Making results subdir ($results_path)"
