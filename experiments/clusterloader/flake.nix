@@ -37,8 +37,10 @@
                 openssl
 
                 jupyter
+                black
                 python3Packages.seaborn
                 python3Packages.kubernetes
+                python3Packages.docker
 
                 perf-tests.packages.${system}.clusterloader2
               ];

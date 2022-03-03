@@ -7,7 +7,6 @@ from kubernetes import client, config
 logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=logging.INFO)
 
 
-
 def generate_kind_config(masters):
     (_, config_file_name) = tempfile.mkstemp()
     with open(config_file_name, "w") as f:
@@ -56,15 +55,11 @@ def main(masters, cluster_name="kind"):
 
     os.system("kubectl taint nodes --all node-role.kubernetes.io/master-")
 
-
     partitioned = masters // 2
 
     config.load_kube_config()
     v1 = client.CoreV1Api()
-    nodes = [
-        n.metadata.name
-        for n in v1.list_node(watch=False).items[:partitioned]
-    ]
+    nodes = [n.metadata.name for n in v1.list_node(watch=False).items[:partitioned]]
 
     for node in nodes:
         os.system(
@@ -82,4 +77,3 @@ def main(masters, cluster_name="kind"):
 
     for node in nodes:
         os.system(f"./scripts/control-plane-full-loss.sh -n {node}")
-
