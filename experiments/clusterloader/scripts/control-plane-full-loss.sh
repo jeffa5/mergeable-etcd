@@ -25,7 +25,7 @@ if [[ -z $target_node ]]; then
     exit 1
 fi
 
-nodes=$(docker ps --format "{{.Names}}" | grep "clusterloader")
+nodes=$(docker ps --format "{{.Names}}")
 
 for node in $nodes; do
     if [[ $target_node == $node ]]; then
