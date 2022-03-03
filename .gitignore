@@ -27,3 +27,4 @@ perf.data.old
 *.tar.gz
 
 plots
+__pycache__
