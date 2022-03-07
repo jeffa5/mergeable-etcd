@@ -43,7 +43,9 @@ def main(cluster_name: str, results_path: str, repeats: int):
                     if not os.path.isdir(rpath):
                         logging.info(f"Running experiment for {cluster_size}")
                         lib.create_cluster(
-                            cluster_size, cluster_name, mergeable_etcd=True
+                            cluster_size,
+                            cluster_name,
+                            mergeable_etcd=(image == "mergeable-etcd"),
                         )
                         os.makedirs(rpath, exist_ok=True)
                         write_config(rpath, image, cluster_size, delay, repeat)
