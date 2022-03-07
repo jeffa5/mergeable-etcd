@@ -12,14 +12,21 @@ from kubernetes import client, config
 logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=logging.INFO)
 
 
-def config_string(image, masters, partitioned):
-    return f"image={image},masters={masters},partitioned={partitioned}"
+def config_string(image: str, masters: int, partitioned: int, repeat: int):
+    return f"image={image},masters={masters},partitioned={partitioned},repeat={repeat}"
 
 
-def write_config(d, image, masters, partitioned):
+def write_config(d: str, image: str, masters: int, partitioned: int, repeat: int):
     with open(f"{d}/config.json", "w") as f:
         f.write(
-            json.dumps({"partitioned": partitioned, "masters": masters, "image": image})
+            json.dumps(
+                {
+                    "partitioned": partitioned,
+                    "masters": masters,
+                    "image": image,
+                    "repeat": repeat,
+                }
+            )
         )
 
 
@@ -34,7 +41,7 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
 """
         )
-        for master in range(masters):
+        for _ in range(masters):
             f.write("- role: control-plane\n")
 
         if image == "mergeable-etcd":
@@ -83,62 +90,66 @@ def clear_iptables(node):
 
 
 def main():
+    repeats = 1
     for image in images:
         logging.info(f"Running for image {image}")
         for masters in masters_options:
-            partitioned = 0
-            delete_cluster()
+            for repeat in range(1, repeats + 1):
+                partitioned = 0
+                delete_cluster()
 
-            rpath = f"{results_path}/{config_string(image, masters, partitioned)}"
-            if not os.path.isdir(rpath):
-                create_cluster(image, masters)
-                os.makedirs(rpath, exist_ok=True)
-                logging.info("Running baseline experiment")
-                write_config(rpath, image, masters, partitioned)
-                os.system(f"./scripts/run-clusterloader.sh {rpath} {masters}")
-                time.sleep(5)
-            else:
-                logging.info(f"Skipping {rpath}")
-
-            # partition i for up to a majority
-            for partitioned in range(1, ((masters + 1) // 2) + 1):
-                logging.info("Clearing any current iptables rules")
-                os.system("./scripts/clear-iptables.sh")
-
-                rpath = f"{results_path}/{config_string(image, masters, partitioned)}"
+                rpath = f"{results_path}/{config_string(image, masters, partitioned, repeat)}"
                 if not os.path.isdir(rpath):
                     create_cluster(image, masters)
                     os.makedirs(rpath, exist_ok=True)
-
-                    config.load_kube_config()
-                    v1 = client.CoreV1Api()
-                    nodes = [
-                        n.metadata.name
-                        for n in v1.list_node(watch=False).items[:partitioned]
-                    ]
-
-                    logging.info(f"Partitioning nodes {nodes}")
-                    for node in nodes:
-                        os.system(f"./scripts/control-plane-full-loss.sh --node {node}")
-
-                    logging.info("Writing config")
-                    write_config(rpath, image, masters, partitioned)
-
-                    logging.info(
-                        f"Running experiment with {partitioned} partitioned nodes"
-                    )
-                    clusterloader_pid = subprocess.Popen(
-                        ["./scripts/run-clusterloader.sh", rpath, str(masters)]
-                    )
-
-                    sleep_and_clear(nodes)
-
-                    logging.info("Waiting for clusterloader to finish")
-                    clusterloader_pid.wait()
-
+                    logging.info("Running baseline experiment")
+                    write_config(rpath, image, masters, partitioned, repeat)
+                    os.system(f"./scripts/run-clusterloader.sh {rpath} {masters}")
                     time.sleep(5)
                 else:
                     logging.info(f"Skipping {rpath}")
+
+                # partition i for up to a majority
+                for partitioned in range(1, ((masters + 1) // 2) + 1):
+                    logging.info("Clearing any current iptables rules")
+                    os.system("./scripts/clear-iptables.sh")
+
+                    rpath = f"{results_path}/{config_string(image, masters, partitioned, repeat)}"
+                    if not os.path.isdir(rpath):
+                        create_cluster(image, masters)
+                        os.makedirs(rpath, exist_ok=True)
+
+                        config.load_kube_config()
+                        v1 = client.CoreV1Api()
+                        nodes = [
+                            n.metadata.name
+                            for n in v1.list_node(watch=False).items[:partitioned]
+                        ]
+
+                        logging.info(f"Partitioning nodes {nodes}")
+                        for node in nodes:
+                            os.system(
+                                f"./scripts/control-plane-full-loss.sh --node {node}"
+                            )
+
+                        logging.info("Writing config")
+                        write_config(rpath, image, masters, partitioned, repeat)
+
+                        logging.info(
+                            f"Running experiment with {partitioned} partitioned nodes"
+                        )
+                        clusterloader_pid = subprocess.Popen(
+                            ["./scripts/run-clusterloader.sh", rpath, str(masters)]
+                        )
+
+                        sleep_and_clear(nodes)
+
+                        logging.info("Waiting for clusterloader to finish")
+                        clusterloader_pid.wait()
+
+                        time.sleep(5)
+                    else:
+                        logging.info(f"Skipping {rpath}")
 
     delete_cluster()
 
