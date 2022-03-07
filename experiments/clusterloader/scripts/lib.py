@@ -44,6 +44,23 @@ def clear_partition(nodes: List[str]):
         container.exec_run("iptables -F INPUT")
 
 
+def inject_delay_ms(delay: int, nodes: List[str]):
+    logging.info(f"Delaying traffic between {nodes} by {delay}ms")
+    docker_client = docker.from_env()
+    for node in nodes:
+        container = docker_client.containers.get(node)
+        container.exec_run(f"tc qdisc add dev eth0 root netem delay {delay}ms")
+
+
+def clear_tc(nodes: List[str]):
+    logging.info(f"Clearing delay between {nodes}")
+    docker_client = docker.from_env()
+    for node in nodes:
+        container = docker_client.containers.get(node)
+        container.exec_run("tc qdisc del dev eth0 root netem")
+        container.exec_run("tc qdisc del dev eth0 root handle 1:")
+
+
 def kube_get_nodes() -> List[str]:
     config.load_kube_config()
     v1 = client.CoreV1Api()
@@ -172,9 +189,9 @@ def create_cluster(masters: int, cluster_name: str, mergeable_etcd: bool):
     os.system("kubectl taint nodes --all node-role.kubernetes.io/master-")
 
 
-def run_clusterloader(report_dir: str, nodes: List[str]):
+def run_clusterloader(report_dir: str, nodes: int):
     logging.info("Running clusterloader")
     assert os.path.isdir(report_dir)
     os.system(
-        f"clusterloader2 --testconfig config.yaml --provider kind --kubeconfig $HOME/.kube/config --report-dir {report_dir} --nodes {len(nodes)} >&2 2>{report_dir}/log"
+        f"clusterloader2 --testconfig config.yaml --provider kind --kubeconfig $HOME/.kube/config --report-dir {report_dir} --nodes {nodes} >&2 2>{report_dir}/log"
     )

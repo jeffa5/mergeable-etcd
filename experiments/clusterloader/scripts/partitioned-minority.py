@@ -52,7 +52,7 @@ def main(cluster_name: str, results_path: str, repeats: int):
                     [n for n in all_nodes if n not in partitioned_nodes]
                 )
 
-                lib.run_clusterloader(rpath, partitioned_nodes)
+                lib.run_clusterloader(rpath, len(partitioned_nodes))
 
                 lib.clear_partition(partitioned_nodes)
 
