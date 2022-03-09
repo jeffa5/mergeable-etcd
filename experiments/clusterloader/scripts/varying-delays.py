@@ -33,12 +33,9 @@ def main(cluster_name: str, results_path: str, repeats: int):
 
     for image in images:
         for cluster_size in cluster_sizes:
+            lib.delete_cluster(cluster_name)
             for delay in delays:
                 for repeat in range(1, repeats + 1):
-                    # it seems that currently healing doesn't work since mergeable etcd fails to reload cluster state properly
-                    delay = 0
-                    lib.delete_cluster(cluster_name)
-
                     rpath = f"{results_path}/{config_string(image, cluster_size, delay, repeat)}"
                     if not os.path.isdir(rpath):
                         logging.info(f"Running experiment for {cluster_size}")
@@ -54,9 +51,14 @@ def main(cluster_name: str, results_path: str, repeats: int):
 
                         lib.clear_tc(all_nodes)
 
-                        lib.inject_delay_ms(delay, all_nodes)
+                        lib.wait_for_ready_nodes(all_nodes)
+
+                        if delay > 0:
+                            lib.inject_delay_ms(delay, all_nodes)
 
                         lib.run_clusterloader(rpath, cluster_size)
+
+                        lib.clear_tc(all_nodes)
 
                         time.sleep(5)
                     else:
