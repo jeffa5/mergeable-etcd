@@ -27,7 +27,7 @@ def write_config(d: str, image: str, masters: int, delay: int, repeat: int):
 def main(cluster_name: str, results_path: str, repeats: int):
     os.makedirs(results_path, exist_ok=True)
 
-    cluster_sizes = [1, 3, 5]
+    cluster_sizes = [1, 3, 5, 7, 9]
     delays = [0, 5, 10, 20, 40]
     images = ["etcd", "mergeable-etcd"]
 
