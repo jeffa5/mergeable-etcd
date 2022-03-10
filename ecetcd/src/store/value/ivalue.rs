@@ -222,7 +222,7 @@ where
         // try and get it first from the revisions
         if let Some(revisions) = self.revisions.as_ref() {
             if let Some(last) = revisions.keys().last() {
-                return Some(last.clone());
+                return Some(*last);
             }
         }
 
@@ -243,7 +243,7 @@ where
     fn first_revision_before(&self, revision: &Revision) -> Option<Revision> {
         // try and get it from the in progress edits first
         if let Some(revisions) = self.revisions.as_ref() {
-            let rev = revisions.keys().rfind(|&k| k <= &revision).cloned();
+            let rev = revisions.keys().rfind(|&k| k <= revision).cloned();
             if rev.is_some() {
                 return rev;
             }
