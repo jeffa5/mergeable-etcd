@@ -76,14 +76,16 @@ where
                     .unwrap_or_default()
                     .parse()
                     .unwrap_or_default();
-                let (version, create_revision) = if let Some(revisions) = self.revisions.as_ref() {
+                let (version, first_create_revision) = if let Some(revisions) =
+                    self.revisions.as_ref()
+                {
                     revisions
                         .iter()
                         .rev()
                         .skip_while(|(rev, _)| rev > &&revision)
                         .take_while(|(rev, value)| rev > &&first_stored_revision && value.is_some())
                         .fold((0, None), |(version, _), (rev, _)| {
-                            (version + 1, Some(rev.to_string().into()))
+                            (version + 1, Some(rev.to_string()))
                         })
                 } else {
                     (0, None)
@@ -94,13 +96,19 @@ where
                     .rev()
                     .skip_while(|(rev, _)| rev > &&revision_string)
                     .take_while(|(_, value)| !matches!(value.primitive(), Some(Primitive::Null)))
-                    .fold((version, create_revision), |(version, _), (rev, _)| {
-                        (version + 1, Some(rev.clone()))
+                    .fold((version, None), |(version, _), (rev, _)| {
+                        (version + 1, Some(rev))
                     });
+
+                let create_revision = if let Some(create_revision) = create_revision {
+                    create_revision.parse().ok()
+                } else {
+                    first_create_revision.as_ref().and_then(|s| s.parse().ok())
+                };
 
                 (
                     NonZeroU64::new(version.try_into().unwrap()),
-                    create_revision.as_ref().and_then(|s| s.parse().ok()),
+                    create_revision,
                 )
             }
             None => {
