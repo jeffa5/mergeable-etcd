@@ -87,7 +87,7 @@
 
               recetcd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
                 name = "jeffas/etcd";
-                tag = "latest";
+                tag = "kubernetes";
                 contents = [
                   # to allow debugging and using `kubectl cp`
                   pkgs.busybox
