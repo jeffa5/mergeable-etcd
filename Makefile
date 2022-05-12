@@ -8,7 +8,7 @@ DOT_FILES := $(shell find -name '*.dot')
 SVG_FILES := $(patsubst %.dot, %.svg, $(DOT_FILES))
 
 ETCD_IMAGE := quay.io/coreos/etcd:v3.4.13
-ECETCD_IMAGE := jeffas/etcd:latest
+ECETCD_IMAGE := jeffas/etcd:kubernetes
 ECKD_IMAGE := jeffas/eckd:latest
 RECETCD_IMAGE := jeffas/recetcd:latest
 BENCHER_IMAGE := jeffas/bencher:latest
