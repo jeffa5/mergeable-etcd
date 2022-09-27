@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 #[derive(
-    automergeable::Automergeable,
     serde::Serialize,
     serde::Deserialize,
     Debug,

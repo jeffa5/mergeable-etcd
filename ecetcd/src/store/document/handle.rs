@@ -1,4 +1,4 @@
-use automerge_backend::SyncMessage;
+use automerge::sync;
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 use tokio::sync::{mpsc, oneshot};
 use tracing::Span;
@@ -191,7 +191,7 @@ impl DocumentHandle {
         recv.await.expect("Actor task has been killed")
     }
 
-    pub async fn generate_sync_message(&self, peer_id: Vec<u8>) -> Option<SyncMessage> {
+    pub async fn generate_sync_message(&self, peer_id: Vec<u8>) -> Option<sync::Message> {
         let (send, recv) = oneshot::channel();
         let msg = DocumentMessage::GenerateSyncMessage { peer_id, ret: send };
 
@@ -199,7 +199,7 @@ impl DocumentHandle {
         recv.await.expect("Backend actor task has been killed")
     }
 
-    pub async fn receive_sync_message(&self, peer_id: Vec<u8>, message: SyncMessage) {
+    pub async fn receive_sync_message(&self, peer_id: Vec<u8>, message: sync::Message) {
         let msg = DocumentMessage::ReceiveSyncMessage { peer_id, message };
 
         let _ = self.sender.send_to_document(msg).await;

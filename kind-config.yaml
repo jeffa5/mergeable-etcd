@@ -11,5 +11,5 @@ kubeadmConfigPatches:
       imageRepository: docker.io/jeffas
       imageTag: latest
       # extraArgs:
-      #   debug: ""
+      #   log-filter: "mergeable_etcd=debug,mergeable_etcd_core=debug"
         # trace-file: /tmp/trace.out

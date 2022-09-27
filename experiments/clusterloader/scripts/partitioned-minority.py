@@ -22,7 +22,7 @@ def write_config(d, cluster_size: int, repeat: int):
 def main(cluster_name: str, results_path: str, repeats: int):
     os.makedirs(results_path, exist_ok=True)
 
-    cluster_sizes = [3, 5, 7, 9]
+    cluster_sizes = [3, 5]
 
     for cluster_size in cluster_sizes:
         for repeat in range(1, repeats + 1):

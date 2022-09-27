@@ -5,11 +5,6 @@ use std::{
     ops::Range,
 };
 
-use automerge::{
-    frontend::value_ref::{RootRef, ValueRef},
-    LocalChange, Path, Value,
-};
-use automergeable::{FromAutomerge, FromAutomergeError, ToAutomerge};
 use etcd_proto::etcdserverpb::{
     compare::{CompareResult, CompareTarget, TargetUnion},
     request_op::Request,
@@ -28,15 +23,12 @@ pub const SERVER_KEY: &str = "server";
 pub const LEASES_KEY: &str = "leases";
 
 #[derive(Debug, Clone)]
-pub(crate) enum ValueState<T> {
+pub(crate) enum ValueState {
     Present(T),
     Absent,
 }
 
-impl<T> ValueState<T>
-where
-    T: ToAutomerge,
-{
+impl ValueState {
     /// Convert the value to automerge Value if it is present
     fn to_automerge(&self) -> ValueState<Value> {
         match self {
@@ -69,7 +61,7 @@ impl<T> ValueState<T> {
     }
 }
 
-#[derive(Debug, Clone, Default, automergeable::Automergeable)]
+#[derive(Debug, Clone, Default)]
 pub struct Lease {
     ttl: Ttl,
     keys: Vec<Key>,

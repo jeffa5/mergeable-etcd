@@ -1,14 +1,19 @@
 {
-  description = "eckd-rs";
+  description = "mergeable-etcd";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
+    flake-utils.inputs.nixpkgs.follows = "nixpkgs";
     perf-tests.url = "github:jeffa5/perf-tests";
+    perf-tests.inputs.nixpkgs.follows = "nixpkgs";
+    kind.url = "github:jeffa5/kind/dev";
+    kind.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, perf-tests }:
+  outputs = { self, nixpkgs, rust-overlay, flake-utils, perf-tests, kind }:
     flake-utils.lib.eachDefaultSystem
       (system:
         let
@@ -62,63 +67,42 @@
               bencher-docker = pkgs.dockerTools.buildLayeredImage {
                 name = "jeffas/bencher";
                 tag = "latest";
-                contents = packages.bencher;
+                contents = [
+                  pkgs.busybox
+                  packages.bencher
+                ];
 
-                config.Entrypoint = [ "/bin/bencher" ];
+                config.Cmd = [ "/bin/bencher" ];
               };
 
-              eckd-etcd = pkgs.stdenv.mkDerivation {
-                name = "eckd-etcd";
-                src = packages.eckd;
+              mergeable-etcd-etcd = pkgs.stdenv.mkDerivation {
+                name = "mergeable-etcd-etcd";
+                src = packages.mergeable-etcd;
                 installPhase = ''
                   mkdir -p $out/bin
-                  cp $src/bin/eckd $out/bin/etcd
+                  cp $src/bin/mergeable-etcd $out/bin/etcd
                 '';
               };
 
-              recetcd-etcd = pkgs.stdenv.mkDerivation {
-                name = "recetcd-etcd";
-                src = packages.recetcd;
-                installPhase = ''
-                  mkdir -p $out/bin
-                  cp $src/bin/recetcd $out/bin/etcd
-                '';
+              mergeable-etcd-docker = pkgs.dockerTools.buildLayeredImage {
+                name = "jeffas/mergeable-etcd";
+                tag = "latest";
+                contents = [
+                  pkgs.busybox
+                  packages.mergeable-etcd
+                ];
+                config.Cmd = [ "/bin/mergeable-etcd" ];
               };
 
-              recetcd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
+              mergeable-etcd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
                 name = "jeffas/etcd";
-                tag = "kubernetes";
+                tag = "latest";
                 contents = [
                   # to allow debugging and using `kubectl cp`
                   pkgs.busybox
-                  packages.recetcd-etcd
+                  packages.mergeable-etcd-etcd
                 ];
-
-                config.Entrypoint = [ "/bin/etcd" ];
-              };
-
-              # eckd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
-              #   name = "jeffas/etcd";
-              #   tag = "latest";
-              #   contents = packages.eckd-etcd;
-
-              #   config.Entrypoint = [ "/bin/etcd" ];
-              # };
-
-              eckd-docker = pkgs.dockerTools.buildLayeredImage {
-                name = "jeffas/eckd";
-                tag = "latest";
-                contents = packages.eckd;
-
-                config.Entrypoint = [ "/bin/eckd" ];
-              };
-
-              recetcd-docker = pkgs.dockerTools.buildLayeredImage {
-                name = "jeffas/recetcd";
-                tag = "latest";
-                contents = [ packages.recetcd-etcd packages.recetcd ];
-
-                config.Entrypoint = [ "/bin/recetcd" ];
+                config.Cmd = [ "/bin/etcd" ];
               };
 
               etcd = pkgs.buildGoModule rec {
@@ -139,17 +123,12 @@
               };
             };
 
-          defaultPackage = packages.eckd;
+          defaultPackage = packages.mergeable-etcd;
 
           apps = {
-            eckd = flake-utils.lib.mkApp {
-              name = "eckd";
-              drv = packages.eckd;
-            };
-
-            recetcd = flake-utils.lib.mkApp {
-              name = "recetcd";
-              drv = packages.recetcd;
+            mergeable-etcd = flake-utils.lib.mkApp {
+              name = "mergeable-etcd";
+              drv = packages.mergeable-etcd;
             };
 
             experiments = flake-utils.lib.mkApp {
@@ -168,7 +147,7 @@
             };
           };
 
-          defaultApp = apps.eckd;
+          defaultApp = apps.mergeable-etcd;
 
           checks = lib.attrsets.mapAttrs
             (name: value: value.build.override { runTests = true; })
@@ -185,6 +164,7 @@
               cargo-watch
               cargo-udeps
               cargo-flamegraph
+              cargo-outdated
               protobuf
               crate2nix
               kubectl
@@ -197,8 +177,6 @@
               python3Packages.seaborn
               python3Packages.isort
               black
-              # for the latex font bits
-              pkgs.texlive.combined.scheme-full
 
               linuxPackages.perf
 
@@ -211,16 +189,19 @@
 
               cfssl
               etcd
-              kind
 
               graphviz
 
-              ansible_2_10
+              ansible_2_12
               python3Packages.ruamel-yaml
 
               rnix-lsp
               nixpkgs-fmt
-            ];
+            ]
+            ++ [
+              kind.packages.${system}.kind
+            ]
+            ;
 
             ETCDCTL_API = 3;
             PROTOC = "${pkgs.protobuf}/bin/protoc";

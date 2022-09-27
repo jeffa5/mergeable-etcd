@@ -1,11 +1,10 @@
 use std::{collections::HashMap, convert::TryFrom, sync::Arc, thread, time::Duration};
 
-use automerge::{frontend::schema::MapSchema, FrontendOptions, ScalarValue};
-use automerge_backend::SyncMessage;
-use automerge_frontend::schema::SortedMapSchema;
-use automerge_persistent::{Error, PersistentAutomerge, PersistentBackend, Persister};
+use automerge::transaction::Transactable;
+use automerge::{sync, ActorId, ObjType};
+use automerge::{Automerge, ROOT};
+use automerge_persistent::{Error, PersistentAutomerge, Persister};
 use automerge_persistent_sled::SledPersisterError;
-use automerge_protocol::{ActorId, Diff};
 use etcd_proto::etcdserverpb::{request_op::Request, ResponseOp, TxnRequest};
 use lazy_static::lazy_static;
 use prometheus::{register_int_counter, IntCounter};
@@ -17,21 +16,13 @@ use tokio::{
 use tracing::{debug, error, info, warn, Instrument, Span};
 
 use super::{
-    outstanding::{
-        notify_watchers_insert, notify_watchers_remove, OutstandingInsert, OutstandingRemove,
-        OutstandingRequest,
-    },
+    outstanding::{OutstandingInsert, OutstandingRemove, OutstandingRequest},
     DocumentMessage,
 };
+use crate::store::document::inner::{LEASES_KEY, VALUES_KEY};
 use crate::{
     key_range::SingleKeyOrRange,
-    store::{
-        content::{LEASES_KEY, SERVER_KEY, VALUES_KEY},
-        document::inner::DocumentInner,
-        value::{LEASE_ID_KEY, REVISIONS_KEY},
-        Key, Peer, Revision, Server, SnapshotValue, StoreContents, Ttl,
-    },
-    StoreValue,
+    store::{document::inner::DocumentInner, Key, Peer, Revision, Server, SnapshotValue, Ttl},
 };
 
 lazy_static! {
@@ -75,10 +66,7 @@ type WatchersMap = HashMap<
 >;
 
 #[derive(Debug)]
-pub struct DocumentActor<T, P>
-where
-    T: StoreValue,
-{
+pub struct DocumentActor<T, P> {
     pub(super) document: DocumentInner<T, P>,
     actor_id: uuid::Uuid,
     member_id: u64,
@@ -98,8 +86,6 @@ where
 
 impl<T, P> DocumentActor<T, P>
 where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
     P: Persister + 'static,
 {
     pub async fn new(
@@ -111,55 +97,36 @@ where
         actor_id: uuid::Uuid,
         changed_notify: Arc<Notify>,
     ) -> Result<Self, DocumentError> {
-        let schema = MapSchema::default()
-            .with_kv(
-                VALUES_KEY,
-                SortedMapSchema::default().with_default(
-                    MapSchema::default()
-                        .with_kv(REVISIONS_KEY, SortedMapSchema::default())
-                        .with_kv(LEASE_ID_KEY, MapSchema::default()),
-                ),
-            )
-            .with_kv(SERVER_KEY, MapSchema::default())
-            .with_kv(LEASES_KEY, MapSchema::default());
-
         // fill in the default structure
         //
         // This creates a default change with the document structure so that when syncing peers
         // sync into the same objects.
         //
         // TODO: find a better way of doing this when multiple peers are around
-        let starter_frontend = automerge::Frontend::new(
-            FrontendOptions::default()
-                .with_actor_id(&[0][..])
-                .with_timestamper(|| None),
-        );
-        let mut starter_automerge =
-            PersistentAutomerge::load_with_frontend(persister, starter_frontend).unwrap();
 
-        if starter_automerge.get_changes(&[]).is_empty() {
-            starter_automerge
-                .change::<_, _, std::convert::Infallible>(None, |sc| {
-                    for c in StoreContents::<T>::init() {
-                        sc.add_change(c).unwrap()
-                    }
+        let mut starter_doc = PersistentAutomerge::load(persister).unwrap();
+        starter_doc.document_mut().set_actor([0][..].into());
+
+        if starter_doc.document().get_changes(&[]).is_empty() {
+            starter_doc
+                .document_mut()
+                .transact::<_, _, std::convert::Infallible>(|doc| {
+                    doc.set_object(ROOT, VALUES_KEY, ObjType::Map).unwrap();
+                    let server = doc.set_object(ROOT, "server", ObjType::Map).unwrap();
+                    doc.set_object(server, "cluster_members", ObjType::Map)
+                        .unwrap();
+                    doc.set_object(ROOT, LEASES_KEY, ObjType::Map).unwrap();
                     Ok(())
                 })
                 .unwrap();
         }
 
-        let persister = starter_automerge.close().unwrap();
+        let persister = starter_doc.close().unwrap();
         // load the document from the changes we've just made.
-        let mut f = automerge::Frontend::new(
-            FrontendOptions::default()
-                .with_actor_id(actor_id)
-                .with_schema(schema),
-        );
-        let backend = PersistentBackend::load(persister).unwrap();
-        let patch = backend.get_patch().unwrap();
-        f.apply_patch(patch).unwrap();
+        let mut backend = PersistentAutomerge::load(persister).unwrap();
+        backend.document_mut().set_actor(actor_id.into());
 
-        let document = DocumentInner::new(f, backend);
+        let document = DocumentInner::new(backend);
 
         let watchers = HashMap::new();
         tracing::info!(
@@ -411,8 +378,7 @@ where
     fn generate_sync_message(
         &mut self,
         peer_id: Vec<u8>,
-    ) -> Result<Option<SyncMessage>, automerge_persistent::Error<P::Error, automerge::BackendError>>
-    {
+    ) -> Result<Option<sync::Message>, automerge_persistent::Error<P::Error>> {
         self.document.generate_sync_message(peer_id)
     }
 
@@ -420,54 +386,55 @@ where
     async fn receive_sync_message(
         &mut self,
         peer_id: Vec<u8>,
-        message: SyncMessage,
-    ) -> Result<(), automerge_persistent::Error<P::Error, automerge::BackendError>> {
-        let server = self.current_server();
-        if let Some(patch) = self.document.receive_sync_message(peer_id, message)? {
-            let diff = patch.diffs;
-            if let Some(values) = diff.props.get("values") {
-                let values_map = values.values().next().unwrap();
-                if let Diff::Map(mapdiff) = values_map {
-                    for (key, diff) in &mapdiff.props {
-                        let revisions_map = diff.values().next().unwrap();
-                        if let Diff::Map(mapdiff) = revisions_map {
-                            if let Some(revisions_map) = mapdiff.props.get("revisions") {
-                                let revision = revisions_map.values().next().unwrap();
-                                if let Diff::Map(revisiondiff) = revision {
-                                    for (revision, values) in &revisiondiff.props {
-                                        let value = values.values().next().unwrap();
-                                        if let Diff::Value(value) = value {
-                                            let key: Key = key.as_str().parse().unwrap();
-                                            if let ScalarValue::Null = value {
-                                                let prev_value = Revision::new(
-                                                    revision.as_str().parse::<u64>().unwrap() - 1,
-                                                )
-                                                .and_then(|rev| {
-                                                    self.document
-                                                        .get()
-                                                        .get_inner(key.clone(), None, rev)
-                                                        .first()
-                                                        .cloned()
-                                                });
-                                                notify_watchers_remove(
-                                                    self,
-                                                    &server,
-                                                    &[(key, prev_value)],
-                                                )
-                                                .await;
-                                            } else {
-                                                notify_watchers_insert(self, &key, &server).await;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Ok(())
+        message: sync::Message,
+    ) -> Result<(), automerge_persistent::Error<P::Error>> {
+        // TODO: uncomment this and fix it!
+        // let server = self.current_server();
+        // if let Some(patch) = self.document.receive_sync_message(peer_id, message)? {
+        //     let diff = patch.diffs;
+        //     if let Some(values) = diff.props.get("values") {
+        //         let values_map = values.values().next().unwrap();
+        //         if let Diff::Map(mapdiff) = values_map {
+        //             for (key, diff) in &mapdiff.props {
+        //                 let revisions_map = diff.values().next().unwrap();
+        //                 if let Diff::Map(mapdiff) = revisions_map {
+        //                     if let Some(revisions_map) = mapdiff.props.get("revisions") {
+        //                         let revision = revisions_map.values().next().unwrap();
+        //                         if let Diff::Map(revisiondiff) = revision {
+        //                             for (revision, values) in &revisiondiff.props {
+        //                                 let value = values.values().next().unwrap();
+        //                                 if let Diff::Value(value) = value {
+        //                                     let key: Key = key.as_str().parse().unwrap();
+        //                                     if let ScalarValue::Null = value {
+        //                                         let prev_value = Revision::new(
+        //                                             revision.as_str().parse::<u64>().unwrap() - 1,
+        //                                         )
+        //                                         .and_then(|rev| {
+        //                                             self.document
+        //                                                 .get()
+        //                                                 .get_inner(key.clone(), None, rev)
+        //                                                 .first()
+        //                                                 .cloned()
+        //                                         });
+        //                                         notify_watchers_remove(
+        //                                             self,
+        //                                             &server,
+        //                                             &[(key, prev_value)],
+        //                                         )
+        //                                         .await;
+        //                                     } else {
+        //                                         notify_watchers_insert(self, &key, &server).await;
+        //                                     }
+        //                                 }
+        //                             }
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        // Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, key, range_end, revision))]
@@ -769,11 +736,9 @@ pub enum DocumentError {
     #[error(transparent)]
     SledUnabortableTransactionError(#[from] sled::transaction::UnabortableTransactionError),
     #[error(transparent)]
-    BackendError(#[from] Error<SledPersisterError, automerge_backend::AutomergeError>),
+    BackendError(#[from] Error<SledPersisterError>),
     #[error(transparent)]
-    AutomergeDocumentChangeError(#[from] automergeable::DocumentChangeError),
-    #[error(transparent)]
-    FromAutomergeError(#[from] automergeable::FromAutomergeError),
+    AutomergeDocumentChangeError(#[from] automerge::AutomergeError),
     #[error("lease already exists")]
     LeaseAlreadyExists,
     #[error("missing value for key: {key}")]

@@ -8,7 +8,7 @@ use super::{peer::Peer, Revision};
 /// The state of the server
 ///
 /// Contains the global revision for the server and information to generate the header for API requests
-#[derive(Debug, Clone, Serialize, Deserialize, automergeable::Automergeable)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Server {
     pub cluster_id: u64,
     /// The global revision of this server

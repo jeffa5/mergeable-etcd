@@ -8,37 +8,31 @@ DOT_FILES := $(shell find -name '*.dot')
 SVG_FILES := $(patsubst %.dot, %.svg, $(DOT_FILES))
 
 ETCD_IMAGE := quay.io/coreos/etcd:v3.4.13
-ECETCD_IMAGE := jeffas/etcd:kubernetes
-ECKD_IMAGE := jeffas/eckd:latest
-RECETCD_IMAGE := jeffas/recetcd:latest
+MERGEABLE_ETCD_ETCD_IMAGE := jeffas/etcd:latest
+MERGEABLE_ETCD_IMAGE := jeffas/mergeable-etcd:latest
 BENCHER_IMAGE := jeffas/bencher:latest
 
-.PHONY: run-eckd
-run-eckd: $(SERVER_KEYS)
-	rm -rf default.eckd
-	nix run .#eckd -- --cert-file $(CERTS_DIR)/server.crt --key-file $(CERTS_DIR)/server.key $(RUN_ARGS) --listen-client-urls 'https://localhost:2379' --advertise-client-urls 'https://localhost:2379'
-
-.PHONY: run-recetcd
-run-recetcd: $(SERVER_KEYS)
-	rm -rf default.recetcd
-	nix run .#recetcd -- --cert-file $(CERTS_DIR)/server.crt --key-file $(CERTS_DIR)/server.key $(RUN_ARGS) --listen-client-urls 'https://localhost:2379' --advertise-client-urls 'https://localhost:2379'
+.PHONY: run-mergeable-etcd
+run-mergeable-etcd: $(SERVER_KEYS)
+	rm -rf default.mergeable-etcd
+	nix run .#mergeable-etcd -- $(RUN_ARGS) --listen-client-urls 'http://127.0.0.1:2379' --advertise-client-urls 'http://127.0.0.1:2379'
 
 .PHONY: run-etcd
 run-etcd: $(SERVER_KEYS)
 	rm -rf default.etcd
-	etcd --cert-file $(CERTS_DIR)/server.crt --key-file $(CERTS_DIR)/server.key $(RUN_ARGS) --listen-client-urls 'https://localhost:2379' --advertise-client-urls 'https://localhost:2379' --listen-metrics-urls 'http://localhost:2381'
+	etcd $(RUN_ARGS) --listen-client-urls 'http://127.0.0.1:2379' --advertise-client-urls 'http://127.0.0.1:2379' --listen-metrics-urls 'http://127.0.0.1:2381'
 
 .PHONY: bench
 bench: $(SERVER_KEYS)
-	time nix run .\#etcd-benchmark -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem --conns 100 --clients 1000 put --total 100000
+	time nix run .\#etcd-benchmark -- --endpoints "http://127.0.0.1:2379" --conns 100 --clients 1000 put --total 100000
 
 .PHONY: bencher
 bencher: $(SERVER_KEYS)
-	time nix run .\#bencher -- --quiet --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem --total 100000 bench put-random 100
+	time nix run .\#bencher -- --endpoints "http://127.0.0.1:2379" --total 100000 bench put-random 100 --interval 100000
 
 .PHONY: run-trace
 run-trace: $(SERVER_KEYS)
-	nix run .\#bencher -- --endpoints "https://localhost:2379" --cacert $(CERTS_DIR)/ca.pem trace --in-file $(TRACE_FILE)
+	nix run .\#bencher -- --endpoints "https://127.0.0.1:2379" --cacert $(CERTS_DIR)/ca.pem trace --in-file $(TRACE_FILE)
 
 .PHONY: get-trace
 get-trace:
@@ -60,20 +54,18 @@ $(PEER_KEYS): $(CA_KEYS) $(CERTS_DIR)/ca-config.json $(CERTS_DIR)/peer.json
 .PHONY: clean
 clean:
 	rm -f $(CA_KEYS) $(SERVER_KEYS) $(PEER_KEYS)
-	rm -rf default.{eckd,etcd}
+	rm -rf default.*
 	rm -f result result-lib
 	cargo clean
 
-.PHONY: docker-eckd
-docker-eckd:
-	nix build .\#recetcd-docker-etcd
-	docker load -i result
-	nix build .\#eckd-docker
+.PHONY: docker-mergeable-etcd
+docker-mergeable-etcd:
+	nix build .\#mergeable-etcd-docker
 	docker load -i result
 
-.PHONY: docker-recetcd
-docker-recetcd:
-	nix build .\#recetcd-docker
+.PHONY: docker-mergeable-etcd-etcd
+docker-mergeable-etcd-etcd:
+	nix build .\#mergeable-etcd-docker-etcd
 	docker load -i result
 
 .PHONY: docker-bencher
@@ -82,13 +74,12 @@ docker-bencher:
 	docker load -i result
 
 .PHONY: docker-load
-docker-load: docker-eckd docker-recetcd docker-bencher
+docker-load: docker-mergeable-etcd docker-mergeable-etcd-etcd docker-bencher
 
 .PHONY: docker-push
 docker-push: docker-load
-	docker push $(ECETCD_IMAGE)
-	docker push $(ECKD_IMAGE)
-	docker push $(RECETCD_IMAGE)
+	docker push $(MERGEABLE_ETCD_IMAGE)
+	docker push $(MERGEABLE_ETCD_ETCD_IMAGE)
 	docker push $(BENCHER_IMAGE)
 
 .PHONY: test
@@ -97,9 +88,10 @@ test:
 
 .PHONY: kind
 kind:
+	rm -rf logs
 	kind delete cluster
-	kind create cluster --config kind-config.yaml --image kindest/node:v1.20.7 --retain || sleep 5 && docker cp kind-control-plane:/var/log/pods logs
-	kubectl taint nodes --all node-role.kubernetes.io/master-
+	kind create cluster -v 10 --config kind-config.yaml --image kindest/node:v1.20.7 --retain || sleep 5 && docker cp kind-control-plane:/var/log/pods logs
+	kubectl taint nodes --all node-role.kubernetes.io/master- || true
 
 .PHONY: diagrams
 diagrams: $(SVG_FILES)

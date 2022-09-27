@@ -66,7 +66,7 @@ def create_cluster(image, masters):
     config_file = generate_kind_config(masters, image)
     logging.info(f"Creating local KIND cluster with {masters} control-plane nodes")
     os.system(
-        f"kind create cluster --image=kindest/node:v1.21.1 --name={cluster_name} --wait=5m --config={config_file}"
+        f"kind create cluster --image=kindest/node:v1.21.1 --name={cluster_name} --wait=5m --config={config_file} -v 10"
     )
     logging.info("Allowing pods to run on control-plane nodes")
     os.system("kubectl taint nodes --all node-role.kubernetes.io/master-")
@@ -90,7 +90,6 @@ def clear_iptables(node):
 
 
 def main():
-    repeats = 1
     for image in images:
         logging.info(f"Running for image {image}")
         for masters in masters_options:
@@ -117,6 +116,10 @@ def main():
                     rpath = f"{results_path}/{config_string(image, masters, partitioned, repeat)}"
                     if not os.path.isdir(rpath):
                         create_cluster(image, masters)
+
+                        # let the system recover and become stable again
+                        time.sleep(15)
+
                         os.makedirs(rpath, exist_ok=True)
 
                         config.load_kube_config()
@@ -156,8 +159,9 @@ def main():
 
 if __name__ == "__main__":
     cluster_name = "clusterloader-cluster"
-    masters_options = [3]
+    masters_options = [3, 5]
     images = ["etcd", "mergeable-etcd"]
+    repeats = 5
     results_path = "results/loss"
 
     os.makedirs(results_path, exist_ok=True)

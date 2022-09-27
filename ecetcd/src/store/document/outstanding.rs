@@ -1,10 +1,7 @@
 use automerge_persistent::Persister;
 use tokio::sync::oneshot;
 
-use crate::{
-    store::{Key, Revision, Server, SnapshotValue},
-    StoreValue,
-};
+use crate::store::{Key, Revision, Server, SnapshotValue};
 
 use super::{DocumentActor, DocumentError};
 
@@ -33,8 +30,6 @@ pub struct OutstandingRemove {
 impl OutstandingRequest {
     pub(super) async fn handle<T, P>(self, doc: &DocumentActor<T, P>)
     where
-        T: StoreValue,
-        <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
         P: Persister + 'static,
     {
         match self {
@@ -47,8 +42,6 @@ impl OutstandingRequest {
 impl OutstandingInsert {
     async fn handle_insert<T, P>(self, doc_actor: &DocumentActor<T, P>)
     where
-        T: StoreValue,
-        <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
         P: Persister + 'static,
     {
         notify_watchers_insert(doc_actor, &self.key, &self.server).await;
@@ -61,8 +54,6 @@ pub async fn notify_watchers_insert<T, P>(
     key: &Key,
     server: &Server,
 ) where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
     P: Persister + 'static,
 {
     if !doc_actor.watchers.is_empty() {
@@ -84,8 +75,6 @@ pub async fn notify_watchers_insert<T, P>(
 impl OutstandingRemove {
     async fn handle_remove<T, P>(self, doc_actor: &DocumentActor<T, P>)
     where
-        T: StoreValue,
-        <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
         P: Persister + 'static,
     {
         notify_watchers_remove(doc_actor, &self.server, &self.prev).await;
@@ -99,8 +88,6 @@ pub async fn notify_watchers_remove<T, P>(
     server: &Server,
     prev: &[(Key, Option<SnapshotValue>)],
 ) where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
     P: Persister + 'static,
 {
     if !doc_actor.watchers.is_empty() {

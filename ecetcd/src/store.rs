@@ -1,5 +1,5 @@
 // mod backend;
-mod content;
+// mod content;
 mod document;
 mod key;
 mod peer;
@@ -9,12 +9,12 @@ mod ttl;
 pub mod value;
 mod version;
 
-pub use content::StoreContents;
+// pub use content::StoreContents;
 pub use document::{DocumentActor, DocumentError, DocumentHandle};
 pub use key::Key;
 pub use peer::Peer;
 pub use revision::Revision;
 pub use server::Server;
 pub use ttl::Ttl;
-pub use value::{IValue, SnapshotValue, StoreValue};
+pub use value::SnapshotValue;
 pub use version::Version;
