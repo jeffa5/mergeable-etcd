@@ -1,31 +1,26 @@
+use automerge::{ObjType, ROOT};
 use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
-use automerge::{Backend, BackendError, Frontend, LocalChange};
-use automerge_backend::SyncMessage;
-use automerge_persistent::{PersistentBackend, Persister};
-use automerge_protocol::Patch;
+use automerge::{sync, Change};
+use automerge_persistent::{PersistentAutomerge, Persister};
 
-use crate::{
-    store::{content::ValueState, StoreContents},
-    StoreValue,
-};
+use crate::store::{Key, Revision, SnapshotValue};
+
+pub const VALUES_KEY: &str = "values";
+pub const LEASES_KEY: &str = "leases";
 
 #[derive(Debug)]
 pub(super) struct DocumentInner<T, P> {
-    frontend: Frontend,
-    backend: PersistentBackend<P, Backend>,
+    backend: PersistentAutomerge<P>,
     _type: PhantomData<T>,
 }
 
 impl<T, P> DocumentInner<T, P>
 where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: Debug,
     P: Persister + 'static,
 {
-    pub fn new(frontend: Frontend, backend: PersistentBackend<P, Backend>) -> Self {
+    pub fn new(backend: PersistentAutomerge<P>) -> Self {
         Self {
-            frontend,
             backend,
             _type: PhantomData::default(),
         }
@@ -35,83 +30,73 @@ where
         self.backend.flush()
     }
 
-    pub fn get(&self) -> StoreContents<T> {
-        StoreContents::new(self.frontend.value_ref())
-    }
+    pub fn insert_kv(
+        &mut self,
+        key: Key,
+        value: Vec<u8>,
+        revision: Revision,
+        lease: Option<i64>,
+    ) -> Option<SnapshotValue> {
+        let mut doc = self.backend.document_mut();
+        doc.transact(|doc| {
+            // TODO: leases
+            // if let Some(lease_id) = lease {
+            //     if let Some(lease) = self.lease_mut(&lease_id) {
+            //         let lease = lease.unwrap();
+            //         lease.add_key(key.clone());
+            //     } else {
+            //         warn!(lease_id, "No lease found during insert");
+            //         return Err(DocumentError::MissingLease);
+            //     }
+            // }
 
-    #[tracing::instrument(level = "debug", skip(self, change_closure), err)]
-    pub fn change<F, O, E>(&mut self, change_closure: F) -> Result<O, E>
-    where
-        E: std::error::Error,
-        F: FnOnce(&mut StoreContents<T>) -> Result<O, E>,
-    {
-        let mut sc = StoreContents::new(self.frontend.value_ref());
-        let result = change_closure(&mut sc)?;
-        let changes = self.extract_changes(sc);
-        self.apply_changes(changes);
-        Ok(result)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, store_contents))]
-    pub fn extract_changes(&self, store_contents: StoreContents<T>) -> Vec<LocalChange> {
-        let kvs = store_contents.changes();
-        let mut changes = Vec::new();
-        for (path, value) in kvs {
-            let old = self.frontend.get_value(&path);
-            let mut local_changes = match value {
-                ValueState::Present(v) => {
-                    automergeable::diff_with_path(Some(&v), old.as_ref(), path).unwrap()
-                }
-                ValueState::Absent => {
-                    vec![LocalChange::delete(path)]
-                }
+            let values = doc.value(ROOT, VALUES_KEY).unwrap().unwrap().1;
+            // {
+            // "revisions": {...},
+            // "lease": 0,
+            // }
+            let map = if let Some((_, map)) = doc.value(values, key.to_string()).unwrap() {
+                map
+            } else {
+                doc.set_object(values, key.to_string(), ObjType::Map)
+                    .unwrap()
             };
-            changes.append(&mut local_changes);
-        }
-        changes
-    }
+            let revisions_map = if let Some((_, map)) = doc.value(map, "revisions").unwrap() {
+                map
+            } else {
+                doc.set_object(map, "revisions", ObjType::Map).unwrap()
+            };
 
-    #[tracing::instrument(level = "debug", skip(self, changes))]
-    pub fn apply_changes(&mut self, changes: Vec<LocalChange>) {
-        let ((), change) = self
-            .frontend
-            .change::<_, _, std::convert::Infallible>(None, |d| {
-                for c in changes {
-                    match d.add_change(c.clone()) {
-                        Ok(()) => {}
-                        Err(e) => {
-                            println!("change {:?}", c);
-                            panic!("{}", e)
-                        }
-                    }
-                }
-                Ok(())
-            })
-            .unwrap();
-        if let Some(change) = change {
-            let patch = self.backend.apply_local_change(change).unwrap();
-            self.frontend.apply_patch(patch).unwrap();
-        }
+            let last_revision = doc.keys(revisions_map).next_back();
+            let prev = if let Some(last_revision) = last_revision {
+                Some(doc.value(revisions_map, last_revision).unwrap().unwrap().0)
+            } else {
+                None
+            };
+
+            // insert the value
+            doc.set(revisions_map, revision.to_string(), value).unwrap();
+
+            Ok(prev)
+        })
+        .unwrap()
     }
 
     pub fn generate_sync_message(
         &mut self,
         peer_id: Vec<u8>,
-    ) -> Result<Option<SyncMessage>, automerge_persistent::Error<P::Error, BackendError>> {
+    ) -> Result<Option<sync::Message>, automerge_persistent::Error<P::Error>> {
         self.backend.generate_sync_message(peer_id)
     }
 
     pub fn receive_sync_message(
         &mut self,
         peer_id: Vec<u8>,
-        message: SyncMessage,
-    ) -> Result<Option<Patch>, automerge_persistent::Error<P::Error, BackendError>> {
-        if let Some(patch) = self.backend.receive_sync_message(peer_id, message)? {
-            self.frontend.apply_patch(patch.clone()).unwrap();
-            Ok(Some(patch))
-        } else {
-            Ok(None)
-        }
+        message: sync::Message,
+    ) -> Result<Vec<&Change>, automerge_persistent::Error<P::Error>> {
+        let heads = self.backend.document().get_heads();
+        self.backend.receive_sync_message(peer_id, message)?;
+        Ok(self.backend.document().get_changes(heads))
     }
 
     pub fn db_size(&self) -> u64 {

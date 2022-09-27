@@ -7,7 +7,7 @@ use tracing::debug;
 use crate::store::DocumentHandle;
 
 pub struct Peer {
-    pub sender: mpsc::Sender<(u64, Option<automerge_backend::SyncMessage>)>,
+    pub sender: mpsc::Sender<(u64, Option<automerge::sync::Message>)>,
     pub document: DocumentHandle,
     pub shutdown: watch::Receiver<()>,
 }
@@ -28,7 +28,7 @@ impl PeerTrait for Peer {
         loop {
             tokio::select! {
                 Some(Ok(msg)) = stream.next() => {
-                    let smsg = automerge_backend::SyncMessage::decode(&msg.data).unwrap();
+                    let smsg = automerge::sync::Message::decode(&msg.data).unwrap();
                     if self.sender.send((msg.id, Some(smsg))).await.is_err() {
                         break;
                     }

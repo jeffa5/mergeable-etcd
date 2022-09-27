@@ -1,0 +1,16 @@
+[package]
+name = "etcd-proto"
+version = "0.1.0"
+authors = ["Andrew Jeffery <dev@jeffas.io>"]
+edition = "2018"
+description = "Etcd API protobuf types in Rust"
+readme = "README.md"
+repository = "https://gitlab.developers.cam.ac.uk/apj39/eckd-rs"
+
+[dependencies]
+tonic = "0.7.1"
+prost = "0.10.1"
+serde = { version = "1.0.123", features = ["derive"] }
+
+[build-dependencies]
+tonic-build = "0.7.0"

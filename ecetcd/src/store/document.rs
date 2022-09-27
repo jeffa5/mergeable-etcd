@@ -6,7 +6,7 @@ mod outstanding;
 use std::fmt::Display;
 
 pub use actor::{DocumentActor, DocumentError};
-use automerge_backend::SyncMessage;
+use automerge::sync;
 use etcd_proto::etcdserverpb::{ResponseOp, TxnRequest};
 pub use handle::DocumentHandle;
 use tokio::sync::{mpsc, oneshot};
@@ -72,11 +72,11 @@ pub enum DocumentMessage {
     },
     GenerateSyncMessage {
         peer_id: Vec<u8>,
-        ret: oneshot::Sender<Option<SyncMessage>>,
+        ret: oneshot::Sender<Option<sync::Message>>,
     },
     ReceiveSyncMessage {
         peer_id: Vec<u8>,
-        message: SyncMessage,
+        message: sync::Message,
     },
     NewSyncPeer {},
     SetServer {

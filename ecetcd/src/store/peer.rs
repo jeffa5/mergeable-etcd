@@ -1,7 +1,7 @@
 use etcd_proto::etcdserverpb::Member;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, automergeable::Automergeable)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Peer {
     pub id: u64,
     pub name: String,

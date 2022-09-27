@@ -42,7 +42,7 @@ impl Clone for Server {
 #[derive(Debug)]
 pub struct Inner {
     /// Mapping from peer id to sender for peer messages.
-    sync_connections: HashMap<u64, mpsc::UnboundedSender<automerge_backend::SyncMessage>>,
+    sync_connections: HashMap<u64, mpsc::UnboundedSender<automerge::sync::Message>>,
 }
 
 impl Server {
@@ -60,7 +60,7 @@ impl Server {
         &self,
         changed_notify: Arc<Notify>,
         // receive messages from servers (streamed from clients)
-        mut receiver: mpsc::Receiver<(u64, Option<automerge_backend::SyncMessage>)>,
+        mut receiver: mpsc::Receiver<(u64, Option<automerge::sync::Message>)>,
         tls_config: Option<ClientTlsConfig>,
     ) {
         let inner = Arc::clone(&self.inner);
@@ -345,7 +345,7 @@ impl Server {
     pub async fn register_client(
         &self,
         id: u64,
-        sender: UnboundedSender<automerge_backend::SyncMessage>,
+        sender: UnboundedSender<automerge::sync::Message>,
     ) -> bool {
         let res = {
             let mut inner = self.inner.lock().expect("Failed to lock peer server inner");

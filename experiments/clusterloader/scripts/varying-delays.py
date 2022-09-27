@@ -33,11 +33,13 @@ def main(cluster_name: str, results_path: str, repeats: int):
 
     for image in images:
         for cluster_size in cluster_sizes:
+            lib.delete_cluster(cluster_name)
             for delay in delays:
+                if delay > 0 and cluster_size == 1:
+                    continue
                 for repeat in range(1, repeats + 1):
                     rpath = f"{results_path}/{config_string(image, cluster_size, delay, repeat)}"
                     if not os.path.isdir(rpath):
-                        lib.delete_cluster(cluster_name)
                         logging.info(f"Running experiment for {cluster_size}")
                         lib.create_cluster(
                             cluster_size,

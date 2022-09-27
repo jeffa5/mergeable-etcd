@@ -15,7 +15,7 @@ use std::{
 pub use address::Address;
 use automerge_persistent_sled::SledPersister;
 use store::DocumentHandle;
-pub use store::StoreValue;
+// pub use store::StoreValue;
 use tokio::{
     runtime::Builder,
     sync::{mpsc, Notify},
@@ -91,11 +91,7 @@ pub struct Ecetcd<T> {
     pub _data: PhantomData<T>,
 }
 
-impl<T> Ecetcd<T>
-where
-    T: StoreValue,
-    <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+impl<T> Ecetcd<T> {
     pub async fn serve(
         self,
         shutdown: tokio::sync::watch::Receiver<()>,

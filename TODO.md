@@ -1,0 +1,16 @@
+- [x] persistence - sled
+- [x] debounce sync signals from document changed
+- [o] tls connections - needed for k8s
+  - [x] client
+  - [o] peer - need to use openssl rather than rustls as rustls doesn't support ip addresses
+- [x] bencher experiment
+- [x] plotting results from bencher experiment
+- [x] healthchecks / metrics server
+- [x] make mergeable-etcd bin a wrapper around lib so easier testing
+- [x] add integration tests for mergeable-etcd
+  - to check that the cluster gets built ok with all initial cluster
+  - to check adding members works and means all report same kvs and member list
+- [x] implement watch-based benchmark (lots of watches with some number of write requests)
+- [x] implement varying interval for bencher experiment
+- [ ] check running with k8s
+- [ ] try in k8s experiment

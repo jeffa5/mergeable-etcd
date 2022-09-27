@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-#[derive(Debug, Clone, automergeable::Automergeable, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Key(Vec<u8>);
 
 impl FromStr for Key {
