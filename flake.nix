@@ -6,7 +6,6 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
     rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
-    flake-utils.inputs.nixpkgs.follows = "nixpkgs";
     perf-tests.url = "github:jeffa5/perf-tests";
     perf-tests.inputs.nixpkgs.follows = "nixpkgs";
     kind.url = "github:jeffa5/kind/dev";
@@ -181,7 +180,7 @@
               linuxPackages.perf
 
               cmake
-              pkgconfig
+              pkg-config
               openssl
               freetype
               expat
