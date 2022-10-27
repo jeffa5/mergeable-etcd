@@ -85,20 +85,33 @@
             cmake
           ];
         };
+        workspaceArgs = let
+          protoFilter = path: type: null != (builtins.match "^.+\\.proto$" path);
+          protoOrCargo = path: type: (protoFilter path type) || (craneLib.filterCargoSources path type);
+        in
+          commonArgs
+          // {
+            src = pkgs.lib.cleanSourceWith {
+              src = ./.;
+              filter = protoOrCargo;
+            };
+            buildInputs = with pkgs; commonArgs.buildInputs ++ [protobuf];
+            PROTOC = "${pkgs.protobuf}/bin/protoc";
+          };
         cargoArtifacts = craneLib.buildDepsOnly (commonArgs
           // {
             pname = "mergeable-etcd-deps";
           });
-        clippy = craneLib.cargoClippy (commonArgs
+        clippy = craneLib.cargoClippy (workspaceArgs
           // {
             inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--all-targets -- --deny warnings";
+            cargoClippyExtraArgs = "--all-targets";
           });
-        metcd = craneLib.buildPackage (commonArgs
+        metcd = craneLib.buildPackage (workspaceArgs
           // {
             inherit cargoArtifacts;
           });
-        coverage = craneLib.cargoTarpaulin (commonArgs
+        coverage = craneLib.cargoTarpaulin (workspaceArgs
           // {
             inherit cargoArtifacts;
           });
