@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-automerge = { git = "https://github.com/automerge/automerge-rs", branch = "main" }
-automerge-persistent = { git = "https://github.com/jeffa5/automerge-persistent", branch = "main" }
+automerge = "0.1.0"
+automerge-persistent = "0.1.0"
 tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
 etcd-proto = { path = "../../proto/etcd-proto" }
 tonic = "0.7.1"
