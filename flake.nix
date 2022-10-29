@@ -82,6 +82,10 @@
       // {
         inherit cargoArtifacts;
       });
+    nextest = craneLib.cargoNextest (workspaceArgs
+      // {
+        inherit cargoArtifacts;
+      });
     bencher = pkgs.stdenv.mkDerivation {
       name = "bencher";
       src = metcd;
@@ -152,6 +156,7 @@
 
       mergeable-etcd = metcd;
       mergeable-etcd-tarpaulin = tarpaulin;
+      mergeable-etcd-nextest = nextest;
       mergeable-etcd-clippy = clippy;
 
       bencher = bencher;
@@ -198,6 +203,7 @@
           cargo-udeps
           cargo-flamegraph
           cargo-outdated
+          cargo-nextest
           protobuf
           kubectl
           k9s
