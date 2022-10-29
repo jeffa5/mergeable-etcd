@@ -2992,7 +2992,7 @@ async fn add_other_member() {
         }]
     );
 
-    doc.add_member(vec![]).await;
+    let member = doc.add_member(vec![]).await;
     assert_eq!(
         doc.list_members().unwrap(),
         vec![
@@ -3004,7 +3004,7 @@ async fn add_other_member() {
                 is_learner: false
             },
             Member {
-                id: 13486662071293341567,
+                id: member.id,
                 name: "".to_owned(),
                 peer_ur_ls: vec![],
                 client_ur_ls: vec![],
