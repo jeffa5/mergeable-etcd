@@ -862,24 +862,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "etcd-bencher-experiment"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "bollard",
- "chrono",
- "clap",
- "clap_derive",
- "exp",
- "futures",
- "plotters",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
 name = "etcd-proto"
 version = "0.1.0"
 dependencies = [

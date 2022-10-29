@@ -2,8 +2,8 @@
 members = [
   "crates/*",
   "experiments/bencher",
-  "experiments/kubernetes-scheduling",
-  "experiments/etcd-bencher",
+  # "experiments/kubernetes-scheduling",
+  # "experiments/etcd-bencher",
 ]
 
 [profile.release]

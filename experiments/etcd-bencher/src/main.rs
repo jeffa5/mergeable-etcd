@@ -21,7 +21,7 @@ pub struct Experiment;
 impl exp::Experiment for Experiment {
     type Configuration = Config;
 
-    fn configurations(&self) -> Vec<Self::Configuration> {
+    fn configurations(&mut self) -> Vec<Self::Configuration> {
         let mut confs = Vec::new();
         let repeats = 2;
         for cluster_size in (1..=3).step_by(2) {
@@ -70,11 +70,11 @@ impl exp::Experiment for Experiment {
         "cluster_latency"
     }
 
-    async fn pre_run(&self, configuration: &Self::Configuration) {
+    async fn pre_run(&mut self, configuration: &Self::Configuration) {
         println!("Running cluster_latency experiment: {:?}", configuration);
     }
 
-    async fn run(&self, configuration: &Self::Configuration, repeat_dir: std::path::PathBuf) {
+    async fn run(&mut self, configuration: &Self::Configuration, repeat_dir: std::path::PathBuf) {
         let mut runner = Runner::new(repeat_dir).await;
         let mut initial_cluster = "node1=http://172.18.0.2:2380".to_owned();
         let mut client_urls = "http://172.18.0.2:2379".to_owned();
@@ -130,7 +130,8 @@ impl exp::Experiment for Experiment {
                     capabilities: None,
                     cpus: None,
                     memory: None,
-                    tmpfs: Some(vec!["/data".to_owned()]),
+                    tmpfs: vec!["/data".to_owned()],
+                    volumes: vec![],
                 })
                 .await
         }
@@ -154,7 +155,8 @@ impl exp::Experiment for Experiment {
                 capabilities: None,
                 cpus: None,
                 memory: None,
-                tmpfs: None,
+                tmpfs: vec![],
+                volumes: vec![],
             })
             .await;
 
@@ -167,10 +169,10 @@ impl exp::Experiment for Experiment {
         runner.finish().await
     }
 
-    async fn post_run(&self, _configuration: &Self::Configuration) {}
+    async fn post_run(&mut self, _configuration: &Self::Configuration) {}
 
     fn analyse(
-        &self,
+        &mut self,
         exp_dir: std::path::PathBuf,
         date: chrono::DateTime<chrono::offset::Utc>,
         _environment: Environment,
@@ -493,7 +495,7 @@ async fn main() -> Result<(), anyhow::Error> {
             results_dir: PathBuf::from(RESULTS_DIR),
         };
 
-        exp::run(&Experiment, &conf).await?;
+        exp::run(&mut Experiment, &conf).await?;
     }
 
     if opts.analyse {
@@ -501,7 +503,7 @@ async fn main() -> Result<(), anyhow::Error> {
             results_dir: PathBuf::from(RESULTS_DIR),
             date: opts.date,
         };
-        exp::analyse(&Experiment, &conf).await?;
+        exp::analyse(&mut Experiment, &conf).await?;
     }
     Ok(())
 }
