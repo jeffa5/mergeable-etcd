@@ -77,6 +77,7 @@ pub async fn run(options: options::Options) {
     let notify = Arc::new(tokio::sync::Notify::new());
 
     let data_dir = data_dir.unwrap_or_else(|| format!("{}.metcd", name).into());
+    info!(?data_dir, "Making db");
     let db = sled::Config::new()
         .mode(sled::Mode::HighThroughput) // set to use high throughput rather than low space mode
         .flush_every_ms(None) // don't automatically flush, we have a loop for this ourselves
@@ -86,9 +87,11 @@ pub async fn run(options: options::Options) {
     let changes_tree = db.open_tree("changes").unwrap();
     let document_tree = db.open_tree("documennt").unwrap();
     let sync_states_tree = db.open_tree("sync_states").unwrap();
+    info!("Making automerge persister");
     let sled_persister =
         SledPersister::new(changes_tree, document_tree, sync_states_tree, "").unwrap();
 
+    info!("Building document");
     let mut document = DocumentBuilder::default()
         .with_watcher(watch::MyWatcher {
             sender: watch_sender,
@@ -104,8 +107,11 @@ pub async fn run(options: options::Options) {
         .with_client_urls(advertise_client_urls.clone())
         .with_cluster_exists(matches!(initial_cluster_state, ClusterState::Existing));
     if matches!(initial_cluster_state, ClusterState::New) {
-        document = document.with_member_id(rand::random());
+        let id = rand::random();
+        info!(?id, "Setting member id");
+        document = document.with_member_id(id);
     }
+    info!("Doing actual build");
     let document = document.build();
     info!(member_id=?document.member_id(), "Built document");
     let document = Arc::new(Mutex::new(document));
