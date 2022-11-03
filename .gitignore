@@ -2,7 +2,8 @@ target
 .direnv
 result
 result-lib
-default.*
+/*.etcd
+/*.metcd
 certs/*.pem
 certs/*.csr
 certs/*.crt
