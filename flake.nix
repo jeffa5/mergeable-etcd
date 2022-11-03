@@ -94,6 +94,7 @@
         cp $src/bin/bencher $out/bin/bencher
       '';
     };
+    packages = import ./nix {inherit pkgs;};
   in {
     packages.${system} = {
       bencher-docker = pkgs.dockerTools.buildLayeredImage {
@@ -162,6 +163,8 @@
       bencher = bencher;
 
       default = self.packages.${system}.mergeable-etcd;
+
+      go-ycsb = packages.go-ycsb;
     };
 
     apps.${system} = {
