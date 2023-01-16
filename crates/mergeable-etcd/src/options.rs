@@ -80,8 +80,13 @@ pub struct Options {
     #[clap(long, default_value = "10")]
     pub flush_interval_ms: u64,
 
+    /// Filter logs using this string, rather than the `RUST_LOG` environment variable.
     #[clap(long)]
     pub log_filter: Option<String>,
+
+    /// Don't print logs with colour.
+    #[clap(long)]
+    pub no_colour: bool,
 }
 
 impl Default for Options {
@@ -107,6 +112,7 @@ impl Default for Options {
             initial_cluster_state: Default::default(),
             flush_interval_ms: 10,
             log_filter: None,
+            no_colour: false,
         }
     }
 }

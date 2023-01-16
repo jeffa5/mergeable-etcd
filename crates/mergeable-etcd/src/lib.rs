@@ -69,6 +69,7 @@ pub async fn run(options: options::Options) {
         listen_metrics_urls,
         flush_interval_ms,
         log_filter: _,
+        no_colour: _,
     } = options;
 
     let (watch_sender, watch_receiver) = mpsc::channel(10);
