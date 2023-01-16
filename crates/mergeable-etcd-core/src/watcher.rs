@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use crate::{req_resp::Header, KeyValue};
 
@@ -63,6 +64,6 @@ pub struct TestWatcher {
 #[tonic::async_trait]
 impl Watcher for TestWatcher {
     async fn publish_event(&mut self, header: Header, event: WatchEvent) {
-        self.events.lock().unwrap().push((header, event));
+        self.events.lock().await.push((header, event));
     }
 }

@@ -28,7 +28,7 @@ impl Kind {
         // TODO: save output to file
         println!("creating kind cluster");
         Command::new("kind")
-            .args(&[
+            .args([
                 "create",
                 "cluster",
                 "--image",
@@ -47,7 +47,7 @@ impl Drop for Kind {
     fn drop(&mut self) {
         println!("deleting kind cluster");
         Command::new("kind")
-            .args(&["delete", "cluster"])
+            .args(["delete", "cluster"])
             .status()
             .unwrap();
     }
@@ -88,7 +88,7 @@ impl exp::Experiment for Experiment {
         let mut events_file = File::create(repeat_dir.join("events")).unwrap();
 
         Command::new("docker")
-            .args(&[
+            .args([
                 "exec",
                 "kind-control-plane",
                 "--",
@@ -124,7 +124,7 @@ impl exp::Experiment for Experiment {
 
         println!("creating deployment");
         let mut apply = Command::new("kubectl")
-            .args(&["apply", "-f", "-"])
+            .args(["apply", "-f", "-"])
             .stdin(Stdio::piped())
             .spawn()
             .unwrap();
@@ -141,7 +141,7 @@ impl exp::Experiment for Experiment {
             .expect("Failed to wait for the kubectl apply child");
 
         Command::new("kubectl")
-            .args(&["rollout", "status", "deployments/exp-latency", "--watch"])
+            .args(["rollout", "status", "deployments/exp-latency", "--watch"])
             .status()
             .unwrap();
 
@@ -150,7 +150,7 @@ impl exp::Experiment for Experiment {
         for i in 2..=30 {
             println!("scaling deployment up to {}", i);
             Command::new("kubectl")
-                .args(&[
+                .args([
                     "scale",
                     "deployment",
                     "exp-latency",
@@ -160,7 +160,7 @@ impl exp::Experiment for Experiment {
                 .status()
                 .unwrap();
             Command::new("kubectl")
-                .args(&["rollout", "status", "deployments/exp-latency", "--watch"])
+                .args(["rollout", "status", "deployments/exp-latency", "--watch"])
                 .status()
                 .unwrap();
             sleep(Duration::from_secs(1)).await;
@@ -303,8 +303,7 @@ fn plot_timings_scatter(plots_path: &Path, timings: &[BTreeMap<String, Timings>]
 
     let data = timings
         .iter()
-        .map(|m| m.values())
-        .flatten()
+        .flat_map(|m| m.values())
         .map(|t| {
             let mut items = Vec::new();
             if let Some(created) = t.pod_created {
@@ -312,27 +311,27 @@ fn plot_timings_scatter(plots_path: &Path, timings: &[BTreeMap<String, Timings>]
                     1,
                     (t.pod_scheduled.unwrap() - created)
                         .num_milliseconds()
-                        .abs() as u32,
+                        .unsigned_abs() as u32,
                 ))
             };
             items.push((
                 2,
                 (t.container_created.unwrap() - t.pod_scheduled.unwrap())
                     .num_milliseconds()
-                    .abs() as u32,
+                    .unsigned_abs() as u32,
             ));
 
             items.push((
                 3,
                 (t.container_created.unwrap() - t.pull_finished.unwrap())
                     .num_milliseconds()
-                    .abs() as u32,
+                    .unsigned_abs() as u32,
             ));
             items.push((
                 4,
                 (t.container_started.unwrap() - t.container_created.unwrap())
                     .num_milliseconds()
-                    .abs() as u32,
+                    .unsigned_abs() as u32,
             ));
             items
         })
@@ -368,7 +367,7 @@ fn plot_timings_scatter(plots_path: &Path, timings: &[BTreeMap<String, Timings>]
     chart
         .draw_series(data.iter().flat_map(|v| {
             v.iter()
-                .map(|(i, t)| Cross::new((*i, *t as u32), 3, BLUE.mix(0.5).filled()))
+                .map(|(i, t)| Cross::new((*i, *t), 3, BLUE.mix(0.5).filled()))
         }))
         .unwrap();
 }

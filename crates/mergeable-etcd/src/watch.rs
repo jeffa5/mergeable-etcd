@@ -102,7 +102,7 @@ impl Watch for WatchService {
                                 }
                                 assert!(filters.is_empty());
                                 assert_eq!(watch_id, 0);
-                                assert_eq!(fragment, false);
+                                assert!(!fragment);
 
                                 let start = String::from_utf8(key).unwrap();
                                 let end = if range_end.is_empty() {

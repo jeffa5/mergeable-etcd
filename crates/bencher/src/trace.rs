@@ -18,6 +18,7 @@ use tokio::task::JoinHandle;
 use tonic::transport::Channel;
 use tracing::{info, instrument};
 
+#[allow(clippy::enum_variant_names)]
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum ResponseValue {
     RangeResponse(RangeResponse),

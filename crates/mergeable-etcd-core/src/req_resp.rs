@@ -51,8 +51,8 @@ impl From<etcd_proto::etcdserverpb::RangeRequest> for RangeRequest {
     ) -> Self {
         assert_eq!(sort_order, 0);
         assert_eq!(sort_target, 0);
-        assert_eq!(serializable, false);
-        assert_eq!(keys_only, false);
+        assert!(!serializable);
+        assert!(!keys_only);
         assert_eq!(min_mod_revision, 0);
         assert_eq!(max_mod_revision, 0);
         assert_eq!(min_create_revision, 0);
@@ -113,8 +113,8 @@ impl From<etcd_proto::etcdserverpb::PutRequest> for PutRequest {
             ignore_lease,
         }: etcd_proto::etcdserverpb::PutRequest,
     ) -> Self {
-        assert_eq!(ignore_value, false);
-        assert_eq!(ignore_lease, false);
+        assert!(!ignore_value);
+        assert!(!ignore_lease);
 
         PutRequest {
             key: String::from_utf8(key).unwrap(),

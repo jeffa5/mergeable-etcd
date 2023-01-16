@@ -62,7 +62,7 @@ impl etcd_proto::etcdserverpb::lease_server::Lease for LeaseServer {
             Ok(tonic::Response::new(
                 etcd_proto::etcdserverpb::LeaseGrantResponse {
                     header: Some(header.into()),
-                    id: id as i64,
+                    id,
                     ttl,
                     error: String::new(),
                 },
@@ -210,7 +210,7 @@ impl etcd_proto::etcdserverpb::lease_server::Lease for LeaseServer {
         let leases = document
             .all_lease_ids()?
             .into_iter()
-            .map(|id| etcd_proto::etcdserverpb::LeaseStatus { id: id as i64 })
+            .map(|id| etcd_proto::etcdserverpb::LeaseStatus { id })
             .collect();
         let header = document.header();
 

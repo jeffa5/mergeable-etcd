@@ -1,5 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use test_log::test;
+use tokio::sync::Mutex;
 
 use crate::{
     syncer::LocalSyncer, watcher::TestWatcher, Compare, CompareResult, CompareTarget,
@@ -1786,7 +1787,7 @@ async fn sync_two_documents() {
     let value = b"value".to_vec();
 
     doc1.lock()
-        .unwrap()
+        .await
         .put(PutRequest {
             key: key.clone(),
             value,
@@ -1799,7 +1800,7 @@ async fn sync_two_documents() {
         .unwrap();
     let (_header1, doc1_range) = doc1
         .lock()
-        .unwrap()
+        .await
         .range(RangeRequest {
             start: key.clone(),
             end: None,
@@ -1815,7 +1816,7 @@ async fn sync_two_documents() {
 
     let (_header2, doc2_range) = doc2
         .lock()
-        .unwrap()
+        .await
         .range(RangeRequest {
             start: key,
             end: None,
@@ -1863,7 +1864,7 @@ async fn sync_two_documents_conflicting_puts_same_revision() {
     let value2 = b"value2".to_vec();
 
     doc1.lock()
-        .unwrap()
+        .await
         .put(PutRequest {
             key: key.clone(),
             value: value1,
@@ -1876,7 +1877,7 @@ async fn sync_two_documents_conflicting_puts_same_revision() {
         .unwrap();
 
     doc2.lock()
-        .unwrap()
+        .await
         .put(PutRequest {
             key: key.clone(),
             value: value2,
@@ -1892,7 +1893,7 @@ async fn sync_two_documents_conflicting_puts_same_revision() {
 
     let (_header1, doc1_range) = doc1
         .lock()
-        .unwrap()
+        .await
         .range(RangeRequest {
             start: key.clone(),
             end: None,
@@ -1905,7 +1906,7 @@ async fn sync_two_documents_conflicting_puts_same_revision() {
         .unwrap();
     let (_header2, doc2_range) = doc2
         .lock()
-        .unwrap()
+        .await
         .range(RangeRequest {
             start: key,
             end: None,
@@ -1955,7 +1956,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
     let value2 = b"value2".to_vec();
 
     doc1.lock()
-        .unwrap()
+        .await
         .put(PutRequest {
             key: other_key,
             value: value1.clone(),
@@ -1968,7 +1969,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         .unwrap();
 
     doc1.lock()
-        .unwrap()
+        .await
         .put(PutRequest {
             key: key.clone(),
             value: value1,
@@ -1979,10 +1980,10 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         .unwrap()
         .await
         .unwrap();
-    assert_eq!(doc1.lock().unwrap().revision(), 3);
+    assert_eq!(doc1.lock().await.revision(), 3);
 
     doc2.lock()
-        .unwrap()
+        .await
         .put(PutRequest {
             key: key.clone(),
             value: value2.clone(),
@@ -1993,13 +1994,13 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         .unwrap()
         .await
         .unwrap();
-    assert_eq!(doc2.lock().unwrap().revision(), 2);
+    assert_eq!(doc2.lock().await.revision(), 2);
 
     syncer1.sync_all().await;
 
     let (header1, doc1_range) = doc1
         .lock()
-        .unwrap()
+        .await
         .range(RangeRequest {
             start: key.clone(),
             end: None,
@@ -2021,7 +2022,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
 
     let (header2, doc2_range) = doc2
         .lock()
-        .unwrap()
+        .await
         .range(RangeRequest {
             start: key.clone(),
             end: None,
@@ -2040,11 +2041,11 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
             revision: 4
         }
     );
-    doc2.lock().unwrap().dump_key(&key);
-    doc1.lock().unwrap().dump_key(&key);
+    doc2.lock().await.dump_key(&key);
+    doc1.lock().await.dump_key(&key);
 
-    assert_eq!(doc1.lock().unwrap().revision(), 4);
-    assert_eq!(doc2.lock().unwrap().revision(), 4);
+    assert_eq!(doc1.lock().await.revision(), 4);
+    assert_eq!(doc2.lock().await.revision(), 4);
 
     // should now be in sync, doc1 should win because it created the value with a higher
     // revision
@@ -2052,7 +2053,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
     // the values should have merged so that the value at the older revision exists too.
     let (header3, doc2_range) = doc2
         .lock()
-        .unwrap()
+        .await
         .range(RangeRequest {
             start: key.clone(),
             end: None,
@@ -2115,7 +2116,7 @@ async fn watch_value_creation() {
     .unwrap();
 
     assert_eq!(
-        std::mem::take(&mut *events.lock().unwrap()),
+        std::mem::take(&mut *events.lock().await),
         vec![(
             Header {
                 cluster_id: 1,
@@ -2148,7 +2149,7 @@ async fn watch_value_creation() {
     .unwrap();
 
     assert_eq!(
-        std::mem::take(&mut *events.lock().unwrap()),
+        std::mem::take(&mut *events.lock().await),
         vec![(
             Header {
                 cluster_id: 1,
@@ -2198,7 +2199,7 @@ async fn watch_value_creation() {
     .await
     .unwrap();
     // ignore these events
-    std::mem::take(&mut *events.lock().unwrap());
+    std::mem::take(&mut *events.lock().await);
 
     doc.delete_range(DeleteRangeRequest {
         start: key1.clone(),
@@ -2211,7 +2212,7 @@ async fn watch_value_creation() {
     .unwrap();
 
     assert_eq!(
-        std::mem::take(&mut *events.lock().unwrap()),
+        std::mem::take(&mut *events.lock().await),
         vec![
             (
                 Header {
@@ -2291,7 +2292,7 @@ async fn watch_value_creation() {
     .unwrap();
 
     assert_eq!(
-        std::mem::take(&mut *events.lock().unwrap()),
+        std::mem::take(&mut *events.lock().await),
         vec![
             (
                 Header {
@@ -2387,7 +2388,7 @@ async fn watch_server_value_creation() {
     .await
     .unwrap();
 
-    for (header, event) in std::mem::take(&mut *events.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events.lock().await) {
         watch_server.receive_event(header, event).await
     }
 
@@ -2425,7 +2426,7 @@ async fn watch_server_value_creation() {
     .await
     .unwrap();
 
-    for (header, event) in std::mem::take(&mut *events.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events.lock().await) {
         watch_server.receive_event(header, event).await
     }
 
@@ -2474,7 +2475,7 @@ async fn watch_server_value_creation() {
     .await
     .unwrap();
     // ignore these events
-    std::mem::take(&mut *events.lock().unwrap());
+    std::mem::take(&mut *events.lock().await);
 
     doc.delete_range(DeleteRangeRequest {
         start: key1.clone(),
@@ -2486,7 +2487,7 @@ async fn watch_server_value_creation() {
     .await
     .unwrap();
 
-    for (header, event) in std::mem::take(&mut *events.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events.lock().await) {
         watch_server.receive_event(header, event).await
     }
 
@@ -2560,7 +2561,7 @@ async fn watch_server_value_creation() {
     .await
     .unwrap();
 
-    for (header, event) in std::mem::take(&mut *events.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events.lock().await) {
         watch_server.receive_event(header, event).await
     }
 
@@ -2614,7 +2615,7 @@ async fn watch_server_value_creation() {
 
     watch_server.remove_watch(watch_id);
 
-    for (header, event) in std::mem::take(&mut *events.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events.lock().await) {
         watch_server.receive_event(header, event).await
     }
 
@@ -2673,7 +2674,7 @@ async fn sync_two_documents_trigger_watches() {
     let (sender1, mut receiver1) = mpsc::channel(100);
     let watch_id1 = watch_server1
         .create_watch(
-            &mut doc1.lock().unwrap(),
+            &mut *doc1.lock().await,
             key1.clone(),
             Some(key3.clone()),
             false,
@@ -2685,7 +2686,7 @@ async fn sync_two_documents_trigger_watches() {
     let (sender2, mut receiver2) = mpsc::channel(100);
     let watch_id2 = watch_server2
         .create_watch(
-            &mut doc2.lock().unwrap(),
+            &mut *doc2.lock().await,
             key1.clone(),
             Some(key3.clone()),
             false,
@@ -2696,7 +2697,7 @@ async fn sync_two_documents_trigger_watches() {
         .unwrap();
 
     doc1.lock()
-        .unwrap()
+        .await
         .put(PutRequest {
             key: other_key,
             value: value1.clone(),
@@ -2709,7 +2710,7 @@ async fn sync_two_documents_trigger_watches() {
         .unwrap();
 
     doc1.lock()
-        .unwrap()
+        .await
         .put(PutRequest {
             key: key1.clone(),
             value: value1.clone(),
@@ -2720,9 +2721,9 @@ async fn sync_two_documents_trigger_watches() {
         .unwrap()
         .await
         .unwrap();
-    assert_eq!(doc1.lock().unwrap().revision(), 3);
+    assert_eq!(doc1.lock().await.revision(), 3);
 
-    for (header, event) in std::mem::take(&mut *events1.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events1.lock().await) {
         watch_server1.receive_event(header, event).await
     }
 
@@ -2752,7 +2753,7 @@ async fn sync_two_documents_trigger_watches() {
     assert_eq!(receiver1.try_recv(), Err(TryRecvError::Empty));
 
     doc2.lock()
-        .unwrap()
+        .await
         .put(PutRequest {
             key: key1.clone(),
             value: value2.clone(),
@@ -2763,9 +2764,9 @@ async fn sync_two_documents_trigger_watches() {
         .unwrap()
         .await
         .unwrap();
-    assert_eq!(doc2.lock().unwrap().revision(), 2);
+    assert_eq!(doc2.lock().await.revision(), 2);
 
-    for (header, event) in std::mem::take(&mut *events2.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events2.lock().await) {
         watch_server2.receive_event(header, event).await
     }
 
@@ -2796,11 +2797,11 @@ async fn sync_two_documents_trigger_watches() {
 
     syncer1.sync_all().await;
 
-    for (header, event) in std::mem::take(&mut *events1.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events1.lock().await) {
         watch_server1.receive_event(header, event).await
     }
 
-    for (header, event) in std::mem::take(&mut *events2.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events2.lock().await) {
         watch_server2.receive_event(header, event).await
     }
 
@@ -2864,11 +2865,11 @@ async fn sync_two_documents_trigger_watches() {
 
     assert_eq!(receiver2.try_recv(), Err(TryRecvError::Empty));
 
-    assert_eq!(doc1.lock().unwrap().revision(), 4);
-    assert_eq!(doc2.lock().unwrap().revision(), 4);
+    assert_eq!(doc1.lock().await.revision(), 4);
+    assert_eq!(doc2.lock().await.revision(), 4);
 
     doc1.lock()
-        .unwrap()
+        .await
         .delete_range(DeleteRangeRequest {
             start: key1.clone(),
             end: None,
@@ -2879,7 +2880,7 @@ async fn sync_two_documents_trigger_watches() {
         .await
         .unwrap();
 
-    for (header, event) in std::mem::take(&mut *events1.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events1.lock().await) {
         watch_server1.receive_event(header, event).await
     }
 
@@ -2909,7 +2910,7 @@ async fn sync_two_documents_trigger_watches() {
     assert_eq!(receiver1.try_recv(), Err(TryRecvError::Empty));
 
     doc2.lock()
-        .unwrap()
+        .await
         .delete_range(DeleteRangeRequest {
             start: key2.clone(),
             end: None,
@@ -2920,7 +2921,7 @@ async fn sync_two_documents_trigger_watches() {
         .await
         .unwrap();
 
-    for (header, event) in std::mem::take(&mut *events2.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events2.lock().await) {
         watch_server2.receive_event(header, event).await
     }
 
@@ -2928,11 +2929,11 @@ async fn sync_two_documents_trigger_watches() {
 
     syncer1.sync_all().await;
 
-    for (header, event) in std::mem::take(&mut *events1.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events1.lock().await) {
         watch_server1.receive_event(header, event).await
     }
 
-    for (header, event) in std::mem::take(&mut *events2.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events2.lock().await) {
         watch_server2.receive_event(header, event).await
     }
 
@@ -3088,7 +3089,7 @@ async fn cluster_startup_2() {
     syncer1.sync_all().await;
 
     assert_eq!(
-        doc1.lock().unwrap().list_members().unwrap(),
+        doc1.lock().await.list_members().unwrap(),
         vec![
             Member {
                 id: id1,
@@ -3108,7 +3109,7 @@ async fn cluster_startup_2() {
     );
 
     assert_eq!(
-        doc2.lock().unwrap().list_members().unwrap(),
+        doc2.lock().await.list_members().unwrap(),
         vec![
             Member {
                 id: id1,
@@ -3206,7 +3207,7 @@ async fn cluster_startup_3() {
     syncer1.sync_all().await;
 
     assert_eq!(
-        doc1.lock().unwrap().list_members().unwrap(),
+        doc1.lock().await.list_members().unwrap(),
         vec![
             Member {
                 id: id1,
@@ -3226,7 +3227,7 @@ async fn cluster_startup_3() {
     );
 
     assert_eq!(
-        doc2.lock().unwrap().list_members().unwrap(),
+        doc2.lock().await.list_members().unwrap(),
         vec![
             Member {
                 id: id1,
@@ -3246,9 +3247,9 @@ async fn cluster_startup_3() {
     );
 
     // another node wants to join the cluster so we add it first on the existing node
-    let id3 = doc1.lock().unwrap().add_member(peer_urls3.clone()).await.id;
+    let id3 = doc1.lock().await.add_member(peer_urls3.clone()).await.id;
 
-    let mut members = doc1.lock().unwrap().list_members().unwrap();
+    let mut members = doc1.lock().await.list_members().unwrap();
     members.sort_by_key(|m| m.id);
     let mut result = vec![
         Member {
@@ -3299,7 +3300,7 @@ async fn cluster_startup_3() {
 
     syncer1.sync_all().await;
 
-    let mut members = doc1.lock().unwrap().list_members().unwrap();
+    let mut members = doc1.lock().await.list_members().unwrap();
     members.sort_by_key(|m| m.id);
     let mut result = vec![
         Member {
@@ -3327,7 +3328,7 @@ async fn cluster_startup_3() {
     result.sort_by_key(|m| m.id);
     assert_eq!(members, result);
 
-    let mut members = doc2.lock().unwrap().list_members().unwrap();
+    let mut members = doc2.lock().await.list_members().unwrap();
     members.sort_by_key(|m| m.id);
     let mut result = vec![
         Member {
@@ -3355,7 +3356,7 @@ async fn cluster_startup_3() {
     result.sort_by_key(|m| m.id);
     assert_eq!(members, result);
 
-    let mut members = doc3.lock().unwrap().list_members().unwrap();
+    let mut members = doc3.lock().await.list_members().unwrap();
     members.sort_by_key(|m| m.id);
     let mut result = vec![
         Member {
@@ -4300,7 +4301,7 @@ async fn watch_server_value_creation_start_revision() {
 
     watch_server.remove_watch(watch_id);
 
-    for (header, event) in std::mem::take(&mut *events.lock().unwrap()) {
+    for (header, event) in std::mem::take(&mut *events.lock().await) {
         watch_server.receive_event(header, event).await
     }
 

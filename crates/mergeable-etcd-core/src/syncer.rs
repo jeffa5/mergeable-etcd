@@ -1,5 +1,7 @@
 #[cfg(test)]
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+#[cfg(test)]
+use tokio::sync::Mutex;
 #[cfg(test)]
 use tracing::debug;
 
@@ -46,15 +48,15 @@ where
 {
     // send a message to all available peers.
     pub async fn sync(&self) -> bool {
-        let mut local_document = self.local_document.lock().unwrap();
+        let mut local_document = self.local_document.lock().await;
         let mut sent_message = false;
         for (id, document) in &self.other_documents {
             if let Some(message) = local_document.generate_sync_message(*id).unwrap() {
                 let local_heads = local_document.am.document_mut().get_heads();
-                let remote_heads = document.lock().unwrap().am.document_mut().get_heads();
+                let remote_heads = document.lock().await.am.document_mut().get_heads();
                 debug!(?local_heads, ?remote_heads, "heads");
                 debug!(?message, from=?id, to=?self.local_id, "Sent message");
-                let mut other_document = document.lock().unwrap();
+                let mut other_document = document.lock().await;
                 other_document
                     .receive_sync_message(self.local_id, message)
                     .await
@@ -87,9 +89,9 @@ where
             panic!("Failed to sync in {} iterations", max_iters);
         }
 
-        let local_heads = self.local_document.lock().unwrap().heads();
+        let local_heads = self.local_document.lock().await.heads();
         for (_peer, doc) in self.other_documents.iter() {
-            let peer_heads = doc.lock().unwrap().heads();
+            let peer_heads = doc.lock().await.heads();
             // documents should be in sync now
             assert_eq!(local_heads, peer_heads);
         }

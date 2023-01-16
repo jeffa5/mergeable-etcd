@@ -344,6 +344,7 @@ async fn start_client_server(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn start_peer_server(
     address: String,
     cert_file: &str,
