@@ -58,7 +58,7 @@ pub struct Experiment;
 impl exp::Experiment for Experiment {
     type Configuration = Config;
 
-    fn configurations(&self) -> Vec<Self::Configuration> {
+    fn configurations(&mut self) -> Vec<Self::Configuration> {
         vec![Self::Configuration {
             repeats: 1,
             description: "kind startup events".to_owned(),
@@ -69,9 +69,9 @@ impl exp::Experiment for Experiment {
         "kubernetes_startup"
     }
 
-    async fn pre_run(&self, _configuration: &Self::Configuration) {}
+    async fn pre_run(&mut self, _configuration: &Self::Configuration) {}
 
-    async fn run(&self, _configuration: &Self::Configuration, repeat_dir: PathBuf) {
+    async fn run(&mut self, _configuration: &Self::Configuration, repeat_dir: PathBuf) {
         let _kind = Kind::new();
         sleep(Duration::from_secs(5)).await;
 
@@ -164,10 +164,10 @@ impl exp::Experiment for Experiment {
         }
     }
 
-    async fn post_run(&self, _configuration: &Self::Configuration) {}
+    async fn post_run(&mut self, _configuration: &Self::Configuration) {}
 
     fn analyse(
-        &self,
+        &mut self,
         experiment_dir: PathBuf,
         date: chrono::DateTime<chrono::Utc>,
         _environment: exp::Environment,
@@ -435,7 +435,7 @@ async fn main() -> Result<(), anyhow::Error> {
             results_dir: PathBuf::from(RESULTS_DIR),
         };
 
-        exp::run(&Experiment, &conf).await?;
+        exp::run(&mut Experiment, &conf).await?;
     }
 
     if opts.analyse {
@@ -443,7 +443,7 @@ async fn main() -> Result<(), anyhow::Error> {
             results_dir: PathBuf::from(RESULTS_DIR),
             date: opts.date,
         };
-        exp::analyse(&Experiment, &conf).await?;
+        exp::analyse(&mut Experiment, &conf).await?;
     }
     Ok(())
 }
