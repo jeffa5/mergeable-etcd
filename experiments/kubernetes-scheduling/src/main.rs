@@ -9,6 +9,7 @@ use std::{
 
 use async_trait::async_trait;
 use clap::Parser;
+use exp::ExpResult;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Event;
 use kube::{
@@ -65,13 +66,15 @@ impl exp::Experiment for Experiment {
         }]
     }
 
-    fn name(&self) -> &str {
-        "kubernetes_startup"
+    async fn pre_run(&mut self, _configuration: &Self::Configuration) -> ExpResult<()> {
+        Ok(())
     }
 
-    async fn pre_run(&mut self, _configuration: &Self::Configuration) {}
-
-    async fn run(&mut self, _configuration: &Self::Configuration, repeat_dir: PathBuf) {
+    async fn run(
+        &mut self,
+        _configuration: &Self::Configuration,
+        repeat_dir: &Path,
+    ) -> ExpResult<()> {
         let _kind = Kind::new();
         sleep(Duration::from_secs(5)).await;
 
@@ -162,14 +165,16 @@ impl exp::Experiment for Experiment {
                 .unwrap();
             sleep(Duration::from_secs(1)).await;
         }
+        Ok(())
     }
 
-    async fn post_run(&mut self, _configuration: &Self::Configuration) {}
+    async fn post_run(&mut self, _configuration: &Self::Configuration) -> ExpResult<()> {
+        Ok(())
+    }
 
     fn analyse(
         &mut self,
-        experiment_dir: PathBuf,
-        date: chrono::DateTime<chrono::Utc>,
+        experiment_dir: &Path,
         _environment: exp::Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
@@ -286,15 +291,11 @@ impl exp::Experiment for Experiment {
         }
         let plots_path = experiment_dir.join("plots");
         create_dir_all(&plots_path).unwrap();
-        plot_timings_scatter(date, &plots_path, &all_timings);
+        plot_timings_scatter(&plots_path, &all_timings);
     }
 }
 
-fn plot_timings_scatter(
-    date: chrono::DateTime<chrono::Utc>,
-    plots_path: &Path,
-    timings: &[BTreeMap<String, Timings>],
-) {
+fn plot_timings_scatter(plots_path: &Path, timings: &[BTreeMap<String, Timings>]) {
     use plotters::prelude::*;
     let latency_plot = plots_path.join("timings.svg");
     let root = SVGBackend::new(&latency_plot, (640, 480)).into_drawing_area();
@@ -338,10 +339,7 @@ fn plot_timings_scatter(
         .collect::<Vec<_>>();
 
     let mut chart = ChartBuilder::on(&root)
-        .caption(
-            format!("Kubernetes timings ({})", date),
-            ("sans-serif", 20).into_font(),
-        )
+        .caption("Kubernetes timings", ("sans-serif", 20).into_font())
         .margin(10)
         .margin_right(45)
         .x_label_area_size(40)
@@ -399,15 +397,7 @@ pub struct Config {
     pub description: String,
 }
 
-impl exp::ExperimentConfiguration for Config {
-    fn repeats(&self) -> u32 {
-        self.repeats
-    }
-
-    fn description(&self) -> &str {
-        &self.description
-    }
-}
+impl exp::ExperimentConfiguration for Config {}
 
 #[derive(Parser)]
 struct CliOptions {
@@ -417,8 +407,6 @@ struct CliOptions {
     /// Analyse all the experiments
     #[clap(long)]
     analyse: bool,
-    #[clap(long)]
-    date: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[tokio::main]
@@ -441,7 +429,6 @@ async fn main() -> Result<(), anyhow::Error> {
     if opts.analyse {
         let conf = exp::AnalyseConfig {
             results_dir: PathBuf::from(RESULTS_DIR),
-            date: opts.date,
         };
         exp::analyse(&mut Experiment, &conf).await?;
     }

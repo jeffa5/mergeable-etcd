@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fs::{self, File},
+    path::Path,
     path::PathBuf,
     str::FromStr,
     time::Duration,
@@ -12,7 +13,7 @@ use async_trait::async_trait;
 use clap::Parser;
 use exp::{
     docker_runner::{self, ContainerConfig, Runner},
-    repeat_dirs, Environment, ExperimentConfiguration,
+    repeat_dirs, Environment, ExpResult, ExperimentConfiguration,
 };
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -140,16 +141,17 @@ impl exp::Experiment for Experiment {
         confs
     }
 
-    fn name(&self) -> &str {
-        "bencher"
-    }
-
-    async fn pre_run(&mut self, _configuration: &Self::Configuration) {
+    async fn pre_run(&mut self, _configuration: &Self::Configuration) -> ExpResult<()> {
         let experiment_prefix = "apj39-bencher-exp";
         docker_runner::clean(experiment_prefix).await.unwrap();
+        Ok(())
     }
 
-    async fn run(&mut self, configuration: &Self::Configuration, repeat_dir: std::path::PathBuf) {
+    async fn run(
+        &mut self,
+        configuration: &Self::Configuration,
+        repeat_dir: &Path,
+    ) -> ExpResult<()> {
         self.run_iteration += 1;
 
         info!(?configuration, iteration=?self.run_iteration, total=?self.num_configurations * configuration.repeats as usize, "Running");
@@ -162,7 +164,7 @@ impl exp::Experiment for Experiment {
         let network_quad = "172.19.0.0";
         let network_subnet = format!("{}/16", network_quad);
 
-        let mut runner = Runner::new(repeat_dir.clone()).await;
+        let mut runner = Runner::new(repeat_dir.to_owned()).await;
         let mut initial_cluster =
             format!("{}1=http://{}.2:2380", node_name_prefix, network_triplet);
         let mut client_urls = format!("http://{}.2:2379", network_triplet);
@@ -286,7 +288,7 @@ impl exp::Experiment for Experiment {
         }
 
         let bench_name = format!("{}-bench", experiment_prefix);
-        let out_file = repeat_dir.clone().join(BENCHER_RESULTS_FILE);
+        let out_file = repeat_dir.join(BENCHER_RESULTS_FILE);
         fs::File::create(&out_file).unwrap();
         let out_file = fs::canonicalize(out_file).unwrap();
 
@@ -333,14 +335,17 @@ impl exp::Experiment for Experiment {
         tokio::time::sleep(Duration::from_secs(2)).await;
 
         runner.finish().await;
+
+        Ok(())
     }
 
-    async fn post_run(&mut self, _configuration: &Self::Configuration) {}
+    async fn post_run(&mut self, _configuration: &Self::Configuration) -> ExpResult<()> {
+        Ok(())
+    }
 
     fn analyse(
         &mut self,
-        exp_dir: std::path::PathBuf,
-        _date: chrono::DateTime<chrono::offset::Utc>,
+        exp_dir: &Path,
         _environment: Environment,
         configurations: Vec<(Self::Configuration, PathBuf)>,
     ) {
@@ -532,15 +537,7 @@ pub struct Config {
     pub extra_args: Vec<String>,
 }
 
-impl ExperimentConfiguration for Config {
-    fn repeats(&self) -> u32 {
-        self.repeats
-    }
-
-    fn description(&self) -> &str {
-        &self.description
-    }
-}
+impl ExperimentConfiguration for Config {}
 
 #[derive(Parser)]
 struct CliOptions {
@@ -624,14 +621,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     if analyse {
-        exp::analyse(
-            &mut experiment,
-            &exp::AnalyseConfig {
-                date: None,
-                results_dir,
-            },
-        )
-        .await?;
+        exp::analyse(&mut experiment, &exp::AnalyseConfig { results_dir }).await?;
     }
 
     Ok(())
