@@ -91,7 +91,7 @@ fn run_clusterloader(report_dir: String, nodes_to_partition: u32) {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum Datastore {
-    Etcd,
+    // Etcd,
     MergeableEtcd,
 }
 
@@ -99,8 +99,8 @@ fn main() {
     let cluster_name = "apj39-clusterloader";
     let masters = 1;
     let image = Datastore::MergeableEtcd;
-    let repeats = 1;
-    let partitioned = 0;
+    // let repeats = 1;
+    // let partitioned = 0;
 
     delete_cluster(cluster_name);
     create_cluster(cluster_name, masters, image);
