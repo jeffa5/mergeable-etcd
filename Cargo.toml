@@ -4,7 +4,6 @@ members = [
   "experiments/bencher",
   "experiments/kubernetes-scheduling",
   # "experiments/etcd-bencher",
-  "experiments/go-ycsb",
   "experiments/clusterloader",
   "experiments/bencher",
 ]
