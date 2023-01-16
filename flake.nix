@@ -210,6 +210,7 @@
           protobuf
           kubectl
           k9s
+          rust-analyzer
 
           jupyter
           python3Packages.numpy
