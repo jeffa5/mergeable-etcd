@@ -483,6 +483,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "clusterloader"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
+]
+
+[[package]]
 name = "cmake"
 version = "0.1.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
