@@ -11,7 +11,6 @@ async fn main() {
     let options = mergeable_etcd::Options::parse();
 
     tracing_subscriber::registry()
-        .with(fmt::layer().with_ansi(false))
         .with(if let Some(log_filter) = &options.log_filter {
             EnvFilter::from(log_filter)
         } else {
