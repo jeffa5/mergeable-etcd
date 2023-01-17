@@ -6,6 +6,7 @@ members = [
   # "experiments/etcd-bencher",
   "experiments/clusterloader",
   "experiments/bencher",
+  "experiments/go-ycsb",
 ]
 
 [profile.release]
