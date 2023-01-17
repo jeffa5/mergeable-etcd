@@ -239,6 +239,7 @@
         ]
         ++ [
           kind.packages.${system}.kind
+          self.packages.${system}.go-ycsb
         ];
 
       ETCDCTL_API = 3;
