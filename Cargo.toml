@@ -1,12 +1,6 @@
 [workspace]
 members = [
   "crates/*",
-  "experiments/bencher",
-  "experiments/kubernetes-scheduling",
-  # "experiments/etcd-bencher",
-  "experiments/clusterloader",
-  "experiments/bencher",
-  "experiments/go-ycsb",
 ]
 
 [profile.release]
