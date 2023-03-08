@@ -174,7 +174,7 @@ async fn get_channel(ca_file: Option<&str>, uri: Uri) -> Channel {
     let mut channel = Channel::builder(uri);
     if let Some(ca_file) = ca_file {
         let pem = tokio::fs::read(ca_file).await.unwrap();
-        channel = channel.tls_config(ClientTlsConfig::new().ca_certificate(Certificate::from_pem(pem))).unwrap();
+        channel = channel.tls_config(ClientTlsConfig::new().ca_certificate(Certificate::from_pem(pem)).domain_name("localhost")).unwrap();
     };
     channel.connect().await.unwrap()
 }
