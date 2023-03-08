@@ -140,7 +140,7 @@ def spawn_cluster(args: argparse.Namespace):
     Spawn a cluster from the given arguments.
     """
     bin_name = "mergeable-etcd"
-    build_type = "debug"
+    build_type = "release" if args.release else "debug"
     bin_path = os.path.join("target", build_type, bin_name)
     client_scheme = "https" if args.client_tls else "http"
     peer_scheme = "https" if args.peer_tls else "http"
@@ -209,6 +209,12 @@ def main():
         action="store_true",
         default=False,
         help="Whether to launch nodes with peer tls connections",
+    )
+    parser.add_argument(
+        "--release",
+        action="store_true",
+        default=False,
+        help="Whether to use a release build",
     )
     args = parser.parse_args()
     print(args)
