@@ -15,8 +15,9 @@ use tonic::body::BoxBody;
 use tonic_openssl::ALPN_H2_WIRE;
 use tower::Service;
 
+/// A gRPC (tonic) channel that may use tls if created with a ca certificate.
 #[derive(Clone)]
-pub(crate) struct MyChannel {
+pub(crate) struct GrpcChannel {
     uri: Uri,
     client: MyClient,
 }
@@ -27,7 +28,7 @@ enum MyClient {
     Tls(Client<HttpsConnector<HttpConnector>, BoxBody>),
 }
 
-impl MyChannel {
+impl GrpcChannel {
     pub(crate) fn new(ca_certificate: Option<Vec<u8>>, uri: Uri) -> Result<Self, Box<dyn Error>> {
         let mut http = HttpConnector::new();
         http.enforce_http(false);
@@ -53,7 +54,7 @@ impl MyChannel {
 
 // Check out this blog post for an introduction to Tower:
 // https://tokio.rs/blog/2021-05-14-inventing-the-service-trait
-impl Service<Request<BoxBody>> for MyChannel {
+impl Service<Request<BoxBody>> for GrpcChannel {
     type Response = Response<Body>;
     type Error = hyper::Error;
     type Future = ResponseFuture;

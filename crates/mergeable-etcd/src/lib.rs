@@ -1,7 +1,7 @@
 use crate::auth::AuthServer;
 use crate::kv::KvServer;
 use crate::lease::LeaseServer;
-use crate::tls::MyChannel;
+use crate::tls::GrpcChannel;
 use automerge_persistent_sled::SledPersister;
 use cluster::ClusterServer;
 use futures::future::join_all;
@@ -148,7 +148,7 @@ pub async fn run(options: options::Options) {
             }
             let address_clone = address.clone();
             let mut client = loop {
-                if let Ok(channel) = MyChannel::new(ca_cert.clone(), address.parse().unwrap()) {
+                if let Ok(channel) = GrpcChannel::new(ca_cert.clone(), address.parse().unwrap()) {
                     let client = peer_proto::peer_client::PeerClient::new(channel);
                     info!(address=?address_clone, "Connected client");
                     break client;
@@ -193,7 +193,7 @@ pub async fn run(options: options::Options) {
                             // had an error, reconnect the client
                             client = loop {
                                 if let Ok(channel) =
-                                    MyChannel::new(ca_cert.clone(), address_clone.parse().unwrap())
+                                    GrpcChannel::new(ca_cert.clone(), address_clone.parse().unwrap())
                                 {
                                     let client =
                                         peer_proto::peer_client::PeerClient::new(channel.clone());

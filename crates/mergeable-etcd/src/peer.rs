@@ -12,7 +12,7 @@ use tracing::{debug, info, warn};
 
 use mergeable_etcd_core::Syncer;
 
-use crate::{tls::MyChannel, Doc};
+use crate::{tls::GrpcChannel, Doc};
 
 const SYNC_SLEEP_DURATION: Duration = Duration::from_millis(10);
 
@@ -53,7 +53,7 @@ impl PeerSyncer {
         tokio::spawn(async move {
             let mut client = loop {
                 if let Ok(channel) =
-                    MyChannel::new(ca_certificate.clone(), address_clone.parse().unwrap())
+                    GrpcChannel::new(ca_certificate.clone(), address_clone.parse().unwrap())
                 {
                     let client = peer_proto::peer_client::PeerClient::new(channel);
                     info!(address=?address_clone, "Connected client");
@@ -91,7 +91,7 @@ impl PeerSyncer {
                                     warn!(%error, ?retry_wait, address=?address_clone, "Got error sending sync message to peer");
                                     // had an error, reconnect the client
                                     client = loop {
-                                        if let Ok(channel) = MyChannel::new(
+                                        if let Ok(channel) = GrpcChannel::new(
                                             ca_certificate.clone(),
                                             address_clone.parse().unwrap(),
                                         ) {
