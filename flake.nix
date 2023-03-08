@@ -35,9 +35,7 @@
         overlays = [rust-overlay.overlays.default];
         system = system;
       };
-    lib = pkgs.lib;
     rust = pkgs.rust-bin.stable.latest.default;
-    buildRustCrate = pkgs.buildRustCrate.override {rustc = rust;};
     craneLib = crane.lib.${system};
     commonArgs = {
       src = craneLib.cleanCargoSource ./.;
