@@ -358,8 +358,8 @@ async fn start_peer_server(
     let tls = if proto == "http" {
         None
     } else if proto == "https" {
-        let key = tokio::fs::read(key_file).await.unwrap();
-        let cert = tokio::fs::read(cert_file).await.unwrap();
+        let key = tokio::fs::read(key_file).await.expect("Failed to read peer key file");
+        let cert = tokio::fs::read(cert_file).await.expect("Failed to read peer cert file");
 
         let server_identity = Identity::from_pem(cert, key);
         let tls = ServerTlsConfig::new().identity(server_identity);
