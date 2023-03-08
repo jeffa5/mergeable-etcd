@@ -9,19 +9,17 @@ use futures::join;
 use maintenance::MaintenanceServer;
 use mergeable_etcd_core::Document;
 use mergeable_etcd_core::DocumentBuilder;
-use openssl::ssl::{select_next_proto, AlpnError, SslAcceptor, SslFiletype, SslMethod};
 use peer::DocumentChangedSyncer;
 use peer_proto::peer_server::PeerServer;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
-use tokio::net::TcpListener;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
-use tokio_stream::wrappers::TcpListenerStream;
-use tonic_openssl::ALPN_H2_WIRE;
+use tonic::transport::Identity;
+use tonic::transport::ServerTlsConfig;
 use tower::ServiceBuilder;
 use tracing::debug;
 use tracing::error;
@@ -275,24 +273,16 @@ async fn start_client_server(
     .unwrap();
 
     let proto = client_url.scheme();
-    let incoming = if proto == "http" {
+    let tls = if proto == "http" {
         None
     } else if proto == "https" {
-        let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        acceptor
-            .set_private_key_file(key_file, SslFiletype::PEM)
-            .unwrap();
-        acceptor.set_certificate_chain_file(cert_file).unwrap();
-        acceptor.check_private_key().unwrap();
-        acceptor.set_alpn_protos(ALPN_H2_WIRE).unwrap();
-        acceptor.set_alpn_select_callback(|_ssl, alpn| {
-            select_next_proto(ALPN_H2_WIRE, alpn).ok_or(AlpnError::NOACK)
-        });
-        let acceptor = acceptor.build();
+        let key = tokio::fs::read(key_file).await.unwrap();
+        let cert = tokio::fs::read(cert_file).await.unwrap();
 
-        let listener = TcpListener::bind(client_address).await.unwrap();
-        let incoming = tonic_openssl::incoming(TcpListenerStream::new(listener), acceptor);
-        Some(incoming)
+        let server_identity = Identity::from_pem(cert, key);
+        let tls = ServerTlsConfig::new().identity(server_identity);
+
+        Some(tls)
     } else {
         error!(?proto, "unrecognized protocol for client address");
         return tokio::spawn(async move {});
@@ -305,9 +295,12 @@ async fn start_client_server(
         // drop requests when we're too busy to try and retain performance
         let layer = ServiceBuilder::new().load_shed().into_inner();
 
-        let router = builder
-            .layer(layer)
-            .timeout(Duration::from_secs(1))
+        let mut router = builder.layer(layer).timeout(Duration::from_secs(1));
+        if let Some(tls) = tls {
+            router = router.tls_config(tls).unwrap();
+        }
+
+        let router = router
             .add_service(etcd_proto::etcdserverpb::kv_server::KvServer::new(server))
             .add_service(etcd_proto::etcdserverpb::watch_server::WatchServer::new(
                 watch_server,
@@ -333,11 +326,7 @@ async fn start_client_server(
                 },
             ));
 
-        let res = if let Some(incoming) = incoming {
-            router.serve_with_incoming(incoming).await
-        } else {
-            router.serve(client_address).await
-        };
+        let res = router.serve(client_address).await;
         if let Err(error) = res {
             error!(%error, address=?client_address, "Failed to start client server");
         }
@@ -366,24 +355,16 @@ async fn start_peer_server(
     .parse()
     .unwrap();
 
-    let incoming = if proto == "http" {
+    let tls = if proto == "http" {
         None
     } else if proto == "https" {
-        let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        acceptor
-            .set_private_key_file(key_file, SslFiletype::PEM)
-            .unwrap();
-        acceptor.set_certificate_chain_file(cert_file).unwrap();
-        acceptor.check_private_key().unwrap();
-        acceptor.set_alpn_protos(ALPN_H2_WIRE).unwrap();
-        acceptor.set_alpn_select_callback(|_ssl, alpn| {
-            select_next_proto(ALPN_H2_WIRE, alpn).ok_or(AlpnError::NOACK)
-        });
-        let acceptor = acceptor.build();
+        let key = tokio::fs::read(key_file).await.unwrap();
+        let cert = tokio::fs::read(cert_file).await.unwrap();
 
-        let listener = TcpListener::bind(peer_address).await.unwrap();
-        let incoming = tonic_openssl::incoming(TcpListenerStream::new(listener), acceptor);
-        Some(incoming)
+        let server_identity = Identity::from_pem(cert, key);
+        let tls = ServerTlsConfig::new().identity(server_identity);
+
+        Some(tls)
     } else {
         error!(?proto, "unrecognized protocol for client address");
         return tokio::spawn(async move {});
@@ -410,15 +391,13 @@ async fn start_peer_server(
     info!(?address, "Starting peer server");
     tokio::spawn(async move {
         let mut builder = tonic::transport::Server::builder();
+        if let Some(tls) = tls {
+            builder = builder.tls_config(tls).unwrap();
+        }
 
         let router = builder.add_service(PeerServer::new(peer_server));
 
-        let res = if let Some(incoming) = incoming {
-            router.serve_with_incoming(incoming).await
-        } else {
-            router.serve(peer_address).await
-        };
-
+        let res = router.serve(peer_address).await;
         if let Err(error) = res {
             error!(?error, address=?peer_address, "Failed to start peer server");
         }

@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, path::PathBuf};
+use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
@@ -12,10 +12,10 @@ pub struct Options {
     pub total: usize,
     #[clap(long, global = true)]
     pub cacert: Option<PathBuf>,
-    #[clap(long, global = true, parse(try_from_str = Address::try_from), default_value = "http://localhost:2379", value_delimiter = ',')]
+    #[clap(long, global = true, value_parser = Address::try_from_str, default_value = "http://localhost:2379", value_delimiter = ',')]
     pub endpoints: Vec<Address>,
 
-    #[clap(long, global = true, parse(try_from_str = Address::try_from), default_value = "http://localhost:2381", value_delimiter = ',')]
+    #[clap(long, global = true, value_parser = Address::try_from_str, default_value = "http://localhost:2381", value_delimiter = ',')]
     pub metrics_endpoints: Vec<Address>,
 
     /// Interval between requests (in nanoseconds)

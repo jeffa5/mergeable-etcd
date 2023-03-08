@@ -25,6 +25,7 @@ use automerge::AutoCommit;
 use automerge::MapRange;
 use automerge::ObjId;
 use automerge::ObjType;
+use automerge::ReadDoc;
 use automerge::ROOT;
 
 #[cfg(test)]

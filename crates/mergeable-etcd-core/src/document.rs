@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 
-use automerge::Value;
 use automerge::{
-    sync, transaction::Transactable, ActorId, ApplyOptions, AutomergeError, ChangeHash, ObjId,
-    ObjType, Prop, ScalarValue, VecOpObserver, ROOT,
+    sync, transaction::Transactable, ActorId, AutomergeError, ChangeHash, ObjId, ObjType, Prop,
+    ScalarValue, VecOpObserver, ROOT,
 };
+use automerge::{ReadDoc, Value};
 use automerge_persistent::StoredSizes;
 use automerge_persistent::{PersistentAutoCommit, Persister};
 use etcd_proto::etcdserverpb::Member;
@@ -402,7 +402,7 @@ where
         let res = self.am.receive_sync_message_with(
             peer_id.to_be_bytes().to_vec(),
             message,
-            ApplyOptions::default().with_op_observer(&mut observer),
+            &mut observer,
         );
 
         self.flush();
@@ -413,9 +413,10 @@ where
             match patch {
                 automerge::Patch::Put {
                     obj,
-                    key: rev,
+                    prop: rev,
                     value: _,
                     conflict,
+                    path: _,
                 } => {
                     if conflict {
                         self.deep_merge(&obj, rev.clone());
@@ -428,9 +429,9 @@ where
                         .parents(obj.clone())
                         .expect("should be a valid object id")
                         .skip(1)
-                        .find_map(|(id, k)| {
-                            if id == self.kvs_objid {
-                                Some(k.to_string())
+                        .find_map(|parent| {
+                            if parent.obj == self.kvs_objid {
+                                Some(parent.prop.to_string())
                             } else {
                                 None
                             }
@@ -526,9 +527,9 @@ where
                         .document()
                         .parents(obj.clone())
                         .expect("should have valid object id")
-                        .find_map(|(id, k)| {
-                            if id == self.members_objid {
-                                Some(k.to_string())
+                        .find_map(|parent| {
+                            if parent.obj == self.members_objid {
+                                Some(parent.prop.to_string())
                             } else {
                                 None
                             }
@@ -544,15 +545,35 @@ where
                 }
                 automerge::Patch::Increment {
                     obj: _,
-                    key: _,
                     value: _,
+                    path: _,
+                    prop: _,
                 } => {}
                 automerge::Patch::Insert {
                     obj: _,
                     index: _,
                     value: _,
+                    path: _,
                 } => {}
-                automerge::Patch::Delete { obj: _, key: _ } => {}
+                automerge::Patch::Delete {
+                    obj: _,
+                    path: _,
+                    prop: _,
+                    num: _,
+                } => {}
+                automerge::Patch::Expose {
+                    path: _,
+                    obj: _,
+                    prop: _,
+                    value: _,
+                    conflict: _,
+                } => {}
+                automerge::Patch::Splice {
+                    path: _,
+                    obj: _,
+                    index: _,
+                    value: _,
+                } => {}
             }
         }
 

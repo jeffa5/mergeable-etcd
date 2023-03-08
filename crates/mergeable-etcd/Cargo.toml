@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-automerge = "0.1.0"
-automerge-persistent = "0.1.0"
-automerge-persistent-sled = "0.1.0"
-axum = "0.5.3"
+automerge = "0.3.0"
+automerge-persistent = "0.3.0"
+automerge-persistent-sled = "0.3.0"
+axum = "0.6.10"
 chrono = "0.4.19"
-clap = { version = "3.1.10", features = ["derive"] }
+clap = { version = "4.1.8", features = ["derive"] }
 etcd-proto = { path = "../../proto/etcd-proto" }
 futures = "0.3.21"
 hyper = "0.14.18"
@@ -17,12 +17,12 @@ hyper-openssl = "0.9.2"
 mergeable-etcd-core = { path = "../mergeable-etcd-core" }
 openssl = "0.10.38"
 peer-proto = { path = "../../proto/peer-proto" }
-prometheus-client = "0.15.1"
+prometheus-client = "0.19.0"
 rand = "0.8.5"
 sled = "0.34.7"
 tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread", "fs"] }
 tokio-stream = { version = "0.1.8", features = ["net"] }
-tonic = { version = "0.7.1", features = ["tls"] }
+tonic = { version = "0.8.3", features = ["tls"] }
 tonic-openssl = "0.2.0"
 tower = { version = "0.4.12", features = ["load-shed"] }
 tracing = "0.1.34"

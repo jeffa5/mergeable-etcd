@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, fmt::Display};
+use std::fmt::Display;
 
 use thiserror::Error;
 use url::Url;
@@ -28,10 +28,8 @@ pub enum Error {
     MissingPort,
 }
 
-impl TryFrom<&str> for Address {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+impl Address {
+    pub fn try_from_str(value: &str) -> Result<Self, Error> {
         let url = Url::parse(value)?;
         let scheme = match url.scheme() {
             "http" => Scheme::Http,

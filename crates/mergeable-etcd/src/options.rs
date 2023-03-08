@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use clap::Parser;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ClusterState {
     New,
     Existing,
