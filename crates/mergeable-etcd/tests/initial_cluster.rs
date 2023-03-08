@@ -4,15 +4,15 @@ use etcd_proto::etcdserverpb::kv_client::KvClient;
 use hyper::Uri;
 use pretty_assertions::assert_eq;
 use reqwest::StatusCode;
-use tonic::transport::Certificate;
-use tonic::transport::Channel;
-use tonic::transport::ClientTlsConfig;
 use std::{
     sync::atomic::{AtomicU32, Ordering},
     time::Duration,
 };
 use tempdir::TempDir;
 use test_log::test;
+use tonic::transport::Certificate;
+use tonic::transport::Channel;
+use tonic::transport::ClientTlsConfig;
 use tracing::info;
 
 use etcd_proto::etcdserverpb::{MemberAddRequest, PutRequest, RangeRequest, RangeResponse};
@@ -174,7 +174,13 @@ async fn get_channel(ca_file: Option<&str>, uri: Uri) -> Channel {
     let mut channel = Channel::builder(uri);
     if let Some(ca_file) = ca_file {
         let pem = tokio::fs::read(ca_file).await.unwrap();
-        channel = channel.tls_config(ClientTlsConfig::new().ca_certificate(Certificate::from_pem(pem)).domain_name("localhost")).unwrap();
+        channel = channel
+            .tls_config(
+                ClientTlsConfig::new()
+                    .ca_certificate(Certificate::from_pem(pem))
+                    .domain_name("localhost"),
+            )
+            .unwrap();
     };
     channel.connect().await.unwrap()
 }
