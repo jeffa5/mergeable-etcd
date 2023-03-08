@@ -14,7 +14,7 @@ CERTS_DIR = "certs"
 
 
 def spawn_start_node(
-    bin_path: str, workspace: str, client_scheme: str, tls: List[str]
+    bin_path: str, workspace: str, client_scheme: str, peer_scheme: str, tls: List[str]
 ) -> subprocess.Popen:
     """
     Spawn an initial node.
@@ -26,7 +26,7 @@ def spawn_start_node(
     client_port = BASE_PORT
     peer_port = BASE_PORT + 1
     metrics_port = BASE_PORT + 2
-    initial_cluster = f"{name}=http://127.0.0.1:{peer_port}"
+    initial_cluster = f"{name}={peer_scheme}://127.0.0.1:{peer_port}"
     cmd = [
         bin_path,
         "--name",
@@ -40,9 +40,9 @@ def spawn_start_node(
         "--advertise-client-urls",
         f"{client_scheme}://127.0.0.1:{client_port}",
         "--listen-peer-urls",
-        f"http://127.0.0.1:{peer_port}",
+        f"{peer_scheme}://127.0.0.1:{peer_port}",
         "--initial-advertise-peer-urls",
-        f"http://127.0.0.1:{peer_port}",
+        f"{peer_scheme}://127.0.0.1:{peer_port}",
         "--listen-metrics-urls",
         f"http://127.0.0.1:{metrics_port}",
         "--initial-cluster-state",
@@ -57,7 +57,12 @@ def spawn_start_node(
 
 
 def spawn_join_node(
-    bin_path: str, workspace: str, index: int, client_scheme: str, tls: List[str]
+    bin_path: str,
+    workspace: str,
+    index: int,
+    client_scheme: str,
+    peer_scheme: str,
+    tls: List[str],
 ) -> subprocess.Popen:
     """
     Spawn a join node.
@@ -70,7 +75,10 @@ def spawn_join_node(
     peer_port = BASE_PORT + 1 + (10 * index)
     metrics_port = BASE_PORT + 2 + (10 * index)
     initial_cluster = ",".join(
-        [f"node{i}=http://127.0.0.1:{BASE_PORT + 1 + (10 * i)}" for i in range(index)]
+        [
+            f"node{i}={peer_scheme}://127.0.0.1:{BASE_PORT + 1 + (10 * i)}"
+            for i in range(index)
+        ]
     )
     cmd = [
         bin_path,
@@ -85,9 +93,9 @@ def spawn_join_node(
         "--advertise-client-urls",
         f"{client_scheme}://127.0.0.1:{client_port}",
         "--listen-peer-urls",
-        f"http://127.0.0.1:{peer_port}",
+        f"{peer_scheme}://127.0.0.1:{peer_port}",
         "--initial-advertise-peer-urls",
-        f"http://127.0.0.1:{peer_port}",
+        f"{peer_scheme}://127.0.0.1:{peer_port}",
         "--listen-metrics-urls",
         f"http://127.0.0.1:{metrics_port}",
         "--initial-cluster-state",
@@ -101,7 +109,7 @@ def spawn_join_node(
     return subprocess.Popen(cmd, stdout=out_file, stderr=err_file)
 
 
-def add_node(index: int, tls: List[str]):
+def add_node(index: int, peer_scheme:str, tls: List[str]):
     """
     Add node to the cluster configuration before it starts.
     """
@@ -112,11 +120,11 @@ def add_node(index: int, tls: List[str]):
         "add",
         f"node{index}",
         "--peer-urls",
-        f"http://127.0.0.1:{peer_port}",
+        f"{peer_scheme}://127.0.0.1:{peer_port}",
         "-w",
         "json",
     ] + tls
-    print("Command", cmd)
+    print("Adding node", cmd)
     member_add = subprocess.run(
         cmd,
         capture_output=True,
@@ -135,6 +143,7 @@ def spawn_cluster(args: argparse.Namespace):
     build_type = "debug"
     bin_path = os.path.join("target", build_type, bin_name)
     client_scheme = "https" if args.client_tls else "http"
+    peer_scheme = "https" if args.peer_tls else "http"
     tls = []
     if args.client_tls:
         tls += [
@@ -143,10 +152,19 @@ def spawn_cluster(args: argparse.Namespace):
             "--key-file",
             os.path.join("certs", "server.key"),
         ]
+    if args.peer_tls:
+        tls += [
+            "--peer-trusted-ca-file",
+            os.path.join("certs", "ca.pem"),
+            "--peer-cert-file",
+            os.path.join("certs", "peer.crt"),
+            "--peer-key-file",
+            os.path.join("certs", "peer.key"),
+        ]
 
     nodes = []
     node_dir = os.path.join(args.workspace, "node0")
-    node = spawn_start_node(bin_path, node_dir, client_scheme, tls)
+    node = spawn_start_node(bin_path, node_dir, client_scheme, peer_scheme, tls)
     nodes.append(node)
 
     for index in range(1, args.nodes):
@@ -159,8 +177,10 @@ def spawn_cluster(args: argparse.Namespace):
                 "--endpoints",
                 "https://127.0.0.1:2379",
             ]
-        add_node(index, add_tls)
-        node = spawn_join_node(bin_path, node_dir, index, client_scheme, tls)
+        add_node(index, peer_scheme, add_tls)
+        node = spawn_join_node(
+            bin_path, node_dir, index, client_scheme, peer_scheme, tls
+        )
         nodes.append(node)
 
     input("Press Enter to stop the cluster...")
@@ -184,7 +204,12 @@ def main():
         default=False,
         help="Whether to launch nodes with client tls connections",
     )
-    # parser.add_argument("--peer-tls", type=bool, help="Whether to launch nodes with peer tls connections")
+    parser.add_argument(
+        "--peer-tls",
+        action="store_true",
+        default=False,
+        help="Whether to launch nodes with peer tls connections",
+    )
     args = parser.parse_args()
     print(args)
     spawn_cluster(args)
