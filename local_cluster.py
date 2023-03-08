@@ -212,6 +212,7 @@ def main():
     )
     args = parser.parse_args()
     print(args)
+    shutil.rmtree(args.workspace, ignore_errors=True)
     spawn_cluster(args)
 
 
