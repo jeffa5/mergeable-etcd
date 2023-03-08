@@ -116,11 +116,10 @@ def add_node(index: int):
         cmd,
         capture_output=True,
     )
-    if member_add.returncode == 0:
-        member = json.loads(member_add.stdout)["member"]
-        member_id = member["ID"]
-        return member_id
-    return 0
+    if member_add.returncode != 0:
+        print("Failed to add member")
+        print(member_add.stdout)
+        print(member_add.stderr)
 
 
 def spawn_cluster(args: argparse.Namespace):
@@ -137,7 +136,7 @@ def spawn_cluster(args: argparse.Namespace):
 
     for index in range(1, args.nodes):
         node_dir = os.path.join(args.workspace, f"node{index}")
-        member_id = add_node(index)
+        add_node(index)
         node = spawn_join_node(bin_path, node_dir, index)
         nodes.append(node)
 
