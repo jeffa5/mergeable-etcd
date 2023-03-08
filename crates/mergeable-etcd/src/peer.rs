@@ -8,11 +8,12 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::{broadcast, mpsc, Mutex};
+use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use tracing::{debug, info, warn};
 
 use mergeable_etcd_core::Syncer;
 
-use crate::{tls::GrpcChannel, Doc};
+use crate::Doc;
 
 const SYNC_SLEEP_DURATION: Duration = Duration::from_millis(10);
 
@@ -51,16 +52,25 @@ impl PeerSyncer {
         let (msg_sender, mut msg_receiver) = mpsc::channel(1);
         let address_clone = address.clone();
         tokio::spawn(async move {
+            let tls_config = ca_certificate
+                .as_ref()
+                .map(|cert| ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert)));
+            let mut channel = Channel::from_shared(address_clone.clone().into_bytes()).unwrap();
+            if let Some(tls_config) = tls_config {
+                channel = channel.tls_config(tls_config).unwrap();
+            }
             let mut client = loop {
-                if let Ok(channel) =
-                    GrpcChannel::new(ca_certificate.clone(), address_clone.parse().unwrap())
-                {
-                    let client = peer_proto::peer_client::PeerClient::new(channel);
-                    info!(address=?address_clone, "Connected client");
-                    break client;
-                };
-                debug!(address=?address_clone, "Failed to connect client");
-                tokio::time::sleep(Duration::from_millis(100)).await;
+                match channel.connect().await {
+                    Ok(channel) => {
+                        let client = peer_proto::peer_client::PeerClient::new(channel);
+                        info!(address=?address_clone, "Connected client");
+                        break client;
+                    }
+                    Err(err) => {
+                        debug!(address=?address_clone, %err, "Failed to connect client");
+                        tokio::time::sleep(Duration::from_millis(100)).await;
+                    }
+                }
             };
             debug!("Connected client, waiting on messages to send");
             loop {
@@ -91,18 +101,21 @@ impl PeerSyncer {
                                     warn!(%error, ?retry_wait, address=?address_clone, "Got error sending sync message to peer");
                                     // had an error, reconnect the client
                                     client = loop {
-                                        if let Ok(channel) = GrpcChannel::new(
-                                            ca_certificate.clone(),
-                                            address_clone.parse().unwrap(),
-                                        ) {
-                                            let client = peer_proto::peer_client::PeerClient::new(
-                                                channel.clone(),
-                                            );
-                                            info!(address=?address_clone, "Reconnected client");
-                                            break client;
-                                        };
-                                        debug!(address=?address_clone, "Failed to reconnect client");
-                                        tokio::time::sleep(Duration::from_millis(100)).await;
+                                        match channel.connect().await {
+                                            Ok(channel) => {
+                                                let client =
+                                                    peer_proto::peer_client::PeerClient::new(
+                                                        channel,
+                                                    );
+                                                info!(address=?address_clone, "Reconnected client");
+                                                break client;
+                                            }
+                                            Err(err) => {
+                                                debug!(address=?address_clone, %err, "Failed to reconnect client");
+                                                tokio::time::sleep(Duration::from_millis(100))
+                                                    .await;
+                                            }
+                                        }
                                     };
                                 }
                             }

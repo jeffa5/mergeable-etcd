@@ -1,7 +1,6 @@
 use crate::auth::AuthServer;
 use crate::kv::KvServer;
 use crate::lease::LeaseServer;
-use crate::tls::GrpcChannel;
 use automerge_persistent_sled::SledPersister;
 use cluster::ClusterServer;
 use futures::future::join_all;
@@ -18,6 +17,9 @@ use std::time::Instant;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
+use tonic::transport::Certificate;
+use tonic::transport::Channel;
+use tonic::transport::ClientTlsConfig;
 use tonic::transport::Identity;
 use tonic::transport::ServerTlsConfig;
 use tower::ServiceBuilder;
@@ -34,7 +36,6 @@ mod maintenance;
 mod metrics;
 mod options;
 mod peer;
-mod tls;
 mod watch;
 
 pub use options::ClusterState;
@@ -147,14 +148,24 @@ pub async fn run(options: options::Options) {
                 continue;
             }
             let address_clone = address.clone();
+            let tls_config = ca_cert
+                .map(|cert| ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert)));
+            let mut channel = Channel::from_shared(address.clone().into_bytes()).unwrap();
+            if let Some(tls_config) = tls_config {
+                channel = channel.tls_config(tls_config).unwrap();
+            }
             let mut client = loop {
-                if let Ok(channel) = GrpcChannel::new(ca_cert.clone(), address.parse().unwrap()) {
-                    let client = peer_proto::peer_client::PeerClient::new(channel);
-                    info!(address=?address_clone, "Connected client");
-                    break client;
-                };
-                debug!(address=?address_clone, "Failed to connect client");
-                tokio::time::sleep(Duration::from_millis(100)).await;
+                match channel.connect().await {
+                    Ok(channel) => {
+                        let client = peer_proto::peer_client::PeerClient::new(channel);
+                        info!(address=?address_clone, "Connected client");
+                        break client;
+                    }
+                    Err(err) => {
+                        debug!(address=?address_clone, %err, "Failed to connect client");
+                        tokio::time::sleep(Duration::from_millis(100)).await;
+                    }
+                }
             };
             debug!("Connected client, waiting on messages to send");
             loop {
@@ -192,16 +203,18 @@ pub async fn run(options: options::Options) {
                             warn!(%error, ?retry_wait, address=?address_clone, "Got error asking for member list");
                             // had an error, reconnect the client
                             client = loop {
-                                if let Ok(channel) =
-                                    GrpcChannel::new(ca_cert.clone(), address_clone.parse().unwrap())
-                                {
-                                    let client =
-                                        peer_proto::peer_client::PeerClient::new(channel.clone());
-                                    info!(address=?address_clone, "Reconnected client");
-                                    break client;
-                                };
-                                debug!(address=?address_clone, "Failed to reconnect client");
-                                tokio::time::sleep(Duration::from_millis(100)).await;
+                                match channel.connect().await {
+                                    Ok(channel) => {
+                                        let client =
+                                            peer_proto::peer_client::PeerClient::new(channel);
+                                        info!(address=?address_clone, "Reconnected client");
+                                        break client;
+                                    }
+                                    Err(err) => {
+                                        debug!(address=?address_clone, %err, "Failed to reconnect client");
+                                        tokio::time::sleep(Duration::from_millis(100)).await;
+                                    }
+                                }
                             };
                         }
                     }
@@ -276,8 +289,12 @@ async fn start_client_server(
     let tls = if proto == "http" {
         None
     } else if proto == "https" {
-        let key = tokio::fs::read(key_file).await.expect("Failed to read key file");
-        let cert = tokio::fs::read(cert_file).await.expect("Failed to read cert file");
+        let key = tokio::fs::read(key_file)
+            .await
+            .expect("Failed to read key file");
+        let cert = tokio::fs::read(cert_file)
+            .await
+            .expect("Failed to read cert file");
 
         let server_identity = Identity::from_pem(cert, key);
         let tls = ServerTlsConfig::new().identity(server_identity);
@@ -358,8 +375,12 @@ async fn start_peer_server(
     let tls = if proto == "http" {
         None
     } else if proto == "https" {
-        let key = tokio::fs::read(key_file).await.expect("Failed to read peer key file");
-        let cert = tokio::fs::read(cert_file).await.expect("Failed to read peer cert file");
+        let key = tokio::fs::read(key_file)
+            .await
+            .expect("Failed to read peer key file");
+        let cert = tokio::fs::read(cert_file)
+            .await
+            .expect("Failed to read peer cert file");
 
         let server_identity = Identity::from_pem(cert, key);
         let tls = ServerTlsConfig::new().identity(server_identity);
