@@ -1,9 +1,8 @@
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::{fmt::Display, path::PathBuf};
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ValueEnum)]
 pub enum ClusterState {
     New,
     Existing,
@@ -15,16 +14,11 @@ impl Default for ClusterState {
     }
 }
 
-impl FromStr for ClusterState {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s == "new" {
-            Ok(Self::New)
-        } else if s == "existing" {
-            Ok(Self::Existing)
-        } else {
-            Err("no match".to_owned())
+impl Display for ClusterState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClusterState::New => write!(f, "new"),
+            ClusterState::Existing => write!(f, "existing"),
         }
     }
 }
@@ -71,7 +65,7 @@ pub struct Options {
     #[clap(long, default_value = "100000")]
     pub snapshot_count: u32,
 
-    #[clap(long, default_value = "new")]
+    #[clap(long, default_value_t)]
     pub initial_cluster_state: ClusterState,
 
     /// How frequently to trigger a db flush.
