@@ -1,4 +1,5 @@
 use automerge::transaction::UnObserved;
+use automerge::ChangeHash;
 use std::collections::BTreeMap;
 use tracing::debug;
 use tracing::warn;
@@ -42,6 +43,27 @@ pub fn extract_key_value(txn: &Transaction, key: String, key_obj: ObjId) -> KeyV
     }
 }
 
+pub fn extract_key_value_at(
+    txn: &Transaction,
+    key: String,
+    key_obj: ObjId,
+    heads: &[ChangeHash],
+) -> KeyValue {
+    let (value, _id) = txn.get_at(&key_obj, "value", heads).unwrap().unwrap();
+    let lease = txn
+        .get_at(&key_obj, "lease", heads)
+        .unwrap()
+        .and_then(|v| v.0.to_i64());
+    KeyValue {
+        key,
+        value: value.into_bytes().unwrap(),
+        // TODO: get proper values for these
+        create_heads: vec![],
+        mod_heads: vec![],
+        lease,
+    }
+}
+
 /// Get the values in the half-open interval `[start, end)`.
 /// Returns the usual response as well as the revision of a delete if one occurred.
 pub fn range(
@@ -60,20 +82,43 @@ pub fn range(
     let mut delete_revisions = BTreeMap::new();
     if let Some((_, kvs)) = txn.get(ROOT, "kvs").unwrap() {
         if let Some(end) = &end {
-            let keys = txn.map_range(&kvs, start.clone()..end.clone());
-            for (i, (key, _value, key_obj)) in keys.enumerate() {
-                if let Some(limit) = limit {
-                    if i as u64 == limit {
-                        // reached the limit
-                        break;
+            if heads.is_empty() {
+                let keys = txn.map_range(&kvs, start.clone()..end.clone());
+                for (i, (key, _value, key_obj)) in keys.enumerate() {
+                    if let Some(limit) = limit {
+                        if i as u64 == limit {
+                            // reached the limit
+                            break;
+                        }
                     }
+                    let value = extract_key_value(txn, key.to_owned(), key_obj);
+                    values.push(value);
                 }
-                let value = extract_key_value(txn, key.to_owned(), key_obj);
-                values.push(value);
+            } else {
+                let keys = txn.map_range_at(&kvs, start.clone()..end.clone(), &heads);
+                for (i, (key, _value, key_obj)) in keys.enumerate() {
+                    if let Some(limit) = limit {
+                        if i as u64 == limit {
+                            // reached the limit
+                            break;
+                        }
+                    }
+                    let value = extract_key_value_at(txn, key.to_owned(), key_obj, &heads);
+                    values.push(value);
+                }
             }
-        } else if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
-            let value = extract_key_value(txn, start.clone(), key_obj);
-            values.push(value);
+        } else {
+            if heads.is_empty() {
+                if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
+                    let value = extract_key_value(txn, start.clone(), key_obj);
+                    values.push(value);
+                }
+            } else {
+                if let Some((_, key_obj)) = txn.get_at(&kvs, &start, &heads).unwrap() {
+                    let value = extract_key_value_at(txn, start.clone(), key_obj, &heads);
+                    values.push(value);
+                }
+            }
         }
     }
     let count = values.len();
@@ -160,12 +205,7 @@ pub fn delete_range(
         end,
         prev_kv,
     } = request;
-    debug!(
-        ?start,
-        ?end,
-        ?prev_kv,
-        "Processing delete_range request"
-    );
+    debug!(?start, ?end, ?prev_kv, "Processing delete_range request");
     let kvs = txn.get(ROOT, "kvs").unwrap();
     let kvs = if let Some(kvs) = kvs {
         kvs.1
@@ -219,15 +259,11 @@ pub fn txn(
         .into_iter()
         .map(|r| match r {
             KvRequest::Range(r) => KvResponse::Range(range(tx, cache, r).0),
-            KvRequest::Put(r) => {
-                KvResponse::Put(put(tx, cache, watcher, r ))
-            }
+            KvRequest::Put(r) => KvResponse::Put(put(tx, cache, watcher, r)),
             KvRequest::DeleteRange(r) => {
-                KvResponse::DeleteRange(delete_range(tx, cache, watcher, r ))
+                KvResponse::DeleteRange(delete_range(tx, cache, watcher, r))
             }
-            KvRequest::Txn(r) => {
-                KvResponse::Txn(txn(tx, cache, watcher, r ))
-            }
+            KvRequest::Txn(r) => KvResponse::Txn(txn(tx, cache, watcher, r)),
         })
         .collect::<Vec<_>>();
 

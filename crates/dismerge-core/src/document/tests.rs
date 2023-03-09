@@ -382,8 +382,23 @@ async fn delete_value() {
             ],
         },
         RangeResponse {
-            values: [],
-            count: 0,
+            values: [
+                KeyValue {
+                    key: "key1",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        49,
+                    ],
+                    create_heads: [],
+                    mod_heads: [],
+                    lease: None,
+                },
+            ],
+            count: 1,
         },
     )
     "###
