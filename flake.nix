@@ -204,7 +204,7 @@
           cargo-udeps
           cargo-flamegraph
           cargo-outdated
-          cargo-nextest
+          cargo-insta
           protobuf
           kubectl
           k9s

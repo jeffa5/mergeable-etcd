@@ -1,5 +1,38 @@
 # Mergeable etcd
 
+## Substores
+
+Mergeable etcd is the main datastore that aims to change etcd's view on things with eventual consistency (well causal really).
+It keeps the single revision and a compatible API but comes with challenges because of this.
+
+Dismerge (name pending) is the current next-steps version, changing the API in incompatible ways to better expose the disconnections that can occur.
+It also aims to provide exposed replication statuses.
+
+## Datamodels
+
+For mergeable etcd, each key maps to the following json structure:
+```json
+{
+  "revs": {
+    "2": "bar",
+    "3": null, // deleted
+    "5": "baz"
+  }
+}
+```
+
+The create revision, mod revision and version are all calculated on-demand.
+
+For dismerge the history is directly tracked in the automerge document:
+```json
+{
+  "version": "counter(0)",
+  "value": "bar"
+}
+```
+
+The create heads and mod heads should be also dynamically obtained, the create ones through the creation of the object (deletion is a real deletion here), and modified heads by asking automerge for the last modification to this object.
+
 ## Traces
 
 The core library has functionality in place to capture traces.
