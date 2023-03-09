@@ -223,17 +223,39 @@ pub fn delete_range(
             .map(|(key, value, key_obj)| (key.to_owned(), value.to_owned(), key_obj))
             .collect();
         for (key, _value, key_obj) in keys {
-            let value = extract_key_value(txn, key.clone(), key_obj);
-            prev_kvs.push(value);
-            txn.delete(&kvs, key).unwrap();
+            let prev_kv = extract_key_value(txn, key.clone(), key_obj);
+            prev_kvs.push(prev_kv.clone());
+            txn.delete(&kvs, key.clone()).unwrap();
             deleted += 1;
+            watcher.publish_event(crate::WatchEvent {
+                typ: crate::watcher::WatchEventType::Delete,
+                kv: KeyValue {
+                    key,
+                    value: Vec::new(),
+                    create_heads: vec![],
+                    mod_heads: vec![],
+                    lease: None,
+                },
+                prev_kv: Some(prev_kv),
+            });
         }
     } else {
         if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
-            let value = extract_key_value(txn, start.clone(), key_obj);
-            prev_kvs.push(value);
-            txn.delete(&kvs, start).unwrap();
+            let prev_kv = extract_key_value(txn, start.clone(), key_obj);
+            prev_kvs.push(prev_kv.clone());
+            txn.delete(&kvs, start.clone()).unwrap();
             deleted += 1;
+            watcher.publish_event(crate::WatchEvent {
+                typ: crate::watcher::WatchEventType::Delete,
+                kv: KeyValue {
+                    key: start,
+                    value: Vec::new(),
+                    create_heads: vec![],
+                    mod_heads: vec![],
+                    lease: None,
+                },
+                prev_kv: Some(prev_kv),
+            });
         }
     }
     DeleteRangeResponse { deleted, prev_kvs }
