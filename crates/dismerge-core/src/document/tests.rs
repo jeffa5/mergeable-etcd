@@ -6100,7 +6100,7 @@ fn refresh_lease() {
 async fn kv_leases() {
     let mut doc = DocumentBuilder::default().build();
 
-    let (id, _ttl) = doc.add_lease(None, None).unwrap();
+    let (id, _ttl) = doc.add_lease(Some(20), None).unwrap();
 
     let key = "key".to_owned();
 
@@ -6134,12 +6134,14 @@ async fn kv_leases() {
                 key: "key",
                 value: [],
                 create_head: ChangeHash(
-                    "31001457bdde6a32133f7a8e584208e15dccc626e2b3baea4986cd39b7b54b76",
+                    "42897dcfba09f3e42ce2db9975b64821149bdf4a6e271d1235bb855cc8be0114",
                 ),
                 mod_head: ChangeHash(
-                    "31001457bdde6a32133f7a8e584208e15dccc626e2b3baea4986cd39b7b54b76",
+                    "42897dcfba09f3e42ce2db9975b64821149bdf4a6e271d1235bb855cc8be0114",
                 ),
-                lease: None,
+                lease: Some(
+                    20,
+                ),
             },
         ],
         count: 1,

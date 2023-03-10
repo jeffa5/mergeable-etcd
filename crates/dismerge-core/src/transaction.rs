@@ -169,7 +169,7 @@ pub fn put(
     };
 
     if let Some(lease_id) = lease_id {
-        txn.put(&key_obj, "lease_id", lease_id).unwrap();
+        txn.put(&key_obj, "lease", lease_id).unwrap();
         let (_, leases_objid) = txn.get(&ROOT, "leases").unwrap().unwrap();
         if let Some((_, lease_objid)) = txn.get(&leases_objid, make_lease_string(lease_id)).unwrap()
         {
