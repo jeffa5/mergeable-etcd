@@ -82,7 +82,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 [[package]]
 name = "automerge"
 version = "0.3.0"
-source = "git+https://github.com/jeffa5/automerge?branch=hash-for-opid#9cd9b16df24076aba2cb3219a9a28e277a75a0f5"
+source = "git+https://github.com/jeffa5/automerge?branch=hash-for-opid#7307850ff3cc2b4b05b96c59ddbdb49c9abc9353"
 dependencies = [
  "flate2",
  "fxhash",
