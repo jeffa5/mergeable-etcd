@@ -28,9 +28,9 @@ use automerge::ROOT;
 type Transaction<'a> = automerge::transaction::Transaction<'a, UnObserved>;
 
 pub fn extract_key_value(txn: &Transaction, key: String, key_obj: &ObjId) -> KeyValue {
-    let create_head = txn.hash_for_opid(key_obj).unwrap();
+    let create_head = txn.hash_for_opid(key_obj).unwrap_or(ChangeHash([0; 32]));
     let (value, value_id) = txn.get(key_obj, "value").unwrap().unwrap();
-    let mod_head = txn.hash_for_opid(&value_id).unwrap();
+    let mod_head = txn.hash_for_opid(&value_id).unwrap_or(ChangeHash([0; 32]));
     let lease = txn
         .get(key_obj, "lease")
         .unwrap()

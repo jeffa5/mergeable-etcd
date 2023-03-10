@@ -2177,40 +2177,73 @@ async fn transaction() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 2
-            },
-            TxnResponse {
-                succeeded: true,
-                responses: vec![
-                    KvResponse::Range(RangeResponse {
-                        values: vec![],
-                        count: 0
-                    }),
-                    KvResponse::Put(PutResponse { prev_kv: None }),
-                    KvResponse::Range(RangeResponse {
-                        values: vec![KeyValue {
-                            key: key.clone(),
-                            value: value.clone(),
-                            create_revision: 2,
-                            mod_revision: 2,
-                            version: 1,
-                            lease: None
-                        }],
-                        count: 1
-                    }),
-                    KvResponse::DeleteRange(DeleteRangeResponse {
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "15dc44765b4aa349ec667896493fc4cf38cf363cd6a84b70e130875f6fa4412f",
+                ),
+            ],
+        },
+        TxnResponse {
+            succeeded: true,
+            responses: [
+                Range(
+                    RangeResponse {
+                        values: [],
+                        count: 0,
+                    },
+                ),
+                Put(
+                    PutResponse {
+                        prev_kv: None,
+                    },
+                ),
+                Range(
+                    RangeResponse {
+                        values: [
+                            KeyValue {
+                                key: "key1",
+                                value: [
+                                    118,
+                                    97,
+                                    108,
+                                    117,
+                                    101,
+                                ],
+                                create_head: ChangeHash(
+                                    "0000000000000000000000000000000000000000000000000000000000000000",
+                                ),
+                                mod_head: ChangeHash(
+                                    "0000000000000000000000000000000000000000000000000000000000000000",
+                                ),
+                                lease: None,
+                            },
+                        ],
+                        count: 1,
+                    },
+                ),
+                DeleteRange(
+                    DeleteRangeResponse {
                         deleted: 1,
-                        prev_kvs: vec![]
-                    })
-                ]
-            }
-        )"
+                        prev_kvs: [],
+                    },
+                ),
+            ],
+        },
+    )
+    "###
     );
-    assert_debug_snapshot!(doc.heads(), @"2");
+    assert_debug_snapshot!(doc.heads(), @r###"
+    [
+        ChangeHash(
+            "15dc44765b4aa349ec667896493fc4cf38cf363cd6a84b70e130875f6fa4412f",
+        ),
+    ]
+    "###);
     doc.put(PutRequest {
         key: key.clone(),
         value: value.clone(),
@@ -2221,7 +2254,13 @@ async fn transaction() {
     .unwrap()
     .await
     .unwrap();
-    assert_debug_snapshot!(doc.heads(), @"3");
+    assert_debug_snapshot!(doc.heads(), @r###"
+    [
+        ChangeHash(
+            "b347b51d311dd2cf63a11337650cc2a940af1dc72353678bad64e20feff1df91",
+        ),
+    ]
+    "###);
     // failure
     assert_debug_snapshot!(
         doc.txn(TxnRequest {
@@ -2256,7 +2295,7 @@ async fn transaction() {
             compare: vec![Compare {
                 key: key.clone(),
                 range_end: None,
-                target: CompareTarget::Lease(None),
+                target: CompareTarget::Lease(Some(999)),
                 result: CompareResult::Equal,
             }]
         })
@@ -2264,47 +2303,91 @@ async fn transaction() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 4
-            },
-            TxnResponse {
-                succeeded: false,
-                responses: vec![
-                    KvResponse::Range(RangeResponse {
-                        values: vec![KeyValue {
-                            key: key.clone(),
-                            value: value.clone(),
-                            create_revision: 3,
-                            mod_revision: 3,
-                            version: 1,
-                            lease: None
-                        }],
-                        count: 1
-                    }),
-                    KvResponse::Put(PutResponse { prev_kv: None }),
-                    KvResponse::Range(RangeResponse {
-                        values: vec![KeyValue {
-                            key,
-                            value,
-                            create_revision: 3,
-                            mod_revision: 4,
-                            version: 2,
-                            lease: None
-                        }],
-                        count: 1
-                    }),
-                    KvResponse::DeleteRange(DeleteRangeResponse {
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "918d1a9934d45ad4236c87b566ec54e6539881caa3f9b266955ef50654cc2db1",
+                ),
+            ],
+        },
+        TxnResponse {
+            succeeded: false,
+            responses: [
+                Range(
+                    RangeResponse {
+                        values: [
+                            KeyValue {
+                                key: "key1",
+                                value: [
+                                    118,
+                                    97,
+                                    108,
+                                    117,
+                                    101,
+                                ],
+                                create_head: ChangeHash(
+                                    "b347b51d311dd2cf63a11337650cc2a940af1dc72353678bad64e20feff1df91",
+                                ),
+                                mod_head: ChangeHash(
+                                    "b347b51d311dd2cf63a11337650cc2a940af1dc72353678bad64e20feff1df91",
+                                ),
+                                lease: None,
+                            },
+                        ],
+                        count: 1,
+                    },
+                ),
+                Put(
+                    PutResponse {
+                        prev_kv: None,
+                    },
+                ),
+                Range(
+                    RangeResponse {
+                        values: [
+                            KeyValue {
+                                key: "key1",
+                                value: [
+                                    118,
+                                    97,
+                                    108,
+                                    117,
+                                    101,
+                                ],
+                                create_head: ChangeHash(
+                                    "b347b51d311dd2cf63a11337650cc2a940af1dc72353678bad64e20feff1df91",
+                                ),
+                                mod_head: ChangeHash(
+                                    "b347b51d311dd2cf63a11337650cc2a940af1dc72353678bad64e20feff1df91",
+                                ),
+                                lease: None,
+                            },
+                        ],
+                        count: 1,
+                    },
+                ),
+                DeleteRange(
+                    DeleteRangeResponse {
                         deleted: 1,
-                        prev_kvs: vec![]
-                    })
-                ]
-            }
-        )"
+                        prev_kvs: [],
+                    },
+                ),
+            ],
+        },
+    )
+    "###
     );
-    assert_debug_snapshot!(doc.heads(), @"4");
+    assert_debug_snapshot!(doc.heads(), @r###"
+    [
+        ChangeHash(
+            "918d1a9934d45ad4236c87b566ec54e6539881caa3f9b266955ef50654cc2db1",
+        ),
+    ]
+    "###);
 }
 
 #[tokio::test]
@@ -2358,44 +2441,90 @@ async fn transaction_single_heads() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 2
-            },
-            TxnResponse {
-                succeeded: true,
-                responses: vec![
-                    KvResponse::Put(PutResponse { prev_kv: None }),
-                    KvResponse::Put(PutResponse { prev_kv: None }),
-                    KvResponse::Range(RangeResponse {
-                        values: vec![KeyValue {
-                            key: key1,
-                            value: value.clone(),
-                            create_revision: 2,
-                            mod_revision: 2,
-                            version: 1,
-                            lease: None
-                        }],
-                        count: 1
-                    }),
-                    KvResponse::Range(RangeResponse {
-                        values: vec![KeyValue {
-                            key: key2,
-                            value,
-                            create_revision: 2,
-                            mod_revision: 2,
-                            version: 1,
-                            lease: None
-                        }],
-                        count: 1
-                    })
-                ]
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "388a2a85508b1a45bd60f8d5fea59d958651e958cdb21480c38203857c5af3af",
+                ),
+            ],
+        },
+        TxnResponse {
+            succeeded: true,
+            responses: [
+                Put(
+                    PutResponse {
+                        prev_kv: None,
+                    },
+                ),
+                Put(
+                    PutResponse {
+                        prev_kv: None,
+                    },
+                ),
+                Range(
+                    RangeResponse {
+                        values: [
+                            KeyValue {
+                                key: "key1",
+                                value: [
+                                    118,
+                                    97,
+                                    108,
+                                    117,
+                                    101,
+                                ],
+                                create_head: ChangeHash(
+                                    "0000000000000000000000000000000000000000000000000000000000000000",
+                                ),
+                                mod_head: ChangeHash(
+                                    "0000000000000000000000000000000000000000000000000000000000000000",
+                                ),
+                                lease: None,
+                            },
+                        ],
+                        count: 1,
+                    },
+                ),
+                Range(
+                    RangeResponse {
+                        values: [
+                            KeyValue {
+                                key: "key2",
+                                value: [
+                                    118,
+                                    97,
+                                    108,
+                                    117,
+                                    101,
+                                ],
+                                create_head: ChangeHash(
+                                    "0000000000000000000000000000000000000000000000000000000000000000",
+                                ),
+                                mod_head: ChangeHash(
+                                    "0000000000000000000000000000000000000000000000000000000000000000",
+                                ),
+                                lease: None,
+                            },
+                        ],
+                        count: 1,
+                    },
+                ),
+            ],
+        },
+    )
+    "###
     );
-    assert_debug_snapshot!(doc.heads(), @"2");
+    assert_debug_snapshot!(doc.heads(), @r###"
+    [
+        ChangeHash(
+            "388a2a85508b1a45bd60f8d5fea59d958651e958cdb21480c38203857c5af3af",
+        ),
+    ]
+    "###);
 }
 
 #[tokio::test]
