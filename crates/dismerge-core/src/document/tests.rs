@@ -5913,7 +5913,7 @@ async fn txn_compare() {
             compare: vec![Compare {
                 key: key1.clone(),
                 range_end: None,
-                target: CompareTarget::ModHead(ChangeHash([0;32])),
+                target: CompareTarget::Lease(None),
                 result: CompareResult::Equal,
             }],
             success: vec![KvRequest::Put(PutRequest {
@@ -5952,6 +5952,7 @@ async fn txn_compare() {
     "###
     );
 
+    // try to modify it only if it is at the same version still
     let res = doc
         .txn(TxnRequest {
             compare: vec![Compare {
@@ -6007,43 +6008,6 @@ async fn txn_compare() {
         ],
     }
     "###
-    );
-
-    // try to modify it only if it is at the same version still
-    let res = doc
-        .txn(TxnRequest {
-            compare: vec![Compare {
-                key: key1.clone(),
-                range_end: None,
-                target: CompareTarget::ModHead(ChangeHash([0;32])),
-                result: CompareResult::Equal,
-            }],
-            success: vec![KvRequest::Put(PutRequest {
-                key: key1.clone(),
-                value: vec![],
-                lease_id: None,
-                prev_kv: false,
-            })],
-            failure: vec![KvRequest::Range(RangeRequest {
-                start: key1.clone(),
-                end: None,
-                heads: vec![],
-                limit: None,
-                count_only: false,
-            })],
-        })
-        .await
-        .unwrap()
-        .await
-        .unwrap()
-        .1;
-
-    assert_debug_snapshot!(
-        res,
-        @"TxnResponse {
-            succeeded: true,
-            responses: vec![KvResponse::Put(PutResponse { prev_kv: None })]
-        }"
     );
 }
 
