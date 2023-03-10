@@ -6052,21 +6052,21 @@ fn add_lease() {
     let mut doc = DocumentBuilder::default().build();
 
     // don't care, just give me a lease
-    let (id, ttl) = doc.add_lease(None, None).unwrap();
+    let (id, ttl) = doc.add_lease(None, None, 2023).unwrap();
     // id could be anything but ttl should be default
     assert_debug_snapshot!(ttl, @"30");
 
     // shouldn't be able to use an already existing lease
-    let ret = doc.add_lease(Some(id), None);
+    let ret = doc.add_lease(Some(id), None, 2023);
     assert_debug_snapshot!(ret, @"None");
 
     // should be able to specify a lease id
-    let (id, ttl) = doc.add_lease(Some(2000), None).unwrap();
+    let (id, ttl) = doc.add_lease(Some(2000), None, 2023).unwrap();
     assert_debug_snapshot!(id, @"2000");
     assert_debug_snapshot!(ttl, @"30");
 
     // should be able to specify a lease id and a ttl
-    let (id, ttl) = doc.add_lease(Some(3000), Some(20)).unwrap();
+    let (id, ttl) = doc.add_lease(Some(3000), Some(20), 2023).unwrap();
     assert_debug_snapshot!(id, @"3000");
     assert_debug_snapshot!(ttl, @"20");
 }
@@ -6075,7 +6075,7 @@ fn add_lease() {
 async fn remove_lease() {
     let mut doc = DocumentBuilder::default().build();
 
-    let (id, _ttl) = doc.add_lease(None, None).unwrap();
+    let (id, _ttl) = doc.add_lease(None, None, 2023).unwrap();
 
     doc.remove_lease(id).await;
 }
@@ -6084,12 +6084,12 @@ async fn remove_lease() {
 fn refresh_lease() {
     let mut doc = DocumentBuilder::default().build();
 
-    let (id, ttl) = doc.add_lease(None, None).unwrap();
+    let (id, ttl) = doc.add_lease(None, None, 2023).unwrap();
 
     let first_refresh = doc.last_lease_refresh(id).unwrap();
 
     std::thread::sleep(std::time::Duration::from_secs(1));
-    let rttl = doc.refresh_lease(id);
+    let rttl = doc.refresh_lease(id, 2024);
     assert_eq!(ttl, rttl);
 
     let second_refresh = doc.last_lease_refresh(id).unwrap();
@@ -6100,7 +6100,7 @@ fn refresh_lease() {
 async fn kv_leases() {
     let mut doc = DocumentBuilder::default().build();
 
-    let (id, _ttl) = doc.add_lease(Some(20), None).unwrap();
+    let (id, _ttl) = doc.add_lease(Some(20), None, 2023).unwrap();
 
     let key = "key".to_owned();
 
@@ -6134,10 +6134,10 @@ async fn kv_leases() {
                 key: "key",
                 value: [],
                 create_head: ChangeHash(
-                    "42897dcfba09f3e42ce2db9975b64821149bdf4a6e271d1235bb855cc8be0114",
+                    "9b3ddf60a9b61da4b6bb0b41979dee1c25240cd4c2af6a456ee506abe638219e",
                 ),
                 mod_head: ChangeHash(
-                    "42897dcfba09f3e42ce2db9975b64821149bdf4a6e271d1235bb855cc8be0114",
+                    "9b3ddf60a9b61da4b6bb0b41979dee1c25240cd4c2af6a456ee506abe638219e",
                 ),
                 lease: Some(
                     20,

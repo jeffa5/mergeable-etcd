@@ -34,7 +34,7 @@ impl mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer {
         let id = if id > 0 { Some(id) } else { None };
 
         let mut document = self.document.lock().await;
-        if let Some((id, ttl)) = document.add_lease(id, ttl) {
+        if let Some((id, ttl)) = document.add_lease(id, ttl, chrono::Utc::now().timestamp()) {
             let document_clone = self.document.clone();
             tokio::spawn(async move {
                 loop {
@@ -136,7 +136,7 @@ impl mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer {
                 debug!(?id, "Refreshing lease");
 
                 let mut document = document.lock().await;
-                let ttl = document.refresh_lease(id);
+                let ttl = document.refresh_lease(id, chrono::Utc::now().timestamp());
                 let header = document.header();
 
                 response_sender

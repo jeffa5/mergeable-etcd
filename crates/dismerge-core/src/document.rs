@@ -787,7 +787,7 @@ where
     }
 
     /// Add a lease to the document with the given ttl, returns none if the id already existed.
-    pub fn add_lease(&mut self, id: Option<i64>, ttl_seconds: Option<i64>) -> Option<(i64, i64)> {
+    pub fn add_lease(&mut self, id: Option<i64>, ttl_seconds: Option<i64>, now: i64) -> Option<(i64, i64)> {
         let (id, ttl) = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
@@ -820,7 +820,7 @@ where
                 txn.put(
                     &lease_obj,
                     "last_refresh_secs",
-                    ScalarValue::Timestamp(chrono::Utc::now().timestamp()),
+                    ScalarValue::Timestamp(now),
                 )
                 .unwrap();
 
@@ -885,7 +885,7 @@ where
     }
 
     /// Refresh a lease in the document and return the new ttl.
-    pub fn refresh_lease(&mut self, id: i64) -> i64 {
+    pub fn refresh_lease(&mut self, id: i64, now: i64) -> i64 {
         let ttl = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
@@ -896,7 +896,7 @@ where
                     txn.put(
                         &lease_obj,
                         "last_refresh_secs",
-                        ScalarValue::Timestamp(chrono::Utc::now().timestamp()),
+                        ScalarValue::Timestamp(now),
                     )
                     .unwrap();
 
