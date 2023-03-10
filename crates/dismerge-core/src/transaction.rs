@@ -187,7 +187,7 @@ pub fn put(
         kv: KeyValue {
             key: key.clone(),
             value,
-            create_head: ChangeHash([0; 32]),
+            create_head: txn.hash_for_opid(&key_obj).unwrap_or(ChangeHash([0; 32])),
             mod_head: ChangeHash([0; 32]),
             lease: None,
         },

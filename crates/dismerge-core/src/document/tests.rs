@@ -3192,25 +3192,42 @@ async fn watch_value_creation() {
 
     assert_debug_snapshot!(
         std::mem::take(&mut *events.lock().await),
-        @"vec![(
+        @r###"
+    [
+        (
             Header {
                 cluster_id: 1,
                 member_id: 1,
-                revision: 2
+                heads: [
+                    ChangeHash(
+                        "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
+                typ: Put,
                 kv: KeyValue {
-                    key: key1.clone(),
-                    value: value.clone(),
-                    create_revision: 2,
-                    mod_revision: 2,
-                    version: 1,
-                    lease: None
+                    key: "key1",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                    ],
+                    create_head: ChangeHash(
+                        "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                    ),
+                    mod_head: ChangeHash(
+                        "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                    ),
+                    lease: None,
                 },
-                prev_kv: None
-            }
-        )]"
+                prev_kv: None,
+            },
+        ),
+    ]
+    "###
     );
 
     doc.delete_range(DeleteRangeRequest {
@@ -3225,32 +3242,54 @@ async fn watch_value_creation() {
 
     assert_debug_snapshot!(
         std::mem::take(&mut *events.lock().await),
-        @"vec![(
+        @r###"
+    [
+        (
             Header {
                 cluster_id: 1,
                 member_id: 1,
-                revision: 3
+                heads: [
+                    ChangeHash(
+                        "2b7aa6667220c04ddb5b5cb2582526989149f36c7e2109b6ec9061120a9533ff",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
+                typ: Delete,
                 kv: KeyValue {
-                    key: key1.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 3,
-                    version: 0,
-                    lease: None
+                    key: "key1",
+                    value: [],
+                    create_head: ChangeHash(
+                        "0000000000000000000000000000000000000000000000000000000000000000",
+                    ),
+                    mod_head: ChangeHash(
+                        "2b7aa6667220c04ddb5b5cb2582526989149f36c7e2109b6ec9061120a9533ff",
+                    ),
+                    lease: None,
                 },
-                prev_kv: Some(KeyValue {
-                    key: key1.clone(),
-                    value: value.clone(),
-                    create_revision: 2,
-                    mod_revision: 2,
-                    version: 1,
-                    lease: None
-                })
-            }
-        )]"
+                prev_kv: Some(
+                    KeyValue {
+                        key: "key1",
+                        value: [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                        ],
+                        create_head: ChangeHash(
+                            "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                        ),
+                        mod_head: ChangeHash(
+                            "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                        ),
+                        lease: None,
+                    },
+                ),
+            },
+        ),
+    ]
+    "###
     );
 
     doc.put(PutRequest {
@@ -3288,60 +3327,98 @@ async fn watch_value_creation() {
 
     assert_debug_snapshot!(
         std::mem::take(&mut *events.lock().await),
-        @"vec![
-            (
-                Header {
-                    cluster_id: 1,
-                    member_id: 1,
-                    revision: 6
+        @r###"
+    [
+        (
+            Header {
+                cluster_id: 1,
+                member_id: 1,
+                heads: [
+                    ChangeHash(
+                        "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
+                    ),
+                ],
+            },
+            WatchEvent {
+                typ: Delete,
+                kv: KeyValue {
+                    key: "key1",
+                    value: [],
+                    create_head: ChangeHash(
+                        "0000000000000000000000000000000000000000000000000000000000000000",
+                    ),
+                    mod_head: ChangeHash(
+                        "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
+                    ),
+                    lease: None,
                 },
-                WatchEvent {
-                    typ: crate::watcher::WatchEventType::Delete,
-                    kv: KeyValue {
-                        key: key1.clone(),
-                        value: vec![],
-                        create_revision: 0,
-                        mod_revision: 6,
-                        version: 0,
-                        lease: None
+                prev_kv: Some(
+                    KeyValue {
+                        key: "key1",
+                        value: [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                        ],
+                        create_head: ChangeHash(
+                            "ed9af0e319585f19e9233727f4584ab1786d75e8d007f33ea5b573be1e2dc1f2",
+                        ),
+                        mod_head: ChangeHash(
+                            "ed9af0e319585f19e9233727f4584ab1786d75e8d007f33ea5b573be1e2dc1f2",
+                        ),
+                        lease: None,
                     },
-                    prev_kv: Some(KeyValue {
-                        key: key1.clone(),
-                        value: value.clone(),
-                        create_revision: 4,
-                        mod_revision: 4,
-                        version: 1,
-                        lease: None
-                    })
-                }
-            ),
-            (
-                Header {
-                    cluster_id: 1,
-                    member_id: 1,
-                    revision: 6
+                ),
+            },
+        ),
+        (
+            Header {
+                cluster_id: 1,
+                member_id: 1,
+                heads: [
+                    ChangeHash(
+                        "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
+                    ),
+                ],
+            },
+            WatchEvent {
+                typ: Delete,
+                kv: KeyValue {
+                    key: "key2",
+                    value: [],
+                    create_head: ChangeHash(
+                        "0000000000000000000000000000000000000000000000000000000000000000",
+                    ),
+                    mod_head: ChangeHash(
+                        "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
+                    ),
+                    lease: None,
                 },
-                WatchEvent {
-                    typ: crate::watcher::WatchEventType::Delete,
-                    kv: KeyValue {
-                        key: key2.clone(),
-                        value: vec![],
-                        create_revision: 0,
-                        mod_revision: 6,
-                        version: 0,
-                        lease: None
+                prev_kv: Some(
+                    KeyValue {
+                        key: "key2",
+                        value: [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                        ],
+                        create_head: ChangeHash(
+                            "a98717a8c5823aabd2f361178c810f4641363d835d10d3b406ffe151374f3fe7",
+                        ),
+                        mod_head: ChangeHash(
+                            "a98717a8c5823aabd2f361178c810f4641363d835d10d3b406ffe151374f3fe7",
+                        ),
+                        lease: None,
                     },
-                    prev_kv: Some(KeyValue {
-                        key: key2,
-                        value: value.clone(),
-                        create_revision: 5,
-                        mod_revision: 5,
-                        version: 1,
-                        lease: None
-                    })
-                }
-            )
-        ]"
+                ),
+            },
+        ),
+    ]
+    "###
     );
 
     doc.txn(TxnRequest {
@@ -3368,53 +3445,86 @@ async fn watch_value_creation() {
 
     assert_debug_snapshot!(
         std::mem::take(&mut *events.lock().await),
-        @"vec![
-            (
-                Header {
-                    cluster_id: 1,
-                    member_id: 1,
-                    revision: 7
+        @r###"
+    [
+        (
+            Header {
+                cluster_id: 1,
+                member_id: 1,
+                heads: [
+                    ChangeHash(
+                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                    ),
+                ],
+            },
+            WatchEvent {
+                typ: Put,
+                kv: KeyValue {
+                    key: "key1",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                    ],
+                    create_head: ChangeHash(
+                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                    ),
+                    mod_head: ChangeHash(
+                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                    ),
+                    lease: None,
                 },
-                WatchEvent {
-                    typ: crate::watcher::WatchEventType::Put,
-                    kv: KeyValue {
-                        key: key1.clone(),
-                        value: value.clone(),
-                        create_revision: 7,
-                        mod_revision: 7,
-                        version: 1,
-                        lease: None
-                    },
-                    prev_kv: None
-                }
-            ),
-            (
-                Header {
-                    cluster_id: 1,
-                    member_id: 1,
-                    revision: 7
+                prev_kv: None,
+            },
+        ),
+        (
+            Header {
+                cluster_id: 1,
+                member_id: 1,
+                heads: [
+                    ChangeHash(
+                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                    ),
+                ],
+            },
+            WatchEvent {
+                typ: Delete,
+                kv: KeyValue {
+                    key: "key1",
+                    value: [],
+                    create_head: ChangeHash(
+                        "0000000000000000000000000000000000000000000000000000000000000000",
+                    ),
+                    mod_head: ChangeHash(
+                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                    ),
+                    lease: None,
                 },
-                WatchEvent {
-                    typ: crate::watcher::WatchEventType::Delete,
-                    kv: KeyValue {
-                        key: key1.clone(),
-                        value: vec![],
-                        create_revision: 0,
-                        mod_revision: 7,
-                        version: 0,
-                        lease: None
+                prev_kv: Some(
+                    KeyValue {
+                        key: "key1",
+                        value: [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                        ],
+                        create_head: ChangeHash(
+                            "0000000000000000000000000000000000000000000000000000000000000000",
+                        ),
+                        mod_head: ChangeHash(
+                            "0000000000000000000000000000000000000000000000000000000000000000",
+                        ),
+                        lease: None,
                     },
-                    prev_kv: Some(KeyValue {
-                        key: key1,
-                        value,
-                        create_revision: 7,
-                        mod_revision: 7,
-                        version: 1,
-                        lease: None
-                    })
-                }
-            )
-        ]"
+                ),
+            },
+        ),
+    ]
+    "###
     );
 }
 

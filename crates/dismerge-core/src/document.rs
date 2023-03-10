@@ -15,6 +15,8 @@ use tokio::sync::watch;
 use tracing::warn;
 use tracing::{debug, info};
 
+use crate::watcher::WatchEventType;
+use crate::WatchEvent;
 use crate::{
     req_resp::{
         DeleteRangeRequest, DeleteRangeResponse, Header, PutRequest, PutResponse, RangeRequest,
@@ -194,7 +196,7 @@ where
         request: PutRequest,
     ) -> crate::Result<oneshot::Receiver<(Header, PutResponse)>> {
         let mut temp_watcher = VecWatcher::default();
-        let result = self
+        let txn_result = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
                 Ok(crate::transaction::put(
@@ -204,8 +206,7 @@ where
                     request,
                 ))
             })
-            .unwrap()
-            .result;
+            .unwrap();
         debug!("document changed in put");
 
         let header = self.header()?;
@@ -215,11 +216,16 @@ where
         let mut flush_receiver = self.flush_notifier.subscribe();
         tokio::spawn(async move {
             flush_receiver.changed().await.unwrap();
-            let _: Result<_, _> = sender.send((header_clone, result));
+            let _: Result<_, _> = sender.send((header_clone, txn_result.result));
         });
 
         self.document_changed();
-        for event in temp_watcher.events {
+        let hash = txn_result.hash.unwrap();
+        for mut event in temp_watcher.events {
+            if event.kv.create_head == ChangeHash([0; 32]) {
+                event.kv.create_head = hash;
+            }
+            event.kv.mod_head = hash;
             self.watcher.publish_event(header.clone(), event).await;
         }
 
@@ -231,7 +237,7 @@ where
         request: DeleteRangeRequest,
     ) -> crate::Result<oneshot::Receiver<(Header, DeleteRangeResponse)>> {
         let mut temp_watcher = VecWatcher::default();
-        let result = self
+        let txn_result = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
                 Ok(crate::transaction::delete_range(
@@ -241,8 +247,7 @@ where
                     request,
                 ))
             })
-            .unwrap()
-            .result;
+            .unwrap();
         debug!("document changed in delete range");
 
         let header = self.header()?;
@@ -252,11 +257,13 @@ where
         let mut flush_receiver = self.flush_notifier.subscribe();
         tokio::spawn(async move {
             flush_receiver.changed().await.unwrap();
-            let _: Result<_, _> = sender.send((header_clone, result));
+            let _: Result<_, _> = sender.send((header_clone, txn_result.result));
         });
 
         self.document_changed();
-        for event in temp_watcher.events {
+        let hash = txn_result.hash.unwrap();
+        for mut event in temp_watcher.events {
+            event.kv.mod_head = hash;
             self.watcher.publish_event(header.clone(), event).await;
         }
 
@@ -317,7 +324,7 @@ where
     ) -> crate::Result<oneshot::Receiver<(Header, TxnResponse)>> {
         let mut temp_watcher = VecWatcher::default();
         let revision = self.revision();
-        let result = self
+        let txn_result = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
                 Ok(crate::transaction::txn(
@@ -327,8 +334,7 @@ where
                     request,
                 ))
             })
-            .unwrap()
-            .result;
+            .unwrap();
 
         let header = self.header()?;
         let header_clone = header.clone();
@@ -337,7 +343,7 @@ where
         let mut flush_receiver = self.flush_notifier.subscribe();
         tokio::spawn(async move {
             flush_receiver.changed().await.unwrap();
-            let _: Result<_, _> = sender.send((header_clone, result));
+            let _: Result<_, _> = sender.send((header_clone, txn_result.result));
         });
 
         if revision < self.revision() {
@@ -347,7 +353,12 @@ where
         } else if self.auto_flush {
             self.flush();
         }
-        for event in temp_watcher.events {
+        let hash = txn_result.hash.unwrap();
+        for mut event in temp_watcher.events {
+            if event.typ == WatchEventType::Put && event.kv.create_head == ChangeHash([0; 32]) {
+                event.kv.create_head = hash;
+            }
+            event.kv.mod_head = hash;
             self.watcher.publish_event(header.clone(), event).await;
         }
 
@@ -787,7 +798,12 @@ where
     }
 
     /// Add a lease to the document with the given ttl, returns none if the id already existed.
-    pub fn add_lease(&mut self, id: Option<i64>, ttl_seconds: Option<i64>, now: i64) -> Option<(i64, i64)> {
+    pub fn add_lease(
+        &mut self,
+        id: Option<i64>,
+        ttl_seconds: Option<i64>,
+        now: i64,
+    ) -> Option<(i64, i64)> {
         let (id, ttl) = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
@@ -817,12 +833,8 @@ where
                 txn.put(&lease_obj, "ttl_secs", ScalarValue::Int(ttl))
                     .unwrap();
                 // and record when the last refresh happened
-                txn.put(
-                    &lease_obj,
-                    "last_refresh_secs",
-                    ScalarValue::Timestamp(now),
-                )
-                .unwrap();
+                txn.put(&lease_obj, "last_refresh_secs", ScalarValue::Timestamp(now))
+                    .unwrap();
 
                 // create a new map object for the keys that we have associated with this lease.
                 txn.put_object(&lease_obj, "keys", ObjType::Map).unwrap();
@@ -893,12 +905,8 @@ where
                     txn.get(&self.leases_objid, make_lease_string(id)).unwrap()
                 {
                     // update the refresh time
-                    txn.put(
-                        &lease_obj,
-                        "last_refresh_secs",
-                        ScalarValue::Timestamp(now),
-                    )
-                    .unwrap();
+                    txn.put(&lease_obj, "last_refresh_secs", ScalarValue::Timestamp(now))
+                        .unwrap();
 
                     let (value, _) = txn.get(&lease_obj, "ttl_secs").unwrap().unwrap();
                     value.to_i64().unwrap()
