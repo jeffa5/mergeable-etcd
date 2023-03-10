@@ -1,3 +1,4 @@
+use rand::Rng;
 use tracing::error;
 use tracing::info;
 
@@ -17,7 +18,10 @@ impl mergeable_proto::etcdserverpb::cluster_server::Cluster for ClusterServer {
         let request = request.into_inner();
         let mut document = self.document.lock().await;
         let header = document.header()?;
-        let member = document.add_member(request.peer_ur_ls.clone()).await;
+        let member_id = document.rng.gen();
+        let member = document
+            .add_member(request.peer_ur_ls.clone(), member_id)
+            .await;
         info!(peer_urls=?request.peer_ur_ls, id=?member.id, "Added member");
         let members = document.list_members()?;
         Ok(tonic::Response::new(

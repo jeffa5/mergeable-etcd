@@ -51,7 +51,7 @@ pub struct Document<P, S, W> {
     pub(crate) kvs_objid: ObjId,
     pub(crate) members_objid: ObjId,
     pub(crate) leases_objid: ObjId,
-    pub(crate) rng: StdRng,
+    pub rng: StdRng,
     // whether we have updated our entry in the members object (after seeing ourselves there)
     pub(crate) updated_self_member: bool,
     pub(crate) cache: crate::cache::Cache,
@@ -703,8 +703,8 @@ where
         }
     }
 
-    pub async fn add_member(&mut self, peer_urls: Vec<String>) -> Member {
-        let id: u64 = self.rng.gen();
+    /// Add a cluster member with the given peer urls to connect to.
+    pub async fn add_member(&mut self, peer_urls: Vec<String>, id: u64) -> Member {
         let result = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
@@ -994,9 +994,4 @@ where
 /// Make a lease id into a string by padding it with zeros
 pub fn make_lease_string(lease_id: i64) -> String {
     format!("{:0>8}", lease_id)
-}
-
-/// Make a revision into a string by padding it with zeros
-pub fn make_revision_string(revision: u64) -> String {
-    format!("{:0>8}", revision)
 }
