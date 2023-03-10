@@ -2439,27 +2439,48 @@ async fn transaction_no_modification() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 2
-            },
-            TxnResponse {
-                succeeded: true,
-                responses: vec![KvResponse::Range(RangeResponse {
-                    values: vec![KeyValue {
-                        key: key.clone(),
-                        value: value.clone(),
-                        create_revision: 2,
-                        mod_revision: 2,
-                        version: 1,
-                        lease: None
-                    }],
-                    count: 1
-                }),]
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                ),
+            ],
+        },
+        TxnResponse {
+            succeeded: true,
+            responses: [
+                Range(
+                    RangeResponse {
+                        values: [
+                            KeyValue {
+                                key: "key1",
+                                value: [
+                                    118,
+                                    97,
+                                    108,
+                                    117,
+                                    101,
+                                ],
+                                create_head: ChangeHash(
+                                    "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                                ),
+                                mod_head: ChangeHash(
+                                    "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                                ),
+                                lease: None,
+                            },
+                        ],
+                        count: 1,
+                    },
+                ),
+            ],
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(doc.heads(), @r###"
     [
@@ -2485,27 +2506,48 @@ async fn transaction_no_modification() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 2
-            },
-            TxnResponse {
-                succeeded: true,
-                responses: vec![KvResponse::Range(RangeResponse {
-                    values: vec![KeyValue {
-                        key,
-                        value,
-                        create_revision: 2,
-                        mod_revision: 2,
-                        version: 1,
-                        lease: None
-                    }],
-                    count: 1
-                }),]
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                ),
+            ],
+        },
+        TxnResponse {
+            succeeded: true,
+            responses: [
+                Range(
+                    RangeResponse {
+                        values: [
+                            KeyValue {
+                                key: "key1",
+                                value: [
+                                    118,
+                                    97,
+                                    108,
+                                    117,
+                                    101,
+                                ],
+                                create_head: ChangeHash(
+                                    "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                                ),
+                                mod_head: ChangeHash(
+                                    "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                                ),
+                                lease: None,
+                            },
+                        ],
+                        count: 1,
+                    },
+                ),
+            ],
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(doc.heads(), @r###"
     [
@@ -4643,120 +4685,192 @@ async fn range_limited() {
             start: key1.clone(),
             end: None,
             heads: vec![],
-            limit: Some(2),
+            limit: Some(1),
             count_only: false,
         })
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![KeyValue {
-                    key: key1.clone(),
-                    value: value.clone(),
-                    create_revision: 2,
-                    mod_revision: 2,
-                    version: 1,
-                    lease: None
-                }],
-                count: 1
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [
+                KeyValue {
+                    key: "key1",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        49,
+                    ],
+                    create_head: ChangeHash(
+                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    ),
+                    mod_head: ChangeHash(
+                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    ),
+                    lease: None,
+                },
+            ],
+            count: 1,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
             start: key2.clone(),
             end: None,
             heads: vec![],
-            limit: Some(2),
+            limit: Some(1),
             count_only: false,
         })
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![KeyValue {
-                    key: key2.clone(),
-                    value: value.clone(),
-                    create_revision: 3,
-                    mod_revision: 3,
-                    version: 1,
-                    lease: None
-                }],
-                count: 1
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [
+                KeyValue {
+                    key: "key1/key2",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        49,
+                    ],
+                    create_head: ChangeHash(
+                        "a8f717bac9aad6f3822b468a664e3a6c825f2acd367be8b3d4ad224c0e550d23",
+                    ),
+                    mod_head: ChangeHash(
+                        "a8f717bac9aad6f3822b468a664e3a6c825f2acd367be8b3d4ad224c0e550d23",
+                    ),
+                    lease: None,
+                },
+            ],
+            count: 1,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
             start: key3.clone(),
             end: None,
             heads: vec![],
-            limit: Some(2),
+            limit: Some(1),
             count_only: false,
         })
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![KeyValue {
-                    key: key3.clone(),
-                    value: value.clone(),
-                    create_revision: 4,
-                    mod_revision: 4,
-                    version: 1,
-                    lease: None
-                }],
-                count: 1
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [
+                KeyValue {
+                    key: "key1/key3",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        49,
+                    ],
+                    create_head: ChangeHash(
+                        "fbd9942df31cb77d047fee8743b4e7518d552d977a4cba90c517c8bde7011e0d",
+                    ),
+                    mod_head: ChangeHash(
+                        "fbd9942df31cb77d047fee8743b4e7518d552d977a4cba90c517c8bde7011e0d",
+                    ),
+                    lease: None,
+                },
+            ],
+            count: 1,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
             start: key4.clone(),
             end: None,
             heads: vec![],
-            limit: Some(2),
+            limit: Some(1),
             count_only: false,
         })
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![KeyValue {
-                    key: key4.clone(),
-                    value: value.clone(),
-                    create_revision: 5,
-                    mod_revision: 5,
-                    version: 1,
-                    lease: None
-                }],
-                count: 1
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [
+                KeyValue {
+                    key: "key4",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        49,
+                    ],
+                    create_head: ChangeHash(
+                        "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                    ),
+                    mod_head: ChangeHash(
+                        "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                    ),
+                    lease: None,
+                },
+            ],
+            count: 1,
+        },
+    )
+    "###
     );
 
     assert_debug_snapshot!(
@@ -4764,7 +4878,7 @@ async fn range_limited() {
             start: key4.clone(),
             end: Some(key4.clone()),
             heads: vec![],
-            limit: Some(2),
+            limit: Some(1),
             count_only: false,
         })
         .unwrap()
@@ -4793,117 +4907,151 @@ async fn range_limited() {
             start: key1.clone(),
             end: Some(key4),
             heads: vec![],
-            limit: Some(2),
+            limit: Some(1),
             count_only: false,
         })
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![
-                    KeyValue {
-                        key: key1.clone(),
-                        value: value.clone(),
-                        create_revision: 2,
-                        mod_revision: 2,
-                        version: 1,
-                        lease: None
-                    },
-                    KeyValue {
-                        key: key2.clone(),
-                        value: value.clone(),
-                        create_revision: 3,
-                        mod_revision: 3,
-                        version: 1,
-                        lease: None
-                    },
-                ],
-                count: 2
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [
+                KeyValue {
+                    key: "key1",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        49,
+                    ],
+                    create_head: ChangeHash(
+                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    ),
+                    mod_head: ChangeHash(
+                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    ),
+                    lease: None,
+                },
+            ],
+            count: 1,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
             start: key1.clone(),
             end: Some(key2.clone()),
             heads: vec![],
-            limit: Some(2),
+            limit: Some(1),
             count_only: false,
         })
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![KeyValue {
-                    key: key1.clone(),
-                    value: value.clone(),
-                    create_revision: 2,
-                    mod_revision: 2,
-                    version: 1,
-                    lease: None
-                }],
-                count: 1
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [
+                KeyValue {
+                    key: "key1",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        49,
+                    ],
+                    create_head: ChangeHash(
+                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    ),
+                    mod_head: ChangeHash(
+                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    ),
+                    lease: None,
+                },
+            ],
+            count: 1,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
             start: key1.clone(),
             end: Some(key3.clone()),
             heads: vec![],
-            limit: Some(2),
+            limit: Some(1),
             count_only: false,
         })
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![
-                    KeyValue {
-                        key: key1.clone(),
-                        value: value.clone(),
-                        create_revision: 2,
-                        mod_revision: 2,
-                        version: 1,
-                        lease: None
-                    },
-                    KeyValue {
-                        key: key2.clone(),
-                        value,
-                        create_revision: 3,
-                        mod_revision: 3,
-                        version: 1,
-                        lease: None
-                    }
-                ],
-                count: 2
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [
+                KeyValue {
+                    key: "key1",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        49,
+                    ],
+                    create_head: ChangeHash(
+                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    ),
+                    mod_head: ChangeHash(
+                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    ),
+                    lease: None,
+                },
+            ],
+            count: 1,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
             start: key3.clone(),
             end: Some(key1),
             heads: vec![],
-            limit: Some(2),
+            limit: Some(1),
             count_only: false,
         })
         .unwrap()
@@ -4932,7 +5080,7 @@ async fn range_limited() {
             start: key3,
             end: Some(key2),
             heads: vec![],
-            limit: Some(2),
+            limit: Some(1),
             count_only: false,
         })
         .unwrap()
@@ -5090,17 +5238,23 @@ async fn range_count_only() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![],
-                count: 1
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [],
+            count: 1,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
@@ -5113,17 +5267,23 @@ async fn range_count_only() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![],
-                count: 1
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [],
+            count: 1,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
@@ -5136,17 +5296,23 @@ async fn range_count_only() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![],
-                count: 1
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [],
+            count: 1,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
@@ -5159,17 +5325,23 @@ async fn range_count_only() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![],
-                count: 1
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [],
+            count: 1,
+        },
+    )
+    "###
     );
 
     assert_debug_snapshot!(
@@ -5212,17 +5384,23 @@ async fn range_count_only() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![],
-                count: 3
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [],
+            count: 3,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
@@ -5235,17 +5413,23 @@ async fn range_count_only() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![],
-                count: 1
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [],
+            count: 1,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {
@@ -5258,17 +5442,23 @@ async fn range_count_only() {
         .unwrap()
         .await
         .unwrap(),
-        @"(
-            Header {
-                cluster_id: 1,
-                member_id: 1,
-                revision: 5
-            },
-            RangeResponse {
-                values: vec![],
-                count: 2
-            }
-        )"
+        @r###"
+    (
+        Header {
+            cluster_id: 1,
+            member_id: 1,
+            heads: [
+                ChangeHash(
+                    "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
+                ),
+            ],
+        },
+        RangeResponse {
+            values: [],
+            count: 2,
+        },
+    )
+    "###
     );
     assert_debug_snapshot!(
         doc.range(RangeRequest {

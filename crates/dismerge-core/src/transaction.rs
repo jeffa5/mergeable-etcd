@@ -124,6 +124,9 @@ pub fn range(
         }
     }
     let count = values.len();
+    if count_only {
+        values.clear();
+    }
     debug!(
         ?start,
         ?end,
