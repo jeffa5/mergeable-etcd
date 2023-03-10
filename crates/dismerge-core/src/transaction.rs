@@ -207,9 +207,14 @@ pub fn delete_range(
     let DeleteRangeRequest {
         start,
         end,
-        prev_kv,
+        prev_kv: return_prev_kv,
     } = request;
-    debug!(?start, ?end, ?prev_kv, "Processing delete_range request");
+    debug!(
+        ?start,
+        ?end,
+        ?return_prev_kv,
+        "Processing delete_range request"
+    );
     let kvs = txn.get(ROOT, "kvs").unwrap();
     let kvs = if let Some(kvs) = kvs {
         kvs.1
@@ -228,7 +233,9 @@ pub fn delete_range(
             .collect();
         for (key, _value, key_obj) in keys {
             let prev_kv = extract_key_value(txn, key.clone(), &key_obj);
-            prev_kvs.push(prev_kv.clone());
+            if return_prev_kv {
+                prev_kvs.push(prev_kv.clone());
+            }
             txn.delete(&kvs, key.clone()).unwrap();
             deleted += 1;
             watcher.publish_event(crate::WatchEvent {
@@ -246,7 +253,9 @@ pub fn delete_range(
     } else {
         if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
             let prev_kv = extract_key_value(txn, start.clone(), &key_obj);
-            prev_kvs.push(prev_kv.clone());
+            if return_prev_kv {
+                prev_kvs.push(prev_kv.clone());
+            }
             txn.delete(&kvs, start.clone()).unwrap();
             deleted += 1;
             watcher.publish_event(crate::WatchEvent {
