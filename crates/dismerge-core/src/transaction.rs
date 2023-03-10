@@ -307,8 +307,7 @@ fn txn_compare(txn: &mut Transaction, compare: Compare) -> bool {
             limit: None,
             count_only: false,
         },
-    )
-    ;
+    );
 
     let success = values.into_iter().all(|value| match &target {
         // TODO: check these head comparisons, should leverage automerge's hash graph
