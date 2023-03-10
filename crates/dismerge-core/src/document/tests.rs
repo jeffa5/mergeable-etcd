@@ -3553,7 +3553,7 @@ async fn watch_server_value_creation() {
             key1.clone(),
             Some(key3.clone()),
             false,
-            None,
+            vec![],
             sender,
         )
         .await
@@ -3579,26 +3579,43 @@ async fn watch_server_value_creation() {
 
     assert_debug_snapshot!(
         receiver.recv().await,
-        @"Some((
-            watch_id,
+        @r###"
+    Some(
+        (
+            1,
             Header {
                 cluster_id: 1,
                 member_id: 1,
-                revision: 2
+                heads: [
+                    ChangeHash(
+                        "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
+                typ: Put,
                 kv: KeyValue {
-                    key: key1.clone(),
-                    value: value.clone(),
-                    create_revision: 2,
-                    mod_revision: 2,
-                    version: 1,
-                    lease: None
+                    key: "key1",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                    ],
+                    create_head: ChangeHash(
+                        "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                    ),
+                    mod_head: ChangeHash(
+                        "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                    ),
+                    lease: None,
                 },
-                prev_kv: None
-            }
-        ))"
+                prev_kv: None,
+            },
+        ),
+    )
+    "###
     );
 
     doc.delete_range(DeleteRangeRequest {
@@ -3617,26 +3634,37 @@ async fn watch_server_value_creation() {
 
     assert_debug_snapshot!(
         receiver.recv().await,
-        @"Some((
-            watch_id,
+        @r###"
+    Some(
+        (
+            1,
             Header {
                 cluster_id: 1,
                 member_id: 1,
-                revision: 3
+                heads: [
+                    ChangeHash(
+                        "2b7aa6667220c04ddb5b5cb2582526989149f36c7e2109b6ec9061120a9533ff",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
+                typ: Delete,
                 kv: KeyValue {
-                    key: key1.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 3,
-                    version: 0,
-                    lease: None
+                    key: "key1",
+                    value: [],
+                    create_head: ChangeHash(
+                        "0000000000000000000000000000000000000000000000000000000000000000",
+                    ),
+                    mod_head: ChangeHash(
+                        "2b7aa6667220c04ddb5b5cb2582526989149f36c7e2109b6ec9061120a9533ff",
+                    ),
+                    lease: None,
                 },
                 prev_kv: None,
-            }
-        ))"
+            },
+        ),
+    )
+    "###
     );
 
     doc.put(PutRequest {
@@ -3678,50 +3706,72 @@ async fn watch_server_value_creation() {
 
     assert_debug_snapshot!(
         receiver.recv().await,
-        @"Some((
-            watch_id,
+        @r###"
+    Some(
+        (
+            1,
             Header {
                 cluster_id: 1,
                 member_id: 1,
-                revision: 6
+                heads: [
+                    ChangeHash(
+                        "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
+                typ: Delete,
                 kv: KeyValue {
-                    key: key1.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 6,
-                    version: 0,
-                    lease: None
+                    key: "key1",
+                    value: [],
+                    create_head: ChangeHash(
+                        "0000000000000000000000000000000000000000000000000000000000000000",
+                    ),
+                    mod_head: ChangeHash(
+                        "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
+                    ),
+                    lease: None,
                 },
                 prev_kv: None,
-            }
-        ))"
+            },
+        ),
+    )
+    "###
     );
 
     assert_debug_snapshot!(
         receiver.recv().await,
-        @"Some((
-            watch_id,
+        @r###"
+    Some(
+        (
+            1,
             Header {
                 cluster_id: 1,
                 member_id: 1,
-                revision: 6
+                heads: [
+                    ChangeHash(
+                        "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
+                typ: Delete,
                 kv: KeyValue {
-                    key: key2.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 6,
-                    version: 0,
-                    lease: None
+                    key: "key2",
+                    value: [],
+                    create_head: ChangeHash(
+                        "0000000000000000000000000000000000000000000000000000000000000000",
+                    ),
+                    mod_head: ChangeHash(
+                        "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
+                    ),
+                    lease: None,
                 },
                 prev_kv: None,
-            }
-        ))"
+            },
+        ),
+    )
+    "###
     );
 
     doc.txn(TxnRequest {
@@ -3752,50 +3802,78 @@ async fn watch_server_value_creation() {
 
     assert_debug_snapshot!(
         receiver.recv().await,
-        @"Some((
-            watch_id,
+        @r###"
+    Some(
+        (
+            1,
             Header {
                 cluster_id: 1,
                 member_id: 1,
-                revision: 7
+                heads: [
+                    ChangeHash(
+                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
+                typ: Put,
                 kv: KeyValue {
-                    key: key1.clone(),
-                    value: value.clone(),
-                    create_revision: 7,
-                    mod_revision: 7,
-                    version: 1,
-                    lease: None
+                    key: "key1",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                    ],
+                    create_head: ChangeHash(
+                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                    ),
+                    mod_head: ChangeHash(
+                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                    ),
+                    lease: None,
                 },
                 prev_kv: None,
-            }
-        ))"
+            },
+        ),
+    )
+    "###
     );
 
     assert_debug_snapshot!(
         receiver.recv().await,
-        @"Some((
-            watch_id,
+        @r###"
+    Some(
+        (
+            1,
             Header {
                 cluster_id: 1,
                 member_id: 1,
-                revision: 7
+                heads: [
+                    ChangeHash(
+                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
+                typ: Delete,
                 kv: KeyValue {
-                    key: key1.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 7,
-                    version: 0,
-                    lease: None
+                    key: "key1",
+                    value: [],
+                    create_head: ChangeHash(
+                        "0000000000000000000000000000000000000000000000000000000000000000",
+                    ),
+                    mod_head: ChangeHash(
+                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                    ),
+                    lease: None,
                 },
-                prev_kv: None
-            }
-        ))"
+                prev_kv: None,
+            },
+        ),
+    )
+    "###
     );
 
     watch_server.remove_watch(watch_id);
@@ -3863,7 +3941,7 @@ async fn sync_two_documents_trigger_watches() {
             key1.clone(),
             Some(key3.clone()),
             false,
-            None,
+            vec![],
             sender1,
         )
         .await
@@ -3875,7 +3953,7 @@ async fn sync_two_documents_trigger_watches() {
             key1.clone(),
             Some(key3.clone()),
             false,
-            None,
+            vec![],
             sender2,
         )
         .await
@@ -5777,16 +5855,19 @@ async fn watch_server_value_creation_start_heads() {
     let key3 = "key3".to_owned();
     let value = b"value".to_vec();
 
-    doc.put(PutRequest {
-        key: key1.clone(),
-        value: value.clone(),
-        lease_id: None,
-        prev_kv: false,
-    })
-    .await
-    .unwrap()
-    .await
-    .unwrap();
+    let start_heads = doc
+        .put(PutRequest {
+            key: key1.clone(),
+            value: value.clone(),
+            lease_id: None,
+            prev_kv: false,
+        })
+        .await
+        .unwrap()
+        .await
+        .unwrap()
+        .0
+        .heads;
 
     doc.delete_range(DeleteRangeRequest {
         start: key1.clone(),
@@ -5852,7 +5933,7 @@ async fn watch_server_value_creation_start_heads() {
             key1.clone(),
             Some(key3.clone()),
             true, // prev_kv
-            Some(3),
+            start_heads,
             sender,
         )
         .await
@@ -6068,7 +6149,7 @@ async fn txn_compare() {
             compare: vec![Compare {
                 key: key1.clone(),
                 range_end: None,
-                target: CompareTarget::ModHead(ChangeHash([0;32])),
+                target: CompareTarget::ModHead(ChangeHash([0; 32])),
                 result: CompareResult::Equal,
             }],
             success: vec![KvRequest::Put(PutRequest {

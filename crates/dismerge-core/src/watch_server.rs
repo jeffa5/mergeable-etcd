@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use automerge::{ChangeHash, ReadDoc, ROOT};
 use automerge_persistent::Persister;
 use tokio::sync::mpsc::Sender;
 
@@ -31,7 +32,7 @@ impl WatchServer {
         start: String,
         end: Option<String>,
         prev_kv: bool,
-        start_revision: Option<u64>,
+        start_heads: Vec<ChangeHash>,
         sender: Sender<(WatchId, Header, WatchEvent)>,
     ) -> crate::Result<WatchId>
     where
@@ -51,8 +52,8 @@ impl WatchServer {
                 prev_kv,
             },
         );
-        if let Some(start_revision) = start_revision {
-            let current_revision = document.revision();
+        if !start_heads.is_empty() {
+            // start the watch from a point in time
             let header = document.header()?;
 
             let mut events = Vec::new();
@@ -63,79 +64,8 @@ impl WatchServer {
             // we need to send values for all the revisions from the start revision.
             //
             // Iterate and naively get the range response from each.
-            for revision in start_revision..current_revision {
-                let (_header, response, delete_revisions) = document
-                    .range_or_delete_revision(crate::RangeRequest {
-                        start: start.clone(),
-                        end: end.clone(),
-                        heads: todo!(),
-                        limit: None,
-                        count_only: false,
-                    })
-                    .expect("watch shouldn't be able to be created if the node isn't ready");
 
-                for kv in response.values {
-                    let prev_kv = if prev_kv {
-                        let (_header, past_response, _) = document
-                            .range_or_delete_revision(crate::RangeRequest {
-                                start: kv.key.clone(),
-                                end: None,
-                                heads: todo!(),
-                                limit: None,
-                                count_only: false,
-                            })
-                            .expect(
-                                "watch shouldn't be able to be created if the node isn't ready",
-                            );
-                        past_response.values.first().cloned()
-                    } else {
-                        None
-                    };
-
-                    events.push((
-                        header.clone(),
-                        WatchEvent {
-                            typ: crate::watcher::WatchEventType::Put,
-                            kv,
-                            prev_kv,
-                        },
-                    ));
-                }
-
-                for (deleted_key, delete_revision) in delete_revisions {
-                    let prev_kv = if prev_kv {
-                        let (_header, past_response, _) = document
-                            .range_or_delete_revision(crate::RangeRequest {
-                                start: deleted_key.clone(),
-                                end: None,
-                                heads: todo!(),
-                                limit: None,
-                                count_only: false,
-                            })
-                            .expect(
-                                "watch shouldn't be able to be created if the node isn't ready",
-                            );
-                        past_response.values.first().cloned()
-                    } else {
-                        None
-                    };
-
-                    events.push((
-                        header.clone(),
-                        WatchEvent {
-                            typ: crate::watcher::WatchEventType::Delete,
-                            kv: crate::KeyValue {
-                                key: deleted_key,
-                                value: vec![],
-                                create_head: automerge::ChangeHash([0; 32]),
-                                mod_head: automerge::ChangeHash([0; 32]),
-                                lease: None,
-                            },
-                            prev_kv,
-                        },
-                    ));
-                }
-            }
+            todo!("find the things in the document that changed in the given range since the start_heads");
 
             // prevent duplicates
             let mut seen_events = HashSet::new();

@@ -170,11 +170,6 @@ where
         }
     }
 
-    /// Get the current revision of this node.
-    pub fn revision(&self) -> u64 {
-        self.cache.revision()
-    }
-
     pub fn flush(&mut self) -> usize {
         let flushed_bytes = self.am.flush().unwrap();
         if flushed_bytes > 0 {
@@ -199,12 +194,7 @@ where
         let txn_result = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
-                Ok(crate::transaction::put(
-                    txn,
-                    &mut self.cache,
-                    &mut temp_watcher,
-                    request,
-                ))
+                Ok(crate::transaction::put(txn, &mut temp_watcher, request))
             })
             .unwrap();
         debug!("document changed in put");
@@ -220,12 +210,13 @@ where
         });
 
         self.document_changed();
-        let hash = txn_result.hash.unwrap();
         for mut event in temp_watcher.events {
-            if event.kv.create_head == ChangeHash([0; 32]) {
-                event.kv.create_head = hash;
+            if let Some(hash) = txn_result.hash {
+                if event.kv.create_head == ChangeHash([0; 32]) {
+                    event.kv.create_head = hash;
+                }
+                event.kv.mod_head = hash;
             }
-            event.kv.mod_head = hash;
             self.watcher.publish_event(header.clone(), event).await;
         }
 
@@ -242,7 +233,6 @@ where
             .transact::<_, _, AutomergeError>(|txn| {
                 Ok(crate::transaction::delete_range(
                     txn,
-                    &mut self.cache,
                     &mut temp_watcher,
                     request,
                 ))
@@ -261,9 +251,10 @@ where
         });
 
         self.document_changed();
-        let hash = txn_result.hash.unwrap();
         for mut event in temp_watcher.events {
-            event.kv.mod_head = hash;
+            if let Some(hash) = txn_result.hash {
+                event.kv.mod_head = hash;
+            }
             self.watcher.publish_event(header.clone(), event).await;
         }
 
@@ -271,18 +262,11 @@ where
     }
 
     /// Get the values in the half-open interval `[start, end)`.
-    // TODO: make this non-mut
     pub fn range(
-        &mut self,
+        &self,
         request: RangeRequest,
     ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse)>> {
-        let (result, _) = self
-            .am
-            .transact::<_, _, AutomergeError>(|txn| {
-                Ok(crate::transaction::range(txn, &mut self.cache, request))
-            })
-            .unwrap()
-            .result;
+        let (result, _) = crate::transaction::range(self.am.document(), request);
         let header = self.header()?;
 
         let (sender, receiver) = oneshot::channel();
@@ -292,30 +276,19 @@ where
             let _: Result<_, _> = sender.send((header, result));
         });
 
-        if self.auto_flush {
-            self.flush();
-        }
-
         Ok(receiver)
     }
 
     /// Get the values in the half-open interval `[start, end)`.
     /// Delete revisions are a mapping from the keys that are deleted to the revision they were
     /// deleted at.
-    // TODO: make this non-mut
-    pub fn range_or_delete_revision(
-        &mut self,
+    pub fn range_with_deleted(
+        &self,
         request: RangeRequest,
-    ) -> crate::Result<(Header, RangeResponse, BTreeMap<String, u64>)> {
-        let (result, delete_revision) = self
-            .am
-            .transact::<_, _, AutomergeError>(|txn| {
-                Ok(crate::transaction::range(txn, &mut self.cache, request))
-            })
-            .unwrap()
-            .result;
+    ) -> crate::Result<(Header, RangeResponse, BTreeMap<String, ChangeHash>)> {
+        let (result, deleted_values) = crate::transaction::range(self.am.document(), request);
         let header = self.header()?;
-        Ok((header, result, delete_revision))
+        Ok((header, result, deleted_values))
     }
 
     pub async fn txn(
@@ -323,16 +296,10 @@ where
         request: TxnRequest,
     ) -> crate::Result<oneshot::Receiver<(Header, TxnResponse)>> {
         let mut temp_watcher = VecWatcher::default();
-        let revision = self.revision();
         let txn_result = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
-                Ok(crate::transaction::txn(
-                    txn,
-                    &mut self.cache,
-                    &mut temp_watcher,
-                    request,
-                ))
+                Ok(crate::transaction::txn(txn, &mut temp_watcher, request))
             })
             .unwrap();
 
@@ -346,19 +313,20 @@ where
             let _: Result<_, _> = sender.send((header_clone, txn_result.result));
         });
 
-        if revision < self.revision() {
+        if txn_result.hash.is_some() {
             // we had a mutation
             debug!("document changed in txn");
             self.document_changed();
         } else if self.auto_flush {
             self.flush();
         }
-        let hash = txn_result.hash.unwrap();
         for mut event in temp_watcher.events {
-            if event.typ == WatchEventType::Put && event.kv.create_head == ChangeHash([0; 32]) {
-                event.kv.create_head = hash;
+            if let Some(hash) = txn_result.hash {
+                if event.typ == WatchEventType::Put && event.kv.create_head == ChangeHash([0; 32]) {
+                    event.kv.create_head = hash;
+                }
+                event.kv.mod_head = hash;
             }
-            event.kv.mod_head = hash;
             self.watcher.publish_event(header.clone(), event).await;
         }
 
@@ -447,7 +415,7 @@ where
                     {
                         // work out whether this key had another put or a delete
                         let (header, response, delete_revisions) =
-                            self.range_or_delete_revision(RangeRequest {
+                            self.range_with_deleted(RangeRequest {
                                 start: key.clone(),
                                 end: None,
                                 heads: Vec::new(),
@@ -462,10 +430,10 @@ where
                                 .to_string()
                                 .parse::<u64>()
                                 .map_err(|_| crate::Error::NotParseableAsId(rev.to_string()))?
-                                >= revision
+                                >= todo!("was revision")
                             {
                                 let (_header, past_response, _) =
-                                    self.range_or_delete_revision(RangeRequest {
+                                    self.range_with_deleted(RangeRequest {
                                         start: key.clone(),
                                         end: None,
                                         heads: todo!(),

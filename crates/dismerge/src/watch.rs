@@ -1,3 +1,4 @@
+use automerge::ChangeHash;
 use dismerge_core::Header;
 use dismerge_core::WatchEvent;
 use futures::Stream;
@@ -92,7 +93,7 @@ impl Watch for WatchService {
                             RequestUnion::CreateRequest(WatchCreateRequest {
                                 key,
                                 range_end,
-                                start_revision,
+                                start_heads,
                                 progress_notify,
                                 filters,
                                 prev_kv,
@@ -112,12 +113,11 @@ impl Watch for WatchService {
                                 } else {
                                     Some(String::from_utf8(range_end).unwrap())
                                 };
-                                let start_revision = if start_revision > 0 {
-                                    Some(start_revision as u64)
-                                } else {
-                                    None
-                                };
-                                debug!(?start, ?end, ?start_revision, "got watch create request");
+                                let start_heads = start_heads
+                                    .into_iter()
+                                    .map(|b| ChangeHash(b.try_into().unwrap()))
+                                    .collect();
+                                debug!(?start, ?end, ?start_heads, "got watch create request");
                                 let mut document = s.document.lock().await;
                                 let watch_id = s
                                     .watch_server
@@ -128,7 +128,7 @@ impl Watch for WatchService {
                                         start,
                                         end,
                                         prev_kv,
-                                        start_revision,
+                                        start_heads,
                                         local_sender.clone(),
                                     )
                                     .await

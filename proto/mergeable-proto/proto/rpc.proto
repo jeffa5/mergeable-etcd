@@ -687,9 +687,9 @@ message WatchCreateRequest {
   // prefix (the given key) will be watched.
   bytes range_end = 2;
 
-  // start_revision is an optional revision to watch from (inclusive). No
-  // start_revision is "now".
-  int64 start_revision = 3;
+  // start_heads is an optional set of heads to watch from (exclusive). No
+  // start_heads is "now".
+  repeated bytes start_heads = 3;
 
   // progress_notify is set so that the etcd server will periodically send a
   // WatchResponse with no events to the new watcher if there are no recent

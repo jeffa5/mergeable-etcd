@@ -4,7 +4,6 @@ use std::collections::BTreeMap;
 use tracing::debug;
 use tracing::warn;
 
-use crate::cache::Cache;
 use crate::document::make_lease_string;
 use crate::Compare;
 use crate::DeleteRangeRequest;
@@ -27,7 +26,7 @@ use automerge::ROOT;
 
 type Transaction<'a> = automerge::transaction::Transaction<'a, UnObserved>;
 
-pub fn extract_key_value(txn: &Transaction, key: String, key_obj: &ObjId) -> KeyValue {
+pub fn extract_key_value<R: ReadDoc>(txn: &R, key: String, key_obj: &ObjId) -> KeyValue {
     let create_head = txn.hash_for_opid(key_obj).unwrap_or(ChangeHash([0; 32]));
     let (value, value_id) = txn.get(key_obj, "value").unwrap().unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap_or(ChangeHash([0; 32]));
@@ -44,8 +43,8 @@ pub fn extract_key_value(txn: &Transaction, key: String, key_obj: &ObjId) -> Key
     }
 }
 
-pub fn extract_key_value_at(
-    txn: &Transaction,
+pub fn extract_key_value_at<R: ReadDoc>(
+    txn: &R,
     key: String,
     key_obj: ObjId,
     heads: &[ChangeHash],
@@ -68,11 +67,7 @@ pub fn extract_key_value_at(
 
 /// Get the values in the half-open interval `[start, end)`.
 /// Returns the usual response as well as the revision of a delete if one occurred.
-pub fn range(
-    txn: &mut Transaction,
-    cache: &mut Cache,
-    request: RangeRequest,
-) -> (RangeResponse, BTreeMap<String, u64>) {
+pub fn range<R: ReadDoc>(txn: &R, request: RangeRequest) -> (RangeResponse, BTreeMap<String, ChangeHash>) {
     let RangeRequest {
         start,
         end,
@@ -81,7 +76,7 @@ pub fn range(
         count_only,
     } = request;
     let mut values = Vec::new();
-    let mut delete_revisions = BTreeMap::new();
+    let mut deleted_values = BTreeMap::new();
     if let Some((_, kvs)) = txn.get(ROOT, "kvs").unwrap() {
         if let Some(end) = &end {
             if heads.is_empty() {
@@ -137,15 +132,10 @@ pub fn range(
         ?count,
         "Processed range request"
     );
-    (RangeResponse { values, count }, delete_revisions)
+    (RangeResponse { values, count }, deleted_values)
 }
 
-pub fn put(
-    txn: &mut Transaction,
-    cache: &mut Cache,
-    watcher: &mut VecWatcher,
-    request: PutRequest,
-) -> PutResponse {
+pub fn put(txn: &mut Transaction, watcher: &mut VecWatcher, request: PutRequest) -> PutResponse {
     let PutRequest {
         key,
         value,
@@ -203,7 +193,6 @@ pub fn put(
 
 pub fn delete_range(
     txn: &mut Transaction,
-    cache: &mut Cache,
     watcher: &mut VecWatcher,
     request: DeleteRangeRequest,
 ) -> DeleteRangeResponse {
@@ -277,16 +266,8 @@ pub fn delete_range(
     DeleteRangeResponse { deleted, prev_kvs }
 }
 
-pub fn txn(
-    tx: &mut Transaction,
-    cache: &mut Cache,
-    watcher: &mut VecWatcher,
-    request: TxnRequest,
-) -> TxnResponse {
-    let succeeded = request
-        .compare
-        .into_iter()
-        .all(|c| txn_compare(tx, cache, c));
+pub fn txn(tx: &mut Transaction, watcher: &mut VecWatcher, request: TxnRequest) -> TxnResponse {
+    let succeeded = request.compare.into_iter().all(|c| txn_compare(tx, c));
     let ops = if succeeded {
         request.success
     } else {
@@ -296,12 +277,10 @@ pub fn txn(
     let responses = ops
         .into_iter()
         .map(|r| match r {
-            KvRequest::Range(r) => KvResponse::Range(range(tx, cache, r).0),
-            KvRequest::Put(r) => KvResponse::Put(put(tx, cache, watcher, r)),
-            KvRequest::DeleteRange(r) => {
-                KvResponse::DeleteRange(delete_range(tx, cache, watcher, r))
-            }
-            KvRequest::Txn(r) => KvResponse::Txn(txn(tx, cache, watcher, r)),
+            KvRequest::Range(r) => KvResponse::Range(range(tx, r).0),
+            KvRequest::Put(r) => KvResponse::Put(put(tx, watcher, r)),
+            KvRequest::DeleteRange(r) => KvResponse::DeleteRange(delete_range(tx, watcher, r)),
+            KvRequest::Txn(r) => KvResponse::Txn(txn(tx, watcher, r)),
         })
         .collect::<Vec<_>>();
 
@@ -313,7 +292,7 @@ pub fn txn(
     }
 }
 
-fn txn_compare(txn: &mut Transaction, cache: &mut Cache, compare: Compare) -> bool {
+fn txn_compare(txn: &mut Transaction, compare: Compare) -> bool {
     let Compare {
         key,
         range_end,
@@ -323,7 +302,6 @@ fn txn_compare(txn: &mut Transaction, cache: &mut Cache, compare: Compare) -> bo
 
     let RangeResponse { values, count: _ } = range(
         txn,
-        cache,
         RangeRequest {
             start: key.clone(),
             end: range_end.clone(),
