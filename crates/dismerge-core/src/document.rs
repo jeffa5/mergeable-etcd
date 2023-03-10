@@ -69,7 +69,7 @@ where
     W: Watcher,
 {
     pub(crate) fn init(&mut self, cluster_exists: bool) {
-        if self.am.document_mut().get_heads().is_empty() {
+        if self.am.document().get_heads().is_empty() {
             self.init_document();
         }
 
