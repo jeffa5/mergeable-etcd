@@ -27,12 +27,12 @@ use automerge::ROOT;
 
 type Transaction<'a> = automerge::transaction::Transaction<'a, UnObserved>;
 
-pub fn extract_key_value(txn: &Transaction, key: String, key_obj: ObjId) -> KeyValue {
-    let create_head = txn.hash_for_opid(&key_obj).unwrap();
-    let (value, value_id) = txn.get(&key_obj, "value").unwrap().unwrap();
+pub fn extract_key_value(txn: &Transaction, key: String, key_obj: &ObjId) -> KeyValue {
+    let create_head = txn.hash_for_opid(key_obj).unwrap();
+    let (value, value_id) = txn.get(key_obj, "value").unwrap().unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap();
     let lease = txn
-        .get(&key_obj, "lease")
+        .get(key_obj, "lease")
         .unwrap()
         .and_then(|v| v.0.to_i64());
     KeyValue {
@@ -93,7 +93,7 @@ pub fn range(
                             break;
                         }
                     }
-                    let value = extract_key_value(txn, key.to_owned(), key_obj);
+                    let value = extract_key_value(txn, key.to_owned(), &key_obj);
                     values.push(value);
                 }
             } else {
@@ -112,7 +112,7 @@ pub fn range(
         } else {
             if heads.is_empty() {
                 if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
-                    let value = extract_key_value(txn, start.clone(), key_obj);
+                    let value = extract_key_value(txn, start.clone(), &key_obj);
                     values.push(value);
                 }
             } else {
@@ -147,7 +147,7 @@ pub fn put(
         key,
         value,
         lease_id,
-        prev_kv,
+        prev_kv: return_prev_kv,
     } = request;
     let kvs = txn.get(ROOT, "kvs").unwrap();
     let kvs = if let Some(kvs) = kvs {
@@ -157,8 +157,10 @@ pub fn put(
     };
 
     let key_obj = txn.get(&kvs, &key).unwrap();
-    let key_obj = if let Some(key_obj) = key_obj {
-        key_obj.1
+    let mut prev_kv = None;
+    let key_obj = if let Some((_, key_obj)) = key_obj {
+        prev_kv = Some(extract_key_value(txn, key.clone(), &key_obj));
+        key_obj
     } else {
         txn.put_object(&kvs, &key, ObjType::Map).unwrap()
     };
@@ -186,13 +188,13 @@ pub fn put(
             mod_head: ChangeHash([0; 32]),
             lease: None,
         },
-        prev_kv: None,
+        prev_kv: prev_kv.clone(),
     });
 
     debug!(?key, ?prev_kv, "Processed put request");
 
     PutResponse {
-        prev_kv: if prev_kv { None } else { None },
+        prev_kv: if return_prev_kv { prev_kv } else { None },
     }
 }
 
@@ -225,7 +227,7 @@ pub fn delete_range(
             .map(|(key, value, key_obj)| (key.to_owned(), value.to_owned(), key_obj))
             .collect();
         for (key, _value, key_obj) in keys {
-            let prev_kv = extract_key_value(txn, key.clone(), key_obj);
+            let prev_kv = extract_key_value(txn, key.clone(), &key_obj);
             prev_kvs.push(prev_kv.clone());
             txn.delete(&kvs, key.clone()).unwrap();
             deleted += 1;
@@ -243,7 +245,7 @@ pub fn delete_range(
         }
     } else {
         if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
-            let prev_kv = extract_key_value(txn, start.clone(), key_obj);
+            let prev_kv = extract_key_value(txn, start.clone(), &key_obj);
             prev_kvs.push(prev_kv.clone());
             txn.delete(&kvs, start.clone()).unwrap();
             deleted += 1;

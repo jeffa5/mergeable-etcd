@@ -106,7 +106,26 @@ async fn write_value() {
             ],
         },
         PutResponse {
-            prev_kv: None,
+            prev_kv: Some(
+                KeyValue {
+                    key: "key1",
+                    value: [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        49,
+                    ],
+                    create_head: ChangeHash(
+                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    ),
+                    mod_head: ChangeHash(
+                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    ),
+                    lease: None,
+                },
+            ),
         },
     )
     "###);
