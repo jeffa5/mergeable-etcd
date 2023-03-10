@@ -8,19 +8,22 @@ use super::*;
 async fn write_value() {
     let mut doc = DocumentBuilder::default().build();
     let key = "key1".to_owned();
-    let value = b"value1".to_vec();
-    assert_debug_snapshot!(
-        doc.put(PutRequest {
+    let value1 = b"value1".to_vec();
+    let value2 = b"value2".to_vec();
+
+    let first_put = doc
+        .put(PutRequest {
             key: key.clone(),
-            value: value.clone(),
+            value: value1.clone(),
             lease_id: None,
             prev_kv: true,
         })
         .await
         .unwrap()
         .await
-        .unwrap()
-    , @r###"
+        .unwrap();
+    assert_debug_snapshot!(
+        first_put, @r###"
     (
         Header {
             cluster_id: 1,
@@ -86,7 +89,7 @@ async fn write_value() {
     assert_debug_snapshot!(
         doc.put(PutRequest {
             key: key.clone(),
-            value: value.clone(),
+            value: value2.clone(),
             lease_id: None,
             prev_kv: true,
         })
@@ -101,7 +104,7 @@ async fn write_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    "d396657ba703628abbcf5fcf8720cc7f86efa1693c3874a546ddc397a41a008a",
                 ),
             ],
         },
@@ -147,7 +150,7 @@ async fn write_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    "d396657ba703628abbcf5fcf8720cc7f86efa1693c3874a546ddc397a41a008a",
                 ),
             ],
         },
@@ -161,13 +164,13 @@ async fn write_value() {
                         108,
                         117,
                         101,
-                        49,
+                        50,
                     ],
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
                     mod_head: ChangeHash(
-                        "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                        "d396657ba703628abbcf5fcf8720cc7f86efa1693c3874a546ddc397a41a008a",
                     ),
                     lease: None,
                 },
@@ -180,7 +183,7 @@ async fn write_value() {
         doc.range(RangeRequest {
             start: key.clone(),
             end: None,
-            heads: vec![],
+            heads: first_put.0.heads,
             limit: None,
             count_only: false,
         })
@@ -194,7 +197,7 @@ async fn write_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
+                    "d396657ba703628abbcf5fcf8720cc7f86efa1693c3874a546ddc397a41a008a",
                 ),
             ],
         },
