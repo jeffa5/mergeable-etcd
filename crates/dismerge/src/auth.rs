@@ -5,14 +5,16 @@ impl mergeable_proto::etcdserverpb::auth_server::Auth for AuthServer {
     async fn auth_enable(
         &self,
         _request: tonic::Request<mergeable_proto::etcdserverpb::AuthEnableRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthEnableResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthEnableResponse>, tonic::Status>
+    {
         todo!()
     }
 
     async fn auth_disable(
         &self,
         _request: tonic::Request<mergeable_proto::etcdserverpb::AuthDisableRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthDisableResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthDisableResponse>, tonic::Status>
+    {
         todo!()
     }
 
@@ -27,14 +29,16 @@ impl mergeable_proto::etcdserverpb::auth_server::Auth for AuthServer {
     async fn user_add(
         &self,
         _request: tonic::Request<mergeable_proto::etcdserverpb::AuthUserAddRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthUserAddResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthUserAddResponse>, tonic::Status>
+    {
         todo!()
     }
 
     async fn user_get(
         &self,
         _request: tonic::Request<mergeable_proto::etcdserverpb::AuthUserGetRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthUserGetResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthUserGetResponse>, tonic::Status>
+    {
         todo!()
     }
 
@@ -67,30 +71,36 @@ impl mergeable_proto::etcdserverpb::auth_server::Auth for AuthServer {
     async fn user_grant_role(
         &self,
         _request: tonic::Request<mergeable_proto::etcdserverpb::AuthUserGrantRoleRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthUserGrantRoleResponse>, tonic::Status>
-    {
+    ) -> Result<
+        tonic::Response<mergeable_proto::etcdserverpb::AuthUserGrantRoleResponse>,
+        tonic::Status,
+    > {
         todo!()
     }
 
     async fn user_revoke_role(
         &self,
         _request: tonic::Request<mergeable_proto::etcdserverpb::AuthUserRevokeRoleRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthUserRevokeRoleResponse>, tonic::Status>
-    {
+    ) -> Result<
+        tonic::Response<mergeable_proto::etcdserverpb::AuthUserRevokeRoleResponse>,
+        tonic::Status,
+    > {
         todo!()
     }
 
     async fn role_add(
         &self,
         _request: tonic::Request<mergeable_proto::etcdserverpb::AuthRoleAddRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthRoleAddResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthRoleAddResponse>, tonic::Status>
+    {
         todo!()
     }
 
     async fn role_get(
         &self,
         _request: tonic::Request<mergeable_proto::etcdserverpb::AuthRoleGetRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthRoleGetResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::AuthRoleGetResponse>, tonic::Status>
+    {
         todo!()
     }
 

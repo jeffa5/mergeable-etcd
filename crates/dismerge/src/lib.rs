@@ -3,11 +3,11 @@ use crate::kv::KvServer;
 use crate::lease::LeaseServer;
 use automerge_persistent_sled::SledPersister;
 use cluster::ClusterServer;
+use dismerge_core::Document;
+use dismerge_core::DocumentBuilder;
 use futures::future::join_all;
 use futures::join;
 use maintenance::MaintenanceServer;
-use dismerge_core::Document;
-use dismerge_core::DocumentBuilder;
 use peer::DocumentChangedSyncer;
 use peer_proto::peer_server::PeerServer;
 use std::collections::HashMap;
@@ -318,10 +318,12 @@ async fn start_client_server(
         }
 
         let router = router
-            .add_service(mergeable_proto::etcdserverpb::kv_server::KvServer::new(server))
-            .add_service(mergeable_proto::etcdserverpb::watch_server::WatchServer::new(
-                watch_server,
+            .add_service(mergeable_proto::etcdserverpb::kv_server::KvServer::new(
+                server,
             ))
+            .add_service(
+                mergeable_proto::etcdserverpb::watch_server::WatchServer::new(watch_server),
+            )
             .add_service(
                 mergeable_proto::etcdserverpb::maintenance_server::MaintenanceServer::new(
                     MaintenanceServer {
@@ -337,11 +339,11 @@ async fn start_client_server(
             .add_service(mergeable_proto::etcdserverpb::auth_server::AuthServer::new(
                 AuthServer {},
             ))
-            .add_service(mergeable_proto::etcdserverpb::lease_server::LeaseServer::new(
-                LeaseServer {
+            .add_service(
+                mergeable_proto::etcdserverpb::lease_server::LeaseServer::new(LeaseServer {
                     document: document.clone(),
-                },
-            ));
+                }),
+            );
 
         let res = router.serve(client_address).await;
         if let Err(error) = res {

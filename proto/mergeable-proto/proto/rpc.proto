@@ -555,10 +555,10 @@ message Compare {
   oneof target_union {
     // version is the version of the given key
     // int64 version = 4;
-    // create_heads is the creation revision of the given key
-    // int64 create_heads = 5;
-    // mod_heads is the last modified revision of the given key.
-    // int64 mod_heads = 6;
+    // create_head is the creation revision of the given key
+    bytes create_head = 5;
+    // mod_head is the last modified revision of the given key.
+    bytes mod_head = 6;
     // value is the value of the given key, in bytes.
     bytes value = 7;
     // lease is the lease id of the given key.

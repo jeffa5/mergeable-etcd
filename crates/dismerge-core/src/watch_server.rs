@@ -80,7 +80,7 @@ impl WatchServer {
                             .range_or_delete_revision(crate::RangeRequest {
                                 start: kv.key.clone(),
                                 end: None,
-                        heads: todo!(),
+                                heads: todo!(),
                                 limit: None,
                                 count_only: false,
                             })
@@ -108,7 +108,7 @@ impl WatchServer {
                             .range_or_delete_revision(crate::RangeRequest {
                                 start: deleted_key.clone(),
                                 end: None,
-                        heads: todo!(),
+                                heads: todo!(),
                                 limit: None,
                                 count_only: false,
                             })
@@ -127,8 +127,8 @@ impl WatchServer {
                             kv: crate::KeyValue {
                                 key: deleted_key,
                                 value: vec![],
-                                create_heads: vec![],
-                                mod_heads: vec![],
+                                create_head: automerge::ChangeHash([0; 32]),
+                                mod_head: automerge::ChangeHash([0; 32]),
                                 lease: None,
                             },
                             prev_kv,

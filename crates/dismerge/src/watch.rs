@@ -1,9 +1,11 @@
-use mergeable_proto::etcdserverpb::{watch_request::RequestUnion, watch_server::Watch, WatchResponse};
-use mergeable_proto::etcdserverpb::{WatchCancelRequest, WatchCreateRequest};
-use futures::Stream;
-use futures::StreamExt;
 use dismerge_core::Header;
 use dismerge_core::WatchEvent;
+use futures::Stream;
+use futures::StreamExt;
+use mergeable_proto::etcdserverpb::{
+    watch_request::RequestUnion, watch_server::Watch, WatchResponse,
+};
+use mergeable_proto::etcdserverpb::{WatchCancelRequest, WatchCreateRequest};
 use std::{collections::HashSet, pin::Pin, sync::Arc};
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
@@ -49,7 +51,7 @@ impl Watch for WatchService {
         tokio::spawn(async move {
             while let Some((watch_id, header, event)) = local_receiver.recv().await {
                 let event: WatchEvent = event;
-                debug!(watch_id, typ=?event.typ, key=?event.kv.key, create_revision=?event.kv.create_heads, mod_revision=?event.kv.mod_heads, lease=?event.kv.lease, "Sending watch response");
+                debug!(watch_id, typ=?event.typ, key=?event.kv.key, create_revision=?event.kv.create_head, mod_revision=?event.kv.mod_head, lease=?event.kv.lease, "Sending watch response");
                 let header: dismerge_core::Header = header;
                 let event: WatchEvent = event;
                 let event: mergeable_proto::mvccpb::Event = event.into();

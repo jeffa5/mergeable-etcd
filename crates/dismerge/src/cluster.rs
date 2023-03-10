@@ -12,7 +12,8 @@ impl mergeable_proto::etcdserverpb::cluster_server::Cluster for ClusterServer {
     async fn member_add(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::MemberAddRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::MemberAddResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::MemberAddResponse>, tonic::Status>
+    {
         let request = request.into_inner();
         let mut document = self.document.lock().await;
         let header = document.header()?;
@@ -71,7 +72,8 @@ impl mergeable_proto::etcdserverpb::cluster_server::Cluster for ClusterServer {
     async fn member_list(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::MemberListRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::MemberListResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::MemberListResponse>, tonic::Status>
+    {
         let _request = request.into_inner();
         info!("member list");
         let document = self.document.lock().await;

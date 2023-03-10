@@ -28,7 +28,9 @@ use automerge::ROOT;
 type Transaction<'a> = automerge::transaction::Transaction<'a, UnObserved>;
 
 pub fn extract_key_value(txn: &Transaction, key: String, key_obj: ObjId) -> KeyValue {
-    let (value, _id) = txn.get(&key_obj, "value").unwrap().unwrap();
+    let create_head = txn.hash_for_opid(&key_obj).unwrap();
+    let (value, value_id) = txn.get(&key_obj, "value").unwrap().unwrap();
+    let mod_head = txn.hash_for_opid(&value_id).unwrap();
     let lease = txn
         .get(&key_obj, "lease")
         .unwrap()
@@ -36,9 +38,8 @@ pub fn extract_key_value(txn: &Transaction, key: String, key_obj: ObjId) -> KeyV
     KeyValue {
         key,
         value: value.into_bytes().unwrap(),
-        // TODO: get proper values for these
-        create_heads: vec![],
-        mod_heads: vec![],
+        create_head,
+        mod_head,
         lease,
     }
 }
@@ -49,7 +50,9 @@ pub fn extract_key_value_at(
     key_obj: ObjId,
     heads: &[ChangeHash],
 ) -> KeyValue {
-    let (value, _id) = txn.get_at(&key_obj, "value", heads).unwrap().unwrap();
+    let create_head = txn.hash_for_opid(&key_obj).unwrap();
+    let (value, value_id) = txn.get_at(&key_obj, "value", heads).unwrap().unwrap();
+    let mod_head = txn.hash_for_opid(&value_id).unwrap();
     let lease = txn
         .get_at(&key_obj, "lease", heads)
         .unwrap()
@@ -57,9 +60,8 @@ pub fn extract_key_value_at(
     KeyValue {
         key,
         value: value.into_bytes().unwrap(),
-        // TODO: get proper values for these
-        create_heads: vec![],
-        mod_heads: vec![],
+        create_head,
+        mod_head,
         lease,
     }
 }
@@ -180,8 +182,8 @@ pub fn put(
         kv: KeyValue {
             key: key.clone(),
             value,
-            create_heads: vec![],
-            mod_heads: vec![],
+            create_head: ChangeHash([0; 32]),
+            mod_head: ChangeHash([0; 32]),
             lease: None,
         },
         prev_kv: None,
@@ -232,8 +234,8 @@ pub fn delete_range(
                 kv: KeyValue {
                     key,
                     value: Vec::new(),
-                    create_heads: vec![],
-                    mod_heads: vec![],
+                    create_head: ChangeHash([0; 32]),
+                    mod_head: ChangeHash([0; 32]),
                     lease: None,
                 },
                 prev_kv: Some(prev_kv),
@@ -250,8 +252,8 @@ pub fn delete_range(
                 kv: KeyValue {
                     key: start,
                     value: Vec::new(),
-                    create_heads: vec![],
-                    mod_heads: vec![],
+                    create_head: ChangeHash([0; 32]),
+                    mod_head: ChangeHash([0; 32]),
                     lease: None,
                 },
                 prev_kv: Some(prev_kv),
@@ -319,17 +321,18 @@ fn txn_compare(txn: &mut Transaction, cache: &mut Cache, compare: Compare) -> bo
     .0;
 
     let success = values.into_iter().all(|value| match &target {
-        crate::CompareTarget::CreateHeads(v) => match result {
-            crate::CompareResult::Less => value.create_heads < *v,
-            crate::CompareResult::Equal => value.create_heads == *v,
-            crate::CompareResult::Greater => value.create_heads > *v,
-            crate::CompareResult::NotEqual => value.create_heads != *v,
+        // TODO: check these head comparisons, should leverage automerge's hash graph
+        crate::CompareTarget::CreateHead(v) => match result {
+            crate::CompareResult::Less => value.create_head < *v,
+            crate::CompareResult::Equal => value.create_head == *v,
+            crate::CompareResult::Greater => value.create_head > *v,
+            crate::CompareResult::NotEqual => value.create_head != *v,
         },
-        crate::CompareTarget::ModHeads(v) => match result {
-            crate::CompareResult::Less => value.mod_heads < *v,
-            crate::CompareResult::Equal => value.mod_heads == *v,
-            crate::CompareResult::Greater => value.mod_heads > *v,
-            crate::CompareResult::NotEqual => value.mod_heads != *v,
+        crate::CompareTarget::ModHead(v) => match result {
+            crate::CompareResult::Less => value.mod_head < *v,
+            crate::CompareResult::Equal => value.mod_head == *v,
+            crate::CompareResult::Greater => value.mod_head > *v,
+            crate::CompareResult::NotEqual => value.mod_head != *v,
         },
         crate::CompareTarget::Value(v) => match result {
             crate::CompareResult::Less => &value.value < v,

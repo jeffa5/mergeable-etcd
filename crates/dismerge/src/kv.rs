@@ -72,7 +72,8 @@ impl Kv for KvServer {
     async fn delete_range(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::DeleteRangeRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::DeleteRangeResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::DeleteRangeResponse>, tonic::Status>
+    {
         let request: dismerge_core::DeleteRangeRequest = request.into_inner().into();
         debug!(start=?request.start, end=?request.end, "DELETE_RANGE");
 
@@ -126,7 +127,8 @@ impl Kv for KvServer {
     async fn compact(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::CompactionRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::CompactionResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::CompactionResponse>, tonic::Status>
+    {
         let mergeable_proto::etcdserverpb::CompactionRequest {
             revision: _,
             physical: _,

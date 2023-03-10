@@ -62,7 +62,8 @@ impl mergeable_proto::etcdserverpb::maintenance_server::Maintenance for Maintena
     async fn defragment(
         &self,
         _request: tonic::Request<mergeable_proto::etcdserverpb::DefragmentRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::DefragmentResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::DefragmentResponse>, tonic::Status>
+    {
         todo!()
     }
 
@@ -82,8 +83,9 @@ impl mergeable_proto::etcdserverpb::maintenance_server::Maintenance for Maintena
 
     type SnapshotStream = Pin<
         Box<
-            dyn Stream<Item = Result<mergeable_proto::etcdserverpb::SnapshotResponse, tonic::Status>>
-                + Send
+            dyn Stream<
+                    Item = Result<mergeable_proto::etcdserverpb::SnapshotResponse, tonic::Status>,
+                > + Send
                 + Sync
                 + 'static,
         >,
@@ -99,7 +101,8 @@ impl mergeable_proto::etcdserverpb::maintenance_server::Maintenance for Maintena
     async fn move_leader(
         &self,
         _request: tonic::Request<mergeable_proto::etcdserverpb::MoveLeaderRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::MoveLeaderResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::MoveLeaderResponse>, tonic::Status>
+    {
         todo!()
     }
 }

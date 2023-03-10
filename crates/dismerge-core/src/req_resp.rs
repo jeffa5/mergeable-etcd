@@ -4,8 +4,8 @@ use automerge::ChangeHash;
 pub struct KeyValue {
     pub key: String,
     pub value: Vec<u8>,
-    pub create_heads: Vec<ChangeHash>,
-    pub mod_heads: Vec<ChangeHash>,
+    pub create_head: ChangeHash,
+    pub mod_head: ChangeHash,
     pub lease: Option<i64>,
 }
 
@@ -13,8 +13,8 @@ impl From<KeyValue> for mergeable_proto::mvccpb::KeyValue {
     fn from(kv: KeyValue) -> Self {
         mergeable_proto::mvccpb::KeyValue {
             key: kv.key.into_bytes(),
-            create_heads: kv.create_heads.into_iter().map(|h| h.0.to_vec()).collect(),
-            mod_heads: kv.mod_heads.into_iter().map(|h| h.0.to_vec()).collect(),
+            create_head: kv.create_head.0.to_vec(),
+            mod_head: kv.mod_head.0.to_vec(),
             value: kv.value,
             lease: kv.lease.unwrap_or(0),
         }
@@ -231,8 +231,8 @@ impl From<mergeable_proto::etcdserverpb::compare::CompareResult> for CompareResu
 
 #[derive(Debug, PartialEq)]
 pub enum CompareTarget {
-    CreateHeads(Vec<ChangeHash>),
-    ModHeads(Vec<ChangeHash>),
+    CreateHead(ChangeHash),
+    ModHead(ChangeHash),
     Value(Vec<u8>),
     Lease(Option<i64>),
 }
@@ -240,6 +240,12 @@ pub enum CompareTarget {
 impl From<mergeable_proto::etcdserverpb::compare::TargetUnion> for CompareTarget {
     fn from(union: mergeable_proto::etcdserverpb::compare::TargetUnion) -> Self {
         match union {
+            mergeable_proto::etcdserverpb::compare::TargetUnion::CreateHead(v) => {
+                CompareTarget::CreateHead(ChangeHash(v.try_into().unwrap()))
+            }
+            mergeable_proto::etcdserverpb::compare::TargetUnion::ModHead(v) => {
+                CompareTarget::ModHead(ChangeHash(v.try_into().unwrap()))
+            }
             mergeable_proto::etcdserverpb::compare::TargetUnion::Value(v) => {
                 CompareTarget::Value(v)
             }

@@ -7,8 +7,8 @@ use tracing::debug;
 
 #[cfg(test)]
 use automerge_persistent::Persister;
-use mergeable_proto::etcdserverpb::Member;
 use futures::future::ready;
+use mergeable_proto::etcdserverpb::Member;
 
 #[cfg(test)]
 use crate::{Document, Watcher};

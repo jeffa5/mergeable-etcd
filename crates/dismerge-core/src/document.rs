@@ -5,8 +5,8 @@ use automerge::{
     ScalarValue, VecOpObserver, ROOT,
 };
 use automerge::{ReadDoc, Value};
-use automerge_persistent::{StoredSizes, PersistentAutomerge};
 use automerge_persistent::Persister;
+use automerge_persistent::{PersistentAutomerge, StoredSizes};
 use mergeable_proto::etcdserverpb::Member;
 use rand::rngs::StdRng;
 use rand::Rng;
@@ -204,7 +204,8 @@ where
                     request,
                 ))
             })
-            .unwrap().result;
+            .unwrap()
+            .result;
         debug!("document changed in put");
 
         let header = self.header()?;
@@ -240,7 +241,8 @@ where
                     request,
                 ))
             })
-            .unwrap().result;
+            .unwrap()
+            .result;
         debug!("document changed in delete range");
 
         let header = self.header()?;
@@ -272,7 +274,8 @@ where
             .transact::<_, _, AutomergeError>(|txn| {
                 Ok(crate::transaction::range(txn, &mut self.cache, request))
             })
-            .unwrap().result;
+            .unwrap()
+            .result;
         let header = self.header()?;
 
         let (sender, receiver) = oneshot::channel();
@@ -302,7 +305,8 @@ where
             .transact::<_, _, AutomergeError>(|txn| {
                 Ok(crate::transaction::range(txn, &mut self.cache, request))
             })
-            .unwrap().result;
+            .unwrap()
+            .result;
         let header = self.header()?;
         Ok((header, result, delete_revision))
     }
@@ -323,7 +327,8 @@ where
                     request,
                 ))
             })
-            .unwrap().result;
+            .unwrap()
+            .result;
 
         let header = self.header()?;
         let header_clone = header.clone();
@@ -464,8 +469,8 @@ where
                                             kv: crate::KeyValue {
                                                 key: key.clone(),
                                                 value: Vec::new(),
-                                                create_heads: vec![],
-                                                mod_heads: vec![],
+                                                create_head: automerge::ChangeHash([0; 32]),
+                                                mod_head: automerge::ChangeHash([0; 32]),
                                                 lease: None,
                                             },
                                             prev_kv: past_response.values.first().cloned(),
@@ -718,7 +723,8 @@ where
                     is_learner: false,
                 })
             })
-            .unwrap().result;
+            .unwrap()
+            .result;
         self.syncer.member_change(&result).await;
         debug!("document changed in add_member");
         self.document_changed();
@@ -759,7 +765,8 @@ where
                     is_learner: false,
                 })
             })
-            .unwrap().result;
+            .unwrap()
+            .result;
         debug!("document changed in add_member_local");
         self.document_changed();
         result
@@ -823,7 +830,8 @@ where
                 // return the id that we just created
                 Ok((id, ttl))
             })
-            .ok()?.result;
+            .ok()?
+            .result;
 
         // may want to sync
         self.document_changed();
@@ -901,7 +909,8 @@ where
 
                 Ok(ttl)
             })
-            .unwrap().result;
+            .unwrap()
+            .result;
 
         self.document_changed();
 

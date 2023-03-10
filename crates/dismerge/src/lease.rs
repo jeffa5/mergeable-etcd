@@ -16,7 +16,8 @@ impl mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer {
     async fn lease_grant(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::LeaseGrantRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::LeaseGrantResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::LeaseGrantResponse>, tonic::Status>
+    {
         let mergeable_proto::etcdserverpb::LeaseGrantRequest { ttl, id } = request.into_inner();
 
         debug!(?ttl, ?id, "Got lease_grant request");
@@ -77,7 +78,8 @@ impl mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer {
     async fn lease_revoke(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::LeaseRevokeRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::LeaseRevokeResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::LeaseRevokeResponse>, tonic::Status>
+    {
         let mergeable_proto::etcdserverpb::LeaseRevokeRequest { id } = request.into_inner();
 
         debug!(?id, "Got lease_revoke request");
@@ -96,7 +98,10 @@ impl mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer {
     type LeaseKeepAliveStream = Pin<
         Box<
             dyn Stream<
-                    Item = Result<mergeable_proto::etcdserverpb::LeaseKeepAliveResponse, tonic::Status>,
+                    Item = Result<
+                        mergeable_proto::etcdserverpb::LeaseKeepAliveResponse,
+                        tonic::Status,
+                    >,
                 > + Send
                 + Sync
                 + 'static,
@@ -105,7 +110,9 @@ impl mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer {
 
     async fn lease_keep_alive(
         &self,
-        request: tonic::Request<tonic::Streaming<mergeable_proto::etcdserverpb::LeaseKeepAliveRequest>>,
+        request: tonic::Request<
+            tonic::Streaming<mergeable_proto::etcdserverpb::LeaseKeepAliveRequest>,
+        >,
     ) -> Result<tonic::Response<Self::LeaseKeepAliveStream>, tonic::Status> {
         let mut request_stream = request.into_inner();
 
@@ -152,9 +159,12 @@ impl mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer {
     async fn lease_time_to_live(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::LeaseTimeToLiveRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::LeaseTimeToLiveResponse>, tonic::Status>
-    {
-        let mergeable_proto::etcdserverpb::LeaseTimeToLiveRequest { id, keys } = request.into_inner();
+    ) -> Result<
+        tonic::Response<mergeable_proto::etcdserverpb::LeaseTimeToLiveResponse>,
+        tonic::Status,
+    > {
+        let mergeable_proto::etcdserverpb::LeaseTimeToLiveRequest { id, keys } =
+            request.into_inner();
 
         debug!("Got request for lease ttl");
 
@@ -192,7 +202,8 @@ impl mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer {
     async fn lease_leases(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::LeaseLeasesRequest>,
-    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::LeaseLeasesResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::LeaseLeasesResponse>, tonic::Status>
+    {
         let mergeable_proto::etcdserverpb::LeaseLeasesRequest {} = request.into_inner();
 
         debug!("Got request for all leases");

@@ -5,9 +5,9 @@ message KeyValue {
   // key is the key in bytes. An empty key is not allowed.
   bytes key = 1;
   // create_revision is the revision of last creation on this key.
-  repeated bytes create_heads = 2;
+  bytes create_head = 2;
   // mod_revision is the revision of last modification on this key.
-  repeated bytes mod_heads = 3;
+  bytes mod_head = 3;
 
   // version is the version of the key. A deletion resets
   // the version to zero and any modification of the key

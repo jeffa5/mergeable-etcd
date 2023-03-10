@@ -1,4 +1,4 @@
-use automerge_persistent::{MemoryPersister, Persister, PersistentAutomerge};
+use automerge_persistent::{MemoryPersister, PersistentAutomerge, Persister};
 use rand::SeedableRng;
 use rand::{rngs::StdRng, Rng};
 use tokio::sync::watch;
