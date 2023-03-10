@@ -1,6 +1,5 @@
 use automerge::transaction::UnObserved;
 use automerge::ChangeHash;
-use std::collections::BTreeMap;
 use tracing::debug;
 use tracing::warn;
 
@@ -67,7 +66,7 @@ pub fn extract_key_value_at<R: ReadDoc>(
 
 /// Get the values in the half-open interval `[start, end)`.
 /// Returns the usual response as well as the revision of a delete if one occurred.
-pub fn range<R: ReadDoc>(txn: &R, request: RangeRequest) -> (RangeResponse, BTreeMap<String, ChangeHash>) {
+pub fn range<R: ReadDoc>(txn: &R, request: RangeRequest) -> RangeResponse {
     let RangeRequest {
         start,
         end,
@@ -76,7 +75,6 @@ pub fn range<R: ReadDoc>(txn: &R, request: RangeRequest) -> (RangeResponse, BTre
         count_only,
     } = request;
     let mut values = Vec::new();
-    let mut deleted_values = BTreeMap::new();
     if let Some((_, kvs)) = txn.get(ROOT, "kvs").unwrap() {
         if let Some(end) = &end {
             if heads.is_empty() {
@@ -132,7 +130,7 @@ pub fn range<R: ReadDoc>(txn: &R, request: RangeRequest) -> (RangeResponse, BTre
         ?count,
         "Processed range request"
     );
-    (RangeResponse { values, count }, deleted_values)
+    RangeResponse { values, count }
 }
 
 pub fn put(txn: &mut Transaction, watcher: &mut VecWatcher, request: PutRequest) -> PutResponse {
@@ -277,7 +275,7 @@ pub fn txn(tx: &mut Transaction, watcher: &mut VecWatcher, request: TxnRequest) 
     let responses = ops
         .into_iter()
         .map(|r| match r {
-            KvRequest::Range(r) => KvResponse::Range(range(tx, r).0),
+            KvRequest::Range(r) => KvResponse::Range(range(tx, r)),
             KvRequest::Put(r) => KvResponse::Put(put(tx, watcher, r)),
             KvRequest::DeleteRange(r) => KvResponse::DeleteRange(delete_range(tx, watcher, r)),
             KvRequest::Txn(r) => KvResponse::Txn(txn(tx, watcher, r)),
@@ -310,7 +308,7 @@ fn txn_compare(txn: &mut Transaction, compare: Compare) -> bool {
             count_only: false,
         },
     )
-    .0;
+    ;
 
     let success = values.into_iter().all(|value| match &target {
         // TODO: check these head comparisons, should leverage automerge's hash graph

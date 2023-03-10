@@ -218,7 +218,6 @@ where
             leases_objid: automerge::ObjId::Root,
             rng: StdRng::seed_from_u64(self.seed),
             updated_self_member: false,
-            cache: Default::default(),
             flush_notifier,
             flush_notifier_receiver,
             auto_flush: self.auto_flush,

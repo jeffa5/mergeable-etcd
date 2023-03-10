@@ -22,7 +22,7 @@ impl Kv for KvServer {
 
         let result = {
             // ensure we drop the lock before waiting on the result
-            let mut document = self.document.lock().await;
+            let document = self.document.lock().await;
             document.range(request)
         };
 

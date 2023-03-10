@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use automerge::{
     sync, transaction::Transactable, ActorId, AutomergeError, ChangeHash, ObjId, ObjType, Prop,
     ScalarValue, VecOpObserver, ROOT,
@@ -9,14 +7,12 @@ use automerge_persistent::Persister;
 use automerge_persistent::{PersistentAutomerge, StoredSizes};
 use mergeable_proto::etcdserverpb::Member;
 use rand::rngs::StdRng;
-use rand::Rng;
 use tokio::sync::oneshot;
 use tokio::sync::watch;
 use tracing::warn;
 use tracing::{debug, info};
 
 use crate::watcher::WatchEventType;
-use crate::WatchEvent;
 use crate::{
     req_resp::{
         DeleteRangeRequest, DeleteRangeResponse, Header, PutRequest, PutResponse, RangeRequest,
@@ -56,7 +52,6 @@ pub struct Document<P, S, W> {
     pub rng: StdRng,
     // whether we have updated our entry in the members object (after seeing ourselves there)
     pub(crate) updated_self_member: bool,
-    pub(crate) cache: crate::cache::Cache,
     pub(crate) flush_notifier: watch::Sender<()>,
     // keep this around so that we don't close the channel
     #[allow(dead_code)]
@@ -266,7 +261,7 @@ where
         &self,
         request: RangeRequest,
     ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse)>> {
-        let (result, _) = crate::transaction::range(self.am.document(), request);
+        let result = crate::transaction::range(self.am.document(), request);
         let header = self.header()?;
 
         let (sender, receiver) = oneshot::channel();
@@ -277,18 +272,6 @@ where
         });
 
         Ok(receiver)
-    }
-
-    /// Get the values in the half-open interval `[start, end)`.
-    /// Delete revisions are a mapping from the keys that are deleted to the revision they were
-    /// deleted at.
-    pub fn range_with_deleted(
-        &self,
-        request: RangeRequest,
-    ) -> crate::Result<(Header, RangeResponse, BTreeMap<String, ChangeHash>)> {
-        let (result, deleted_values) = crate::transaction::range(self.am.document(), request);
-        let header = self.header()?;
-        Ok((header, result, deleted_values))
     }
 
     pub async fn txn(
@@ -383,8 +366,6 @@ where
 
         self.flush();
 
-        // self.refresh_revision_cache();
-
         for patch in observer.take_patches() {
             match patch {
                 automerge::Patch::Put {
@@ -399,7 +380,7 @@ where
                     }
 
                     // see if this is a change in the revs of a key
-                    if let Some(key) = self
+                    if let Some(_key) = self
                         .am
                         .document()
                         .parents(obj.clone())
@@ -413,81 +394,7 @@ where
                             }
                         })
                     {
-                        // work out whether this key had another put or a delete
-                        let (header, response, delete_revisions) =
-                            self.range_with_deleted(RangeRequest {
-                                start: key.clone(),
-                                end: None,
-                                heads: Vec::new(),
-                                limit: None,
-                                count_only: false,
-                            })?;
-                        if response.values.is_empty() {
-                            // delete occurred
-                            let revision = *delete_revisions.get(&key).unwrap();
-                            // only send a response if this patch is for a most recent value
-                            if rev
-                                .to_string()
-                                .parse::<u64>()
-                                .map_err(|_| crate::Error::NotParseableAsId(rev.to_string()))?
-                                >= todo!("was revision")
-                            {
-                                let (_header, past_response, _) =
-                                    self.range_with_deleted(RangeRequest {
-                                        start: key.clone(),
-                                        end: None,
-                                        heads: todo!(),
-                                        limit: None,
-                                        count_only: false,
-                                    })?;
-                                self.watcher
-                                    .publish_event(
-                                        header,
-                                        crate::WatchEvent {
-                                            typ: crate::watcher::WatchEventType::Delete,
-                                            kv: crate::KeyValue {
-                                                key: key.clone(),
-                                                value: Vec::new(),
-                                                create_head: automerge::ChangeHash([0; 32]),
-                                                mod_head: automerge::ChangeHash([0; 32]),
-                                                lease: None,
-                                            },
-                                            prev_kv: past_response.values.first().cloned(),
-                                        },
-                                    )
-                                    .await;
-                            }
-                        } else {
-                            // only send a response if this patch is for a most recent value
-
-                            todo!()
-                            // if rev
-                            //     .to_string()
-                            //     .parse::<u64>()
-                            //     .map_err(|_| crate::Error::NotParseableAsId(rev.to_string()))?
-                            //     >= response.values.first().unwrap().mod_heads
-                            // {
-                            //     // put occurred
-                            //     let (_header, past_response, _) =
-                            //         self.range_or_delete_revision(RangeRequest {
-                            //             start: key,
-                            //             end: None,
-                            //             heads: todo!(),
-                            //             limit: None,
-                            //             count_only: false,
-                            //         })?;
-                            //     self.watcher
-                            //         .publish_event(
-                            //             header,
-                            //             crate::WatchEvent {
-                            //                 typ: crate::watcher::WatchEventType::Put,
-                            //                 kv: response.values.first().unwrap().clone(),
-                            //                 prev_kv: past_response.values.first().cloned(),
-                            //             },
-                            //         )
-                            //         .await;
-                            // }
-                        }
+                        todo!()
                     } else if obj == self.members_objid {
                         let member = self.get_member(
                             rev.to_string()
