@@ -31,7 +31,7 @@ const DEFAULT_LEASE_TTL: i64 = 30;
 /// this includes things like cluster_id, members lists, leases and kvs.
 ///
 /// {
-///   "kvs": { "key1": { "revs": { "001": 0x00, "003": 0x01 }, "lease_id": 0 } },
+///   "kvs": { "key1": { "value": ..., "lease": 0 } },
 ///   "leases": { "1": (), "5": () },
 ///   "server": { "cluster_id": 0x00, "revision": 4 }
 ///   "members": { 0: {"name": "default", "peer_urls":[], "client_urls":[]} }
