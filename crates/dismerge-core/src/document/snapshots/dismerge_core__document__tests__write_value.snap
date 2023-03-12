@@ -1,0 +1,18 @@
+---
+source: crates/dismerge-core/src/document/tests.rs
+expression: "doc.put(PutRequest {\n                        key: key.clone(),\n                        value: value.clone(),\n                        lease_id: None,\n                        prev_kv: true,\n                    }).await.unwrap().await.unwrap()"
+---
+(
+    Header {
+        cluster_id: 1,
+        member_id: 1,
+        heads: [
+            ChangeHash(
+                "64d4280f5b8b229bf86e22a3bde99fa1b8d6ad08479d0ff6244ad405707ae450",
+            ),
+        ],
+    },
+    PutResponse {
+        prev_kv: None,
+    },
+)

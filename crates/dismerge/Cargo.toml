@@ -1,0 +1,33 @@
+[package]
+name = "dismerge"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+automerge = "0.3.0"
+automerge-persistent = "0.3.0"
+automerge-persistent-sled = "0.3.0"
+axum = "0.6.10"
+chrono = "0.4.19"
+clap = { version = "4.1.8", features = ["derive"] }
+mergeable-proto = { path = "../../proto/mergeable-proto" }
+futures = "0.3.21"
+dismerge-core = { path = "../dismerge-core" }
+peer-proto = { path = "../../proto/peer-proto" }
+prometheus-client = "0.19.0"
+rand = "0.8.5"
+sled = "0.34.7"
+tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread", "fs"] }
+tokio-stream = { version = "0.1.8", features = ["net"] }
+tonic = { version = "0.8.3", features = ["tls"] }
+tower = { version = "0.4.12", features = ["load-shed"] }
+tracing = "0.1.34"
+tracing-subscriber = { version = "0.3.11", features = ["env-filter"] }
+url = "2.2.2"
+
+[dev-dependencies]
+pretty_assertions = "1.2.1"
+reqwest = "0.11.10"
+tempdir = "0.3.7"
+test-log = { version = "0.2.8", default-features = false, features = ["trace"] }
+hyper = "0.14.18"
