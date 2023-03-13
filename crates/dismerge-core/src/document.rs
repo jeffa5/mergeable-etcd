@@ -271,7 +271,7 @@ where
 
     /// Get the values in the half-open interval `[start, end)`.
     pub fn range(
-        &self,
+        &mut self,
         request: RangeRequest,
     ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse<V>)>>
     where
@@ -282,6 +282,11 @@ where
 
         let (sender, receiver) = oneshot::channel();
         let mut flush_receiver = self.flush_notifier.subscribe();
+
+        if self.auto_flush {
+            self.flush();
+        }
+
         tokio::spawn(async move {
             flush_receiver.changed().await.unwrap();
             let _: Result<_, _> = sender.send((header, result));
