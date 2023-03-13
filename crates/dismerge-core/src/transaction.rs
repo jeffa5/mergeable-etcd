@@ -1,5 +1,7 @@
 use automerge::transaction::UnObserved;
 use automerge::ChangeHash;
+use autosurgeon::hydrate_prop;
+use autosurgeon::reconcile_prop;
 use tracing::debug;
 use tracing::warn;
 
@@ -26,19 +28,20 @@ use automerge::ROOT;
 
 type Transaction<'a> = automerge::transaction::Transaction<'a, UnObserved>;
 
-pub fn extract_key_value<R: ReadDoc, V: Value>(txn: &R, key: String, key_obj: &ObjId) -> KeyValue<V>
-where
-    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+pub fn extract_key_value<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
+    txn: &R,
+    key: String,
+    key_obj: &ObjId,
+) -> KeyValue<V> {
     let create_head = txn.hash_for_opid(key_obj).unwrap_or(ChangeHash([0; 32]));
-    let (value, value_id) = txn.get(key_obj, "value").unwrap().unwrap();
+    let (_value, value_id) = automerge::ReadDoc::get(txn, key_obj, "value")
+        .unwrap()
+        .unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap_or(ChangeHash([0; 32]));
-    let lease = txn
-        .get(key_obj, "lease")
+    let lease = automerge::ReadDoc::get(txn, key_obj, "lease")
         .unwrap()
         .and_then(|v| v.0.to_i64());
-    let bytes = value.into_bytes().unwrap();
-    let value = bytes.try_into().unwrap();
+    let value: V = hydrate_prop(txn, key_obj, "value").unwrap();
     KeyValue {
         key,
         value,
@@ -48,25 +51,24 @@ where
     }
 }
 
-pub fn extract_key_value_at<R: ReadDoc, V: Value>(
+pub fn extract_key_value_at<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
     txn: &R,
     key: String,
     key_obj: ObjId,
     heads: &[ChangeHash],
-) -> KeyValue<V>
-where
-    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+) -> KeyValue<V> {
     let create_head = txn.hash_for_opid(&key_obj).unwrap();
-    let (value, value_id) = txn.get_at(&key_obj, "value", heads).unwrap().unwrap();
+    let (_value, value_id) = txn.get_at(&key_obj, "value", heads).unwrap().unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap();
     let lease = txn
         .get_at(&key_obj, "lease", heads)
         .unwrap()
         .and_then(|v| v.0.to_i64());
+    // TODO: fix this to query in history
+    let value: V = hydrate_prop(txn, key_obj, "value").unwrap();
     KeyValue {
         key,
-        value: value.into_bytes().unwrap().try_into().unwrap(),
+        value,
         create_head,
         mod_head,
         lease,
@@ -75,10 +77,10 @@ where
 
 /// Get the values in the half-open interval `[start, end)`.
 /// Returns the usual response as well as the revision of a delete if one occurred.
-pub fn range<R: ReadDoc, V: Value>(txn: &R, request: RangeRequest) -> RangeResponse<V>
-where
-    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+pub fn range<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
+    txn: &R,
+    request: RangeRequest,
+) -> RangeResponse<V> {
     let RangeRequest {
         start,
         end,
@@ -87,10 +89,10 @@ where
         count_only,
     } = request;
     let mut values = Vec::new();
-    if let Some((_, kvs)) = txn.get(ROOT, "kvs").unwrap() {
+    if let Some((_, kvs)) = automerge::ReadDoc::get(txn, ROOT, "kvs").unwrap() {
         if let Some(end) = &end {
             if heads.is_empty() {
-                let keys = txn.map_range(&kvs, start.clone()..end.clone());
+                let keys = automerge::ReadDoc::map_range(txn, &kvs, start.clone()..end.clone());
                 for (i, (key, _value, key_obj)) in keys.enumerate() {
                     if let Some(limit) = limit {
                         if i as u64 == limit {
@@ -115,7 +117,7 @@ where
                 }
             }
         } else if heads.is_empty() {
-            if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
+            if let Some((_, key_obj)) = automerge::ReadDoc::get(txn, &kvs, &start).unwrap() {
                 let value = extract_key_value(txn, start.clone(), &key_obj);
                 values.push(value);
             }
@@ -145,10 +147,7 @@ pub fn put<V: Value>(
     txn: &mut Transaction,
     watcher: &mut VecWatcher<V>,
     request: PutRequest<V>,
-) -> PutResponse<V>
-where
-    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+) -> PutResponse<V> {
     let PutRequest {
         key,
         value,
@@ -183,7 +182,7 @@ where
         }
     }
 
-    txn.put(&key_obj, "value", value.clone()).unwrap();
+    reconcile_prop(txn, &key_obj, "value", value.clone()).unwrap();
 
     watcher.publish_event(crate::WatchEvent {
         typ: crate::watcher::WatchEventType::Put(KeyValue {
@@ -207,10 +206,7 @@ pub fn delete_range<V: Value>(
     txn: &mut Transaction,
     watcher: &mut VecWatcher<V>,
     request: DeleteRangeRequest,
-) -> DeleteRangeResponse<V>
-where
-    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+) -> DeleteRangeResponse<V> {
     let DeleteRangeRequest {
         start,
         end,
@@ -269,10 +265,7 @@ pub fn txn<V: Value>(
     tx: &mut Transaction,
     watcher: &mut VecWatcher<V>,
     request: TxnRequest<V>,
-) -> TxnResponse<V>
-where
-    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+) -> TxnResponse<V> {
     let succeeded = request.compare.into_iter().all(|c| txn_compare::<V>(tx, c));
     let ops = if succeeded {
         request.success
@@ -298,10 +291,7 @@ where
     }
 }
 
-fn txn_compare<V: Value>(txn: &mut Transaction, compare: Compare) -> bool
-where
-    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+fn txn_compare<V: Value>(txn: &mut Transaction, compare: Compare) -> bool {
     let Compare {
         key,
         range_end,

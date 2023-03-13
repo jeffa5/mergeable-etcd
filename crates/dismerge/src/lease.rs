@@ -13,10 +13,7 @@ pub(crate) struct LeaseServer<V> {
 }
 
 #[tonic::async_trait]
-impl<V: Value> mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer<V>
-where
-    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
-{
+impl<V: Value> mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer<V> {
     async fn lease_grant(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::LeaseGrantRequest>,

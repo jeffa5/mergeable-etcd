@@ -28,6 +28,7 @@ pub use req_resp::RangeResponse;
 pub use req_resp::TxnRequest;
 pub use req_resp::TxnResponse;
 pub use syncer::Syncer;
+pub use value::Bytes;
 pub use value::Value;
 pub use watch_server::WatchServer;
 pub use watcher::VecWatcher;

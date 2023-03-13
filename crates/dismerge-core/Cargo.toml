@@ -16,6 +16,7 @@ futures = "0.3.21"
 rand = "0.8.5"
 chrono = "0.4.19"
 thiserror = "1.0.31"
+autosurgeon = "0.3.2"
 
 [dev-dependencies]
 insta = "1.28.0"

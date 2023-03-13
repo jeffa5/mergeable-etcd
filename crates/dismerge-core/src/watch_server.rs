@@ -24,7 +24,10 @@ pub struct WatchServer<V> {
 
 impl<V> Default for WatchServer<V> {
     fn default() -> Self {
-        Self { watches: Default::default(), max_id: Default::default() }
+        Self {
+            watches: Default::default(),
+            max_id: Default::default(),
+        }
     }
 }
 

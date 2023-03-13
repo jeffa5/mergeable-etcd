@@ -7,6 +7,7 @@ use tokio::sync::Mutex;
 use crate::req_resp::Compare;
 use crate::syncer::LocalSyncer;
 use crate::watcher::TestWatcher;
+use crate::Bytes;
 use crate::CompareResult;
 use crate::CompareTarget;
 use crate::DocumentBuilder;
@@ -17,14 +18,14 @@ use insta::assert_debug_snapshot;
 
 use super::*;
 
-type TestDocumentBuilder = DocumentBuilder<MemoryPersister, (), (), Vec<u8>>;
+type TestDocumentBuilder = DocumentBuilder<MemoryPersister, (), (), Bytes>;
 
 #[tokio::test]
 async fn write_value() {
     let mut doc = TestDocumentBuilder::default().build();
     let key = "key1".to_owned();
-    let value1 = b"value1".to_vec();
-    let value2 = b"value2".to_vec();
+    let value1 = Bytes::from(b"value1".to_vec());
+    let value2 = Bytes::from(b"value2".to_vec());
 
     let first_put = doc
         .put(PutRequest {
@@ -80,14 +81,16 @@ async fn write_value() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -127,14 +130,16 @@ async fn write_value() {
             prev_kv: Some(
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -173,14 +178,16 @@ async fn write_value() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        50,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            50,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -220,14 +227,16 @@ async fn write_value() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -251,7 +260,7 @@ async fn delete_value() {
     assert_debug_snapshot!(
         doc.put(PutRequest {
             key: key.clone(),
-            value: value.clone(),
+            value: Bytes::from(value.clone()),
             lease_id: None,
             prev_kv: true,
         })
@@ -310,14 +319,16 @@ async fn delete_value() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -359,14 +370,16 @@ async fn delete_value() {
             prev_kvs: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -442,14 +455,16 @@ async fn delete_value() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -473,7 +488,7 @@ async fn range() {
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
     let key4 = "key4".to_owned();
-    let value = b"value1".to_vec();
+    let value = Bytes::from(b"value1".to_vec());
 
     assert_debug_snapshot!(
         doc.put(PutRequest {
@@ -613,14 +628,16 @@ async fn range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -661,14 +678,16 @@ async fn range() {
             values: [
                 KeyValue {
                     key: "key1/key2",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "a8f717bac9aad6f3822b468a664e3a6c825f2acd367be8b3d4ad224c0e550d23",
                     ),
@@ -709,14 +728,16 @@ async fn range() {
             values: [
                 KeyValue {
                     key: "key1/key3",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "fbd9942df31cb77d047fee8743b4e7518d552d977a4cba90c517c8bde7011e0d",
                     ),
@@ -757,14 +778,16 @@ async fn range() {
             values: [
                 KeyValue {
                     key: "key4",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
                     ),
@@ -835,14 +858,16 @@ async fn range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -853,14 +878,16 @@ async fn range() {
                 },
                 KeyValue {
                     key: "key1/key2",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "a8f717bac9aad6f3822b468a664e3a6c825f2acd367be8b3d4ad224c0e550d23",
                     ),
@@ -871,14 +898,16 @@ async fn range() {
                 },
                 KeyValue {
                     key: "key1/key3",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "fbd9942df31cb77d047fee8743b4e7518d552d977a4cba90c517c8bde7011e0d",
                     ),
@@ -919,14 +948,16 @@ async fn range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -967,14 +998,16 @@ async fn range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -985,14 +1018,16 @@ async fn range() {
                 },
                 KeyValue {
                     key: "key1/key2",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "a8f717bac9aad6f3822b468a664e3a6c825f2acd367be8b3d4ad224c0e550d23",
                     ),
@@ -1074,7 +1109,7 @@ async fn remove_range() {
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
     let key4 = "key4".to_owned();
-    let value = b"value1".to_vec();
+    let value = Bytes::from(b"value1".to_vec());
 
     assert_debug_snapshot!(
         doc.put(PutRequest {
@@ -1214,14 +1249,16 @@ async fn remove_range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -1262,14 +1299,16 @@ async fn remove_range() {
             values: [
                 KeyValue {
                     key: "key1/key2",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "a8f717bac9aad6f3822b468a664e3a6c825f2acd367be8b3d4ad224c0e550d23",
                     ),
@@ -1310,14 +1349,16 @@ async fn remove_range() {
             values: [
                 KeyValue {
                     key: "key1/key3",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "fbd9942df31cb77d047fee8743b4e7518d552d977a4cba90c517c8bde7011e0d",
                     ),
@@ -1358,14 +1399,16 @@ async fn remove_range() {
             values: [
                 KeyValue {
                     key: "key4",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
                     ),
@@ -1436,14 +1479,16 @@ async fn remove_range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -1454,14 +1499,16 @@ async fn remove_range() {
                 },
                 KeyValue {
                     key: "key1/key2",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "a8f717bac9aad6f3822b468a664e3a6c825f2acd367be8b3d4ad224c0e550d23",
                     ),
@@ -1472,14 +1519,16 @@ async fn remove_range() {
                 },
                 KeyValue {
                     key: "key1/key3",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "fbd9942df31cb77d047fee8743b4e7518d552d977a4cba90c517c8bde7011e0d",
                     ),
@@ -1520,14 +1569,16 @@ async fn remove_range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -1568,14 +1619,16 @@ async fn remove_range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -1586,14 +1639,16 @@ async fn remove_range() {
                 },
                 KeyValue {
                     key: "key1/key2",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "a8f717bac9aad6f3822b468a664e3a6c825f2acd367be8b3d4ad224c0e550d23",
                     ),
@@ -1693,14 +1748,16 @@ async fn remove_range() {
             prev_kvs: [
                 KeyValue {
                     key: "key1/key2",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "a8f717bac9aad6f3822b468a664e3a6c825f2acd367be8b3d4ad224c0e550d23",
                     ),
@@ -1711,14 +1768,16 @@ async fn remove_range() {
                 },
                 KeyValue {
                     key: "key1/key3",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "fbd9942df31cb77d047fee8743b4e7518d552d977a4cba90c517c8bde7011e0d",
                     ),
@@ -1788,14 +1847,16 @@ async fn remove_range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -1836,14 +1897,16 @@ async fn remove_range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -1884,14 +1947,16 @@ async fn remove_range() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -2004,7 +2069,7 @@ async fn delete_non_existent_key() {
 async fn put_no_prev_kv() {
     let mut doc = TestDocumentBuilder::default().build();
     let key = "key".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
     assert_debug_snapshot!(
         doc.put(PutRequest {
             key: key.clone(),
@@ -2067,7 +2132,7 @@ async fn put_no_prev_kv() {
 async fn delete_range_no_prev_kv() {
     let mut doc = TestDocumentBuilder::default().build();
     let key = "key".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
     assert_debug_snapshot!(
         doc.put(PutRequest {
             key: key.clone(),
@@ -2130,7 +2195,7 @@ async fn delete_range_no_prev_kv() {
 async fn transaction() {
     let mut doc = TestDocumentBuilder::default().build();
     let key = "key1".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
     // success
     assert_debug_snapshot!(doc.heads(), @r###"
     [
@@ -2210,13 +2275,15 @@ async fn transaction() {
                         values: [
                             KeyValue {
                                 key: "key1",
-                                value: [
-                                    118,
-                                    97,
-                                    108,
-                                    117,
-                                    101,
-                                ],
+                                value: Bytes(
+                                    [
+                                        118,
+                                        97,
+                                        108,
+                                        117,
+                                        101,
+                                    ],
+                                ),
                                 create_head: ChangeHash(
                                     "0000000000000000000000000000000000000000000000000000000000000000",
                                 ),
@@ -2325,13 +2392,15 @@ async fn transaction() {
                         values: [
                             KeyValue {
                                 key: "key1",
-                                value: [
-                                    118,
-                                    97,
-                                    108,
-                                    117,
-                                    101,
-                                ],
+                                value: Bytes(
+                                    [
+                                        118,
+                                        97,
+                                        108,
+                                        117,
+                                        101,
+                                    ],
+                                ),
                                 create_head: ChangeHash(
                                     "b347b51d311dd2cf63a11337650cc2a940af1dc72353678bad64e20feff1df91",
                                 ),
@@ -2354,13 +2423,15 @@ async fn transaction() {
                         values: [
                             KeyValue {
                                 key: "key1",
-                                value: [
-                                    118,
-                                    97,
-                                    108,
-                                    117,
-                                    101,
-                                ],
+                                value: Bytes(
+                                    [
+                                        118,
+                                        97,
+                                        108,
+                                        117,
+                                        101,
+                                    ],
+                                ),
                                 create_head: ChangeHash(
                                     "b347b51d311dd2cf63a11337650cc2a940af1dc72353678bad64e20feff1df91",
                                 ),
@@ -2398,7 +2469,7 @@ async fn transaction_single_heads() {
     let mut doc = TestDocumentBuilder::default().build();
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     assert_debug_snapshot!(doc.heads(), @r###"
     [
@@ -2473,13 +2544,15 @@ async fn transaction_single_heads() {
                         values: [
                             KeyValue {
                                 key: "key1",
-                                value: [
-                                    118,
-                                    97,
-                                    108,
-                                    117,
-                                    101,
-                                ],
+                                value: Bytes(
+                                    [
+                                        118,
+                                        97,
+                                        108,
+                                        117,
+                                        101,
+                                    ],
+                                ),
                                 create_head: ChangeHash(
                                     "0000000000000000000000000000000000000000000000000000000000000000",
                                 ),
@@ -2497,13 +2570,15 @@ async fn transaction_single_heads() {
                         values: [
                             KeyValue {
                                 key: "key2",
-                                value: [
-                                    118,
-                                    97,
-                                    108,
-                                    117,
-                                    101,
-                                ],
+                                value: Bytes(
+                                    [
+                                        118,
+                                        97,
+                                        108,
+                                        117,
+                                        101,
+                                    ],
+                                ),
                                 create_head: ChangeHash(
                                     "0000000000000000000000000000000000000000000000000000000000000000",
                                 ),
@@ -2535,7 +2610,7 @@ async fn transaction_no_modification() {
     let mut doc = TestDocumentBuilder::default().build();
 
     let key = "key1".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     assert_debug_snapshot!(doc.heads(), @r###"
     [
@@ -2590,13 +2665,15 @@ async fn transaction_no_modification() {
                         values: [
                             KeyValue {
                                 key: "key1",
-                                value: [
-                                    118,
-                                    97,
-                                    108,
-                                    117,
-                                    101,
-                                ],
+                                value: Bytes(
+                                    [
+                                        118,
+                                        97,
+                                        108,
+                                        117,
+                                        101,
+                                    ],
+                                ),
                                 create_head: ChangeHash(
                                     "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
                                 ),
@@ -2657,13 +2734,15 @@ async fn transaction_no_modification() {
                         values: [
                             KeyValue {
                                 key: "key1",
-                                value: [
-                                    118,
-                                    97,
-                                    108,
-                                    117,
-                                    101,
-                                ],
+                                value: Bytes(
+                                    [
+                                        118,
+                                        97,
+                                        108,
+                                        117,
+                                        101,
+                                    ],
+                                ),
                                 create_head: ChangeHash(
                                     "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
                                 ),
@@ -2719,7 +2798,7 @@ async fn sync_two_documents() {
     };
 
     let key = "key".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     doc1.lock()
         .await
@@ -2768,13 +2847,15 @@ async fn sync_two_documents() {
         values: [
             KeyValue {
                 key: "key",
-                value: [
-                    118,
-                    97,
-                    108,
-                    117,
-                    101,
-                ],
+                value: Bytes(
+                    [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                    ],
+                ),
                 create_head: ChangeHash(
                     "2ace03f6c2eb629d630924d0b50401dec334de8c417190bacda25e743f564aff",
                 ),
@@ -2818,8 +2899,8 @@ async fn sync_two_documents_conflicting_puts_same_heads() {
     };
 
     let key = "key".to_owned();
-    let value1 = b"value1".to_vec();
-    let value2 = b"value2".to_vec();
+    let value1 = Bytes::from(b"value1".to_vec());
+    let value2 = Bytes::from(b"value2".to_vec());
 
     doc1.lock()
         .await
@@ -2882,14 +2963,16 @@ async fn sync_two_documents_conflicting_puts_same_heads() {
         values: [
             KeyValue {
                 key: "key",
-                value: [
-                    118,
-                    97,
-                    108,
-                    117,
-                    101,
-                    50,
-                ],
+                value: Bytes(
+                    [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        50,
+                    ],
+                ),
                 create_head: ChangeHash(
                     "8b9d06cae5b1b93062cf7d3436fbab837005e2e10b816c239ec645e87791172f",
                 ),
@@ -2934,8 +3017,8 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
 
     let key = "key".to_owned();
     let other_key = "okey".to_owned();
-    let value1 = b"value1".to_vec();
-    let value2 = b"value2".to_vec();
+    let value1 = Bytes::from(b"value1".to_vec());
+    let value2 = Bytes::from(b"value2".to_vec());
 
     doc1.lock()
         .await
@@ -3084,14 +3167,16 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         values: [
             KeyValue {
                 key: "key",
-                value: [
-                    118,
-                    97,
-                    108,
-                    117,
-                    101,
-                    50,
-                ],
+                value: Bytes(
+                    [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        50,
+                    ],
+                ),
                 create_head: ChangeHash(
                     "8b9d06cae5b1b93062cf7d3436fbab837005e2e10b816c239ec645e87791172f",
                 ),
@@ -3143,14 +3228,16 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         values: [
             KeyValue {
                 key: "key",
-                value: [
-                    118,
-                    97,
-                    108,
-                    117,
-                    101,
-                    50,
-                ],
+                value: Bytes(
+                    [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        50,
+                    ],
+                ),
                 create_head: ChangeHash(
                     "8b9d06cae5b1b93062cf7d3436fbab837005e2e10b816c239ec645e87791172f",
                 ),
@@ -3180,7 +3267,7 @@ async fn watch_value_creation() {
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let key3 = "key3".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     doc.put(PutRequest {
         key: key1.clone(),
@@ -3208,24 +3295,27 @@ async fn watch_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Put,
-                kv: KeyValue {
-                    key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                    ],
-                    create_head: ChangeHash(
-                        "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
-                    ),
-                    mod_head: ChangeHash(
-                        "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
-                    ),
-                    lease: None,
-                },
+                typ: Put(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                        ),
+                        mod_head: ChangeHash(
+                            "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                        ),
+                        lease: None,
+                    },
+                ),
                 prev_kv: None,
             },
         ),
@@ -3258,28 +3348,24 @@ async fn watch_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Delete,
-                kv: KeyValue {
-                    key: "key1",
-                    value: [],
-                    create_head: ChangeHash(
-                        "0000000000000000000000000000000000000000000000000000000000000000",
-                    ),
-                    mod_head: ChangeHash(
+                typ: Delete(
+                    "key1",
+                    ChangeHash(
                         "2b7aa6667220c04ddb5b5cb2582526989149f36c7e2109b6ec9061120a9533ff",
                     ),
-                    lease: None,
-                },
+                ),
                 prev_kv: Some(
                     KeyValue {
                         key: "key1",
-                        value: [
-                            118,
-                            97,
-                            108,
-                            117,
-                            101,
-                        ],
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                            ],
+                        ),
                         create_head: ChangeHash(
                             "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
                         ),
@@ -3343,28 +3429,24 @@ async fn watch_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Delete,
-                kv: KeyValue {
-                    key: "key1",
-                    value: [],
-                    create_head: ChangeHash(
-                        "0000000000000000000000000000000000000000000000000000000000000000",
-                    ),
-                    mod_head: ChangeHash(
+                typ: Delete(
+                    "key1",
+                    ChangeHash(
                         "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
                     ),
-                    lease: None,
-                },
+                ),
                 prev_kv: Some(
                     KeyValue {
                         key: "key1",
-                        value: [
-                            118,
-                            97,
-                            108,
-                            117,
-                            101,
-                        ],
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                            ],
+                        ),
                         create_head: ChangeHash(
                             "ed9af0e319585f19e9233727f4584ab1786d75e8d007f33ea5b573be1e2dc1f2",
                         ),
@@ -3387,28 +3469,24 @@ async fn watch_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Delete,
-                kv: KeyValue {
-                    key: "key2",
-                    value: [],
-                    create_head: ChangeHash(
-                        "0000000000000000000000000000000000000000000000000000000000000000",
-                    ),
-                    mod_head: ChangeHash(
+                typ: Delete(
+                    "key2",
+                    ChangeHash(
                         "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
                     ),
-                    lease: None,
-                },
+                ),
                 prev_kv: Some(
                     KeyValue {
                         key: "key2",
-                        value: [
-                            118,
-                            97,
-                            108,
-                            117,
-                            101,
-                        ],
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                            ],
+                        ),
                         create_head: ChangeHash(
                             "a98717a8c5823aabd2f361178c810f4641363d835d10d3b406ffe151374f3fe7",
                         ),
@@ -3461,24 +3539,27 @@ async fn watch_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Put,
-                kv: KeyValue {
-                    key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                    ],
-                    create_head: ChangeHash(
-                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
-                    ),
-                    mod_head: ChangeHash(
-                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
-                    ),
-                    lease: None,
-                },
+                typ: Put(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                        ),
+                        mod_head: ChangeHash(
+                            "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                        ),
+                        lease: None,
+                    },
+                ),
                 prev_kv: None,
             },
         ),
@@ -3493,28 +3574,24 @@ async fn watch_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Delete,
-                kv: KeyValue {
-                    key: "key1",
-                    value: [],
-                    create_head: ChangeHash(
-                        "0000000000000000000000000000000000000000000000000000000000000000",
-                    ),
-                    mod_head: ChangeHash(
+                typ: Delete(
+                    "key1",
+                    ChangeHash(
                         "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
                     ),
-                    lease: None,
-                },
+                ),
                 prev_kv: Some(
                     KeyValue {
                         key: "key1",
-                        value: [
-                            118,
-                            97,
-                            108,
-                            117,
-                            101,
-                        ],
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                            ],
+                        ),
                         create_head: ChangeHash(
                             "0000000000000000000000000000000000000000000000000000000000000000",
                         ),
@@ -3547,7 +3624,7 @@ async fn watch_server_value_creation() {
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let key3 = "key3".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     let (sender, mut receiver) = mpsc::channel(100);
     let watch_id = watch_server
@@ -3596,24 +3673,27 @@ async fn watch_server_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Put,
-                kv: KeyValue {
-                    key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                    ],
-                    create_head: ChangeHash(
-                        "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
-                    ),
-                    mod_head: ChangeHash(
-                        "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
-                    ),
-                    lease: None,
-                },
+                typ: Put(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                        ),
+                        mod_head: ChangeHash(
+                            "720a6aeae32e5fab3ce298de7aa4181457c86612fb98f59176a07cd083d8cb3c",
+                        ),
+                        lease: None,
+                    },
+                ),
                 prev_kv: None,
             },
         ),
@@ -3651,18 +3731,12 @@ async fn watch_server_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Delete,
-                kv: KeyValue {
-                    key: "key1",
-                    value: [],
-                    create_head: ChangeHash(
-                        "0000000000000000000000000000000000000000000000000000000000000000",
-                    ),
-                    mod_head: ChangeHash(
+                typ: Delete(
+                    "key1",
+                    ChangeHash(
                         "2b7aa6667220c04ddb5b5cb2582526989149f36c7e2109b6ec9061120a9533ff",
                     ),
-                    lease: None,
-                },
+                ),
                 prev_kv: None,
             },
         ),
@@ -3723,18 +3797,12 @@ async fn watch_server_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Delete,
-                kv: KeyValue {
-                    key: "key1",
-                    value: [],
-                    create_head: ChangeHash(
-                        "0000000000000000000000000000000000000000000000000000000000000000",
-                    ),
-                    mod_head: ChangeHash(
+                typ: Delete(
+                    "key1",
+                    ChangeHash(
                         "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
                     ),
-                    lease: None,
-                },
+                ),
                 prev_kv: None,
             },
         ),
@@ -3758,18 +3826,12 @@ async fn watch_server_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Delete,
-                kv: KeyValue {
-                    key: "key2",
-                    value: [],
-                    create_head: ChangeHash(
-                        "0000000000000000000000000000000000000000000000000000000000000000",
-                    ),
-                    mod_head: ChangeHash(
+                typ: Delete(
+                    "key2",
+                    ChangeHash(
                         "a83b4ec37bf5828577da7504a8b2144d976c8ec88aaf5d58520fc59a32d8815f",
                     ),
-                    lease: None,
-                },
+                ),
                 prev_kv: None,
             },
         ),
@@ -3819,24 +3881,27 @@ async fn watch_server_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Put,
-                kv: KeyValue {
-                    key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                    ],
-                    create_head: ChangeHash(
-                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
-                    ),
-                    mod_head: ChangeHash(
-                        "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
-                    ),
-                    lease: None,
-                },
+                typ: Put(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                        ),
+                        mod_head: ChangeHash(
+                            "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
+                        ),
+                        lease: None,
+                    },
+                ),
                 prev_kv: None,
             },
         ),
@@ -3860,18 +3925,12 @@ async fn watch_server_value_creation() {
                 ],
             },
             WatchEvent {
-                typ: Delete,
-                kv: KeyValue {
-                    key: "key1",
-                    value: [],
-                    create_head: ChangeHash(
-                        "0000000000000000000000000000000000000000000000000000000000000000",
-                    ),
-                    mod_head: ChangeHash(
+                typ: Delete(
+                    "key1",
+                    ChangeHash(
                         "4804c39da7217e9ff0099b926fef54f2be828bdeb015d43ef7aaff19aed3f905",
                     ),
-                    lease: None,
-                },
+                ),
                 prev_kv: None,
             },
         ),
@@ -3934,8 +3993,8 @@ async fn sync_two_documents_trigger_watches() {
     let key2 = "key2".to_owned();
     let key3 = "key3".to_owned();
     let other_key = "okey".to_owned();
-    let value1 = b"value1".to_vec();
-    let value2 = b"value2".to_vec();
+    let value1 = Bytes::from(b"value1".to_vec());
+    let value2 = Bytes::from(b"value2".to_vec());
 
     let (sender1, mut receiver1) = mpsc::channel(100);
     let _watch_id1 = watch_server1
@@ -4001,26 +4060,47 @@ async fn sync_two_documents_trigger_watches() {
 
     assert_debug_snapshot!(
         receiver1.recv().await,
-        @"Some((
-            watch_id1,
+        @r###"
+    Some(
+        (
+            1,
             Header {
                 cluster_id: 1,
                 member_id: 1,
-                revision: 3
+                heads: [
+                    ChangeHash(
+                        "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: value1.clone(),
-                    create_revision: 3,
-                    mod_revision: 3,
-                    version: 1,
-                    lease: None
-                },
-                prev_kv: None
-            }
-        ))"
+                typ: Put(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                                49,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                        ),
+                        mod_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                        ),
+                        lease: None,
+                    },
+                ),
+                prev_kv: None,
+            },
+        ),
+    )
+    "###
     );
     assert_debug_snapshot!(receiver1.try_recv(), @r###"
     Err(
@@ -4054,26 +4134,47 @@ async fn sync_two_documents_trigger_watches() {
 
     assert_debug_snapshot!(
         receiver2.recv().await,
-        @"Some((
-            watch_id2,
+        @r###"
+    Some(
+        (
+            1,
             Header {
                 cluster_id: 1,
                 member_id: 2,
-                revision: 2
+                heads: [
+                    ChangeHash(
+                        "ce873b875b29546dae268e592c39bc37897840aed7bbe56e0ff10a629d378050",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: value2.clone(),
-                    create_revision: 2,
-                    mod_revision: 2,
-                    version: 1,
-                    lease: None
-                },
-                prev_kv: None
-            }
-        ))"
+                typ: Put(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                                50,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "ce873b875b29546dae268e592c39bc37897840aed7bbe56e0ff10a629d378050",
+                        ),
+                        mod_head: ChangeHash(
+                            "ce873b875b29546dae268e592c39bc37897840aed7bbe56e0ff10a629d378050",
+                        ),
+                        lease: None,
+                    },
+                ),
+                prev_kv: None,
+            },
+        ),
+    )
+    "###
     );
     assert_debug_snapshot!(receiver2.try_recv(), @r###"
     Err(
@@ -4198,26 +4299,31 @@ async fn sync_two_documents_trigger_watches() {
 
     assert_debug_snapshot!(
         receiver1.try_recv(),
-        @"Ok((
-            watch_id1,
+        @r###"
+    Ok(
+        (
+            1,
             Header {
-                cluster_id,
-                member_id: id1,
-                revision: 5
+                cluster_id: 1,
+                member_id: 1,
+                heads: [
+                    ChangeHash(
+                        "cde7765fdc3376bdd2985ac90c849eecb23e77b8e18a2226806d575522aad2f9",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: Vec::new(),
-                    create_revision: 0,
-                    mod_revision: 5,
-                    version: 0,
-                    lease: None
-                },
+                typ: Delete(
+                    "key1",
+                    ChangeHash(
+                        "cde7765fdc3376bdd2985ac90c849eecb23e77b8e18a2226806d575522aad2f9",
+                    ),
+                ),
                 prev_kv: None,
-            }
-        ))"
+            },
+        ),
+    )
+    "###
     );
     assert_debug_snapshot!(receiver1.try_recv(), @r###"
     Err(
@@ -4886,7 +4992,7 @@ async fn range_limited() {
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
     let key4 = "key4".to_owned();
-    let value = b"value1".to_vec();
+    let value = Bytes::from(b"value1".to_vec());
 
     assert_debug_snapshot!(
         doc.put(PutRequest {
@@ -5026,14 +5132,16 @@ async fn range_limited() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -5074,14 +5182,16 @@ async fn range_limited() {
             values: [
                 KeyValue {
                     key: "key1/key2",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "a8f717bac9aad6f3822b468a664e3a6c825f2acd367be8b3d4ad224c0e550d23",
                     ),
@@ -5122,14 +5232,16 @@ async fn range_limited() {
             values: [
                 KeyValue {
                     key: "key1/key3",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "fbd9942df31cb77d047fee8743b4e7518d552d977a4cba90c517c8bde7011e0d",
                     ),
@@ -5170,14 +5282,16 @@ async fn range_limited() {
             values: [
                 KeyValue {
                     key: "key4",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "4d11937e9788e4e3af67ee28a91342f436097b54fb354f49eb567421e6d7aa6b",
                     ),
@@ -5248,14 +5362,16 @@ async fn range_limited() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -5296,14 +5412,16 @@ async fn range_limited() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -5344,14 +5462,16 @@ async fn range_limited() {
             values: [
                 KeyValue {
                     key: "key1",
-                    value: [
-                        118,
-                        97,
-                        108,
-                        117,
-                        101,
-                        49,
-                    ],
+                    value: Bytes(
+                        [
+                            118,
+                            97,
+                            108,
+                            117,
+                            101,
+                            49,
+                        ],
+                    ),
                     create_head: ChangeHash(
                         "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                     ),
@@ -5433,7 +5553,7 @@ async fn range_count_only() {
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
     let key4 = "key4".to_owned();
-    let value = b"value1".to_vec();
+    let value = Bytes::from(b"value1".to_vec());
 
     assert_debug_snapshot!(
         doc.put(PutRequest {
@@ -5856,7 +5976,7 @@ async fn watch_server_value_creation_start_heads() {
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let key3 = "key3".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     let start_heads = doc
         .put(PutRequest {
@@ -6101,6 +6221,7 @@ async fn txn_compare() {
     let mut doc = TestDocumentBuilder::default().build();
 
     let key1 = "key1".to_owned();
+    let value1 = Bytes::from(b"value1".to_vec());
 
     let res = doc
         .txn(TxnRequest {
@@ -6112,7 +6233,7 @@ async fn txn_compare() {
             }],
             success: vec![KvRequest::Put(PutRequest {
                 key: key1.clone(),
-                value: vec![],
+                value: value1.clone(),
                 lease_id: None,
                 prev_kv: false,
             })],
@@ -6157,7 +6278,7 @@ async fn txn_compare() {
             }],
             success: vec![KvRequest::Put(PutRequest {
                 key: key1.clone(),
-                value: vec![],
+                value: value1.clone(),
                 lease_id: None,
                 prev_kv: false,
             })],
@@ -6186,12 +6307,21 @@ async fn txn_compare() {
                     values: [
                         KeyValue {
                             key: "key1",
-                            value: [],
+                            value: Bytes(
+                                [
+                                    118,
+                                    97,
+                                    108,
+                                    117,
+                                    101,
+                                    49,
+                                ],
+                            ),
                             create_head: ChangeHash(
-                                "76229813ee60d984c2d9f7c81b46032da069cffc41887ac2c0a99610883af93c",
+                                "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                             ),
                             mod_head: ChangeHash(
-                                "76229813ee60d984c2d9f7c81b46032da069cffc41887ac2c0a99610883af93c",
+                                "2f8d12cf3c0c504a959fd9aebbf4d024332a1ec2319da91f8ddda87cf7a3f534",
                             ),
                             lease: None,
                         },
@@ -6261,10 +6391,11 @@ async fn kv_leases() {
     let (id, _ttl) = doc.add_lease(Some(20), None, 2023).unwrap();
 
     let key = "key".to_owned();
+    let value1 = Bytes::from(b"value1".to_vec());
 
     doc.put(PutRequest {
         key: key.clone(),
-        value: vec![],
+        value: value1,
         lease_id: Some(id),
         prev_kv: false,
     })
@@ -6290,12 +6421,21 @@ async fn kv_leases() {
         values: [
             KeyValue {
                 key: "key",
-                value: [],
+                value: Bytes(
+                    [
+                        118,
+                        97,
+                        108,
+                        117,
+                        101,
+                        49,
+                    ],
+                ),
                 create_head: ChangeHash(
-                    "9b3ddf60a9b61da4b6bb0b41979dee1c25240cd4c2af6a456ee506abe638219e",
+                    "9c4b9efe00e41ba7e36eed0f3ae8691fdb8611649d027e80ed106d52782f82b0",
                 ),
                 mod_head: ChangeHash(
-                    "9b3ddf60a9b61da4b6bb0b41979dee1c25240cd4c2af6a456ee506abe638219e",
+                    "9c4b9efe00e41ba7e36eed0f3ae8691fdb8611649d027e80ed106d52782f82b0",
                 ),
                 lease: Some(
                     20,
