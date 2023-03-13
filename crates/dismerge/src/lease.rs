@@ -1,4 +1,4 @@
-use dismerge_core::Value;
+use dismerge_core::value::Value;
 use futures::Stream;
 use futures::StreamExt;
 use std::pin::Pin;

@@ -4,7 +4,7 @@ mod error;
 mod req_resp;
 mod syncer;
 mod transaction;
-pub(crate) mod value;
+pub mod value;
 mod watch_server;
 mod watcher;
 
@@ -28,8 +28,6 @@ pub use req_resp::RangeResponse;
 pub use req_resp::TxnRequest;
 pub use req_resp::TxnResponse;
 pub use syncer::Syncer;
-pub use value::Bytes;
-pub use value::Value;
 pub use watch_server::WatchServer;
 pub use watcher::VecWatcher;
 pub use watcher::WatchEvent;

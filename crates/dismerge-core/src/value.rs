@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use autosurgeon::{Hydrate, Reconcile};
 
+/// Values that can be stored in the document.
 pub trait Value:
     Send
     + Sync
@@ -15,6 +16,7 @@ pub trait Value:
 {
 }
 
+/// A value that stores plain bytes.
 #[derive(Clone, Debug, Default)]
 pub struct Bytes(Vec<u8>);
 

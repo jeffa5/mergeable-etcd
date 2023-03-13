@@ -6,8 +6,8 @@ use tokio::sync::Mutex;
 
 use crate::req_resp::Compare;
 use crate::syncer::LocalSyncer;
+use crate::value::Bytes;
 use crate::watcher::TestWatcher;
-use crate::Bytes;
 use crate::CompareResult;
 use crate::CompareTarget;
 use crate::DocumentBuilder;

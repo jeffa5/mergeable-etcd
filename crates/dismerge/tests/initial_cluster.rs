@@ -1,4 +1,4 @@
-use dismerge_core::Bytes;
+use dismerge_core::value::Bytes;
 use mergeable_proto::etcdserverpb::cluster_client::ClusterClient;
 use mergeable_proto::etcdserverpb::kv_client::KvClient;
 

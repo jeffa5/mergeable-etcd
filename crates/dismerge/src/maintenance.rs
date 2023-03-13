@@ -1,5 +1,5 @@
 use crate::Doc;
-use dismerge_core::Value;
+use dismerge_core::value::Value;
 use futures::Stream;
 use std::pin::Pin;
 use std::time::Duration;

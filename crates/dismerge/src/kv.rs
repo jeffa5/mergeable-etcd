@@ -1,4 +1,4 @@
-use dismerge_core::Value;
+use dismerge_core::value::Value;
 use tonic::Response;
 
 use crate::Doc;

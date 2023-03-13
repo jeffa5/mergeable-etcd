@@ -11,7 +11,7 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use tracing::{debug, info, warn};
 
-use dismerge_core::{Syncer, Value};
+use dismerge_core::{value::Value, Syncer};
 
 use crate::Doc;
 

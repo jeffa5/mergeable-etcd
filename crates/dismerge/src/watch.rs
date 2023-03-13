@@ -1,6 +1,6 @@
 use automerge::ChangeHash;
+use dismerge_core::value::Value;
 use dismerge_core::Header;
-use dismerge_core::Value;
 use dismerge_core::WatchEvent;
 use futures::Stream;
 use futures::StreamExt;

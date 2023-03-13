@@ -1,5 +1,5 @@
 use clap::Parser;
-use dismerge_core::Bytes;
+use dismerge_core::value::Bytes;
 use tracing_subscriber::fmt;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;

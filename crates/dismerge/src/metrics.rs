@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use axum::http::StatusCode;
 use axum::routing::get;
 use axum::Router;
-use dismerge_core::Value;
+use dismerge_core::value::Value;
 use tracing::{debug, error, warn};
 
 use crate::Doc;

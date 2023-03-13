@@ -11,7 +11,7 @@ use futures::future::ready;
 use mergeable_proto::etcdserverpb::Member;
 
 #[cfg(test)]
-use crate::{Document, Value, Watcher};
+use crate::{value::Value, Document, Watcher};
 
 #[tonic::async_trait]
 pub trait Syncer {
