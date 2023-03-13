@@ -22,7 +22,7 @@ pub struct WatchService<V> {
 }
 
 #[tonic::async_trait]
-impl<V:Value> Watch for WatchService<V> {
+impl<V: Value> Watch for WatchService<V> {
     type WatchStream = Pin<
         Box<
             dyn Stream<Item = Result<mergeable_proto::etcdserverpb::WatchResponse, tonic::Status>>
@@ -52,7 +52,7 @@ impl<V:Value> Watch for WatchService<V> {
         let tx_response_clone = tx_response.clone();
         tokio::spawn(async move {
             while let Some((watch_id, header, event)) = local_receiver.recv().await {
-                let event : WatchEvent<V> = event;
+                let event: WatchEvent<V> = event;
                 debug!(watch_id, typ=?event.typ, key=?event.typ.key(), create_head=?event.typ.create_head(), mod_head=?event.typ.mod_head(), lease=?event.typ.lease(), "Sending watch response");
                 let header: dismerge_core::Header = header;
                 let event: mergeable_proto::mvccpb::Event = event.into();
@@ -196,13 +196,13 @@ pub struct MyWatcher<V> {
 }
 
 #[tonic::async_trait]
-impl<V:Value> dismerge_core::Watcher<V> for MyWatcher<V> {
+impl<V: Value> dismerge_core::Watcher<V> for MyWatcher<V> {
     async fn publish_event(&mut self, header: Header, event: WatchEvent<V>) {
         self.sender.send((header, event)).await.unwrap()
     }
 }
 
-pub async fn propagate_watches<V:Value>(
+pub async fn propagate_watches<V: Value>(
     mut receiver: mpsc::Receiver<(Header, WatchEvent<V>)>,
     watch_server: Arc<Mutex<dismerge_core::WatchServer<V>>>,
 ) {

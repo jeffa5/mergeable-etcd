@@ -293,7 +293,7 @@ pub struct PeerServer<V> {
     inner: Arc<Mutex<PeerServerInner<V>>>,
 }
 
-impl<V:Value> PeerServer<V> {
+impl<V: Value> PeerServer<V> {
     pub fn new(
         document: Doc<V>,
         name: &str,
@@ -355,7 +355,7 @@ impl<V:Value> PeerServer<V> {
 }
 
 #[tonic::async_trait]
-impl<V:Value> peer_proto::peer_server::Peer for PeerServer<V> {
+impl<V: Value> peer_proto::peer_server::Peer for PeerServer<V> {
     async fn sync(
         &self,
         request: tonic::Request<tonic::Streaming<SyncMessage>>,

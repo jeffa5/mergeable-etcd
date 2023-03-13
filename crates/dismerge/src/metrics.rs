@@ -12,7 +12,7 @@ pub struct MetricsServer<V> {
     pub(crate) document: Doc<V>,
 }
 
-impl<V:Value> MetricsServer<V> {
+impl<V: Value> MetricsServer<V> {
     pub async fn serve(&self, address: SocketAddr) {
         let document = self.document.clone();
         let router = Router::new().route("/health", get(move || health(document.clone())));
@@ -25,7 +25,7 @@ impl<V:Value> MetricsServer<V> {
     }
 }
 
-async fn health<V:Value>(document: Doc<V>) -> Result<String, StatusCode> {
+async fn health<V: Value>(document: Doc<V>) -> Result<String, StatusCode> {
     let doc = document.lock().await;
     if doc.is_ready() {
         debug!(name=?doc.name(), healthy = true, "Got health check");

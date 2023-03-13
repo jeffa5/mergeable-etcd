@@ -10,7 +10,7 @@ pub struct ClusterServer<V> {
 }
 
 #[tonic::async_trait]
-impl<V:Value> mergeable_proto::etcdserverpb::cluster_server::Cluster for ClusterServer<V> {
+impl<V: Value> mergeable_proto::etcdserverpb::cluster_server::Cluster for ClusterServer<V> {
     async fn member_add(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::MemberAddRequest>,

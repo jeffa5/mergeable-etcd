@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use automerge_persistent::MemoryPersister;
+use std::sync::Arc;
 use test_log::test;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;

@@ -277,7 +277,10 @@ async fn start_client_server<V: Value>(
     server: KvServer<V>,
     watch_server: watch::WatchService<V>,
     document: Doc<V>,
-) -> tokio::task::JoinHandle<()> where <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug {
+) -> tokio::task::JoinHandle<()>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     let client_url = url::Url::parse(&address).unwrap();
     let client_address = format!(
         "{}:{}",

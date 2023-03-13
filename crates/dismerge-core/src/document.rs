@@ -189,7 +189,10 @@ where
     pub async fn put(
         &mut self,
         request: PutRequest<V>,
-    ) -> crate::Result<oneshot::Receiver<(Header, PutResponse<V>)>> where <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug {
+    ) -> crate::Result<oneshot::Receiver<(Header, PutResponse<V>)>>
+    where
+        <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+    {
         let mut temp_watcher = VecWatcher::default();
         let txn_result = self
             .am
@@ -290,7 +293,10 @@ where
     pub async fn txn(
         &mut self,
         request: TxnRequest<V>,
-    ) -> crate::Result<oneshot::Receiver<(Header, TxnResponse<V>)>> where <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug {
+    ) -> crate::Result<oneshot::Receiver<(Header, TxnResponse<V>)>>
+    where
+        <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+    {
         let mut temp_watcher = VecWatcher::default();
         let txn_result = self
             .am
@@ -742,7 +748,10 @@ where
     }
 
     /// Remove a lease from the document and delete any associated keys.
-    pub async fn remove_lease(&mut self, id: i64) where <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug {
+    pub async fn remove_lease(&mut self, id: i64)
+    where
+        <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+    {
         let document = self.am.document();
         if let Some((automerge::Value::Object(ObjType::Map), lease_obj)) = document
             .get(&self.leases_objid, make_lease_string(id))
