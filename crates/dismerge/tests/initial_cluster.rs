@@ -1,5 +1,5 @@
-use etcd_proto::etcdserverpb::cluster_client::ClusterClient;
-use etcd_proto::etcdserverpb::kv_client::KvClient;
+use mergeable_proto::etcdserverpb::cluster_client::ClusterClient;
+use mergeable_proto::etcdserverpb::kv_client::KvClient;
 
 use hyper::Uri;
 use pretty_assertions::assert_eq;
@@ -15,7 +15,7 @@ use tonic::transport::Channel;
 use tonic::transport::ClientTlsConfig;
 use tracing::info;
 
-use etcd_proto::etcdserverpb::{MemberAddRequest, PutRequest, RangeRequest, RangeResponse};
+use mergeable_proto::etcdserverpb::{MemberAddRequest, PutRequest, RangeRequest, RangeResponse};
 
 static BASE_PORT: AtomicU32 = AtomicU32::new(2379);
 const CERT_FILE: &str = "../../certs/server.crt";
@@ -108,16 +108,16 @@ async fn make_cluster(
         let data_dir_path = data_dir.path().to_owned();
         tempdirs.push(data_dir);
 
-        let node_opts = mergeable_etcd::Options {
+        let node_opts = dismerge::Options {
             name: name.clone(),
             data_dir: Some(data_dir_path),
             advertise_client_urls: vec![client.clone()],
             initial_advertise_peer_urls: vec![peer.clone()],
             initial_cluster: initial_cluster.join(","),
             initial_cluster_state: if i == 0 {
-                mergeable_etcd::ClusterState::New
+                dismerge::ClusterState::New
             } else {
-                mergeable_etcd::ClusterState::Existing
+                dismerge::ClusterState::Existing
             },
             listen_client_urls: vec![client.clone()],
             listen_metrics_urls: vec![metrics.clone()],
@@ -132,7 +132,7 @@ async fn make_cluster(
 
         // actually start running this node
         tokio::spawn(async move {
-            mergeable_etcd::run(node_opts).await;
+            dismerge::run(node_opts).await;
         });
         info!(?name, "Started node");
 
@@ -189,24 +189,24 @@ async fn get_channel(ca_file: Option<&str>, uri: Uri) -> Channel {
 async fn initial_cluster_single() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client, peer, metrics) = get_addresses_single();
-    let node1_opts = mergeable_etcd::Options {
+    let node1_opts = dismerge::Options {
         name: "node1".to_owned(),
         data_dir: Some(data_dir1.path().to_owned()),
         advertise_client_urls: vec![client.clone()],
         initial_advertise_peer_urls: vec![],
         initial_cluster: format!("node1={}", peer),
-        initial_cluster_state: mergeable_etcd::ClusterState::New,
+        initial_cluster_state: dismerge::ClusterState::New,
         listen_client_urls: vec![client.clone()],
         listen_metrics_urls: vec![metrics.clone()],
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        dismerge::run(node1_opts).await;
     });
 
     poll_ready(&metrics.clone()).await;
 
-    let mut kv_client = etcd_proto::etcdserverpb::kv_client::KvClient::connect(client.clone())
+    let mut kv_client = mergeable_proto::etcdserverpb::kv_client::KvClient::connect(client.clone())
         .await
         .unwrap();
     kv_client
@@ -223,44 +223,44 @@ async fn initial_cluster_double() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client1, peer1, metrics1) = get_addresses_single();
     let (client2, peer2, metrics2) = get_addresses_single();
-    let node1_opts = mergeable_etcd::Options {
+    let node1_opts = dismerge::Options {
         name: "node1".to_owned(),
         data_dir: Some(data_dir1.path().to_owned()),
         advertise_client_urls: vec![client1.clone()],
         initial_advertise_peer_urls: vec![],
         initial_cluster: format!("node1={peer1},node2={peer2}"),
-        initial_cluster_state: mergeable_etcd::ClusterState::New,
+        initial_cluster_state: dismerge::ClusterState::New,
         listen_client_urls: vec![client1.clone()],
         listen_metrics_urls: vec![metrics1.clone()],
         listen_peer_urls: vec![peer1.clone()],
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        dismerge::run(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
 
     let data_dir2 = tempdir::TempDir::new("").unwrap();
-    let node2_opts = mergeable_etcd::Options {
+    let node2_opts = dismerge::Options {
         name: "node2".to_owned(),
         data_dir: Some(data_dir2.path().to_owned()),
         advertise_client_urls: vec![client2.clone()],
         initial_advertise_peer_urls: vec![],
         initial_cluster: format!("node1={peer1},node2={peer2}"),
-        initial_cluster_state: mergeable_etcd::ClusterState::New,
+        initial_cluster_state: dismerge::ClusterState::New,
         listen_client_urls: vec![client2.clone()],
         listen_metrics_urls: vec![metrics2.clone()],
         listen_peer_urls: vec![peer2.clone()],
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node2_opts).await;
+        dismerge::run(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;
 
-    let mut kv_client1 = etcd_proto::etcdserverpb::kv_client::KvClient::connect(client1.clone())
+    let mut kv_client1 = mergeable_proto::etcdserverpb::kv_client::KvClient::connect(client1.clone())
         .await
         .unwrap();
     let mut response = kv_client1
@@ -282,7 +282,7 @@ async fn initial_cluster_double() {
         }
     );
 
-    let mut kv_client2 = etcd_proto::etcdserverpb::kv_client::KvClient::connect(client2.clone())
+    let mut kv_client2 = mergeable_proto::etcdserverpb::kv_client::KvClient::connect(client2.clone())
         .await
         .unwrap();
 
@@ -348,26 +348,26 @@ async fn double_cluster_explicit_add() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client1, peer1, metrics1) = get_addresses_single();
     let (client2, peer2, metrics2) = get_addresses_single();
-    let node1_opts = mergeable_etcd::Options {
+    let node1_opts = dismerge::Options {
         name: "node1".to_owned(),
         data_dir: Some(data_dir1.path().to_owned()),
         advertise_client_urls: vec![client1.clone()],
         initial_advertise_peer_urls: vec![peer1.clone()],
         initial_cluster: format!("node1={peer1}"),
-        initial_cluster_state: mergeable_etcd::ClusterState::New,
+        initial_cluster_state: dismerge::ClusterState::New,
         listen_client_urls: vec![client1.clone()],
         listen_metrics_urls: vec![metrics1.clone()],
         listen_peer_urls: vec![peer1.clone()],
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        dismerge::run(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
 
     let mut cluster_client1 =
-        etcd_proto::etcdserverpb::cluster_client::ClusterClient::connect(client1.clone())
+        mergeable_proto::etcdserverpb::cluster_client::ClusterClient::connect(client1.clone())
             .await
             .unwrap();
 
@@ -380,20 +380,20 @@ async fn double_cluster_explicit_add() {
         .unwrap();
 
     let data_dir2 = tempdir::TempDir::new("").unwrap();
-    let node2_opts = mergeable_etcd::Options {
+    let node2_opts = dismerge::Options {
         name: "node2".to_owned(),
         data_dir: Some(data_dir2.path().to_owned()),
         advertise_client_urls: vec![client2.clone()],
         initial_advertise_peer_urls: vec![peer2.clone()],
         initial_cluster: format!("node1={peer1},node2={peer2}"),
-        initial_cluster_state: mergeable_etcd::ClusterState::Existing,
+        initial_cluster_state: dismerge::ClusterState::Existing,
         listen_client_urls: vec![client2.clone()],
         listen_metrics_urls: vec![metrics2.clone()],
         listen_peer_urls: vec![peer2.clone()],
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node2_opts).await;
+        dismerge::run(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;
@@ -402,7 +402,7 @@ async fn double_cluster_explicit_add() {
         .unwrap()
         .connect_timeout(Duration::from_secs(1))
         .timeout(Duration::from_secs(1));
-    let mut kv_client1 = etcd_proto::etcdserverpb::kv_client::KvClient::connect(channel1)
+    let mut kv_client1 = mergeable_proto::etcdserverpb::kv_client::KvClient::connect(channel1)
         .await
         .unwrap();
     let mut response = kv_client1
@@ -430,7 +430,7 @@ async fn double_cluster_explicit_add() {
         .unwrap()
         .connect_timeout(Duration::from_secs(1))
         .timeout(Duration::from_secs(1));
-    let mut kv_client2 = etcd_proto::etcdserverpb::kv_client::KvClient::connect(channel2)
+    let mut kv_client2 = mergeable_proto::etcdserverpb::kv_client::KvClient::connect(channel2)
         .await
         .unwrap();
 
@@ -495,13 +495,13 @@ async fn double_cluster_explicit_add() {
 async fn initial_cluster_single_tls() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client, peer, metrics) = get_addresses_tls_single();
-    let node1_opts = mergeable_etcd::Options {
+    let node1_opts = dismerge::Options {
         name: "node1".to_owned(),
         data_dir: Some(data_dir1.path().to_owned()),
         advertise_client_urls: vec![client.clone()],
         initial_advertise_peer_urls: vec![],
         initial_cluster: format!("node1={}", peer),
-        initial_cluster_state: mergeable_etcd::ClusterState::New,
+        initial_cluster_state: dismerge::ClusterState::New,
         listen_client_urls: vec![client.clone()],
         listen_metrics_urls: vec![metrics.clone()],
         key_file: KEY_FILE.to_owned(),
@@ -509,7 +509,7 @@ async fn initial_cluster_single_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        dismerge::run(node1_opts).await;
     });
 
     poll_ready(&metrics.clone()).await;
@@ -530,13 +530,13 @@ async fn initial_cluster_double_tls() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client1, peer1, metrics1) = get_addresses_tls_single();
     let (client2, peer2, metrics2) = get_addresses_tls_single();
-    let node1_opts = mergeable_etcd::Options {
+    let node1_opts = dismerge::Options {
         name: "node1".to_owned(),
         data_dir: Some(data_dir1.path().to_owned()),
         advertise_client_urls: vec![client1.clone()],
         initial_advertise_peer_urls: vec![],
         initial_cluster: format!("node1={peer1},node2={peer2}"),
-        initial_cluster_state: mergeable_etcd::ClusterState::New,
+        initial_cluster_state: dismerge::ClusterState::New,
         listen_client_urls: vec![client1.clone()],
         listen_metrics_urls: vec![metrics1.clone()],
         listen_peer_urls: vec![peer1.clone()],
@@ -548,19 +548,19 @@ async fn initial_cluster_double_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        dismerge::run(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
 
     let data_dir2 = tempdir::TempDir::new("").unwrap();
-    let node2_opts = mergeable_etcd::Options {
+    let node2_opts = dismerge::Options {
         name: "node2".to_owned(),
         data_dir: Some(data_dir2.path().to_owned()),
         advertise_client_urls: vec![client2.clone()],
         initial_advertise_peer_urls: vec![],
         initial_cluster: format!("node1={peer1},node2={peer2}"),
-        initial_cluster_state: mergeable_etcd::ClusterState::New,
+        initial_cluster_state: dismerge::ClusterState::New,
         listen_client_urls: vec![client2.clone()],
         listen_metrics_urls: vec![metrics2.clone()],
         listen_peer_urls: vec![peer2.clone()],
@@ -572,7 +572,7 @@ async fn initial_cluster_double_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node2_opts).await;
+        dismerge::run(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;
@@ -662,13 +662,13 @@ async fn double_cluster_explicit_add_tls() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client1, peer1, metrics1) = get_addresses_tls_single();
     let (client2, peer2, metrics2) = get_addresses_tls_single();
-    let node1_opts = mergeable_etcd::Options {
+    let node1_opts = dismerge::Options {
         name: "node1".to_owned(),
         data_dir: Some(data_dir1.path().to_owned()),
         advertise_client_urls: vec![client1.clone()],
         initial_advertise_peer_urls: vec![peer1.clone()],
         initial_cluster: format!("node1={peer1}"),
-        initial_cluster_state: mergeable_etcd::ClusterState::New,
+        initial_cluster_state: dismerge::ClusterState::New,
         listen_client_urls: vec![client1.clone()],
         listen_metrics_urls: vec![metrics1.clone()],
         listen_peer_urls: vec![peer1.clone()],
@@ -680,7 +680,7 @@ async fn double_cluster_explicit_add_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        dismerge::run(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
@@ -696,13 +696,13 @@ async fn double_cluster_explicit_add_tls() {
         .unwrap();
 
     let data_dir2 = tempdir::TempDir::new("").unwrap();
-    let node2_opts = mergeable_etcd::Options {
+    let node2_opts = dismerge::Options {
         name: "node2".to_owned(),
         data_dir: Some(data_dir2.path().to_owned()),
         advertise_client_urls: vec![client2.clone()],
         initial_advertise_peer_urls: vec![peer2.clone()],
         initial_cluster: format!("node1={peer1},node2={peer2}"),
-        initial_cluster_state: mergeable_etcd::ClusterState::Existing,
+        initial_cluster_state: dismerge::ClusterState::Existing,
         listen_client_urls: vec![client2.clone()],
         listen_metrics_urls: vec![metrics2.clone()],
         listen_peer_urls: vec![peer2.clone()],
@@ -714,7 +714,7 @@ async fn double_cluster_explicit_add_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node2_opts).await;
+        dismerge::run(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;
