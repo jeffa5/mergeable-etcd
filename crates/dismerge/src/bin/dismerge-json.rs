@@ -59,9 +59,18 @@ mod tests {
 
     #[test]
     fn serde() {
-        assert_eq!(Json::try_from(b"{}".to_vec()).unwrap(), Json::Map(BTreeMap::new()));
-        assert_eq!(Json::try_from(b"[]".to_vec()).unwrap(), Json::Array(Vec::new()));
-        assert_eq!(Json::try_from(b"false".to_vec()).unwrap(), Json::Bool(false));
+        assert_eq!(
+            Json::try_from(b"{}".to_vec()).unwrap(),
+            Json::Map(BTreeMap::new())
+        );
+        assert_eq!(
+            Json::try_from(b"[]".to_vec()).unwrap(),
+            Json::Array(Vec::new())
+        );
+        assert_eq!(
+            Json::try_from(b"false".to_vec()).unwrap(),
+            Json::Bool(false)
+        );
         assert_eq!(Json::try_from(b"3".to_vec()).unwrap(), Json::Int(3));
         assert_eq!(Json::try_from(b"0".to_vec()).unwrap(), Json::Int(0));
         assert_eq!(Json::try_from(b"-1".to_vec()).unwrap(), Json::Int(-1));
