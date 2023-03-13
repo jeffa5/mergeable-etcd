@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use automerge_persistent::{MemoryPersister, PersistentAutomerge, Persister};
 use rand::SeedableRng;
 use rand::{rngs::StdRng, Rng};
@@ -5,7 +7,7 @@ use tokio::sync::watch;
 
 use crate::{Document, Syncer, Watcher};
 
-pub struct DocumentBuilder<P, S, W> {
+pub struct DocumentBuilder<P, S, W, V> {
     persister: P,
     syncer: S,
     watcher: W,
@@ -17,9 +19,10 @@ pub struct DocumentBuilder<P, S, W> {
     client_urls: Vec<String>,
     seed: u64,
     auto_flush: bool,
+    _value_type: PhantomData<V>,
 }
 
-impl Default for DocumentBuilder<MemoryPersister, (), ()> {
+impl Default for DocumentBuilder<MemoryPersister, (), (), Vec<u8>> {
     fn default() -> Self {
         Self {
             persister: MemoryPersister::default(),
@@ -33,13 +36,14 @@ impl Default for DocumentBuilder<MemoryPersister, (), ()> {
             client_urls: vec![],
             seed: rand::thread_rng().gen(),
             auto_flush: true,
+            _value_type: PhantomData::default(),
         }
     }
 }
 
-impl<P, S, W> DocumentBuilder<P, S, W> {
+impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
     #[must_use]
-    pub fn with_persister<P2>(self, persister: P2) -> DocumentBuilder<P2, S, W> {
+    pub fn with_persister<P2>(self, persister: P2) -> DocumentBuilder<P2, S, W, V> {
         DocumentBuilder {
             persister,
             syncer: self.syncer,
@@ -52,11 +56,12 @@ impl<P, S, W> DocumentBuilder<P, S, W> {
             client_urls: self.client_urls,
             seed: self.seed,
             auto_flush: self.auto_flush,
+            _value_type: PhantomData::default(),
         }
     }
 
     #[must_use]
-    pub fn with_syncer<S2>(self, syncer: S2) -> DocumentBuilder<P, S2, W> {
+    pub fn with_syncer<S2>(self, syncer: S2) -> DocumentBuilder<P, S2, W, V> {
         DocumentBuilder {
             persister: self.persister,
             syncer,
@@ -69,11 +74,12 @@ impl<P, S, W> DocumentBuilder<P, S, W> {
             client_urls: self.client_urls,
             seed: self.seed,
             auto_flush: self.auto_flush,
+            _value_type: PhantomData::default(),
         }
     }
 
     #[must_use]
-    pub fn with_watcher<W2>(self, watcher: W2) -> DocumentBuilder<P, S, W2> {
+    pub fn with_watcher<W2>(self, watcher: W2) -> DocumentBuilder<P, S, W2, V> {
         DocumentBuilder {
             persister: self.persister,
             syncer: self.syncer,
@@ -86,6 +92,7 @@ impl<P, S, W> DocumentBuilder<P, S, W> {
             client_urls: self.client_urls,
             seed: self.seed,
             auto_flush: self.auto_flush,
+            _value_type: PhantomData::default(),
         }
     }
 
@@ -178,7 +185,7 @@ impl<P, S, W> DocumentBuilder<P, S, W> {
     }
 }
 
-impl<S, W> DocumentBuilder<MemoryPersister, S, W> {
+impl<S, W, V> DocumentBuilder<MemoryPersister, S, W, V> {
     pub fn with_in_memory(mut self) -> Self {
         self.persister = MemoryPersister::default();
         self
@@ -190,14 +197,14 @@ impl<S, W> DocumentBuilder<MemoryPersister, S, W> {
     }
 }
 
-impl<P, S, W> DocumentBuilder<P, S, W>
+impl<P, S, W, V> DocumentBuilder<P, S, W, V>
 where
     P: Persister + 'static,
     S: Syncer,
-    W: Watcher,
+    W: Watcher<V>,
 {
     #[must_use]
-    pub fn build(self) -> Document<P, S, W> {
+    pub fn build(self) -> Document<P, S, W, V> {
         let am = PersistentAutomerge::load(self.persister).unwrap();
         let (flush_notifier, flush_notifier_receiver) = watch::channel(());
         let mut s = Document {
@@ -221,6 +228,7 @@ where
             flush_notifier,
             flush_notifier_receiver,
             auto_flush: self.auto_flush,
+            _value_type: PhantomData::default(),
         };
         s.init(self.cluster_exists);
         s

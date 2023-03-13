@@ -4,8 +4,8 @@ use tokio::sync::Mutex;
 use crate::{req_resp::Header, KeyValue};
 
 #[tonic::async_trait]
-pub trait Watcher {
-    async fn publish_event(&mut self, header: Header, event: WatchEvent);
+pub trait Watcher<V> {
+    async fn publish_event(&mut self, header: Header, event: WatchEvent<V>);
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -24,14 +24,14 @@ impl From<WatchEventType> for mergeable_proto::mvccpb::event::EventType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct WatchEvent {
+pub struct WatchEvent<V> {
     pub typ: WatchEventType,
-    pub kv: KeyValue,
-    pub prev_kv: Option<KeyValue>,
+    pub kv: KeyValue<V>,
+    pub prev_kv: Option<KeyValue<V>>,
 }
 
-impl From<WatchEvent> for mergeable_proto::mvccpb::Event {
-    fn from(event: WatchEvent) -> Self {
+impl<V> From<WatchEvent<V>> for mergeable_proto::mvccpb::Event {
+    fn from(event: WatchEvent<V>) -> Self {
         mergeable_proto::mvccpb::Event {
             r#type: mergeable_proto::mvccpb::event::EventType::from(event.typ) as i32,
             kv: Some(event.kv.into()),
@@ -41,29 +41,37 @@ impl From<WatchEvent> for mergeable_proto::mvccpb::Event {
 }
 
 #[tonic::async_trait]
-impl Watcher for () {
-    async fn publish_event(&mut self, _header: Header, _event: WatchEvent) {}
+impl<V> Watcher<V> for () {
+    async fn publish_event(&mut self, _header: Header, _event: WatchEvent<V>) {}
 }
 
-#[derive(Default, Debug)]
-pub struct VecWatcher {
-    pub events: Vec<WatchEvent>,
+#[derive(Debug)]
+pub struct VecWatcher<V> {
+    pub events: Vec<WatchEvent<V>>,
 }
 
-impl VecWatcher {
-    pub fn publish_event(&mut self, event: WatchEvent) {
+impl<V> Default for VecWatcher<V> {
+    fn default() -> Self {
+        Self {
+            events: Default::default(),
+        }
+    }
+}
+
+impl<V> VecWatcher<V> {
+    pub fn publish_event(&mut self, event: WatchEvent<V>) {
         self.events.push(event);
     }
 }
 
 #[derive(Default, Debug)]
-pub struct TestWatcher {
-    pub events: Arc<Mutex<Vec<(Header, WatchEvent)>>>,
+pub struct TestWatcher<V> {
+    pub events: Arc<Mutex<Vec<(Header, WatchEvent<V>)>>>,
 }
 
 #[tonic::async_trait]
-impl Watcher for TestWatcher {
-    async fn publish_event(&mut self, header: Header, event: WatchEvent) {
+impl<V> Watcher<V> for TestWatcher<V> {
+    async fn publish_event(&mut self, header: Header, event: WatchEvent<V>) {
         self.events.lock().await.push((header, event));
     }
 }

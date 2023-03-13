@@ -4,41 +4,44 @@ use automerge::ChangeHash;
 use automerge_persistent::Persister;
 use tokio::sync::mpsc::Sender;
 
-use crate::{Document, Header, Syncer, WatchEvent, Watcher};
+use crate::{Document, Header, Syncer, WatchEvent, Watcher, value::Value};
 
 type WatchId = i64;
 
-struct Watch {
+struct Watch<V> {
     watch_id: WatchId,
     start: String,
     end: Option<String>,
-    sender: Sender<(WatchId, Header, WatchEvent)>,
+    sender: Sender<(WatchId, Header, WatchEvent<V>)>,
     /// Whether to include previous kvs in the events.
     prev_kv: bool,
 }
 
 #[derive(Default)]
-pub struct WatchServer {
-    watches: HashMap<WatchId, Watch>,
+pub struct WatchServer<V> {
+    watches: HashMap<WatchId, Watch<V>>,
     max_id: WatchId,
 }
 
-impl WatchServer {
+impl<V> WatchServer<V>
+where
+    V: Value,
+{
     /// Create a new watcher watching the range `[start, end)` and streaming values from the
     /// start_revision to the sender.
     pub async fn create_watch<P, S, W>(
         &mut self,
-        _document: &mut Document<P, S, W>,
+        _document: &mut Document<P, S, W, V>,
         start: String,
         end: Option<String>,
         prev_kv: bool,
         start_heads: Vec<ChangeHash>,
-        sender: Sender<(WatchId, Header, WatchEvent)>,
+        sender: Sender<(WatchId, Header, WatchEvent<V>)>,
     ) -> crate::Result<WatchId>
     where
         P: Persister + 'static,
         S: Syncer,
-        W: Watcher,
+        W: Watcher<V>,
     {
         self.max_id += 1;
         let watch_id = self.max_id;
@@ -84,7 +87,7 @@ impl WatchServer {
         self.watches.remove(&id);
     }
 
-    pub async fn receive_event(&mut self, header: Header, event: WatchEvent) {
+    pub async fn receive_event(&mut self, header: Header, event: WatchEvent<V>) {
         for watcher in self.watches.values() {
             if let Some(end) = &watcher.end {
                 if watcher.start <= event.kv.key && &event.kv.key <= end {

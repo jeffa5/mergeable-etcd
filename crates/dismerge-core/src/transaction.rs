@@ -4,6 +4,7 @@ use tracing::debug;
 use tracing::warn;
 
 use crate::document::make_lease_string;
+use crate::value::Value;
 use crate::Compare;
 use crate::DeleteRangeRequest;
 use crate::DeleteRangeResponse;
@@ -25,7 +26,11 @@ use automerge::ROOT;
 
 type Transaction<'a> = automerge::transaction::Transaction<'a, UnObserved>;
 
-pub fn extract_key_value<R: ReadDoc>(txn: &R, key: String, key_obj: &ObjId) -> KeyValue {
+pub fn extract_key_value<R: ReadDoc, V: Value>(
+    txn: &R,
+    key: String,
+    key_obj: &ObjId,
+) -> KeyValue<V> {
     let create_head = txn.hash_for_opid(key_obj).unwrap_or(ChangeHash([0; 32]));
     let (value, value_id) = txn.get(key_obj, "value").unwrap().unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap_or(ChangeHash([0; 32]));
@@ -33,21 +38,23 @@ pub fn extract_key_value<R: ReadDoc>(txn: &R, key: String, key_obj: &ObjId) -> K
         .get(key_obj, "lease")
         .unwrap()
         .and_then(|v| v.0.to_i64());
+    let bytes = value.into_bytes().unwrap();
+    let value = bytes.try_into().unwrap();
     KeyValue {
         key,
-        value: value.into_bytes().unwrap(),
+        value,
         create_head,
         mod_head,
         lease,
     }
 }
 
-pub fn extract_key_value_at<R: ReadDoc>(
+pub fn extract_key_value_at<R: ReadDoc, V>(
     txn: &R,
     key: String,
     key_obj: ObjId,
     heads: &[ChangeHash],
-) -> KeyValue {
+) -> KeyValue<V> {
     let create_head = txn.hash_for_opid(&key_obj).unwrap();
     let (value, value_id) = txn.get_at(&key_obj, "value", heads).unwrap().unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap();
@@ -66,7 +73,7 @@ pub fn extract_key_value_at<R: ReadDoc>(
 
 /// Get the values in the half-open interval `[start, end)`.
 /// Returns the usual response as well as the revision of a delete if one occurred.
-pub fn range<R: ReadDoc>(txn: &R, request: RangeRequest) -> RangeResponse {
+pub fn range<R: ReadDoc, V>(txn: &R, request: RangeRequest) -> RangeResponse<V> {
     let RangeRequest {
         start,
         end,
@@ -133,7 +140,11 @@ pub fn range<R: ReadDoc>(txn: &R, request: RangeRequest) -> RangeResponse {
     RangeResponse { values, count }
 }
 
-pub fn put(txn: &mut Transaction, watcher: &mut VecWatcher, request: PutRequest) -> PutResponse {
+pub fn put<V>(
+    txn: &mut Transaction,
+    watcher: &mut VecWatcher<V>,
+    request: PutRequest<V>,
+) -> PutResponse<V> {
     let PutRequest {
         key,
         value,
@@ -189,11 +200,11 @@ pub fn put(txn: &mut Transaction, watcher: &mut VecWatcher, request: PutRequest)
     }
 }
 
-pub fn delete_range(
+pub fn delete_range<V>(
     txn: &mut Transaction,
-    watcher: &mut VecWatcher,
+    watcher: &mut VecWatcher<V>,
     request: DeleteRangeRequest,
-) -> DeleteRangeResponse {
+) -> DeleteRangeResponse<V> {
     let DeleteRangeRequest {
         start,
         end,
@@ -264,7 +275,11 @@ pub fn delete_range(
     DeleteRangeResponse { deleted, prev_kvs }
 }
 
-pub fn txn(tx: &mut Transaction, watcher: &mut VecWatcher, request: TxnRequest) -> TxnResponse {
+pub fn txn<V>(
+    tx: &mut Transaction,
+    watcher: &mut VecWatcher<V>,
+    request: TxnRequest<V>,
+) -> TxnResponse<V> {
     let succeeded = request.compare.into_iter().all(|c| txn_compare(tx, c));
     let ops = if succeeded {
         request.success

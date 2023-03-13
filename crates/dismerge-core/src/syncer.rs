@@ -31,17 +31,17 @@ impl Syncer for () {
 }
 
 #[cfg(test)]
-type Doc<P, W> = Arc<Mutex<Document<P, (), W>>>;
+type Doc<P, W, V> = Arc<Mutex<Document<P, (), W, V>>>;
 
 #[cfg(test)]
-pub struct LocalSyncer<P, W> {
+pub struct LocalSyncer<P, W, V> {
     pub local_id: u64,
-    pub local_document: Doc<P, W>,
-    pub other_documents: Vec<(u64, Doc<P, W>)>,
+    pub local_document: Doc<P, W, V>,
+    pub other_documents: Vec<(u64, Doc<P, W, V>)>,
 }
 
 #[cfg(test)]
-impl<P, W> LocalSyncer<P, W>
+impl<P, W, V> LocalSyncer<P, W, V>
 where
     P: Persister + 'static,
     W: Watcher,
