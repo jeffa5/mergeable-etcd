@@ -210,6 +210,8 @@
           k9s
           rust-analyzer
 
+          grpcurl
+
           jupyter
           python3Packages.numpy
           python3Packages.pandas
