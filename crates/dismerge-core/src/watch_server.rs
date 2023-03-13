@@ -4,7 +4,7 @@ use automerge::ChangeHash;
 use automerge_persistent::Persister;
 use tokio::sync::mpsc::Sender;
 
-use crate::{Document, Header, Syncer, WatchEvent, Watcher, value::Value};
+use crate::{value::Value, Document, Header, Syncer, WatchEvent, Watcher};
 
 type WatchId = i64;
 
@@ -89,8 +89,9 @@ where
 
     pub async fn receive_event(&mut self, header: Header, event: WatchEvent<V>) {
         for watcher in self.watches.values() {
+            let key = event.typ.key();
             if let Some(end) = &watcher.end {
-                if watcher.start <= event.kv.key && &event.kv.key <= end {
+                if watcher.start.as_str() <= key && key <= end.as_str() {
                     let mut event = event.clone();
                     if !watcher.prev_kv {
                         event.prev_kv = None;
@@ -101,7 +102,7 @@ where
                         .await
                         .unwrap();
                 }
-            } else if watcher.start == event.kv.key {
+            } else if watcher.start == key {
                 let mut event = event.clone();
                 if !watcher.prev_kv {
                     event.prev_kv = None;

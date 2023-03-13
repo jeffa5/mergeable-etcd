@@ -1,5 +1,6 @@
 use automerge::ChangeHash;
 use dismerge_core::Header;
+use dismerge_core::Value;
 use dismerge_core::WatchEvent;
 use futures::Stream;
 use futures::StreamExt;
@@ -15,13 +16,13 @@ use tracing::{debug, warn};
 use crate::Doc;
 
 #[derive(Clone)]
-pub struct WatchService {
-    pub(crate) watch_server: Arc<Mutex<dismerge_core::WatchServer>>,
-    pub(crate) document: Doc,
+pub struct WatchService<V> {
+    pub(crate) watch_server: Arc<Mutex<dismerge_core::WatchServer<V>>>,
+    pub(crate) document: Doc<V>,
 }
 
 #[tonic::async_trait]
-impl Watch for WatchService {
+impl<V:Value> Watch for WatchService<V> {
     type WatchStream = Pin<
         Box<
             dyn Stream<Item = Result<mergeable_proto::etcdserverpb::WatchResponse, tonic::Status>>
@@ -51,10 +52,9 @@ impl Watch for WatchService {
         let tx_response_clone = tx_response.clone();
         tokio::spawn(async move {
             while let Some((watch_id, header, event)) = local_receiver.recv().await {
-                let event: WatchEvent = event;
-                debug!(watch_id, typ=?event.typ, key=?event.kv.key, create_revision=?event.kv.create_head, mod_revision=?event.kv.mod_head, lease=?event.kv.lease, "Sending watch response");
+                let event : WatchEvent<V> = event;
+                debug!(watch_id, typ=?event.typ, key=?event.typ.key(), create_head=?event.typ.create_head(), mod_head=?event.typ.mod_head(), lease=?event.typ.lease(), "Sending watch response");
                 let header: dismerge_core::Header = header;
-                let event: WatchEvent = event;
                 let event: mergeable_proto::mvccpb::Event = event.into();
                 let response = WatchResponse {
                     header: Some(header.into()),
@@ -191,20 +191,20 @@ impl Watch for WatchService {
     }
 }
 
-pub struct MyWatcher {
-    pub(crate) sender: mpsc::Sender<(Header, WatchEvent)>,
+pub struct MyWatcher<V> {
+    pub(crate) sender: mpsc::Sender<(Header, WatchEvent<V>)>,
 }
 
 #[tonic::async_trait]
-impl dismerge_core::Watcher for MyWatcher {
-    async fn publish_event(&mut self, header: Header, event: WatchEvent) {
+impl<V:Value> dismerge_core::Watcher<V> for MyWatcher<V> {
+    async fn publish_event(&mut self, header: Header, event: WatchEvent<V>) {
         self.sender.send((header, event)).await.unwrap()
     }
 }
 
-pub async fn propagate_watches(
-    mut receiver: mpsc::Receiver<(Header, WatchEvent)>,
-    watch_server: Arc<Mutex<dismerge_core::WatchServer>>,
+pub async fn propagate_watches<V:Value>(
+    mut receiver: mpsc::Receiver<(Header, WatchEvent<V>)>,
+    watch_server: Arc<Mutex<dismerge_core::WatchServer<V>>>,
 ) {
     while let Some((header, event)) = receiver.recv().await {
         watch_server.lock().await.receive_event(header, event).await;

@@ -15,7 +15,6 @@ use tracing::warn;
 use tracing::{debug, info};
 
 use crate::value::Value;
-use crate::watcher::WatchEventType;
 use crate::{
     req_resp::{
         DeleteRangeRequest, DeleteRangeResponse, Header, PutRequest, PutResponse, RangeRequest,
@@ -190,7 +189,7 @@ where
     pub async fn put(
         &mut self,
         request: PutRequest<V>,
-    ) -> crate::Result<oneshot::Receiver<(Header, PutResponse<V>)>> {
+    ) -> crate::Result<oneshot::Receiver<(Header, PutResponse<V>)>> where <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug {
         let mut temp_watcher = VecWatcher::default();
         let txn_result = self
             .am
@@ -213,10 +212,12 @@ where
         self.document_changed();
         for mut event in temp_watcher.events {
             if let Some(hash) = txn_result.hash {
-                if event.kv.create_head == ChangeHash([0; 32]) {
-                    event.kv.create_head = hash;
+                if let Some(create_head) = event.typ.create_head_mut() {
+                    if *create_head == ChangeHash([0; 32]) {
+                        *create_head = hash;
+                    }
                 }
-                event.kv.mod_head = hash;
+                *event.typ.mod_head_mut() = hash;
             }
             self.watcher.publish_event(header.clone(), event).await;
         }
@@ -227,7 +228,10 @@ where
     pub async fn delete_range(
         &mut self,
         request: DeleteRangeRequest,
-    ) -> crate::Result<oneshot::Receiver<(Header, DeleteRangeResponse<V>)>> {
+    ) -> crate::Result<oneshot::Receiver<(Header, DeleteRangeResponse<V>)>>
+    where
+        <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+    {
         let mut temp_watcher = VecWatcher::default();
         let txn_result = self
             .am
@@ -254,7 +258,7 @@ where
         self.document_changed();
         for mut event in temp_watcher.events {
             if let Some(hash) = txn_result.hash {
-                event.kv.mod_head = hash;
+                *event.typ.mod_head_mut() = hash;
             }
             self.watcher.publish_event(header.clone(), event).await;
         }
@@ -266,7 +270,10 @@ where
     pub fn range(
         &self,
         request: RangeRequest,
-    ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse<V>)>> {
+    ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse<V>)>>
+    where
+        <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+    {
         let result = crate::transaction::range(self.am.document(), request);
         let header = self.header()?;
 
@@ -283,7 +290,7 @@ where
     pub async fn txn(
         &mut self,
         request: TxnRequest<V>,
-    ) -> crate::Result<oneshot::Receiver<(Header, TxnResponse<V>)>> {
+    ) -> crate::Result<oneshot::Receiver<(Header, TxnResponse<V>)>> where <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug {
         let mut temp_watcher = VecWatcher::default();
         let txn_result = self
             .am
@@ -311,10 +318,12 @@ where
         }
         for mut event in temp_watcher.events {
             if let Some(hash) = txn_result.hash {
-                if event.typ == WatchEventType::Put && event.kv.create_head == ChangeHash([0; 32]) {
-                    event.kv.create_head = hash;
+                if let Some(create_head) = event.typ.create_head_mut() {
+                    if *create_head == ChangeHash([0; 32]) {
+                        *create_head = hash;
+                    }
                 }
-                event.kv.mod_head = hash;
+                *event.typ.mod_head_mut() = hash;
             }
             self.watcher.publish_event(header.clone(), event).await;
         }
@@ -733,7 +742,7 @@ where
     }
 
     /// Remove a lease from the document and delete any associated keys.
-    pub async fn remove_lease(&mut self, id: i64) {
+    pub async fn remove_lease(&mut self, id: i64) where <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug {
         let document = self.am.document();
         if let Some((automerge::Value::Object(ObjType::Map), lease_obj)) = document
             .get(&self.leases_objid, make_lease_string(id))

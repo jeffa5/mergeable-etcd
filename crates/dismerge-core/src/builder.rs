@@ -5,6 +5,7 @@ use rand::SeedableRng;
 use rand::{rngs::StdRng, Rng};
 use tokio::sync::watch;
 
+use crate::value::Value;
 use crate::{Document, Syncer, Watcher};
 
 pub struct DocumentBuilder<P, S, W, V> {
@@ -22,7 +23,7 @@ pub struct DocumentBuilder<P, S, W, V> {
     _value_type: PhantomData<V>,
 }
 
-impl Default for DocumentBuilder<MemoryPersister, (), (), Vec<u8>> {
+impl<V> Default for DocumentBuilder<MemoryPersister, (), (), V> {
     fn default() -> Self {
         Self {
             persister: MemoryPersister::default(),
@@ -202,6 +203,7 @@ where
     P: Persister + 'static,
     S: Syncer,
     W: Watcher<V>,
+    V: Value,
 {
     #[must_use]
     pub fn build(self) -> Document<P, S, W, V> {

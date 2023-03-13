@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use automerge_persistent::MemoryPersister;
 use test_log::test;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
@@ -16,9 +17,11 @@ use insta::assert_debug_snapshot;
 
 use super::*;
 
+type TestDocumentBuilder = DocumentBuilder<MemoryPersister, (), (), Vec<u8>>;
+
 #[tokio::test]
 async fn write_value() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key = "key1".to_owned();
     let value1 = b"value1".to_vec();
     let value2 = b"value2".to_vec();
@@ -242,7 +245,7 @@ async fn write_value() {
 
 #[tokio::test]
 async fn delete_value() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key = "key1".to_owned();
     let value = b"value1".to_vec();
     assert_debug_snapshot!(
@@ -465,7 +468,7 @@ async fn delete_value() {
 
 #[tokio::test]
 async fn range() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -1066,7 +1069,7 @@ async fn range() {
 
 #[tokio::test]
 async fn remove_range() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -1965,7 +1968,7 @@ async fn remove_range() {
 
 #[tokio::test]
 async fn delete_non_existent_key() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key = "key1".to_owned();
     assert_debug_snapshot!(
         doc.delete_range(DeleteRangeRequest {
@@ -1999,7 +2002,7 @@ async fn delete_non_existent_key() {
 
 #[tokio::test]
 async fn put_no_prev_kv() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key = "key".to_owned();
     let value = b"value".to_vec();
     assert_debug_snapshot!(
@@ -2062,7 +2065,7 @@ async fn put_no_prev_kv() {
 
 #[tokio::test]
 async fn delete_range_no_prev_kv() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key = "key".to_owned();
     let value = b"value".to_vec();
     assert_debug_snapshot!(
@@ -2125,7 +2128,7 @@ async fn delete_range_no_prev_kv() {
 
 #[tokio::test]
 async fn transaction() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key = "key1".to_owned();
     let value = b"value".to_vec();
     // success
@@ -2392,7 +2395,7 @@ async fn transaction() {
 
 #[tokio::test]
 async fn transaction_single_heads() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let value = b"value".to_vec();
@@ -2529,7 +2532,7 @@ async fn transaction_single_heads() {
 
 #[tokio::test]
 async fn transaction_no_modification() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
 
     let key = "key1".to_owned();
     let value = b"value".to_vec();
@@ -2693,7 +2696,7 @@ async fn sync_two_documents() {
     let id2 = 2;
     let cluster_id = 1;
 
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -2701,7 +2704,7 @@ async fn sync_two_documents() {
         .build();
     let doc1 = Arc::new(Mutex::new(doc1));
 
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id2)
         .with_cluster_id(cluster_id)
@@ -2792,7 +2795,7 @@ async fn sync_two_documents_conflicting_puts_same_heads() {
     let id2 = 2;
     let cluster_id = 1;
 
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -2800,7 +2803,7 @@ async fn sync_two_documents_conflicting_puts_same_heads() {
         .build();
     let doc1 = Arc::new(Mutex::new(doc1));
 
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id2)
         .with_cluster_id(cluster_id)
@@ -2907,7 +2910,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
     let id2 = 2;
     let cluster_id = 1;
 
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -2915,7 +2918,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         .build();
     let doc1 = Arc::new(Mutex::new(doc1));
 
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id2)
         .with_cluster_id(cluster_id)
@@ -3170,7 +3173,7 @@ async fn watch_value_creation() {
         events: Arc::clone(&events),
     };
 
-    let mut doc = DocumentBuilder::default()
+    let mut doc = TestDocumentBuilder::default()
         .with_in_memory()
         .with_watcher(watcher)
         .build();
@@ -3537,7 +3540,7 @@ async fn watch_server_value_creation() {
 
     let mut watch_server = WatchServer::default();
 
-    let mut doc = DocumentBuilder::default()
+    let mut doc = TestDocumentBuilder::default()
         .with_in_memory()
         .with_watcher(watcher)
         .build();
@@ -3903,7 +3906,7 @@ async fn sync_two_documents_trigger_watches() {
     let mut watch_server1 = WatchServer::default();
     let mut watch_server2 = WatchServer::default();
 
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -3912,7 +3915,7 @@ async fn sync_two_documents_trigger_watches() {
         .build();
     let doc1 = Arc::new(Mutex::new(doc1));
 
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id2)
         .with_cluster_id(cluster_id)
@@ -4287,7 +4290,7 @@ async fn sync_two_documents_trigger_watches() {
 
 #[tokio::test]
 async fn start_with_ourselves_as_member() {
-    let doc = DocumentBuilder::default().build();
+    let doc = TestDocumentBuilder::default().build();
     assert_debug_snapshot!(
         doc.list_members().unwrap(),
         @r###"
@@ -4306,7 +4309,7 @@ async fn start_with_ourselves_as_member() {
 
 #[tokio::test]
 async fn add_other_member() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     assert_debug_snapshot!(
         doc.list_members().unwrap(),
         @r###"
@@ -4352,7 +4355,7 @@ async fn cluster_startup_2() {
     let cluster_id = 1;
 
     // new node is stood up
-    let mut doc1 = DocumentBuilder::default()
+    let mut doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -4407,7 +4410,7 @@ async fn cluster_startup_2() {
     let doc1 = Arc::new(Mutex::new(doc1));
 
     // then it starts with the id given from the existing cluster node
-    let mut doc2 = DocumentBuilder::default()
+    let mut doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_cluster_id(cluster_id)
         .with_syncer(())
@@ -4492,7 +4495,7 @@ async fn cluster_startup_3() {
     let peer_urls3 = vec!["3".to_owned()];
 
     // new node is stood up
-    let mut doc1 = DocumentBuilder::default()
+    let mut doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -4549,7 +4552,7 @@ async fn cluster_startup_3() {
     let doc1 = Arc::new(Mutex::new(doc1));
 
     // then it starts with the id given from the existing cluster node
-    let mut doc2 = DocumentBuilder::default()
+    let mut doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_cluster_id(cluster_id)
         .with_syncer(())
@@ -4679,7 +4682,7 @@ async fn cluster_startup_3() {
     "###);
 
     // then it starts with the id given from the existing cluster node
-    let mut doc3 = DocumentBuilder::default()
+    let mut doc3 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_cluster_id(cluster_id)
         .with_syncer(())
@@ -4878,7 +4881,7 @@ async fn cluster_startup_3() {
 
 #[tokio::test]
 async fn range_limited() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -5425,7 +5428,7 @@ async fn range_limited() {
 
 #[tokio::test]
 async fn range_count_only() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -5846,7 +5849,7 @@ async fn watch_server_value_creation_start_heads() {
 
     let mut watch_server = WatchServer::default();
 
-    let mut doc = DocumentBuilder::default()
+    let mut doc = TestDocumentBuilder::default()
         .with_in_memory()
         .with_watcher(watcher)
         .build();
@@ -6095,7 +6098,7 @@ async fn watch_server_value_creation_start_heads() {
 
 #[tokio::test]
 async fn txn_compare() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
 
     let key1 = "key1".to_owned();
 
@@ -6204,7 +6207,7 @@ async fn txn_compare() {
 
 #[test]
 fn add_lease() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
 
     // don't care, just give me a lease
     let (id, ttl) = doc.add_lease(None, None, 2023).unwrap();
@@ -6228,7 +6231,7 @@ fn add_lease() {
 
 #[tokio::test]
 async fn remove_lease() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
 
     let (id, _ttl) = doc.add_lease(None, None, 2023).unwrap();
 
@@ -6237,7 +6240,7 @@ async fn remove_lease() {
 
 #[test]
 fn refresh_lease() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
 
     let (id, ttl) = doc.add_lease(None, None, 2023).unwrap();
 
@@ -6253,7 +6256,7 @@ fn refresh_lease() {
 
 #[tokio::test]
 async fn kv_leases() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = TestDocumentBuilder::default().build();
 
     let (id, _ttl) = doc.add_lease(Some(20), None, 2023).unwrap();
 

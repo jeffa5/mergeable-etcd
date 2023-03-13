@@ -26,11 +26,10 @@ use automerge::ROOT;
 
 type Transaction<'a> = automerge::transaction::Transaction<'a, UnObserved>;
 
-pub fn extract_key_value<R: ReadDoc, V: Value>(
-    txn: &R,
-    key: String,
-    key_obj: &ObjId,
-) -> KeyValue<V> {
+pub fn extract_key_value<R: ReadDoc, V: Value>(txn: &R, key: String, key_obj: &ObjId) -> KeyValue<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     let create_head = txn.hash_for_opid(key_obj).unwrap_or(ChangeHash([0; 32]));
     let (value, value_id) = txn.get(key_obj, "value").unwrap().unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap_or(ChangeHash([0; 32]));
@@ -49,12 +48,15 @@ pub fn extract_key_value<R: ReadDoc, V: Value>(
     }
 }
 
-pub fn extract_key_value_at<R: ReadDoc, V>(
+pub fn extract_key_value_at<R: ReadDoc, V: Value>(
     txn: &R,
     key: String,
     key_obj: ObjId,
     heads: &[ChangeHash],
-) -> KeyValue<V> {
+) -> KeyValue<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     let create_head = txn.hash_for_opid(&key_obj).unwrap();
     let (value, value_id) = txn.get_at(&key_obj, "value", heads).unwrap().unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap();
@@ -64,7 +66,7 @@ pub fn extract_key_value_at<R: ReadDoc, V>(
         .and_then(|v| v.0.to_i64());
     KeyValue {
         key,
-        value: value.into_bytes().unwrap(),
+        value: value.into_bytes().unwrap().try_into().unwrap(),
         create_head,
         mod_head,
         lease,
@@ -73,7 +75,10 @@ pub fn extract_key_value_at<R: ReadDoc, V>(
 
 /// Get the values in the half-open interval `[start, end)`.
 /// Returns the usual response as well as the revision of a delete if one occurred.
-pub fn range<R: ReadDoc, V>(txn: &R, request: RangeRequest) -> RangeResponse<V> {
+pub fn range<R: ReadDoc, V: Value>(txn: &R, request: RangeRequest) -> RangeResponse<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     let RangeRequest {
         start,
         end,
@@ -140,11 +145,14 @@ pub fn range<R: ReadDoc, V>(txn: &R, request: RangeRequest) -> RangeResponse<V> 
     RangeResponse { values, count }
 }
 
-pub fn put<V>(
+pub fn put<V: Value>(
     txn: &mut Transaction,
     watcher: &mut VecWatcher<V>,
     request: PutRequest<V>,
-) -> PutResponse<V> {
+) -> PutResponse<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     let PutRequest {
         key,
         value,
@@ -182,14 +190,13 @@ pub fn put<V>(
     txn.put(&key_obj, "value", value.clone()).unwrap();
 
     watcher.publish_event(crate::WatchEvent {
-        typ: crate::watcher::WatchEventType::Put,
-        kv: KeyValue {
+        typ: crate::watcher::WatchEventType::Put(KeyValue {
             key: key.clone(),
             value,
             create_head: txn.hash_for_opid(&key_obj).unwrap_or(ChangeHash([0; 32])),
             mod_head: ChangeHash([0; 32]),
             lease: None,
-        },
+        }),
         prev_kv: prev_kv.clone(),
     });
 
@@ -200,11 +207,14 @@ pub fn put<V>(
     }
 }
 
-pub fn delete_range<V>(
+pub fn delete_range<V: Value>(
     txn: &mut Transaction,
     watcher: &mut VecWatcher<V>,
     request: DeleteRangeRequest,
-) -> DeleteRangeResponse<V> {
+) -> DeleteRangeResponse<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     let DeleteRangeRequest {
         start,
         end,
@@ -240,14 +250,7 @@ pub fn delete_range<V>(
             txn.delete(&kvs, key.clone()).unwrap();
             deleted += 1;
             watcher.publish_event(crate::WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key,
-                    value: Vec::new(),
-                    create_head: ChangeHash([0; 32]),
-                    mod_head: ChangeHash([0; 32]),
-                    lease: None,
-                },
+                typ: crate::watcher::WatchEventType::Delete(key, ChangeHash([0; 32])),
                 prev_kv: Some(prev_kv),
             });
         }
@@ -260,14 +263,7 @@ pub fn delete_range<V>(
             txn.delete(&kvs, start.clone()).unwrap();
             deleted += 1;
             watcher.publish_event(crate::WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: start,
-                    value: Vec::new(),
-                    create_head: ChangeHash([0; 32]),
-                    mod_head: ChangeHash([0; 32]),
-                    lease: None,
-                },
+                typ: crate::watcher::WatchEventType::Delete(start, ChangeHash([0; 32])),
                 prev_kv: Some(prev_kv),
             });
         }
@@ -275,12 +271,15 @@ pub fn delete_range<V>(
     DeleteRangeResponse { deleted, prev_kvs }
 }
 
-pub fn txn<V>(
+pub fn txn<V: Value>(
     tx: &mut Transaction,
     watcher: &mut VecWatcher<V>,
     request: TxnRequest<V>,
-) -> TxnResponse<V> {
-    let succeeded = request.compare.into_iter().all(|c| txn_compare(tx, c));
+) -> TxnResponse<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
+    let succeeded = request.compare.into_iter().all(|c| txn_compare::<V>(tx, c));
     let ops = if succeeded {
         request.success
     } else {
@@ -305,7 +304,10 @@ pub fn txn<V>(
     }
 }
 
-fn txn_compare(txn: &mut Transaction, compare: Compare) -> bool {
+fn txn_compare<V: Value>(txn: &mut Transaction, compare: Compare) -> bool
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     let Compare {
         key,
         range_end,
@@ -313,7 +315,7 @@ fn txn_compare(txn: &mut Transaction, compare: Compare) -> bool {
         result,
     } = compare;
 
-    let RangeResponse { values, count: _ } = range(
+    let RangeResponse { values, count: _ } = range::<_, V>(
         txn,
         RangeRequest {
             start: key.clone(),
@@ -338,12 +340,15 @@ fn txn_compare(txn: &mut Transaction, compare: Compare) -> bool {
             crate::CompareResult::Greater => value.mod_head > *v,
             crate::CompareResult::NotEqual => value.mod_head != *v,
         },
-        crate::CompareTarget::Value(v) => match result {
-            crate::CompareResult::Less => &value.value < v,
-            crate::CompareResult::Equal => &value.value == v,
-            crate::CompareResult::Greater => &value.value > v,
-            crate::CompareResult::NotEqual => &value.value != v,
-        },
+        crate::CompareTarget::Value(_v) => {
+            todo!();
+            // match result {
+            //     crate::CompareResult::Less => &value.value < v,
+            //     crate::CompareResult::Equal => &value.value == v,
+            //     crate::CompareResult::Greater => &value.value > v,
+            //     crate::CompareResult::NotEqual => &value.value != v,
+            // }
+        }
         crate::CompareTarget::Lease(v) => match result {
             crate::CompareResult::Less => value.lease < *v,
             crate::CompareResult::Equal => value.lease == *v,

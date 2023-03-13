@@ -44,7 +44,8 @@ pub struct LocalSyncer<P, W, V> {
 impl<P, W, V> LocalSyncer<P, W, V>
 where
     P: Persister + 'static,
-    W: Watcher,
+    W: Watcher<V>,
+    V: Value,
 {
     // send a message to all available peers.
     pub async fn sync(&self) -> bool {
