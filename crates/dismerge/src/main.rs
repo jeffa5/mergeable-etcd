@@ -1,4 +1,5 @@
 use clap::Parser;
+use dismerge_core::Bytes;
 use tracing_subscriber::fmt;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
@@ -19,5 +20,5 @@ async fn main() {
         })
         .init();
 
-    dismerge::run(options).await
+    dismerge::run::<Bytes>(options).await
 }

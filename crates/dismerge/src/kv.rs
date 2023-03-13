@@ -1,3 +1,4 @@
+use dismerge_core::Value;
 use tonic::Response;
 
 use crate::Doc;
@@ -7,12 +8,15 @@ use tracing::debug;
 use tracing::error;
 
 #[derive(Clone)]
-pub struct KvServer {
-    pub document: Doc,
+pub struct KvServer<V> {
+    pub document: Doc<V>,
 }
 
 #[tonic::async_trait]
-impl Kv for KvServer {
+impl<V: Value> Kv for KvServer<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     async fn range(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::RangeRequest>,
@@ -22,7 +26,7 @@ impl Kv for KvServer {
 
         let result = {
             // ensure we drop the lock before waiting on the result
-            let document = self.document.lock().await;
+            let mut document = self.document.lock().await;
             document.range(request)
         };
 
@@ -50,7 +54,7 @@ impl Kv for KvServer {
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::PutRequest>,
     ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::PutResponse>, tonic::Status> {
-        let request: dismerge_core::PutRequest = request.into_inner().into();
+        let request: dismerge_core::PutRequest<V> = request.into_inner().into();
         debug!(key=?request.key, "PUT");
 
         let result = {

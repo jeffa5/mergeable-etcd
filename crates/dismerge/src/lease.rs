@@ -1,3 +1,4 @@
+use dismerge_core::Value;
 use futures::Stream;
 use futures::StreamExt;
 use std::pin::Pin;
@@ -7,12 +8,12 @@ use tracing::debug;
 
 use crate::Doc;
 
-pub(crate) struct LeaseServer {
-    pub(crate) document: Doc,
+pub(crate) struct LeaseServer<V> {
+    pub(crate) document: Doc<V>,
 }
 
 #[tonic::async_trait]
-impl mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer {
+impl<V: Value> mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer<V> {
     async fn lease_grant(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::LeaseGrantRequest>,

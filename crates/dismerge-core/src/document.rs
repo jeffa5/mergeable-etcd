@@ -1,8 +1,10 @@
+use std::marker::PhantomData;
+
+use automerge::ReadDoc;
 use automerge::{
     sync, transaction::Transactable, ActorId, AutomergeError, ChangeHash, ObjId, ObjType, Prop,
     ScalarValue, VecOpObserver, ROOT,
 };
-use automerge::{ReadDoc, Value};
 use automerge_persistent::Persister;
 use automerge_persistent::{PersistentAutomerge, StoredSizes};
 use mergeable_proto::etcdserverpb::Member;
@@ -12,7 +14,7 @@ use tokio::sync::watch;
 use tracing::warn;
 use tracing::{debug, info};
 
-use crate::watcher::WatchEventType;
+use crate::value::Value;
 use crate::{
     req_resp::{
         DeleteRangeRequest, DeleteRangeResponse, Header, PutRequest, PutResponse, RangeRequest,
@@ -37,7 +39,7 @@ const DEFAULT_LEASE_TTL: i64 = 30;
 ///   "members": { 0: {"name": "default", "peer_urls":[], "client_urls":[]} }
 /// }
 #[derive(Debug)]
-pub struct Document<P, S, W> {
+pub struct Document<P, S, W, V> {
     pub(crate) am: PersistentAutomerge<P>,
     pub(crate) cluster_id: u64,
     pub(crate) member_id: Option<u64>,
@@ -57,13 +59,16 @@ pub struct Document<P, S, W> {
     #[allow(dead_code)]
     pub(crate) flush_notifier_receiver: watch::Receiver<()>,
     pub(crate) auto_flush: bool,
+
+    pub(crate) _value_type: PhantomData<V>,
 }
 
-impl<P, S, W> Document<P, S, W>
+impl<P, S, W, V> Document<P, S, W, V>
 where
     P: Persister + 'static,
     S: Syncer,
-    W: Watcher,
+    W: Watcher<V>,
+    V: Value,
 {
     pub(crate) fn init(&mut self, cluster_exists: bool) {
         if self.am.document().get_heads().is_empty() {
@@ -183,8 +188,8 @@ where
 
     pub async fn put(
         &mut self,
-        request: PutRequest,
-    ) -> crate::Result<oneshot::Receiver<(Header, PutResponse)>> {
+        request: PutRequest<V>,
+    ) -> crate::Result<oneshot::Receiver<(Header, PutResponse<V>)>> {
         let mut temp_watcher = VecWatcher::default();
         let txn_result = self
             .am
@@ -207,10 +212,12 @@ where
         self.document_changed();
         for mut event in temp_watcher.events {
             if let Some(hash) = txn_result.hash {
-                if event.kv.create_head == ChangeHash([0; 32]) {
-                    event.kv.create_head = hash;
+                if let Some(create_head) = event.typ.create_head_mut() {
+                    if *create_head == ChangeHash([0; 32]) {
+                        *create_head = hash;
+                    }
                 }
-                event.kv.mod_head = hash;
+                *event.typ.mod_head_mut() = hash;
             }
             self.watcher.publish_event(header.clone(), event).await;
         }
@@ -221,7 +228,7 @@ where
     pub async fn delete_range(
         &mut self,
         request: DeleteRangeRequest,
-    ) -> crate::Result<oneshot::Receiver<(Header, DeleteRangeResponse)>> {
+    ) -> crate::Result<oneshot::Receiver<(Header, DeleteRangeResponse<V>)>> {
         let mut temp_watcher = VecWatcher::default();
         let txn_result = self
             .am
@@ -248,7 +255,7 @@ where
         self.document_changed();
         for mut event in temp_watcher.events {
             if let Some(hash) = txn_result.hash {
-                event.kv.mod_head = hash;
+                *event.typ.mod_head_mut() = hash;
             }
             self.watcher.publish_event(header.clone(), event).await;
         }
@@ -258,14 +265,19 @@ where
 
     /// Get the values in the half-open interval `[start, end)`.
     pub fn range(
-        &self,
+        &mut self,
         request: RangeRequest,
-    ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse)>> {
+    ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse<V>)>> {
         let result = crate::transaction::range(self.am.document(), request);
         let header = self.header()?;
 
         let (sender, receiver) = oneshot::channel();
         let mut flush_receiver = self.flush_notifier.subscribe();
+
+        if self.auto_flush {
+            self.flush();
+        }
+
         tokio::spawn(async move {
             flush_receiver.changed().await.unwrap();
             let _: Result<_, _> = sender.send((header, result));
@@ -276,8 +288,8 @@ where
 
     pub async fn txn(
         &mut self,
-        request: TxnRequest,
-    ) -> crate::Result<oneshot::Receiver<(Header, TxnResponse)>> {
+        request: TxnRequest<V>,
+    ) -> crate::Result<oneshot::Receiver<(Header, TxnResponse<V>)>> {
         let mut temp_watcher = VecWatcher::default();
         let txn_result = self
             .am
@@ -305,10 +317,12 @@ where
         }
         for mut event in temp_watcher.events {
             if let Some(hash) = txn_result.hash {
-                if event.typ == WatchEventType::Put && event.kv.create_head == ChangeHash([0; 32]) {
-                    event.kv.create_head = hash;
+                if let Some(create_head) = event.typ.create_head_mut() {
+                    if *create_head == ChangeHash([0; 32]) {
+                        *create_head = hash;
+                    }
                 }
-                event.kv.mod_head = hash;
+                *event.typ.mod_head_mut() = hash;
             }
             self.watcher.publish_event(header.clone(), event).await;
         }
@@ -729,7 +743,7 @@ where
     /// Remove a lease from the document and delete any associated keys.
     pub async fn remove_lease(&mut self, id: i64) {
         let document = self.am.document();
-        if let Some((Value::Object(ObjType::Map), lease_obj)) = document
+        if let Some((automerge::Value::Object(ObjType::Map), lease_obj)) = document
             .get(&self.leases_objid, make_lease_string(id))
             .unwrap()
         {

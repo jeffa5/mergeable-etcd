@@ -1,15 +1,16 @@
+use dismerge_core::Value;
 use rand::Rng;
 use tracing::error;
 use tracing::info;
 
 use crate::Doc;
 
-pub struct ClusterServer {
-    pub document: Doc,
+pub struct ClusterServer<V> {
+    pub document: Doc<V>,
 }
 
 #[tonic::async_trait]
-impl mergeable_proto::etcdserverpb::cluster_server::Cluster for ClusterServer {
+impl<V: Value> mergeable_proto::etcdserverpb::cluster_server::Cluster for ClusterServer<V> {
     async fn member_add(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::MemberAddRequest>,

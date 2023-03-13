@@ -1,21 +1,23 @@
 use automerge::ChangeHash;
 
+use crate::value::Value;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct KeyValue {
+pub struct KeyValue<V> {
     pub key: String,
-    pub value: Vec<u8>,
+    pub value: V,
     pub create_head: ChangeHash,
     pub mod_head: ChangeHash,
     pub lease: Option<i64>,
 }
 
-impl From<KeyValue> for mergeable_proto::mvccpb::KeyValue {
-    fn from(kv: KeyValue) -> Self {
+impl<V: Value> From<KeyValue<V>> for mergeable_proto::mvccpb::KeyValue {
+    fn from(kv: KeyValue<V>) -> Self {
         mergeable_proto::mvccpb::KeyValue {
             key: kv.key.into_bytes(),
             create_head: kv.create_head.0.to_vec(),
             mod_head: kv.mod_head.0.to_vec(),
-            value: kv.value,
+            value: kv.value.into(),
             lease: kv.lease.unwrap_or(0),
         }
     }
@@ -76,12 +78,12 @@ impl From<mergeable_proto::etcdserverpb::RangeRequest> for RangeRequest {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct RangeResponse {
-    pub values: Vec<KeyValue>,
+pub struct RangeResponse<V> {
+    pub values: Vec<KeyValue<V>>,
     pub count: usize,
 }
 
-impl RangeResponse {
+impl<V: Value> RangeResponse<V> {
     pub fn into_etcd(self, header: Header) -> mergeable_proto::etcdserverpb::RangeResponse {
         mergeable_proto::etcdserverpb::RangeResponse {
             header: Some(header.into()),
@@ -94,14 +96,17 @@ impl RangeResponse {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PutRequest {
+pub struct PutRequest<V> {
     pub key: String,
-    pub value: Vec<u8>,
+    pub value: V,
     pub lease_id: Option<i64>,
     pub prev_kv: bool,
 }
 
-impl From<mergeable_proto::etcdserverpb::PutRequest> for PutRequest {
+impl<V: Value> From<mergeable_proto::etcdserverpb::PutRequest> for PutRequest<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     fn from(
         mergeable_proto::etcdserverpb::PutRequest {
             key,
@@ -117,7 +122,7 @@ impl From<mergeable_proto::etcdserverpb::PutRequest> for PutRequest {
 
         PutRequest {
             key: String::from_utf8(key).unwrap(),
-            value,
+            value: value.try_into().unwrap(),
             lease_id: if lease == 0 { None } else { Some(lease) },
             prev_kv,
         }
@@ -125,11 +130,11 @@ impl From<mergeable_proto::etcdserverpb::PutRequest> for PutRequest {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PutResponse {
-    pub prev_kv: Option<KeyValue>,
+pub struct PutResponse<V> {
+    pub prev_kv: Option<KeyValue<V>>,
 }
 
-impl PutResponse {
+impl<V: Value> PutResponse<V> {
     pub fn into_etcd(self, header: Header) -> mergeable_proto::etcdserverpb::PutResponse {
         mergeable_proto::etcdserverpb::PutResponse {
             header: Some(header.into()),
@@ -166,12 +171,12 @@ impl From<mergeable_proto::etcdserverpb::DeleteRangeRequest> for DeleteRangeRequ
 }
 
 #[derive(Debug, PartialEq)]
-pub struct DeleteRangeResponse {
+pub struct DeleteRangeResponse<V> {
     pub deleted: u64,
-    pub prev_kvs: Vec<KeyValue>,
+    pub prev_kvs: Vec<KeyValue<V>>,
 }
 
-impl DeleteRangeResponse {
+impl<V: Value> DeleteRangeResponse<V> {
     pub fn into_etcd(self, header: Header) -> mergeable_proto::etcdserverpb::DeleteRangeResponse {
         mergeable_proto::etcdserverpb::DeleteRangeResponse {
             header: Some(header.into()),
@@ -282,13 +287,16 @@ impl From<mergeable_proto::etcdserverpb::Compare> for Compare {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct TxnRequest {
+pub struct TxnRequest<V> {
     pub compare: Vec<Compare>,
-    pub success: Vec<KvRequest>,
-    pub failure: Vec<KvRequest>,
+    pub success: Vec<KvRequest<V>>,
+    pub failure: Vec<KvRequest<V>>,
 }
 
-impl From<mergeable_proto::etcdserverpb::TxnRequest> for TxnRequest {
+impl<V: Value> From<mergeable_proto::etcdserverpb::TxnRequest> for TxnRequest<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     fn from(
         mergeable_proto::etcdserverpb::TxnRequest {
             compare,
@@ -305,12 +313,12 @@ impl From<mergeable_proto::etcdserverpb::TxnRequest> for TxnRequest {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct TxnResponse {
+pub struct TxnResponse<V> {
     pub succeeded: bool,
-    pub responses: Vec<KvResponse>,
+    pub responses: Vec<KvResponse<V>>,
 }
 
-impl TxnResponse {
+impl<V: Value> TxnResponse<V> {
     pub fn into_etcd(self, header: Header) -> mergeable_proto::etcdserverpb::TxnResponse {
         mergeable_proto::etcdserverpb::TxnResponse {
             header: Some(header.clone().into()),
@@ -325,14 +333,17 @@ impl TxnResponse {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum KvRequest {
+pub enum KvRequest<V> {
     Range(RangeRequest),
-    Put(PutRequest),
+    Put(PutRequest<V>),
     DeleteRange(DeleteRangeRequest),
-    Txn(TxnRequest),
+    Txn(TxnRequest<V>),
 }
 
-impl From<mergeable_proto::etcdserverpb::RequestOp> for KvRequest {
+impl<V: Value> From<mergeable_proto::etcdserverpb::RequestOp> for KvRequest<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     fn from(
         mergeable_proto::etcdserverpb::RequestOp { request }: mergeable_proto::etcdserverpb::RequestOp,
     ) -> Self {
@@ -354,14 +365,14 @@ impl From<mergeable_proto::etcdserverpb::RequestOp> for KvRequest {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum KvResponse {
-    Range(RangeResponse),
-    Put(PutResponse),
-    DeleteRange(DeleteRangeResponse),
-    Txn(TxnResponse),
+pub enum KvResponse<V> {
+    Range(RangeResponse<V>),
+    Put(PutResponse<V>),
+    DeleteRange(DeleteRangeResponse<V>),
+    Txn(TxnResponse<V>),
 }
 
-impl KvResponse {
+impl<V: Value> KvResponse<V> {
     pub fn into_etcd(self, header: Header) -> mergeable_proto::etcdserverpb::ResponseOp {
         let response = match self {
             KvResponse::Range(res) => {

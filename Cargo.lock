@@ -121,6 +121,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "autosurgeon"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5724c8cb72a0b69c6aff3ca1b4ad0e4ada37e93079bd82f7cc2d719196b5d185"
+dependencies = [
+ "automerge",
+ "autosurgeon-derive",
+ "similar",
+ "smol_str",
+ "thiserror",
+]
+
+[[package]]
+name = "autosurgeon-derive"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "471c61ea71b0693cae0cd4cad4a4a94e37ef3ce2a5ba7beba471745302261cff"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "smol_str",
+ "syn",
+ "thiserror",
+]
+
+[[package]]
 name = "axum"
 version = "0.6.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -533,6 +559,7 @@ version = "0.1.0"
 dependencies = [
  "automerge",
  "automerge-persistent",
+ "autosurgeon",
  "chrono",
  "futures",
  "insta",

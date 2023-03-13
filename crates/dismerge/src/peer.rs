@@ -11,7 +11,7 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use tracing::{debug, info, warn};
 
-use dismerge_core::Syncer;
+use dismerge_core::{Syncer, Value};
 
 use crate::Doc;
 
@@ -151,8 +151,8 @@ impl PeerSyncer {
     }
 }
 
-pub struct PeerServerInner {
-    pub document: Doc,
+pub struct PeerServerInner<V> {
+    pub document: Doc<V>,
     name: String,
     // map from peer id to the syncer running for them
     connections: HashMap<u64, PeerSyncer>,
@@ -161,9 +161,9 @@ pub struct PeerServerInner {
     unknown_connections: HashMap<String, PeerSyncer>,
 }
 
-impl PeerServerInner {
+impl<V: Value> PeerServerInner<V> {
     fn new(
-        document: Doc,
+        document: Doc<V>,
         name: &str,
         mut initial_cluster: HashMap<String, String>,
         ca_certificate: Option<Vec<u8>>,
@@ -289,13 +289,13 @@ impl PeerServerInner {
 }
 
 #[derive(Clone)]
-pub struct PeerServer {
-    inner: Arc<Mutex<PeerServerInner>>,
+pub struct PeerServer<V> {
+    inner: Arc<Mutex<PeerServerInner<V>>>,
 }
 
-impl PeerServer {
+impl<V: Value> PeerServer<V> {
     pub fn new(
-        document: Doc,
+        document: Doc<V>,
         name: &str,
         initial_cluster: HashMap<String, String>,
         notify: Arc<tokio::sync::Notify>,
@@ -355,7 +355,7 @@ impl PeerServer {
 }
 
 #[tonic::async_trait]
-impl peer_proto::peer_server::Peer for PeerServer {
+impl<V: Value> peer_proto::peer_server::Peer for PeerServer<V> {
     async fn sync(
         &self,
         request: tonic::Request<tonic::Streaming<SyncMessage>>,

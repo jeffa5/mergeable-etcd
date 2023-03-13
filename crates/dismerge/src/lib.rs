@@ -5,6 +5,7 @@ use automerge_persistent_sled::SledPersister;
 use cluster::ClusterServer;
 use dismerge_core::Document;
 use dismerge_core::DocumentBuilder;
+use dismerge_core::Value;
 use futures::future::join_all;
 use futures::join;
 use maintenance::MaintenanceServer;
@@ -41,11 +42,14 @@ mod watch;
 pub use options::ClusterState;
 pub use options::Options;
 
-type DocInner = Document<SledPersister, DocumentChangedSyncer, watch::MyWatcher>;
-type Doc = Arc<Mutex<DocInner>>;
+type DocInner<V> = Document<SledPersister, DocumentChangedSyncer, watch::MyWatcher<V>, V>;
+type Doc<V> = Arc<Mutex<DocInner<V>>>;
 
 #[tracing::instrument(skip(options), fields(name = %options.name))]
-pub async fn run(options: options::Options) {
+pub async fn run<V: Value>(options: options::Options)
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     info!(?options, "Starting");
     let options::Options {
         name,
@@ -92,7 +96,7 @@ pub async fn run(options: options::Options) {
         SledPersister::new(changes_tree, document_tree, sync_states_tree, "").unwrap();
 
     info!("Building document");
-    let mut document = DocumentBuilder::default()
+    let mut document = DocumentBuilder::<_, _, _, V>::default()
         .with_watcher(watch::MyWatcher {
             sender: watch_sender,
         })
@@ -268,14 +272,17 @@ pub async fn run(options: options::Options) {
     ];
 }
 
-async fn start_client_server(
+async fn start_client_server<V: Value>(
     address: String,
     cert_file: &str,
     key_file: &str,
-    server: KvServer,
-    watch_server: watch::WatchService,
-    document: Doc,
-) -> tokio::task::JoinHandle<()> {
+    server: KvServer<V>,
+    watch_server: watch::WatchService<V>,
+    document: Doc<V>,
+) -> tokio::task::JoinHandle<()>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     let client_url = url::Url::parse(&address).unwrap();
     let client_address = format!(
         "{}:{}",
@@ -353,12 +360,12 @@ async fn start_client_server(
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn start_peer_server(
+async fn start_peer_server<V: Value>(
     address: String,
     cert_file: &str,
     key_file: &str,
     trusted_ca_file: &str,
-    document: Doc,
+    document: Doc<V>,
     name: String,
     initial_cluster: HashMap<String, String>,
     notify: Arc<tokio::sync::Notify>,
@@ -427,7 +434,10 @@ async fn start_peer_server(
     })
 }
 
-fn start_metrics_server(address: String, document: Doc) -> tokio::task::JoinHandle<()> {
+fn start_metrics_server<V: Value>(
+    address: String,
+    document: Doc<V>,
+) -> tokio::task::JoinHandle<()> {
     let metrics_url = url::Url::parse(&address).unwrap();
     let metrics_address = format!(
         "{}:{}",
@@ -443,7 +453,7 @@ fn start_metrics_server(address: String, document: Doc) -> tokio::task::JoinHand
     })
 }
 
-fn start_flush_loop(doc: Doc, flush_interval: Duration) {
+fn start_flush_loop<V: Value>(doc: Doc<V>, flush_interval: Duration) {
     tokio::spawn(async move {
         info!("Started flush loop");
         let threshold = Duration::from_millis(100);

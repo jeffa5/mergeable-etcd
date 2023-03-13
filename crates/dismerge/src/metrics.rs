@@ -3,15 +3,16 @@ use std::net::SocketAddr;
 use axum::http::StatusCode;
 use axum::routing::get;
 use axum::Router;
+use dismerge_core::Value;
 use tracing::{debug, error, warn};
 
 use crate::Doc;
 
-pub struct MetricsServer {
-    pub(crate) document: Doc,
+pub struct MetricsServer<V> {
+    pub(crate) document: Doc<V>,
 }
 
-impl MetricsServer {
+impl<V: Value> MetricsServer<V> {
     pub async fn serve(&self, address: SocketAddr) {
         let document = self.document.clone();
         let router = Router::new().route("/health", get(move || health(document.clone())));
@@ -24,7 +25,7 @@ impl MetricsServer {
     }
 }
 
-async fn health(document: Doc) -> Result<String, StatusCode> {
+async fn health<V: Value>(document: Doc<V>) -> Result<String, StatusCode> {
     let doc = document.lock().await;
     if doc.is_ready() {
         debug!(name=?doc.name(), healthy = true, "Got health check");
