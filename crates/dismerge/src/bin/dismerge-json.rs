@@ -1,3 +1,4 @@
+use autosurgeon::{Hydrate, Reconcile};
 use clap::Parser;
 use dismerge_core::value::Value;
 use serde::{Deserialize, Serialize};
@@ -5,10 +6,17 @@ use std::collections::BTreeMap;
 use tracing_subscriber::fmt;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
-use autosurgeon::{Hydrate, Reconcile};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Hydrate, Reconcile)]
+#[serde(untagged)]
 enum Json {
+    Null,
+    Bool(bool),
+    Int(i64),
+    Uint(u64),
+    Float(f64),
+    String(String),
+    Array(Vec<Json>),
     Map(BTreeMap<String, Json>),
 }
 
