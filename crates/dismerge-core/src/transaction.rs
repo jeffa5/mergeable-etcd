@@ -66,7 +66,7 @@ impl<'r, Read: ReadDoc> autosurgeon::ReadDoc for ReadableDocAt<'r, Read> {
         obj: &ObjId,
         prop: P,
     ) -> Result<Option<(automerge::Value<'_>, ObjId)>, automerge::AutomergeError> {
-        self.0.get_at(obj, prop, &self.1)
+        self.0.get_at(obj, prop, self.1)
     }
 
     fn object_type<O: AsRef<ObjId>>(&self, obj: O) -> Option<automerge::ObjType> {
@@ -92,11 +92,11 @@ impl<'r, Read: ReadDoc> autosurgeon::ReadDoc for ReadableDocAt<'r, Read> {
     }
 
     fn length<O: AsRef<ObjId>>(&self, obj: O) -> usize {
-        self.0.length_at(obj, &self.1)
+        self.0.length_at(obj, self.1)
     }
 
     fn text<O: AsRef<ObjId>>(&self, obj: O) -> Result<String, automerge::AutomergeError> {
-        self.0.text_at(obj, &self.1)
+        self.0.text_at(obj, self.1)
     }
 
     fn parents<O: AsRef<ObjId>>(
