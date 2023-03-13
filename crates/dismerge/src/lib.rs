@@ -42,12 +42,14 @@ mod watch;
 pub use options::ClusterState;
 pub use options::Options;
 
-type DocValue = Vec<u8>;
 type DocInner<V> = Document<SledPersister, DocumentChangedSyncer, watch::MyWatcher<V>, V>;
 type Doc<V> = Arc<Mutex<DocInner<V>>>;
 
 #[tracing::instrument(skip(options), fields(name = %options.name))]
-pub async fn run(options: options::Options) {
+pub async fn run<V: Value>(options: options::Options)
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     info!(?options, "Starting");
     let options::Options {
         name,
@@ -94,7 +96,7 @@ pub async fn run(options: options::Options) {
         SledPersister::new(changes_tree, document_tree, sync_states_tree, "").unwrap();
 
     info!("Building document");
-    let mut document = DocumentBuilder::<_, _, _, DocValue>::default()
+    let mut document = DocumentBuilder::<_, _, _, V>::default()
         .with_watcher(watch::MyWatcher {
             sender: watch_sender,
         })

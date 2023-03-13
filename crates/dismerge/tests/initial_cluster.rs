@@ -132,7 +132,7 @@ async fn make_cluster(
 
         // actually start running this node
         tokio::spawn(async move {
-            dismerge::run(node_opts).await;
+            dismerge::run::<Vec<u8>>(node_opts).await;
         });
         info!(?name, "Started node");
 
@@ -201,7 +201,7 @@ async fn initial_cluster_single() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        dismerge::run(node1_opts).await;
+        dismerge::run::<Vec<u8>>(node1_opts).await;
     });
 
     poll_ready(&metrics.clone()).await;
@@ -236,7 +236,7 @@ async fn initial_cluster_double() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        dismerge::run(node1_opts).await;
+        dismerge::run::<Vec<u8>>(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
@@ -255,7 +255,7 @@ async fn initial_cluster_double() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        dismerge::run(node2_opts).await;
+        dismerge::run::<Vec<u8>>(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;
@@ -363,7 +363,7 @@ async fn double_cluster_explicit_add() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        dismerge::run(node1_opts).await;
+        dismerge::run::<Vec<u8>>(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
@@ -395,7 +395,7 @@ async fn double_cluster_explicit_add() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        dismerge::run(node2_opts).await;
+        dismerge::run::<Vec<u8>>(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;
@@ -511,7 +511,7 @@ async fn initial_cluster_single_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        dismerge::run(node1_opts).await;
+        dismerge::run::<Vec<u8>>(node1_opts).await;
     });
 
     poll_ready(&metrics.clone()).await;
@@ -550,7 +550,7 @@ async fn initial_cluster_double_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        dismerge::run(node1_opts).await;
+        dismerge::run::<Vec<u8>>(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
@@ -574,7 +574,7 @@ async fn initial_cluster_double_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        dismerge::run(node2_opts).await;
+        dismerge::run::<Vec<u8>>(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;
@@ -682,7 +682,7 @@ async fn double_cluster_explicit_add_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        dismerge::run(node1_opts).await;
+        dismerge::run::<Vec<u8>>(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
@@ -716,7 +716,7 @@ async fn double_cluster_explicit_add_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        dismerge::run(node2_opts).await;
+        dismerge::run::<Vec<u8>>(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;

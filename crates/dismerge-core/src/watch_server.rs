@@ -17,10 +17,15 @@ struct Watch<V> {
     prev_kv: bool,
 }
 
-#[derive(Default)]
 pub struct WatchServer<V> {
     watches: HashMap<WatchId, Watch<V>>,
     max_id: WatchId,
+}
+
+impl<V> Default for WatchServer<V> {
+    fn default() -> Self {
+        Self { watches: Default::default(), max_id: Default::default() }
+    }
 }
 
 impl<V> WatchServer<V>

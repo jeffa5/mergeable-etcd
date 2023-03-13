@@ -19,5 +19,5 @@ async fn main() {
         })
         .init();
 
-    dismerge::run(options).await
+    dismerge::run::<Vec<u8>>(options).await
 }
