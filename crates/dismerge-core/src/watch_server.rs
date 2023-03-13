@@ -49,9 +49,9 @@ where
             watch_id,
             Watch {
                 watch_id,
-                start: start.clone(),
-                end: end.clone(),
-                sender: sender.clone(),
+                start,
+                end,
+                sender,
                 prev_kv,
             },
         );

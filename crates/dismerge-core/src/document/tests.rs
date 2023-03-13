@@ -2733,7 +2733,7 @@ async fn sync_two_documents() {
         .unwrap()
         .await
         .unwrap();
-    let (_header1, doc1_range) = doc1
+    let (_header1, _doc1_range) = doc1
         .lock()
         .await
         .range(RangeRequest {
@@ -2862,7 +2862,7 @@ async fn sync_two_documents_conflicting_puts_same_heads() {
         .unwrap()
         .await
         .unwrap();
-    let (_header2, doc2_range) = doc2
+    let (_header2, _doc2_range) = doc2
         .lock()
         .await
         .range(RangeRequest {
@@ -3023,7 +3023,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
     "###
     );
 
-    let (header2, doc2_range) = doc2
+    let (header2, _doc2_range) = doc2
         .lock()
         .await
         .range(RangeRequest {
@@ -3938,7 +3938,7 @@ async fn sync_two_documents_trigger_watches() {
     let value2 = b"value2".to_vec();
 
     let (sender1, mut receiver1) = mpsc::channel(100);
-    let watch_id1 = watch_server1
+    let _watch_id1 = watch_server1
         .create_watch(
             &mut *doc1.lock().await,
             key1.clone(),
@@ -3950,7 +3950,7 @@ async fn sync_two_documents_trigger_watches() {
         .await
         .unwrap();
     let (sender2, mut receiver2) = mpsc::channel(100);
-    let watch_id2 = watch_server2
+    let _watch_id2 = watch_server2
         .create_watch(
             &mut *doc2.lock().await,
             key1.clone(),
@@ -4325,7 +4325,7 @@ async fn add_other_member() {
     "###
     );
 
-    let member = doc.add_member(vec![], 2).await;
+    let _member = doc.add_member(vec![], 2).await;
     assert_debug_snapshot!(
         doc.list_members().unwrap(),
         @r###"

@@ -114,18 +114,14 @@ where
                     values.push(value);
                 }
             }
-        } else {
-            if heads.is_empty() {
-                if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
-                    let value = extract_key_value(txn, start.clone(), &key_obj);
-                    values.push(value);
-                }
-            } else {
-                if let Some((_, key_obj)) = txn.get_at(&kvs, &start, &heads).unwrap() {
-                    let value = extract_key_value_at(txn, start.clone(), key_obj, &heads);
-                    values.push(value);
-                }
+        } else if heads.is_empty() {
+            if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
+                let value = extract_key_value(txn, start.clone(), &key_obj);
+                values.push(value);
             }
+        } else if let Some((_, key_obj)) = txn.get_at(&kvs, &start, &heads).unwrap() {
+            let value = extract_key_value_at(txn, start.clone(), key_obj, &heads);
+            values.push(value);
         }
     }
     let count = values.len();
@@ -254,19 +250,17 @@ where
                 prev_kv: Some(prev_kv),
             });
         }
-    } else {
-        if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
-            let prev_kv = extract_key_value(txn, start.clone(), &key_obj);
-            if return_prev_kv {
-                prev_kvs.push(prev_kv.clone());
-            }
-            txn.delete(&kvs, start.clone()).unwrap();
-            deleted += 1;
-            watcher.publish_event(crate::WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete(start, ChangeHash([0; 32])),
-                prev_kv: Some(prev_kv),
-            });
+    } else if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
+        let prev_kv = extract_key_value(txn, start.clone(), &key_obj);
+        if return_prev_kv {
+            prev_kvs.push(prev_kv.clone());
         }
+        txn.delete(&kvs, start.clone()).unwrap();
+        deleted += 1;
+        watcher.publish_event(crate::WatchEvent {
+            typ: crate::watcher::WatchEventType::Delete(start, ChangeHash([0; 32])),
+            prev_kv: Some(prev_kv),
+        });
     }
     DeleteRangeResponse { deleted, prev_kvs }
 }
