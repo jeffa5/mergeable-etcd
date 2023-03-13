@@ -54,7 +54,10 @@ where
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::PutRequest>,
     ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::PutResponse>, tonic::Status> {
-        let request: dismerge_core::PutRequest<V> = request.into_inner().into();
+        let request: dismerge_core::PutRequest<V> = request
+            .into_inner()
+            .try_into()
+            .map_err(|_| tonic::Status::invalid_argument("Failed to parse request"))?;
         debug!(key=?request.key, "PUT");
 
         let result = {
@@ -105,7 +108,10 @@ where
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::TxnRequest>,
     ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::TxnResponse>, tonic::Status> {
-        let request = request.into_inner().into();
+        let request = request
+            .into_inner()
+            .try_into()
+            .map_err(|_| tonic::Status::invalid_argument("Failed to parse request"))?;
         debug!("TXN");
 
         let result = {

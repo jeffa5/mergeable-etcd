@@ -103,11 +103,12 @@ pub struct PutRequest<V> {
     pub prev_kv: bool,
 }
 
-impl<V: Value> From<mergeable_proto::etcdserverpb::PutRequest> for PutRequest<V>
+impl<V: Value> TryFrom<mergeable_proto::etcdserverpb::PutRequest> for PutRequest<V>
 where
     <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {
-    fn from(
+    type Error = <V as TryFrom<Vec<u8>>>::Error;
+    fn try_from(
         mergeable_proto::etcdserverpb::PutRequest {
             key,
             value,
@@ -116,16 +117,16 @@ where
             ignore_value,
             ignore_lease,
         }: mergeable_proto::etcdserverpb::PutRequest,
-    ) -> Self {
+    ) -> Result<Self, Self::Error> {
         assert!(!ignore_value);
         assert!(!ignore_lease);
 
-        PutRequest {
+        Ok(PutRequest {
             key: String::from_utf8(key).unwrap(),
-            value: value.try_into().unwrap(),
+            value: value.try_into()?,
             lease_id: if lease == 0 { None } else { Some(lease) },
             prev_kv,
-        }
+        })
     }
 }
 
@@ -293,22 +294,27 @@ pub struct TxnRequest<V> {
     pub failure: Vec<KvRequest<V>>,
 }
 
-impl<V: Value> From<mergeable_proto::etcdserverpb::TxnRequest> for TxnRequest<V>
+impl<V: Value> TryFrom<mergeable_proto::etcdserverpb::TxnRequest> for TxnRequest<V>
 where
     <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {
-    fn from(
+    type Error = <V as TryFrom<Vec<u8>>>::Error;
+    fn try_from(
         mergeable_proto::etcdserverpb::TxnRequest {
             compare,
             success,
             failure,
         }: mergeable_proto::etcdserverpb::TxnRequest,
-    ) -> Self {
-        TxnRequest {
+    ) -> Result<Self, Self::Error> {
+        let success: Result<Vec<_>, _> = success.into_iter().map(|s| s.try_into()).collect();
+        let success = success?;
+        let failure: Result<Vec<_>, _> = failure.into_iter().map(|f| f.try_into()).collect();
+        let failure = failure?;
+        Ok(TxnRequest {
             compare: compare.into_iter().map(|c| c.into()).collect(),
-            success: success.into_iter().map(|s| s.into()).collect(),
-            failure: failure.into_iter().map(|f| f.into()).collect(),
-        }
+            success,
+            failure,
+        })
     }
 }
 
@@ -340,27 +346,29 @@ pub enum KvRequest<V> {
     Txn(TxnRequest<V>),
 }
 
-impl<V: Value> From<mergeable_proto::etcdserverpb::RequestOp> for KvRequest<V>
+impl<V: Value> TryFrom<mergeable_proto::etcdserverpb::RequestOp> for KvRequest<V>
 where
     <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {
-    fn from(
+    type Error = <V as TryFrom<Vec<u8>>>::Error;
+    fn try_from(
         mergeable_proto::etcdserverpb::RequestOp { request }: mergeable_proto::etcdserverpb::RequestOp,
-    ) -> Self {
-        match request.unwrap() {
+    ) -> Result<Self, Self::Error> {
+        let val = match request.unwrap() {
             mergeable_proto::etcdserverpb::request_op::Request::RequestRange(req) => {
                 KvRequest::Range(req.into())
             }
             mergeable_proto::etcdserverpb::request_op::Request::RequestPut(req) => {
-                KvRequest::Put(req.into())
+                KvRequest::Put(req.try_into()?)
             }
             mergeable_proto::etcdserverpb::request_op::Request::RequestDeleteRange(req) => {
                 KvRequest::DeleteRange(req.into())
             }
             mergeable_proto::etcdserverpb::request_op::Request::RequestTxn(req) => {
-                KvRequest::Txn(req.into())
+                KvRequest::Txn(req.try_into()?)
             }
-        }
+        };
+        Ok(val)
     }
 }
 
