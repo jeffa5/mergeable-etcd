@@ -53,7 +53,7 @@ pub fn extract_key_value<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
 
 // FIXME: With a nicer historical document abstraction in automerge we can do something better than
 // this mess: https://github.com/automerge/autosurgeon/issues/16
-struct ReadableDocAt<'a, R: ReadDoc>(&'a R, &'a[ChangeHash]);
+struct ReadableDocAt<'a, R: ReadDoc>(&'a R, &'a [ChangeHash]);
 impl<'r, Read: ReadDoc> autosurgeon::ReadDoc for ReadableDocAt<'r, Read> {
     type Parents<'a> = automerge::Parents<'a> where Read: 'a, Self: 'a;
 
