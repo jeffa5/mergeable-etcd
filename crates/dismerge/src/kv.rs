@@ -26,7 +26,7 @@ where
 
         let result = {
             // ensure we drop the lock before waiting on the result
-            let document = self.document.lock().await;
+            let mut document = self.document.lock().await;
             document.range(request)
         };
 
