@@ -51,6 +51,197 @@ pub fn extract_key_value<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
     }
 }
 
+// FIXME: With a nicer historical document abstraction in automerge we can do something better than
+// this mess: https://github.com/automerge/autosurgeon/issues/16
+struct ReadableDocAt<'a, R: ReadDoc>(&'a R, &'a[ChangeHash]);
+impl<'r, Read: ReadDoc> autosurgeon::ReadDoc for ReadableDocAt<'r, Read> {
+    type Parents<'a> = automerge::Parents<'a> where Read: 'a, Self: 'a;
+
+    fn get_heads(&self) -> Vec<automerge::ChangeHash> {
+        self.1.to_vec()
+    }
+
+    fn get<P: Into<automerge::Prop>>(
+        &self,
+        obj: &ObjId,
+        prop: P,
+    ) -> Result<Option<(automerge::Value<'_>, ObjId)>, automerge::AutomergeError> {
+        self.0.get_at(obj, prop, &self.1)
+    }
+
+    fn object_type<O: AsRef<ObjId>>(&self, obj: O) -> Option<automerge::ObjType> {
+        automerge::ReadDoc::object_type(self, obj).ok()
+    }
+
+    fn map_range<O: AsRef<ObjId>, R: std::ops::RangeBounds<String>>(
+        &self,
+        _obj: O,
+        _range: R,
+    ) -> automerge::MapRange<'_, R> {
+        // self.0.map_range_at(obj, range, &self.1)
+        todo!()
+    }
+
+    fn list_range<O: AsRef<ObjId>, R: std::ops::RangeBounds<usize>>(
+        &self,
+        _obj: O,
+        _range: R,
+    ) -> automerge::ListRange<'_, R> {
+        // self.0.list_range_at(obj, range, &self.1)
+        todo!()
+    }
+
+    fn length<O: AsRef<ObjId>>(&self, obj: O) -> usize {
+        self.0.length_at(obj, &self.1)
+    }
+
+    fn text<O: AsRef<ObjId>>(&self, obj: O) -> Result<String, automerge::AutomergeError> {
+        self.0.text_at(obj, &self.1)
+    }
+
+    fn parents<O: AsRef<ObjId>>(
+        &self,
+        obj: O,
+    ) -> Result<Self::Parents<'_>, automerge::AutomergeError> {
+        self.0.parents(obj)
+    }
+}
+impl<'r, Read: ReadDoc> ReadDoc for ReadableDocAt<'r, Read> {
+    fn parents<O: AsRef<ObjId>>(
+        &self,
+        obj: O,
+    ) -> Result<automerge::Parents<'_>, automerge::AutomergeError> {
+        self.0.parents(obj)
+    }
+
+    fn path_to_object<O: AsRef<ObjId>>(
+        &self,
+        obj: O,
+    ) -> Result<Vec<(ObjId, automerge::Prop)>, automerge::AutomergeError> {
+        self.0.path_to_object(obj)
+    }
+
+    fn keys<O: AsRef<ObjId>>(&self, obj: O) -> automerge::Keys<'_, '_> {
+        self.0.keys(obj)
+    }
+
+    fn keys_at<O: AsRef<ObjId>>(&self, obj: O, heads: &[ChangeHash]) -> automerge::KeysAt<'_, '_> {
+        self.0.keys_at(obj, heads)
+    }
+
+    fn map_range<O: AsRef<ObjId>, R: std::ops::RangeBounds<String>>(
+        &self,
+        obj: O,
+        range: R,
+    ) -> automerge::MapRange<'_, R> {
+        self.0.map_range(obj, range)
+    }
+
+    fn map_range_at<O: AsRef<ObjId>, R: std::ops::RangeBounds<String>>(
+        &self,
+        obj: O,
+        range: R,
+        heads: &[ChangeHash],
+    ) -> automerge::MapRangeAt<'_, R> {
+        self.0.map_range_at(obj, range, heads)
+    }
+
+    fn list_range<O: AsRef<ObjId>, R: std::ops::RangeBounds<usize>>(
+        &self,
+        obj: O,
+        range: R,
+    ) -> automerge::ListRange<'_, R> {
+        self.0.list_range(obj, range)
+    }
+
+    fn list_range_at<O: AsRef<ObjId>, R: std::ops::RangeBounds<usize>>(
+        &self,
+        obj: O,
+        range: R,
+        heads: &[ChangeHash],
+    ) -> automerge::ListRangeAt<'_, R> {
+        self.0.list_range_at(obj, range, heads)
+    }
+
+    fn values<O: AsRef<ObjId>>(&self, obj: O) -> automerge::Values<'_> {
+        self.0.values(obj)
+    }
+
+    fn values_at<O: AsRef<ObjId>>(&self, obj: O, heads: &[ChangeHash]) -> automerge::Values<'_> {
+        self.0.values_at(obj, heads)
+    }
+
+    fn length<O: AsRef<ObjId>>(&self, obj: O) -> usize {
+        self.0.length(obj)
+    }
+
+    fn length_at<O: AsRef<ObjId>>(&self, obj: O, heads: &[ChangeHash]) -> usize {
+        self.0.length_at(obj, heads)
+    }
+
+    fn object_type<O: AsRef<ObjId>>(&self, obj: O) -> Result<ObjType, automerge::AutomergeError> {
+        self.0.object_type(obj)
+    }
+
+    fn text<O: AsRef<ObjId>>(&self, obj: O) -> Result<String, automerge::AutomergeError> {
+        self.0.text(obj)
+    }
+
+    fn text_at<O: AsRef<ObjId>>(
+        &self,
+        obj: O,
+        heads: &[ChangeHash],
+    ) -> Result<String, automerge::AutomergeError> {
+        self.0.text_at(obj, heads)
+    }
+
+    fn get<O: AsRef<ObjId>, P: Into<automerge::Prop>>(
+        &self,
+        obj: O,
+        prop: P,
+    ) -> Result<Option<(automerge::Value<'_>, ObjId)>, automerge::AutomergeError> {
+        self.0.get(obj, prop)
+    }
+
+    fn get_at<O: AsRef<ObjId>, P: Into<automerge::Prop>>(
+        &self,
+        obj: O,
+        prop: P,
+        heads: &[ChangeHash],
+    ) -> Result<Option<(automerge::Value<'_>, ObjId)>, automerge::AutomergeError> {
+        self.0.get_at(obj, prop, heads)
+    }
+
+    fn get_all<O: AsRef<ObjId>, P: Into<automerge::Prop>>(
+        &self,
+        obj: O,
+        prop: P,
+    ) -> Result<Vec<(automerge::Value<'_>, ObjId)>, automerge::AutomergeError> {
+        self.0.get_all(obj, prop)
+    }
+
+    fn get_all_at<O: AsRef<ObjId>, P: Into<automerge::Prop>>(
+        &self,
+        obj: O,
+        prop: P,
+        heads: &[ChangeHash],
+    ) -> Result<Vec<(automerge::Value<'_>, ObjId)>, automerge::AutomergeError> {
+        self.0.get_all_at(obj, prop, heads)
+    }
+
+    fn get_missing_deps(&self, heads: &[ChangeHash]) -> Vec<ChangeHash> {
+        self.0.get_missing_deps(heads)
+    }
+
+    fn get_change_by_hash(&self, hash: &ChangeHash) -> Option<&automerge::Change> {
+        self.0.get_change_by_hash(hash)
+    }
+
+    fn hash_for_opid(&self, opid: &ObjId) -> Option<ChangeHash> {
+        self.0.hash_for_opid(opid)
+    }
+}
+
 pub fn extract_key_value_at<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
     txn: &R,
     key: String,
@@ -65,7 +256,8 @@ pub fn extract_key_value_at<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
         .unwrap()
         .and_then(|v| v.0.to_i64());
     // TODO: fix this to query in history
-    let value: V = hydrate_prop(txn, key_obj, "value").unwrap();
+    let readable_doc_at = ReadableDocAt(txn, heads);
+    let value: V = hydrate_prop(&readable_doc_at, key_obj, "value").unwrap();
     KeyValue {
         key,
         value,
