@@ -260,9 +260,10 @@ async fn initial_cluster_double() {
 
     poll_ready(&metrics2.clone()).await;
 
-    let mut kv_client1 = mergeable_proto::etcdserverpb::kv_client::KvClient::connect(client1.clone())
-        .await
-        .unwrap();
+    let mut kv_client1 =
+        mergeable_proto::etcdserverpb::kv_client::KvClient::connect(client1.clone())
+            .await
+            .unwrap();
     let mut response = kv_client1
         .range(RangeRequest {
             key: b"key1".to_vec(),
@@ -282,9 +283,10 @@ async fn initial_cluster_double() {
         }
     );
 
-    let mut kv_client2 = mergeable_proto::etcdserverpb::kv_client::KvClient::connect(client2.clone())
-        .await
-        .unwrap();
+    let mut kv_client2 =
+        mergeable_proto::etcdserverpb::kv_client::KvClient::connect(client2.clone())
+            .await
+            .unwrap();
 
     let mut response = kv_client2
         .range(RangeRequest {
