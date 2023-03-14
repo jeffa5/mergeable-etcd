@@ -122,6 +122,10 @@ service Lease {
   }
 }
 
+service Replication {
+  rpc ReplicationStatus(ReplicationStatusRequest) returns (ReplicationStatusResponse) {}
+}
+
 service Cluster {
   // MemberAdd adds a member into the cluster.
   rpc MemberAdd(MemberAddRequest) returns (MemberAddResponse) {
@@ -1121,3 +1125,12 @@ message AuthRoleDeleteResponse { ResponseHeader header = 1; }
 message AuthRoleGrantPermissionResponse { ResponseHeader header = 1; }
 
 message AuthRoleRevokePermissionResponse { ResponseHeader header = 1; }
+
+message ReplicationStatusRequest {
+  repeated bytes heads = 1;
+}
+
+message ReplicationStatusResponse {
+  ResponseHeader header = 1;
+  map<uint64, bool> member_statuses = 2;
+}

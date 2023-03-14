@@ -11,6 +11,7 @@ use futures::join;
 use maintenance::MaintenanceServer;
 use peer::DocumentChangedSyncer;
 use peer_proto::peer_server::PeerServer;
+use replication::ReplicationServer;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -37,6 +38,7 @@ mod maintenance;
 mod metrics;
 mod options;
 mod peer;
+mod replication;
 mod watch;
 
 pub use options::ClusterState;
@@ -342,6 +344,13 @@ where
                 mergeable_proto::etcdserverpb::cluster_server::ClusterServer::new(ClusterServer {
                     document: document.clone(),
                 }),
+            )
+            .add_service(
+                mergeable_proto::etcdserverpb::replication_server::ReplicationServer::new(
+                    ReplicationServer {
+                        document: document.clone(),
+                    },
+                ),
             )
             .add_service(mergeable_proto::etcdserverpb::auth_server::AuthServer::new(
                 AuthServer {},

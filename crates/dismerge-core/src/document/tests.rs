@@ -6586,3 +6586,178 @@ async fn kv_leases() {
     "###
     );
 }
+
+#[tokio::test]
+async fn replication_status_single_node() {
+    let mut doc = TestDocumentBuilder::default().build();
+    let key = "key1".to_owned();
+    let value1 = Bytes::from(b"value1".to_vec());
+    let put_res = doc
+        .put(PutRequest {
+            key: key.clone(),
+            value: value1.clone(),
+            lease_id: None,
+            prev_kv: true,
+        })
+        .await
+        .unwrap()
+        .await
+        .unwrap();
+
+    let replication_status = doc.replication_status(&put_res.0.heads);
+    assert_debug_snapshot!(replication_status, @r###"
+    {
+        1: true,
+    }
+    "###);
+}
+
+#[tokio::test]
+async fn replication_status_double_node() {
+    let id1 = 1;
+    let id2 = 2;
+    let cluster_id = 1;
+    let name1 = "node1".to_string();
+    let name2 = "node2".to_string();
+
+    let mut doc1 = TestDocumentBuilder::default()
+        .with_in_memory()
+        .with_member_id(id1)
+        .with_name(name1)
+        .with_cluster_id(cluster_id)
+        .with_syncer(())
+        .build();
+    doc1.add_member(vec![], id2).await;
+    let members = doc1.list_members().unwrap();
+    assert_debug_snapshot!(members, @r###"
+    [
+        Member {
+            id: 1,
+            name: "node1",
+            peer_ur_ls: [],
+            client_ur_ls: [],
+            is_learner: false,
+        },
+        Member {
+            id: 2,
+            name: "",
+            peer_ur_ls: [],
+            client_ur_ls: [],
+            is_learner: false,
+        },
+    ]
+    "###);
+
+    let doc1 = Arc::new(Mutex::new(doc1));
+
+    let doc2 = TestDocumentBuilder::default()
+        .with_in_memory()
+        .with_member_id(id2)
+        .with_name(name2)
+        .with_cluster_id(cluster_id)
+        .with_syncer(())
+        .build();
+    let doc2 = Arc::new(Mutex::new(doc2));
+
+    let key1 = "key1".to_owned();
+    let value1 = Bytes::from(b"value1".to_vec());
+
+    let syncer1 = LocalSyncer {
+        local_id: id1,
+        local_document: Arc::clone(&doc1),
+        other_documents: vec![(id2, Arc::clone(&doc2))],
+    };
+
+    syncer1.sync_all().await;
+
+    let put_res = doc1
+        .lock()
+        .await
+        .put(PutRequest {
+            key: key1.clone(),
+            value: value1.clone(),
+            lease_id: None,
+            prev_kv: true,
+        })
+        .await
+        .unwrap()
+        .await
+        .unwrap();
+
+    let members = doc1.lock().await.list_members().unwrap();
+    assert_debug_snapshot!(members, @r###"
+    [
+        Member {
+            id: 1,
+            name: "node1",
+            peer_ur_ls: [],
+            client_ur_ls: [],
+            is_learner: false,
+        },
+        Member {
+            id: 2,
+            name: "node2",
+            peer_ur_ls: [],
+            client_ur_ls: [],
+            is_learner: false,
+        },
+    ]
+    "###);
+    let members = doc2.lock().await.list_members().unwrap();
+    assert_debug_snapshot!(members, @r###"
+    [
+        Member {
+            id: 1,
+            name: "node1",
+            peer_ur_ls: [],
+            client_ur_ls: [],
+            is_learner: false,
+        },
+        Member {
+            id: 2,
+            name: "node2",
+            peer_ur_ls: [],
+            client_ur_ls: [],
+            is_learner: false,
+        },
+    ]
+    "###);
+
+    // doc1 has the heads for the thing it just wrote but doc2 doesn't have it yet (haven't synced)
+    let replication_status = doc1.lock().await.replication_status(&put_res.0.heads);
+    assert_debug_snapshot!(replication_status, @r###"
+    {
+        1: true,
+        2: false,
+    }
+    "###);
+
+    // but doc2 doesn't have it yet so can't work it out
+    let replication_status = doc2.lock().await.replication_status(&put_res.0.heads);
+    assert_debug_snapshot!(replication_status, @r###"
+    {
+        2: false,
+    }
+    "###);
+
+    // sync them
+    syncer1.sync_all().await;
+
+    // doc1 should now know that doc2 has it
+    let replication_status = doc1.lock().await.replication_status(&put_res.0.heads);
+    assert_debug_snapshot!(replication_status, @r###"
+    {
+        1: true,
+        2: true,
+    }
+    "###);
+
+    // and doc2 should be able to report both too
+    let replication_status = doc2.lock().await.replication_status(&put_res.0.heads);
+    assert_debug_snapshot!(replication_status, @r###"
+    {
+        1: true,
+        2: true,
+    }
+    "###);
+}

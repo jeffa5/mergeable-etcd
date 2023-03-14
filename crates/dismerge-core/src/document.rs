@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
 use automerge::ReadDoc;
@@ -555,6 +556,56 @@ where
         }
 
         Ok(res)
+    }
+
+    pub fn replication_status(&self, heads: &[ChangeHash]) -> BTreeMap<u64, bool> {
+        let self_member_id = self.member_id().unwrap();
+        // abort if even we don't have the heads
+        match self.am.document().partial_cmp_heads(&self.heads(), heads) {
+            Some(ordering) => match ordering {
+                std::cmp::Ordering::Less | std::cmp::Ordering::Equal => {}
+                std::cmp::Ordering::Greater => {
+                    let mut m = BTreeMap::new();
+                    m.insert(self_member_id, false);
+                    return m;
+                }
+            },
+            None => {
+                let mut m = BTreeMap::new();
+                m.insert(self_member_id, false);
+                return m;
+            }
+        }
+
+        let persister = self.am.persister();
+        let mut replication_states = BTreeMap::new();
+        let members = self.list_members().unwrap();
+        let member_ids = members.iter().map(|member| member.id);
+        for member_id in member_ids {
+            if member_id == self_member_id {
+                replication_states.insert(member_id, true);
+                continue;
+            }
+            let peer_id = member_id.to_be_bytes().to_vec();
+            let sync_state = persister.get_sync_state(&peer_id).unwrap().unwrap();
+            let sync_state = automerge::sync::State::decode(&sync_state).unwrap();
+            let they_have_the_heads = match self
+                .am
+                .document()
+                .partial_cmp_heads(heads, &sync_state.shared_heads)
+            {
+                Some(ordering) => match ordering {
+                    std::cmp::Ordering::Less | std::cmp::Ordering::Equal => true,
+                    std::cmp::Ordering::Greater => false,
+                },
+                None => {
+                    // concurrent, so no
+                    false
+                }
+            };
+            replication_states.insert(member_id, they_have_the_heads);
+        }
+        replication_states
     }
 
     fn deep_merge(&mut self, obj: &ObjId, key: Prop) {
