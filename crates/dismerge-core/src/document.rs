@@ -516,10 +516,7 @@ where
                             None
                         };
                         let event = crate::WatchEvent {
-                            typ: crate::watcher::WatchEventType::Delete(
-                                prop.to_string(),
-                                hash,
-                            ),
+                            typ: crate::watcher::WatchEventType::Delete(prop.to_string(), hash),
                             prev_kv,
                         };
                         self.watcher.publish_event(header.clone(), event).await;
