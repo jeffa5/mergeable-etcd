@@ -82,7 +82,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 [[package]]
 name = "automerge"
 version = "0.3.0"
-source = "git+https://github.com/jeffa5/automerge?branch=delete-patch-opid#bb9ad672134f32f6eb9a3c7615b73ebfc60d2ca5"
+source = "git+https://github.com/jeffa5/automerge?branch=cmp-heads#b1be17c49b8975cc616a0ea2f6c689a8e8cbb00c"
 dependencies = [
  "flate2",
  "fxhash",

@@ -240,6 +240,14 @@ impl<'r, Read: ReadDoc> ReadDoc for ReadableDocAt<'r, Read> {
     fn hash_for_opid(&self, opid: &ObjId) -> Option<ChangeHash> {
         self.0.hash_for_opid(opid)
     }
+
+    fn partial_cmp_heads(
+        &self,
+        heads1: &[ChangeHash],
+        heads2: &[ChangeHash],
+    ) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp_heads(heads1, heads2)
+    }
 }
 
 pub fn extract_key_value_at<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
