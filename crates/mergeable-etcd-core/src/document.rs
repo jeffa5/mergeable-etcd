@@ -560,6 +560,7 @@ where
                     path: _,
                     prop: _,
                     num: _,
+                    opids: _,
                 } => {}
                 automerge::Patch::Expose {
                     path: _,
