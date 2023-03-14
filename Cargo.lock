@@ -557,6 +557,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "dismerge-client"
+version = "0.1.0"
+dependencies = [
+ "automerge",
+ "clap",
+ "hex",
+ "mergeable-proto",
+ "tokio",
+]
+
+[[package]]
 name = "dismerge-core"
 version = "0.1.0"
 dependencies = [
