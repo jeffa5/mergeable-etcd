@@ -8,4 +8,4 @@ debug = true
 
 [patch.crates-io]
 # https://github.com/automerge/automerge/pull/550
-automerge = {git = "https://github.com/jeffa5/automerge", branch = "hash-for-opid"}
+automerge = {git = "https://github.com/jeffa5/automerge", branch = "delete-patch-opid"}

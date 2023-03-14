@@ -245,14 +245,14 @@ impl<'r, Read: ReadDoc> ReadDoc for ReadableDocAt<'r, Read> {
 pub fn extract_key_value_at<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
     txn: &R,
     key: String,
-    key_obj: ObjId,
+    key_obj: &ObjId,
     heads: &[ChangeHash],
 ) -> KeyValue<V> {
-    let create_head = txn.hash_for_opid(&key_obj).unwrap();
-    let (_value, value_id) = txn.get_at(&key_obj, "value", heads).unwrap().unwrap();
+    let create_head = txn.hash_for_opid(key_obj).unwrap();
+    let (_value, value_id) = txn.get_at(key_obj, "value", heads).unwrap().unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap();
     let lease = txn
-        .get_at(&key_obj, "lease", heads)
+        .get_at(key_obj, "lease", heads)
         .unwrap()
         .and_then(|v| v.0.to_i64());
     // TODO: fix this to query in history
@@ -304,7 +304,7 @@ pub fn range<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
                             break;
                         }
                     }
-                    let value = extract_key_value_at(txn, key.to_owned(), key_obj, &heads);
+                    let value = extract_key_value_at(txn, key.to_owned(), &key_obj, &heads);
                     values.push(value);
                 }
             }
@@ -314,7 +314,7 @@ pub fn range<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
                 values.push(value);
             }
         } else if let Some((_, key_obj)) = txn.get_at(&kvs, &start, &heads).unwrap() {
-            let value = extract_key_value_at(txn, start.clone(), key_obj, &heads);
+            let value = extract_key_value_at(txn, start.clone(), &key_obj, &heads);
             values.push(value);
         }
     }

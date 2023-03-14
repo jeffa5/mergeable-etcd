@@ -3991,7 +3991,6 @@ async fn sync_two_documents_trigger_watches() {
 
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
-    let key3 = "key3".to_owned();
     let other_key = "okey".to_owned();
     let value1 = Bytes::from(b"value1".to_vec());
     let value2 = Bytes::from(b"value2".to_vec());
@@ -4001,8 +4000,8 @@ async fn sync_two_documents_trigger_watches() {
         .create_watch(
             &mut *doc1.lock().await,
             key1.clone(),
-            Some(key3.clone()),
-            false,
+            Some(key2.clone()),
+            true,
             vec![],
             sender1,
         )
@@ -4013,8 +4012,8 @@ async fn sync_two_documents_trigger_watches() {
         .create_watch(
             &mut *doc2.lock().await,
             key1.clone(),
-            Some(key3.clone()),
-            false,
+            Some(key2.clone()),
+            true,
             vec![],
             sender2,
         )
@@ -4054,14 +4053,34 @@ async fn sync_two_documents_trigger_watches() {
     ]
     "###);
 
+    doc1.lock()
+        .await
+        .put(PutRequest {
+            key: key1.clone(),
+            value: value2.clone(),
+            lease_id: None,
+            prev_kv: false,
+        })
+        .await
+        .unwrap()
+        .await
+        .unwrap();
+    assert_debug_snapshot!(doc1.lock().await.heads(), @r###"
+    [
+        ChangeHash(
+            "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
+        ),
+    ]
+    "###);
+
     for (header, event) in std::mem::take(&mut *events1.lock().await) {
         watch_server1.receive_event(header, event).await
     }
 
     assert_debug_snapshot!(
-        receiver1.recv().await,
+        receiver1.try_recv(),
         @r###"
-    Some(
+    Ok(
         (
             1,
             Header {
@@ -4103,47 +4122,15 @@ async fn sync_two_documents_trigger_watches() {
     "###
     );
     assert_debug_snapshot!(receiver1.try_recv(), @r###"
-    Err(
-        Empty,
-    )
-    "###);
-
-    doc2.lock()
-        .await
-        .put(PutRequest {
-            key: key1.clone(),
-            value: value2.clone(),
-            lease_id: None,
-            prev_kv: false,
-        })
-        .await
-        .unwrap()
-        .await
-        .unwrap();
-    assert_debug_snapshot!(doc2.lock().await.heads(), @r###"
-    [
-        ChangeHash(
-            "ce873b875b29546dae268e592c39bc37897840aed7bbe56e0ff10a629d378050",
-        ),
-    ]
-    "###);
-
-    for (header, event) in std::mem::take(&mut *events2.lock().await) {
-        watch_server2.receive_event(header, event).await
-    }
-
-    assert_debug_snapshot!(
-        receiver2.recv().await,
-        @r###"
-    Some(
+    Ok(
         (
             1,
             Header {
                 cluster_id: 1,
-                member_id: 2,
+                member_id: 1,
                 heads: [
                     ChangeHash(
-                        "ce873b875b29546dae268e592c39bc37897840aed7bbe56e0ff10a629d378050",
+                        "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
                     ),
                 ],
             },
@@ -4162,10 +4149,111 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "ce873b875b29546dae268e592c39bc37897840aed7bbe56e0ff10a629d378050",
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
                         ),
                         mod_head: ChangeHash(
-                            "ce873b875b29546dae268e592c39bc37897840aed7bbe56e0ff10a629d378050",
+                            "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
+                        ),
+                        lease: None,
+                    },
+                ),
+                prev_kv: Some(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                                49,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                        ),
+                        mod_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                        ),
+                        lease: None,
+                    },
+                ),
+            },
+        ),
+    )
+    "###);
+
+    assert_debug_snapshot!(receiver1.try_recv(), @r###"
+    Err(
+        Empty,
+    )
+    "###
+    );
+
+    assert_debug_snapshot!(doc2.lock().await.heads(), @r###"
+    [
+        ChangeHash(
+            "57899acb182b89ede30510c11183a8ed03d2ab23157ccdb1fed9e6645cfca8ba",
+        ),
+    ]
+    "###);
+
+    syncer1.sync_all().await;
+
+    for (header, event) in std::mem::take(&mut *events1.lock().await) {
+        watch_server1.receive_event(header, event).await
+    }
+
+    // gets nothing from doc2
+    assert_debug_snapshot!(receiver1.try_recv(), @r###"
+    Err(
+        Empty,
+    )
+    "###);
+
+    for (header, event) in std::mem::take(&mut *events2.lock().await) {
+        watch_server2.receive_event(header, event).await
+    }
+
+    // gets the value from doc1
+    assert_debug_snapshot!(
+        receiver2.try_recv(),
+        @r###"
+    Ok(
+        (
+            1,
+            Header {
+                cluster_id: 1,
+                member_id: 2,
+                heads: [
+                    ChangeHash(
+                        "57899acb182b89ede30510c11183a8ed03d2ab23157ccdb1fed9e6645cfca8ba",
+                    ),
+                    ChangeHash(
+                        "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
+                    ),
+                ],
+            },
+            WatchEvent {
+                typ: Put(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                                49,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                        ),
+                        mod_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
                         ),
                         lease: None,
                     },
@@ -4176,107 +4264,102 @@ async fn sync_two_documents_trigger_watches() {
     )
     "###
     );
-    assert_debug_snapshot!(receiver2.try_recv(), @r###"
-    Err(
-        Empty,
-    )
-    "###);
 
-    syncer1.sync_all().await;
-
-    for (header, event) in std::mem::take(&mut *events1.lock().await) {
-        watch_server1.receive_event(header, event).await
-    }
-
-    for (header, event) in std::mem::take(&mut *events2.lock().await) {
-        watch_server2.receive_event(header, event).await
-    }
-
-    // no event as the value was in the past
-    assert_debug_snapshot!(receiver1.try_recv(), @r###"
-    Err(
-        Empty,
-    )
-    "###);
-
-    // just the new value from doc1
     assert_debug_snapshot!(
         receiver2.try_recv(),
-        @"Ok((
-            watch_id2,
+        @r###"
+    Ok(
+        (
+            1,
             Header {
-                cluster_id,
+                cluster_id: 1,
                 member_id: 2,
-                revision: 4
+                heads: [
+                    ChangeHash(
+                        "57899acb182b89ede30510c11183a8ed03d2ab23157ccdb1fed9e6645cfca8ba",
+                    ),
+                    ChangeHash(
+                        "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: value1.clone(),
-                    create_revision: 2,
-                    mod_revision: 3,
-                    version: 2,
-                    lease: None
-                },
-                prev_kv: None,
-            }
-        ))"
+                typ: Put(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                                50,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                        ),
+                        mod_head: ChangeHash(
+                            "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
+                        ),
+                        lease: None,
+                    },
+                ),
+                prev_kv: Some(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                                49,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                        ),
+                        mod_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                        ),
+                        lease: None,
+                    },
+                ),
+            },
+        ),
+    )
+    "###
     );
 
     assert_debug_snapshot!(
         receiver2.try_recv(),
-        @"Ok((
-            Header {
-                cluster_id,
-                member_id: 2,
-                revision: 4
-            },
-            WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: value1.clone(),
-                    create_revision: 2,
-                    mod_revision: 3,
-                    version: 2,
-                    lease: None
-                },
-                prev_kv: Some(KeyValue {
-                    key: key1.clone(),
-                    value: value2.clone(),
-                    create_revision: 2,
-                    mod_revision: 2,
-                    version: 1,
-                    lease: None
-                }),
-            }
-        ))"
-    );
-
-    assert_debug_snapshot!(receiver2.try_recv(), @r###"
+        @r###"
     Err(
         Empty,
     )
-    "###);
+    "###
+    );
 
     assert_debug_snapshot!(doc1.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+            "57899acb182b89ede30510c11183a8ed03d2ab23157ccdb1fed9e6645cfca8ba",
         ),
         ChangeHash(
-            "ce873b875b29546dae268e592c39bc37897840aed7bbe56e0ff10a629d378050",
+            "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
         ),
     ]
     "###);
     assert_debug_snapshot!(doc2.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+            "57899acb182b89ede30510c11183a8ed03d2ab23157ccdb1fed9e6645cfca8ba",
         ),
         ChangeHash(
-            "ce873b875b29546dae268e592c39bc37897840aed7bbe56e0ff10a629d378050",
+            "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
         ),
     ]
     "###);
@@ -4308,7 +4391,7 @@ async fn sync_two_documents_trigger_watches() {
                 member_id: 1,
                 heads: [
                     ChangeHash(
-                        "cde7765fdc3376bdd2985ac90c849eecb23e77b8e18a2226806d575522aad2f9",
+                        "1545f21e203ab2b3035041787b67848627a1a57aeed777eead5011a9a5d4da59",
                     ),
                 ],
             },
@@ -4316,10 +4399,31 @@ async fn sync_two_documents_trigger_watches() {
                 typ: Delete(
                     "key1",
                     ChangeHash(
-                        "cde7765fdc3376bdd2985ac90c849eecb23e77b8e18a2226806d575522aad2f9",
+                        "1545f21e203ab2b3035041787b67848627a1a57aeed777eead5011a9a5d4da59",
                     ),
                 ),
-                prev_kv: None,
+                prev_kv: Some(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                                50,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                        ),
+                        mod_head: ChangeHash(
+                            "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
+                        ),
+                        lease: None,
+                    },
+                ),
             },
         ),
     )
@@ -4331,36 +4435,10 @@ async fn sync_two_documents_trigger_watches() {
     )
     "###);
 
-    doc2.lock()
-        .await
-        .delete_range(DeleteRangeRequest {
-            start: key2.clone(),
-            end: None,
-            prev_kv: false,
-        })
-        .await
-        .unwrap()
-        .await
-        .unwrap();
-
-    for (header, event) in std::mem::take(&mut *events2.lock().await) {
-        watch_server2.receive_event(header, event).await
-    }
-
-    assert_debug_snapshot!(receiver2.try_recv(), @r###"
-    Err(
-        Empty,
-    )
-    "###);
-
     syncer1.sync_all().await;
 
     for (header, event) in std::mem::take(&mut *events1.lock().await) {
         watch_server1.receive_event(header, event).await
-    }
-
-    for (header, event) in std::mem::take(&mut *events2.lock().await) {
-        watch_server2.receive_event(header, event).await
     }
 
     assert_debug_snapshot!(receiver1.try_recv(), @r###"
@@ -4369,28 +4447,67 @@ async fn sync_two_documents_trigger_watches() {
     )
     "###);
 
+    for (header, event) in std::mem::take(&mut *events2.lock().await) {
+        watch_server2.receive_event(header, event).await
+    }
+
     assert_debug_snapshot!(
         receiver2.try_recv(),
-        @"Ok((
-            watch_id2,
+        @r###"
+    Ok(
+        (
+            1,
             Header {
-                cluster_id,
-                member_id: id2,
-                revision: 6
+                cluster_id: 1,
+                member_id: 2,
+                heads: [
+                    ChangeHash(
+                        "1545f21e203ab2b3035041787b67848627a1a57aeed777eead5011a9a5d4da59",
+                    ),
+                ],
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: Vec::new(),
-                    create_revision: 0,
-                    mod_revision: 5,
-                    version: 0,
-                    lease: None
-                },
-                prev_kv: None,
-            }
-        ))"
+                typ: Delete(
+                    "key1",
+                    ChangeHash(
+                        "1545f21e203ab2b3035041787b67848627a1a57aeed777eead5011a9a5d4da59",
+                    ),
+                ),
+                prev_kv: Some(
+                    KeyValue {
+                        key: "key1",
+                        value: Bytes(
+                            [
+                                118,
+                                97,
+                                108,
+                                117,
+                                101,
+                                50,
+                            ],
+                        ),
+                        create_head: ChangeHash(
+                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                        ),
+                        mod_head: ChangeHash(
+                            "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
+                        ),
+                        lease: None,
+                    },
+                ),
+            },
+        ),
+    )
+    "###
+    );
+
+    assert_debug_snapshot!(
+        receiver2.try_recv(),
+        @r###"
+    Err(
+        Empty,
+    )
+    "###
     );
 }
 

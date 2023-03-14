@@ -14,6 +14,7 @@ use tokio::sync::watch;
 use tracing::warn;
 use tracing::{debug, info};
 
+use crate::transaction::extract_key_value_at;
 use crate::value::Value;
 use crate::{
     req_resp::{
@@ -378,42 +379,78 @@ where
             &mut observer,
         );
 
+        let header = self.header().unwrap();
+
         self.flush();
 
         for patch in observer.take_patches() {
             match patch {
                 automerge::Patch::Put {
                     obj,
-                    prop: rev,
-                    value: _,
+                    prop,
+                    value: (_, opid),
                     conflict,
-                    path: _,
+                    path,
                 } => {
-                    if conflict {
-                        self.deep_merge(&obj, rev.clone());
-                    }
+                    if path.len() >= 2 && path[1].0 == self.kvs_objid {
+                        if conflict {
+                            debug!(?prop, "ignoring patch for conflict in kvs");
+                            continue;
+                        }
+                        debug!(?prop, "kvs changed");
+                        let key = path[1].1.to_string();
+                        let patch_key_obj = if path.len() == 2 {
+                            obj.clone()
+                        } else {
+                            path[2].0.clone()
+                        };
+                        let hash = self.am.document().hash_for_opid(&opid).unwrap();
+                        let key_obj = self
+                            .am
+                            .document()
+                            .get_at(&self.kvs_objid, &key, &[hash])
+                            .unwrap()
+                            .unwrap()
+                            .1;
+                        if patch_key_obj != key_obj {
+                            continue;
+                        }
 
-                    // see if this is a change in the revs of a key
-                    if let Some(_key) = self
-                        .am
-                        .document()
-                        .parents(obj.clone())
-                        .expect("should be a valid object id")
-                        .skip(1)
-                        .find_map(|parent| {
-                            if parent.obj == self.kvs_objid {
-                                Some(parent.prop.to_string())
-                            } else {
-                                None
-                            }
-                        })
-                    {
-                        todo!()
+                        let kv = extract_key_value_at(
+                            self.am.document(),
+                            key.clone(),
+                            &key_obj,
+                            &[hash],
+                        );
+
+                        let change = self.am.document().get_change_by_hash(&hash).unwrap();
+
+                        let parent_heads = change.deps();
+                        let prev_kv = if let Some((_, key_obj)) = self
+                            .am
+                            .document()
+                            .get_at(&self.kvs_objid, &key, parent_heads)
+                            .unwrap()
+                        {
+                            Some(extract_key_value_at(
+                                self.am.document(),
+                                key,
+                                &key_obj,
+                                parent_heads,
+                            ))
+                        } else {
+                            None
+                        };
+                        let event = crate::WatchEvent {
+                            typ: crate::watcher::WatchEventType::Put(kv),
+                            prev_kv,
+                        };
+                        self.watcher.publish_event(header.clone(), event).await;
                     } else if obj == self.members_objid {
                         let member = self.get_member(
-                            rev.to_string()
+                            prop.to_string()
                                 .parse()
-                                .map_err(|_| crate::Error::NotParseableAsId(rev.to_string()))?,
+                                .map_err(|_| crate::Error::NotParseableAsId(prop.to_string()))?,
                         );
                         self.syncer.member_change(&member).await;
                     } else if let Some(member_id) = self
@@ -450,11 +487,44 @@ where
                     path: _,
                 } => {}
                 automerge::Patch::Delete {
-                    obj: _,
-                    path: _,
-                    prop: _,
+                    obj,
+                    path,
+                    prop,
                     num: _,
-                } => {}
+                    opids,
+                } => {
+                    if path.len() == 1 && obj == self.kvs_objid {
+                        let opid = opids.into_iter().next().unwrap();
+                        let hash = self.am.document().hash_for_opid(&opid).unwrap();
+
+                        let key = prop.to_string();
+                        let change = self.am.document().get_change_by_hash(&hash).unwrap();
+                        let parent_heads = change.deps();
+                        let prev_kv = if let Some((_, key_obj)) = self
+                            .am
+                            .document()
+                            .get_at(&self.kvs_objid, &key, parent_heads)
+                            .unwrap()
+                        {
+                            Some(extract_key_value_at(
+                                self.am.document(),
+                                key,
+                                &key_obj,
+                                parent_heads,
+                            ))
+                        } else {
+                            None
+                        };
+                        let event = crate::WatchEvent {
+                            typ: crate::watcher::WatchEventType::Delete(
+                                prop.to_string(),
+                                hash,
+                            ),
+                            prev_kv,
+                        };
+                        self.watcher.publish_event(header.clone(), event).await;
+                    }
+                }
                 automerge::Patch::Expose {
                     path: _,
                     obj: _,
