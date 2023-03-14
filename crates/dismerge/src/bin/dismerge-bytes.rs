@@ -6,9 +6,6 @@ use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() {
-    // always use full backtraces so we can debug things
-    std::env::set_var("RUST_BACKTRACE", "full");
-
     let options = dismerge::Options::parse();
 
     tracing_subscriber::registry()
