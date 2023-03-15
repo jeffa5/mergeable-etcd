@@ -13,7 +13,8 @@ use tracing::info;
 
 use crate::{
     client::{self, Dispatcher, DispatcherGenerator},
-    input::InputGenerator, Options,
+    input::InputGenerator,
+    Options,
 };
 
 pub enum Msg {

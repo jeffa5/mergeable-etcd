@@ -6,21 +6,30 @@ use std::{
 
 use anyhow::{bail, Context};
 use bencher::{
-    client::{DispatcherGenerator, PutDispatcher},
-    input::{
-        PutRandomInputGenerator, PutRangeInputGenerator, PutSingleInputGenerator,
-        SleepInputGenerator, WatchSingleInputGenerator,
+    client::{
+        DismergePutDispatcher, DismergeWatchDispatcher, DispatcherGenerator, EtcdPutDispatcher,
     },
-    EtcdCommand,
+    input::{
+        DismergePutRandomInputGenerator, DismergePutRangeInputGenerator,
+        DismergePutSingleInputGenerator, DismergeWatchSingleInputGenerator,
+        EtcdPutRandomInputGenerator, EtcdPutRangeInputGenerator, EtcdPutSingleInputGenerator,
+        EtcdWatchSingleInputGenerator, SleepInputGenerator,
+    },
+    DismergeCommand, EtcdCommand,
 };
 use bencher::{
-    client::{SleepDispatcher, WatchDispatcher},
+    client::{EtcdWatchDispatcher, SleepDispatcher},
     execute_trace, loadgen, Options, Scheme, Type,
 };
 use chrono::Utc;
 use clap::Parser;
-use etcd_proto::etcdserverpb::{kv_client::KvClient, watch_client::WatchClient};
+use etcd_proto::etcdserverpb::{
+    kv_client::KvClient as EtcdKvClient, watch_client::WatchClient as EtcdWatchClient,
+};
 use hyper::StatusCode;
+use mergeable_proto::etcdserverpb::{
+    kv_client::KvClient as DismergeKvClient, watch_client::WatchClient as DismergeWatchClient,
+};
 use tokio::{sync::watch, time::sleep};
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use tracing::{info, subscriber::set_global_default, warn, Level};
@@ -37,31 +46,31 @@ impl DispatcherGenerator for SleepDispatcherGenerator {
     }
 }
 
-struct KvDispatcherGenerator {
-    clients: Vec<KvClient<Channel>>,
+struct EtcdKvDispatcherGenerator {
+    clients: Vec<EtcdKvClient<Channel>>,
     index: usize,
 }
 
-impl DispatcherGenerator for KvDispatcherGenerator {
-    type Dispatcher = PutDispatcher;
+impl DispatcherGenerator for EtcdKvDispatcherGenerator {
+    type Dispatcher = EtcdPutDispatcher;
 
     fn generate(&mut self) -> Self::Dispatcher {
         let client = self.clients[self.index].clone();
         self.index += 1;
         self.index %= self.clients.len();
-        PutDispatcher { client }
+        EtcdPutDispatcher { client }
     }
 }
 
-struct WatchDispatcherGenerator {
-    kv_clients: Vec<KvClient<Channel>>,
+struct EtcdWatchDispatcherGenerator {
+    kv_clients: Vec<EtcdKvClient<Channel>>,
     kv_index: usize,
-    watch_clients: Vec<WatchClient<Channel>>,
+    watch_clients: Vec<EtcdWatchClient<Channel>>,
     watch_index: usize,
 }
 
-impl DispatcherGenerator for WatchDispatcherGenerator {
-    type Dispatcher = WatchDispatcher;
+impl DispatcherGenerator for EtcdWatchDispatcherGenerator {
+    type Dispatcher = EtcdWatchDispatcher;
 
     fn generate(&mut self) -> Self::Dispatcher {
         let kv_client = self.kv_clients[self.kv_index].clone();
@@ -70,7 +79,47 @@ impl DispatcherGenerator for WatchDispatcherGenerator {
         let watch_client = self.watch_clients[self.watch_index].clone();
         self.watch_index += 1;
         self.watch_index %= self.watch_clients.len();
-        WatchDispatcher {
+        EtcdWatchDispatcher {
+            kv_client,
+            watch_client,
+        }
+    }
+}
+
+struct DismergeKvDispatcherGenerator {
+    clients: Vec<DismergeKvClient<Channel>>,
+    index: usize,
+}
+
+impl DispatcherGenerator for DismergeKvDispatcherGenerator {
+    type Dispatcher = DismergePutDispatcher;
+
+    fn generate(&mut self) -> Self::Dispatcher {
+        let client = self.clients[self.index].clone();
+        self.index += 1;
+        self.index %= self.clients.len();
+        DismergePutDispatcher { client }
+    }
+}
+
+struct DismergeWatchDispatcherGenerator {
+    kv_clients: Vec<DismergeKvClient<Channel>>,
+    kv_index: usize,
+    watch_clients: Vec<DismergeWatchClient<Channel>>,
+    watch_index: usize,
+}
+
+impl DispatcherGenerator for DismergeWatchDispatcherGenerator {
+    type Dispatcher = DismergeWatchDispatcher;
+
+    fn generate(&mut self) -> Self::Dispatcher {
+        let kv_client = self.kv_clients[self.kv_index].clone();
+        self.kv_index += 1;
+        self.kv_index %= self.kv_clients.len();
+        let watch_client = self.watch_clients[self.watch_index].clone();
+        self.watch_index += 1;
+        self.watch_index %= self.watch_clients.len();
+        DismergeWatchDispatcher {
             kv_client,
             watch_client,
         }
@@ -188,10 +237,10 @@ async fn main() -> anyhow::Result<()> {
                     let kv_clients = (0..options.clients)
                         .map(|_| {
                             let channel = Channel::balance_list(endpoints.clone());
-                            KvClient::new(channel)
+                            EtcdKvClient::new(channel)
                         })
                         .collect::<Vec<_>>();
-                    let kv_dispatcher_generator = KvDispatcherGenerator {
+                    let kv_dispatcher_generator = EtcdKvDispatcherGenerator {
                         clients: kv_clients.clone(),
                         index: 0,
                     };
@@ -199,10 +248,10 @@ async fn main() -> anyhow::Result<()> {
                     let watch_clients = (0..options.clients)
                         .map(|_| {
                             let channel = Channel::balance_list(endpoints.clone());
-                            WatchClient::new(channel)
+                            EtcdWatchClient::new(channel)
                         })
                         .collect::<Vec<_>>();
-                    let watch_dispatcher_generator = WatchDispatcherGenerator {
+                    let watch_dispatcher_generator = EtcdWatchDispatcherGenerator {
                         kv_clients,
                         kv_index: 0,
                         watch_clients,
@@ -213,7 +262,7 @@ async fn main() -> anyhow::Result<()> {
                         EtcdCommand::PutSingle { key } => {
                             loadgen::generate_load(
                                 &options,
-                                PutSingleInputGenerator { key: key.clone() },
+                                EtcdPutSingleInputGenerator { key: key.clone() },
                                 kv_dispatcher_generator,
                                 writer,
                             )
@@ -222,7 +271,7 @@ async fn main() -> anyhow::Result<()> {
                         EtcdCommand::PutRange {} => {
                             loadgen::generate_load(
                                 &options,
-                                PutRangeInputGenerator { iteration: 0 },
+                                EtcdPutRangeInputGenerator { iteration: 0 },
                                 kv_dispatcher_generator,
                                 writer,
                             )
@@ -231,7 +280,7 @@ async fn main() -> anyhow::Result<()> {
                         EtcdCommand::PutRandom { size } => {
                             loadgen::generate_load(
                                 &options,
-                                PutRandomInputGenerator { size: *size },
+                                EtcdPutRandomInputGenerator { size: *size },
                                 kv_dispatcher_generator,
                                 writer,
                             )
@@ -241,7 +290,142 @@ async fn main() -> anyhow::Result<()> {
                             let (sender, receiver) = watch::channel(());
                             loadgen::generate_load(
                                 &options,
-                                WatchSingleInputGenerator {
+                                EtcdWatchSingleInputGenerator {
+                                    key: key.clone(),
+                                    num_watchers: *num_watchers,
+                                    sender,
+                                    receiver,
+                                },
+                                watch_dispatcher_generator,
+                                writer,
+                            )
+                            .await
+                        }
+                    }
+                }
+                bencher::ScenarioCommands::Dismerge(dismerge_command) => {
+                    let client = reqwest::Client::builder()
+                        .timeout(Duration::from_secs(1))
+                        .build()
+                        .unwrap();
+
+                    for endpoint in &options.metrics_endpoints {
+                        let mut retries = 0;
+                        loop {
+                            if retries > MAX_HEALTH_RETRIES {
+                                bail!("Gave up waiting for service to be ready")
+                            }
+                            info!("Waiting for {}/health to be ready", endpoint);
+                            retries += 1;
+
+                            let result = client.get(format!("{}/health", endpoint)).send().await;
+                            match result {
+                                Ok(response) => {
+                                    if response.status() == StatusCode::OK {
+                                        break;
+                                    } else {
+                                        let text = response.text().await.unwrap();
+                                        warn!(
+                                            response = %text,
+                                            "Found unhealthy node"
+                                        );
+                                    }
+                                }
+                                Err(error) => {
+                                    warn!(%error, "Failed to send get request")
+                                }
+                            }
+                            sleep(Duration::from_secs(1)).await;
+                        }
+                        info!("Finished waiting for {} to be ready", endpoint);
+                    }
+                    let mut endpoints = Vec::new();
+                    for endpoint in &options.endpoints {
+                        match endpoint.scheme {
+                            Scheme::Http => {
+                                endpoints.push(Channel::from_shared(endpoint.to_string())?)
+                            }
+                            Scheme::Https => {
+                                if let Some(ref cacert) = options.cacert {
+                                    let pem = tokio::fs::read(cacert)
+                                        .await
+                                        .context("Failed to read cacert")?;
+                                    let ca = Certificate::from_pem(pem);
+
+                                    let tls = ClientTlsConfig::new().ca_certificate(ca);
+
+                                    endpoints.push(
+                                        Channel::from_shared(endpoint.to_string())?
+                                            .tls_config(tls.clone())?,
+                                    )
+                                } else {
+                                    bail!("https endpoint without a cacert!")
+                                }
+                            }
+                        }
+                    }
+                    let timeout = options.timeout;
+                    let endpoints = endpoints
+                        .into_iter()
+                        .map(move |e| e.timeout(Duration::from_millis(timeout)));
+
+                    let kv_clients = (0..options.clients)
+                        .map(|_| {
+                            let channel = Channel::balance_list(endpoints.clone());
+                            DismergeKvClient::new(channel)
+                        })
+                        .collect::<Vec<_>>();
+                    let kv_dispatcher_generator = DismergeKvDispatcherGenerator {
+                        clients: kv_clients.clone(),
+                        index: 0,
+                    };
+
+                    let watch_clients = (0..options.clients)
+                        .map(|_| {
+                            let channel = Channel::balance_list(endpoints.clone());
+                            DismergeWatchClient::new(channel)
+                        })
+                        .collect::<Vec<_>>();
+                    let watch_dispatcher_generator = DismergeWatchDispatcherGenerator {
+                        kv_clients,
+                        kv_index: 0,
+                        watch_clients,
+                        watch_index: 0,
+                    };
+
+                    match &dismerge_command.command {
+                        DismergeCommand::PutSingle { key } => {
+                            loadgen::generate_load(
+                                &options,
+                                DismergePutSingleInputGenerator { key: key.clone() },
+                                kv_dispatcher_generator,
+                                writer,
+                            )
+                            .await
+                        }
+                        DismergeCommand::PutRange {} => {
+                            loadgen::generate_load(
+                                &options,
+                                DismergePutRangeInputGenerator { iteration: 0 },
+                                kv_dispatcher_generator,
+                                writer,
+                            )
+                            .await
+                        }
+                        DismergeCommand::PutRandom { size } => {
+                            loadgen::generate_load(
+                                &options,
+                                DismergePutRandomInputGenerator { size: *size },
+                                kv_dispatcher_generator,
+                                writer,
+                            )
+                            .await
+                        }
+                        DismergeCommand::WatchSingle { key, num_watchers } => {
+                            let (sender, receiver) = watch::channel(());
+                            loadgen::generate_load(
+                                &options,
+                                DismergeWatchSingleInputGenerator {
                                     key: key.clone(),
                                     num_watchers: *num_watchers,
                                     sender,

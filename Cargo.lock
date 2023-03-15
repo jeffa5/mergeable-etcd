@@ -221,6 +221,7 @@ dependencies = [
  "etcd-proto",
  "futures",
  "hyper",
+ "mergeable-proto",
  "rand 0.8.5",
  "reqwest",
  "serde",

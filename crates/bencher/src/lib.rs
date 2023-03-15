@@ -21,6 +21,7 @@ pub struct Output {
     pub iteration: u32,
     pub member_id: u64,
     pub raft_term: u64,
+    pub heads: Vec<Vec<u8>>,
 }
 
 impl Output {
@@ -35,12 +36,14 @@ impl Output {
             iteration,
             member_id: 0,
             raft_term: 0,
+            heads: Vec::new(),
         }
     }
 
-    pub fn stop(&mut self, member_id: u64, raft_term: u64, key: String) {
+    pub fn stop(&mut self, member_id: u64, raft_term: u64, heads: Vec<Vec<u8>>, key: String) {
         self.member_id = member_id;
         self.raft_term = raft_term;
+        self.heads = heads;
         self.key = key;
         self.end_ns = chrono::Utc::now().timestamp_nanos();
     }
@@ -67,6 +70,8 @@ pub enum ScenarioCommands {
     Sleep { milliseconds: u64 },
     /// Benchmarking commands for etcd.
     Etcd(Etcd),
+    /// Benchmarking commands for dismerge.
+    Dismerge(Dismerge),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -77,6 +82,28 @@ pub struct Etcd {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum EtcdCommand {
+    /// Repeatedly write to the same key
+    PutSingle { key: String },
+    /// Write to a sequence of keys
+    PutRange,
+    /// Write randomly to keys in a given number
+    PutRandom { size: usize },
+    /// Create many watches on a single key and continually write to it.
+    WatchSingle {
+        key: String,
+        #[clap(long, default_value = "100")]
+        num_watchers: u32,
+    },
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct Dismerge {
+    #[clap(subcommand)]
+    pub command: DismergeCommand,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum DismergeCommand {
     /// Repeatedly write to the same key
     PutSingle { key: String },
     /// Write to a sequence of keys
