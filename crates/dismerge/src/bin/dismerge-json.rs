@@ -43,7 +43,9 @@ async fn main() {
         .with(if let Some(log_filter) = &options.log_filter {
             EnvFilter::from(log_filter)
         } else {
-            EnvFilter::from_default_env()
+            EnvFilter::builder()
+                .try_from_env()
+                .unwrap_or_else(|_| EnvFilter::from("info"))
         })
         .init();
 
