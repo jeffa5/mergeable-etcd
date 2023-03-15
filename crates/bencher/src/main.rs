@@ -5,16 +5,76 @@ use std::{
 };
 
 use anyhow::{bail, Context};
-use bencher::{execute_trace, loadgen, Options, Scheme, Type};
+use bencher::{
+    client::{DispatcherGenerator, PutDispatcher},
+    input::{
+        PutRandomInputGenerator, PutRangeInputGenerator, PutSingleInputGenerator,
+        SleepInputGenerator, WatchSingleInputGenerator,
+    },
+};
+use bencher::{
+    client::{SleepDispatcher, WatchDispatcher},
+    execute_trace, loadgen, Options, Scheme, Type,
+};
 use chrono::Utc;
 use clap::Parser;
 use etcd_proto::etcdserverpb::{kv_client::KvClient, watch_client::WatchClient};
 use hyper::StatusCode;
-use tokio::time::sleep;
+use tokio::{sync::watch, time::sleep};
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use tracing::{info, subscriber::set_global_default, warn, Level};
 
 const MAX_HEALTH_RETRIES: u32 = 50;
+
+struct SleepDispatcherGenerator;
+
+impl DispatcherGenerator for SleepDispatcherGenerator {
+    type Dispatcher = SleepDispatcher;
+
+    fn generate(&mut self) -> Self::Dispatcher {
+        SleepDispatcher {}
+    }
+}
+
+struct KvDispatcherGenerator {
+    clients: Vec<KvClient<Channel>>,
+    index: usize,
+}
+
+impl DispatcherGenerator for KvDispatcherGenerator {
+    type Dispatcher = PutDispatcher;
+
+    fn generate(&mut self) -> Self::Dispatcher {
+        let client = self.clients[self.index].clone();
+        self.index += 1;
+        self.index %= self.clients.len();
+        PutDispatcher { client }
+    }
+}
+
+struct WatchDispatcherGenerator {
+    kv_clients: Vec<KvClient<Channel>>,
+    kv_index: usize,
+    watch_clients: Vec<WatchClient<Channel>>,
+    watch_index: usize,
+}
+
+impl DispatcherGenerator for WatchDispatcherGenerator {
+    type Dispatcher = WatchDispatcher;
+
+    fn generate(&mut self) -> Self::Dispatcher {
+        let kv_client = self.kv_clients[self.kv_index].clone();
+        self.kv_index += 1;
+        self.kv_index %= self.kv_clients.len();
+        let watch_client = self.watch_clients[self.watch_index].clone();
+        self.watch_index += 1;
+        self.watch_index %= self.watch_clients.len();
+        WatchDispatcher {
+            kv_client,
+            watch_client,
+        }
+    }
+}
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -115,7 +175,10 @@ async fn main() -> anyhow::Result<()> {
                     KvClient::new(channel)
                 })
                 .collect::<Vec<_>>();
-            let mut kv_client_index = 0;
+            let kv_dispatcher_generator = KvDispatcherGenerator {
+                clients: kv_clients.clone(),
+                index: 0,
+            };
 
             let watch_clients = (0..options.clients)
                 .map(|_| {
@@ -123,28 +186,69 @@ async fn main() -> anyhow::Result<()> {
                     WatchClient::new(channel)
                 })
                 .collect::<Vec<_>>();
-            let mut watch_client_index = 0;
+            let watch_dispatcher_generator = WatchDispatcherGenerator {
+                kv_clients,
+                kv_index: 0,
+                watch_clients,
+                watch_index: 0,
+            };
 
             info!("generating load");
-            let error_count = loadgen::generate_load(
-                &options,
-                scenario.clone(),
-                Box::new(move || {
-                    let client = kv_clients[kv_client_index].clone();
-                    kv_client_index += 1;
-                    kv_client_index %= kv_clients.len();
-                    client
-                }),
-                Box::new(move || {
-                    let client = watch_clients[watch_client_index].clone();
-                    watch_client_index += 1;
-                    watch_client_index %= watch_clients.len();
-                    client
-                }),
-                writer,
-            )
-            .await;
-
+            let error_count = match &scenario.command {
+                bencher::ScenarioCommands::Sleep { milliseconds } => {
+                    loadgen::generate_load(
+                        &options,
+                        SleepInputGenerator {
+                            milliseconds: *milliseconds,
+                        },
+                        SleepDispatcherGenerator,
+                        writer,
+                    )
+                    .await
+                }
+                bencher::ScenarioCommands::PutSingle { key } => {
+                    loadgen::generate_load(
+                        &options,
+                        PutSingleInputGenerator { key: key.clone() },
+                        kv_dispatcher_generator,
+                        writer,
+                    )
+                    .await
+                }
+                bencher::ScenarioCommands::PutRange {} => {
+                    loadgen::generate_load(
+                        &options,
+                        PutRangeInputGenerator { iteration: 0 },
+                        kv_dispatcher_generator,
+                        writer,
+                    )
+                    .await
+                }
+                bencher::ScenarioCommands::PutRandom { size } => {
+                    loadgen::generate_load(
+                        &options,
+                        PutRandomInputGenerator { size: *size },
+                        kv_dispatcher_generator,
+                        writer,
+                    )
+                    .await
+                }
+                bencher::ScenarioCommands::WatchSingle { key, num_watchers } => {
+                    let (sender, receiver) = watch::channel(());
+                    loadgen::generate_load(
+                        &options,
+                        WatchSingleInputGenerator {
+                            key: key.clone(),
+                            num_watchers: *num_watchers,
+                            sender,
+                            receiver,
+                        },
+                        watch_dispatcher_generator,
+                        writer,
+                    )
+                    .await
+                }
+            };
             info!("generated load");
 
             let runtime = start.elapsed();
