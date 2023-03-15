@@ -11,6 +11,7 @@ use bencher::{
         PutRandomInputGenerator, PutRangeInputGenerator, PutSingleInputGenerator,
         SleepInputGenerator, WatchSingleInputGenerator,
     },
+    EtcdCommand,
 };
 use bencher::{
     client::{SleepDispatcher, WatchDispatcher},
@@ -97,42 +98,6 @@ async fn main() -> anyhow::Result<()> {
         sleep(duration).await
     }
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(1))
-        .build()
-        .unwrap();
-
-    for endpoint in &options.metrics_endpoints {
-        let mut retries = 0;
-        loop {
-            if retries > MAX_HEALTH_RETRIES {
-                bail!("Gave up waiting for service to be ready")
-            }
-            info!("Waiting for {}/health to be ready", endpoint);
-            retries += 1;
-
-            let result = client.get(format!("{}/health", endpoint)).send().await;
-            match result {
-                Ok(response) => {
-                    if response.status() == StatusCode::OK {
-                        break;
-                    } else {
-                        let text = response.text().await.unwrap();
-                        warn!(
-                            response = %text,
-                            "Found unhealthy node"
-                        );
-                    }
-                }
-                Err(error) => {
-                    warn!(%error, "Failed to send get request")
-                }
-            }
-            sleep(Duration::from_secs(1)).await;
-        }
-        info!("Finished waiting for {} to be ready", endpoint);
-    }
-
     let writer = options
         .out_file
         .as_ref()
@@ -141,58 +106,6 @@ async fn main() -> anyhow::Result<()> {
     let start = Instant::now();
     match options.ty {
         Type::Bench(ref scenario) => {
-            let mut endpoints = Vec::new();
-            for endpoint in &options.endpoints {
-                match endpoint.scheme {
-                    Scheme::Http => endpoints.push(Channel::from_shared(endpoint.to_string())?),
-                    Scheme::Https => {
-                        if let Some(ref cacert) = options.cacert {
-                            let pem = tokio::fs::read(cacert)
-                                .await
-                                .context("Failed to read cacert")?;
-                            let ca = Certificate::from_pem(pem);
-
-                            let tls = ClientTlsConfig::new().ca_certificate(ca);
-
-                            endpoints.push(
-                                Channel::from_shared(endpoint.to_string())?
-                                    .tls_config(tls.clone())?,
-                            )
-                        } else {
-                            bail!("https endpoint without a cacert!")
-                        }
-                    }
-                }
-            }
-            let timeout = options.timeout;
-            let endpoints = endpoints
-                .into_iter()
-                .map(move |e| e.timeout(Duration::from_millis(timeout)));
-
-            let kv_clients = (0..options.clients)
-                .map(|_| {
-                    let channel = Channel::balance_list(endpoints.clone());
-                    KvClient::new(channel)
-                })
-                .collect::<Vec<_>>();
-            let kv_dispatcher_generator = KvDispatcherGenerator {
-                clients: kv_clients.clone(),
-                index: 0,
-            };
-
-            let watch_clients = (0..options.clients)
-                .map(|_| {
-                    let channel = Channel::balance_list(endpoints.clone());
-                    WatchClient::new(channel)
-                })
-                .collect::<Vec<_>>();
-            let watch_dispatcher_generator = WatchDispatcherGenerator {
-                kv_clients,
-                kv_index: 0,
-                watch_clients,
-                watch_index: 0,
-            };
-
             info!("generating load");
             let error_count = match &scenario.command {
                 bencher::ScenarioCommands::Sleep { milliseconds } => {
@@ -206,47 +119,140 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .await
                 }
-                bencher::ScenarioCommands::PutSingle { key } => {
-                    loadgen::generate_load(
-                        &options,
-                        PutSingleInputGenerator { key: key.clone() },
-                        kv_dispatcher_generator,
-                        writer,
-                    )
-                    .await
-                }
-                bencher::ScenarioCommands::PutRange {} => {
-                    loadgen::generate_load(
-                        &options,
-                        PutRangeInputGenerator { iteration: 0 },
-                        kv_dispatcher_generator,
-                        writer,
-                    )
-                    .await
-                }
-                bencher::ScenarioCommands::PutRandom { size } => {
-                    loadgen::generate_load(
-                        &options,
-                        PutRandomInputGenerator { size: *size },
-                        kv_dispatcher_generator,
-                        writer,
-                    )
-                    .await
-                }
-                bencher::ScenarioCommands::WatchSingle { key, num_watchers } => {
-                    let (sender, receiver) = watch::channel(());
-                    loadgen::generate_load(
-                        &options,
-                        WatchSingleInputGenerator {
-                            key: key.clone(),
-                            num_watchers: *num_watchers,
-                            sender,
-                            receiver,
-                        },
-                        watch_dispatcher_generator,
-                        writer,
-                    )
-                    .await
+                bencher::ScenarioCommands::Etcd(etcd_command) => {
+                    let client = reqwest::Client::builder()
+                        .timeout(Duration::from_secs(1))
+                        .build()
+                        .unwrap();
+
+                    for endpoint in &options.metrics_endpoints {
+                        let mut retries = 0;
+                        loop {
+                            if retries > MAX_HEALTH_RETRIES {
+                                bail!("Gave up waiting for service to be ready")
+                            }
+                            info!("Waiting for {}/health to be ready", endpoint);
+                            retries += 1;
+
+                            let result = client.get(format!("{}/health", endpoint)).send().await;
+                            match result {
+                                Ok(response) => {
+                                    if response.status() == StatusCode::OK {
+                                        break;
+                                    } else {
+                                        let text = response.text().await.unwrap();
+                                        warn!(
+                                            response = %text,
+                                            "Found unhealthy node"
+                                        );
+                                    }
+                                }
+                                Err(error) => {
+                                    warn!(%error, "Failed to send get request")
+                                }
+                            }
+                            sleep(Duration::from_secs(1)).await;
+                        }
+                        info!("Finished waiting for {} to be ready", endpoint);
+                    }
+                    let mut endpoints = Vec::new();
+                    for endpoint in &options.endpoints {
+                        match endpoint.scheme {
+                            Scheme::Http => {
+                                endpoints.push(Channel::from_shared(endpoint.to_string())?)
+                            }
+                            Scheme::Https => {
+                                if let Some(ref cacert) = options.cacert {
+                                    let pem = tokio::fs::read(cacert)
+                                        .await
+                                        .context("Failed to read cacert")?;
+                                    let ca = Certificate::from_pem(pem);
+
+                                    let tls = ClientTlsConfig::new().ca_certificate(ca);
+
+                                    endpoints.push(
+                                        Channel::from_shared(endpoint.to_string())?
+                                            .tls_config(tls.clone())?,
+                                    )
+                                } else {
+                                    bail!("https endpoint without a cacert!")
+                                }
+                            }
+                        }
+                    }
+                    let timeout = options.timeout;
+                    let endpoints = endpoints
+                        .into_iter()
+                        .map(move |e| e.timeout(Duration::from_millis(timeout)));
+
+                    let kv_clients = (0..options.clients)
+                        .map(|_| {
+                            let channel = Channel::balance_list(endpoints.clone());
+                            KvClient::new(channel)
+                        })
+                        .collect::<Vec<_>>();
+                    let kv_dispatcher_generator = KvDispatcherGenerator {
+                        clients: kv_clients.clone(),
+                        index: 0,
+                    };
+
+                    let watch_clients = (0..options.clients)
+                        .map(|_| {
+                            let channel = Channel::balance_list(endpoints.clone());
+                            WatchClient::new(channel)
+                        })
+                        .collect::<Vec<_>>();
+                    let watch_dispatcher_generator = WatchDispatcherGenerator {
+                        kv_clients,
+                        kv_index: 0,
+                        watch_clients,
+                        watch_index: 0,
+                    };
+
+                    match &etcd_command.command {
+                        EtcdCommand::PutSingle { key } => {
+                            loadgen::generate_load(
+                                &options,
+                                PutSingleInputGenerator { key: key.clone() },
+                                kv_dispatcher_generator,
+                                writer,
+                            )
+                            .await
+                        }
+                        EtcdCommand::PutRange {} => {
+                            loadgen::generate_load(
+                                &options,
+                                PutRangeInputGenerator { iteration: 0 },
+                                kv_dispatcher_generator,
+                                writer,
+                            )
+                            .await
+                        }
+                        EtcdCommand::PutRandom { size } => {
+                            loadgen::generate_load(
+                                &options,
+                                PutRandomInputGenerator { size: *size },
+                                kv_dispatcher_generator,
+                                writer,
+                            )
+                            .await
+                        }
+                        EtcdCommand::WatchSingle { key, num_watchers } => {
+                            let (sender, receiver) = watch::channel(());
+                            loadgen::generate_load(
+                                &options,
+                                WatchSingleInputGenerator {
+                                    key: key.clone(),
+                                    num_watchers: *num_watchers,
+                                    sender,
+                                    receiver,
+                                },
+                                watch_dispatcher_generator,
+                                writer,
+                            )
+                            .await
+                        }
+                    }
                 }
             };
             info!("generated load");

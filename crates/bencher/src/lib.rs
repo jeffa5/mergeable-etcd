@@ -65,6 +65,18 @@ pub struct Scenario {
 pub enum ScenarioCommands {
     /// Run a dummy action to test throughput of raw loop
     Sleep { milliseconds: u64 },
+    /// Benchmarking commands for etcd.
+    Etcd(Etcd),
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct Etcd {
+    #[clap(subcommand)]
+    pub command: EtcdCommand,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum EtcdCommand {
     /// Repeatedly write to the same key
     PutSingle { key: String },
     /// Write to a sequence of keys
