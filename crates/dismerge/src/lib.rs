@@ -48,8 +48,13 @@ pub use options::Options;
 type DocInner<P, V> = Document<P, DocumentChangedSyncer, watch::MyWatcher<V>, V>;
 type Doc<P, V> = Arc<Mutex<DocInner<P, V>>>;
 
-pub trait DocPersister: Persister + Send + Sync + 'static {}
-impl<T> DocPersister for T where T: Persister + Send + Sync + 'static {}
+pub trait DocPersister: Persister<Error = Self::E> + Send + Sync + 'static {
+    type E: Send + std::error::Error;
+}
+
+impl DocPersister for SledPersister {
+    type E = <Self as Persister>::Error;
+}
 
 #[tracing::instrument(skip(options), fields(name = %options.name))]
 pub async fn run<V: Value>(options: options::Options)
@@ -79,6 +84,7 @@ where
         flush_interval_ms,
         log_filter: _,
         no_colour: _,
+        persister,
     } = options;
 
     let (watch_sender, watch_receiver) = mpsc::channel(10);
@@ -88,18 +94,7 @@ where
 
     let data_dir = data_dir.unwrap_or_else(|| format!("{}.metcd", name).into());
     info!(?data_dir, "Making db");
-    let db = sled::Config::new()
-        .mode(sled::Mode::HighThroughput) // set to use high throughput rather than low space mode
-        .flush_every_ms(None) // don't automatically flush, we have a loop for this ourselves
-        .path(data_dir)
-        .open()
-        .unwrap();
-    let changes_tree = db.open_tree("changes").unwrap();
-    let document_tree = db.open_tree("documennt").unwrap();
-    let sync_states_tree = db.open_tree("sync_states").unwrap();
-    info!("Making automerge persister");
-    let sled_persister =
-        SledPersister::new(changes_tree, document_tree, sync_states_tree, "").unwrap();
+    let persister = persister.create_persister(&data_dir);
 
     info!("Building document");
     let mut document = DocumentBuilder::<_, _, _, V>::default()
@@ -110,7 +105,7 @@ where
             notify: Arc::clone(&notify),
             member_changed: member_changed_sender.clone(),
         })
-        .with_persister(sled_persister)
+        .with_persister(persister)
         .with_auto_flush(false)
         .with_name(name.clone())
         .with_peer_urls(initial_advertise_peer_urls.clone())
@@ -383,10 +378,7 @@ async fn start_peer_server<P: DocPersister, V: Value>(
     initial_cluster: HashMap<String, String>,
     notify: Arc<tokio::sync::Notify>,
     member_changed_receiver: broadcast::Receiver<mergeable_proto::etcdserverpb::Member>,
-) -> tokio::task::JoinHandle<()>
-where
-    <P as Persister>::Error: std::marker::Send,
-{
+) -> tokio::task::JoinHandle<()> {
     let peer_url = url::Url::parse(&address).unwrap();
     let proto = peer_url.scheme();
     let peer_address = format!(
