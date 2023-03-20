@@ -72,7 +72,7 @@
         inherit cargoArtifacts;
         cargoClippyExtraArgs = "--all-targets";
       });
-    metcd = craneLib.buildPackage (workspaceArgs
+    workspace = craneLib.buildPackage (workspaceArgs
       // {
         inherit cargoArtifacts;
       });
@@ -84,14 +84,6 @@
       // {
         inherit cargoArtifacts;
       });
-    bencher = pkgs.stdenv.mkDerivation {
-      name = "bencher";
-      src = metcd;
-      buildPhase = ''
-        mkdir -p $out/bin
-        cp $src/bin/bencher $out/bin/bencher
-      '';
-    };
     packages = import ./nix {inherit pkgs;};
   in {
     packages.${system} = {
@@ -100,18 +92,19 @@
         tag = "latest";
         contents = [
           pkgs.busybox
-          self.packages.${system}.bencher
+          self.packages.${system}.workspace
         ];
 
         config.Cmd = ["/bin/bencher"];
       };
 
-      mergeable-etcd-etcd = pkgs.stdenv.mkDerivation {
-        name = "mergeable-etcd-etcd";
-        src = self.packages.${system}.mergeable-etcd;
+      mergeable-etcd = pkgs.stdenv.mkDerivation {
+        name = "mergeable-etcd";
+        src = self.packages.${system}.workspace;
         installPhase = ''
           mkdir -p $out/bin
-          cp $src/bin/mergeable-etcd $out/bin/etcd
+          cp $src/bin/mergeable-etcd $out/bin/mergeable-etcd
+          ln -s $src/bin/mergeable-etcd $out/bin/etcd
         '';
       };
 
@@ -131,7 +124,7 @@
         contents = [
           # to allow debugging and using `kubectl cp`
           pkgs.busybox
-          self.packages.${system}.mergeable-etcd-etcd
+          self.packages.${system}.mergeable-etcd
         ];
         config.Cmd = ["/bin/etcd"];
       };
@@ -153,14 +146,10 @@
         vendorSha256 = "sha256-bBlihD5i7YidtVW9Nz1ChU10RE5zjOsXbEL1hA6Blko=";
       };
 
-      mergeable-etcd = metcd;
-      mergeable-etcd-tarpaulin = tarpaulin;
-      mergeable-etcd-nextest = nextest;
-      mergeable-etcd-clippy = clippy;
-
-      bencher = bencher;
-
-      default = self.packages.${system}.mergeable-etcd;
+      workspace = workspace;
+      workspace-tarpaulin = tarpaulin;
+      workspace-nextest = nextest;
+      workspace-clippy = clippy;
 
       go-ycsb = packages.go-ycsb;
     };
@@ -168,7 +157,17 @@
     apps.${system} = {
       mergeable-etcd = flake-utils.lib.mkApp {
         name = "mergeable-etcd";
-        drv = self.packages.${system}.mergeable-etcd;
+        drv = self.packages.${system}.workspace;
+      };
+
+      dismerge-bytes = flake-utils.lib.mkApp {
+        name = "dismerge-bytes";
+        drv = self.packages.${system}.workspace;
+      };
+
+      dismerge-json = flake-utils.lib.mkApp {
+        name = "dismerge-json";
+        drv = self.packages.${system}.workspace;
       };
 
       experiments = flake-utils.lib.mkApp {
@@ -185,9 +184,9 @@
         name = "bencher";
         drv = self.packages.${system}.bencher;
       };
-
-      default = self.apps.${system}.mergeable-etcd;
     };
+
+    checks.${system} = self.packages.${system};
 
     formatter.${system} = pkgs.alejandra;
 
@@ -209,8 +208,6 @@
           kubectl
           k9s
           rust-analyzer
-
-          grpcurl
 
           jupyter
           python3Packages.numpy
