@@ -5,7 +5,6 @@ use crate::{Doc, DocPersister};
 use mergeable_proto::etcdserverpb::{kv_server::Kv, RangeResponse};
 use mergeable_proto::etcdserverpb::{DeleteRangeResponse, PutResponse, TxnResponse};
 use tracing::debug;
-use tracing::error;
 
 pub struct KvServer<P, V> {
     pub document: Doc<P, V>,
@@ -146,13 +145,12 @@ where
     ) -> Result<tonic::Response<mergeable_proto::etcdserverpb::CompactionResponse>, tonic::Status>
     {
         let mergeable_proto::etcdserverpb::CompactionRequest {
-            revision: _,
+            heads: _,
             physical: _,
         } = request.into_inner();
 
-        // FIXME: implement compaction
-        let document = self.document.lock().await;
-        error!("got compaction request but not implemented");
+        let mut document = self.document.lock().await;
+        document.compact();
         let header = document.header()?;
 
         Ok(tonic::Response::new(

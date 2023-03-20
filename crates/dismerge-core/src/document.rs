@@ -332,6 +332,12 @@ where
         Ok(receiver)
     }
 
+    pub fn compact(&mut self) {
+        self.am.compact(&[]).unwrap();
+        // FIXME: implement compaction
+        warn!("Compaction not fully implemented yet");
+    }
+
     /// Print the document's contents to stdout
     pub fn dump_json(&mut self) {
         self.am.document_mut().dump()

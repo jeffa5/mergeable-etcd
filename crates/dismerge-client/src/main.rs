@@ -6,6 +6,7 @@ use clap::Subcommand;
 use mergeable_proto::etcdserverpb::cluster_client::ClusterClient;
 use mergeable_proto::etcdserverpb::kv_client::KvClient;
 use mergeable_proto::etcdserverpb::replication_client::ReplicationClient;
+use mergeable_proto::etcdserverpb::CompactionRequest;
 use mergeable_proto::etcdserverpb::DeleteRangeRequest;
 use mergeable_proto::etcdserverpb::MemberListRequest;
 use mergeable_proto::etcdserverpb::PutRequest;
@@ -112,6 +113,20 @@ impl From<mergeable_proto::etcdserverpb::DeleteRangeResponse> for DeleteResponse
 
 #[derive(Debug)]
 #[allow(dead_code)]
+struct CompactionResponse {
+    header: Header,
+}
+
+impl From<mergeable_proto::etcdserverpb::CompactionResponse> for CompactionResponse {
+    fn from(c: mergeable_proto::etcdserverpb::CompactionResponse) -> Self {
+        Self {
+            header: c.header.unwrap().into(),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
 struct Member {
     id: u64,
     peer_urls: Vec<String>,
@@ -186,6 +201,7 @@ enum Cmd {
         key: String,
         range_end: Option<String>,
     },
+    Compact {},
     MemberList {},
     ReplicationStatus {
         heads: Vec<String>,
@@ -243,6 +259,16 @@ async fn main() {
                 .unwrap()
                 .into_inner();
             println!("{:#?}", DeleteResponse::from(res));
+        }
+        Cmd::Compact {} => {
+            let res = kv_client
+                .compact(CompactionRequest {
+                    ..Default::default()
+                })
+                .await
+                .unwrap()
+                .into_inner();
+            println!("{:#?}", CompactionResponse::from(res));
         }
         Cmd::MemberList {} => {
             let res = cluster_client
