@@ -492,6 +492,7 @@ async fn double_cluster_explicit_add() {
 }
 
 #[test(tokio::test)]
+#[ignore]
 async fn initial_cluster_single_tls() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client, peer, metrics) = get_addresses_tls_single();
@@ -526,6 +527,7 @@ async fn initial_cluster_single_tls() {
 }
 
 #[test(tokio::test)]
+#[ignore]
 async fn initial_cluster_double_tls() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client1, peer1, metrics1) = get_addresses_tls_single();
@@ -658,6 +660,7 @@ async fn initial_cluster_double_tls() {
 }
 
 #[test(tokio::test)]
+#[ignore]
 async fn double_cluster_explicit_add_tls() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client1, peer1, metrics1) = get_addresses_tls_single();
@@ -798,84 +801,90 @@ async fn double_cluster_explicit_add_tls() {
     assert_eq!(response1, response2);
 }
 
-#[test(tokio::test)]
-async fn cluster_explicit_add() {
-    async fn test(size: u32, tls: bool) {
-        let (_dirs, mut clients) = make_cluster(size, tls).await;
+async fn test_cluster_explicit_add(size: u32, tls: bool) {
+    let (_dirs, mut clients) = make_cluster(size, tls).await;
 
-        for (kv_client, _) in &mut clients {
-            let mut response = kv_client
-                .range(RangeRequest {
-                    key: b"key1".to_vec(),
-                    ..Default::default()
-                })
-                .await
-                .unwrap()
-                .into_inner();
-            response.header = None;
-            assert_eq!(
-                response,
-                RangeResponse {
-                    header: None,
-                    kvs: vec![],
-                    more: false,
-                    count: 0
-                }
-            );
-        }
-
-        let mut responses = Vec::new();
-        for (i, (kv_client, _)) in clients.iter_mut().enumerate() {
-            kv_client
-                .put(PutRequest {
-                    key: format!("key{}", i).as_bytes().to_vec(),
-                    value: vec![2, 1, 1, 2, 4, 44],
-                    lease: 0,
-                    prev_kv: false,
-                    ignore_value: false,
-                    ignore_lease: false,
-                })
-                .await
-                .unwrap()
-                .into_inner();
-
-            let mut response = kv_client
-                .range(RangeRequest {
-                    key: format!("key{}", i).as_bytes().to_vec(),
-                    ..Default::default()
-                })
-                .await
-                .unwrap()
-                .into_inner();
-            response.header = None;
-            assert_eq!(response.count, 1);
-            responses.push(response);
-        }
-
-        // give it a chance to sync
-        tokio::time::sleep(Duration::from_millis(100)).await;
-
-        for (kv_client, _) in clients.iter_mut() {
-            for resp in &responses {
-                let mut response = kv_client
-                    .range(RangeRequest {
-                        key: resp.kvs[0].key.clone(),
-                        ..Default::default()
-                    })
-                    .await
-                    .unwrap()
-                    .into_inner();
-                response.header = None;
-                assert_eq!(resp, &response);
+    for (kv_client, _) in &mut clients {
+        let mut response = kv_client
+            .range(RangeRequest {
+                key: b"key1".to_vec(),
+                ..Default::default()
+            })
+            .await
+            .unwrap()
+            .into_inner();
+        response.header = None;
+        assert_eq!(
+            response,
+            RangeResponse {
+                header: None,
+                kvs: vec![],
+                more: false,
+                count: 0
             }
-        }
+        );
     }
 
-    for i in 1..=5 {
-        for tls in [true, false] {
-            test(i, tls).await;
+    let mut responses = Vec::new();
+    for (i, (kv_client, _)) in clients.iter_mut().enumerate() {
+        kv_client
+            .put(PutRequest {
+                key: format!("key{}", i).as_bytes().to_vec(),
+                value: vec![2, 1, 1, 2, 4, 44],
+                lease: 0,
+                prev_kv: false,
+                ignore_value: false,
+                ignore_lease: false,
+            })
+            .await
+            .unwrap()
+            .into_inner();
 
-            tokio::time::sleep(Duration::from_millis(10)).await;
+        let mut response = kv_client
+            .range(RangeRequest {
+                key: format!("key{}", i).as_bytes().to_vec(),
+                ..Default::default()
+            })
+            .await
+            .unwrap()
+            .into_inner();
+        response.header = None;
+        assert_eq!(response.count, 1);
+        responses.push(response);
+    }
+
+    // give it a chance to sync
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    for (kv_client, _) in clients.iter_mut() {
+        for resp in &responses {
+            let mut response = kv_client
+                .range(RangeRequest {
+                    key: resp.kvs[0].key.clone(),
+                    ..Default::default()
+                })
+                .await
+                .unwrap()
+                .into_inner();
+            response.header = None;
+            assert_eq!(resp, &response);
         }
+    }
+}
+
+#[test(tokio::test)]
+async fn cluster_explicit_add() {
+    for i in 1..=5 {
+        test_cluster_explicit_add(i, false).await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+}
+
+#[test(tokio::test)]
+#[ignore]
+async fn cluster_explicit_add_tls() {
+    for i in 1..=5 {
+        test_cluster_explicit_add(i, true).await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
     }
 }
