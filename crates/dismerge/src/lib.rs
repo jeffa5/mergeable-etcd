@@ -1,6 +1,7 @@
 use crate::auth::AuthServer;
 use crate::kv::KvServer;
 use crate::lease::LeaseServer;
+use automerge_persistent::Persister;
 use automerge_persistent_sled::SledPersister;
 use cluster::ClusterServer;
 use dismerge_core::value::Value;
@@ -44,8 +45,11 @@ mod watch;
 pub use options::ClusterState;
 pub use options::Options;
 
-type DocInner<V> = Document<SledPersister, DocumentChangedSyncer, watch::MyWatcher<V>, V>;
-type Doc<V> = Arc<Mutex<DocInner<V>>>;
+type DocInner<P, V> = Document<P, DocumentChangedSyncer, watch::MyWatcher<V>, V>;
+type Doc<P, V> = Arc<Mutex<DocInner<P, V>>>;
+
+pub trait DocPersister: Persister + Send + Sync + 'static {}
+impl<T> DocPersister for T where T: Persister + Send + Sync + 'static {}
 
 #[tracing::instrument(skip(options), fields(name = %options.name))]
 pub async fn run<V: Value>(options: options::Options)
@@ -274,13 +278,13 @@ where
     ];
 }
 
-async fn start_client_server<V: Value>(
+async fn start_client_server<P: DocPersister, V: Value>(
     address: String,
     cert_file: &str,
     key_file: &str,
-    server: KvServer<V>,
-    watch_server: watch::WatchService<V>,
-    document: Doc<V>,
+    server: KvServer<P, V>,
+    watch_server: watch::WatchService<P, V>,
+    document: Doc<P, V>,
 ) -> tokio::task::JoinHandle<()>
 where
     <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
@@ -369,17 +373,20 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn start_peer_server<V: Value>(
+async fn start_peer_server<P: DocPersister, V: Value>(
     address: String,
     cert_file: &str,
     key_file: &str,
     trusted_ca_file: &str,
-    document: Doc<V>,
+    document: Doc<P, V>,
     name: String,
     initial_cluster: HashMap<String, String>,
     notify: Arc<tokio::sync::Notify>,
     member_changed_receiver: broadcast::Receiver<mergeable_proto::etcdserverpb::Member>,
-) -> tokio::task::JoinHandle<()> {
+) -> tokio::task::JoinHandle<()>
+where
+    <P as Persister>::Error: std::marker::Send,
+{
     let peer_url = url::Url::parse(&address).unwrap();
     let proto = peer_url.scheme();
     let peer_address = format!(
@@ -443,9 +450,9 @@ async fn start_peer_server<V: Value>(
     })
 }
 
-fn start_metrics_server<V: Value>(
+fn start_metrics_server<P: DocPersister, V: Value>(
     address: String,
-    document: Doc<V>,
+    document: Doc<P, V>,
 ) -> tokio::task::JoinHandle<()> {
     let metrics_url = url::Url::parse(&address).unwrap();
     let metrics_address = format!(
@@ -462,7 +469,7 @@ fn start_metrics_server<V: Value>(
     })
 }
 
-fn start_flush_loop<V: Value>(doc: Doc<V>, flush_interval: Duration) {
+fn start_flush_loop<P: DocPersister, V: Value>(doc: Doc<P, V>, flush_interval: Duration) {
     tokio::spawn(async move {
         info!("Started flush loop");
         let threshold = Duration::from_millis(100);

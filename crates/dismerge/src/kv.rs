@@ -1,19 +1,26 @@
 use dismerge_core::value::Value;
 use tonic::Response;
 
-use crate::Doc;
+use crate::{Doc, DocPersister};
 use mergeable_proto::etcdserverpb::{kv_server::Kv, RangeResponse};
 use mergeable_proto::etcdserverpb::{DeleteRangeResponse, PutResponse, TxnResponse};
 use tracing::debug;
 use tracing::error;
 
-#[derive(Clone)]
-pub struct KvServer<V> {
-    pub document: Doc<V>,
+pub struct KvServer<P, V> {
+    pub document: Doc<P, V>,
+}
+
+impl<P: DocPersister, V: Value> Clone for KvServer<P, V> {
+    fn clone(&self) -> Self {
+        Self {
+            document: self.document.clone(),
+        }
+    }
 }
 
 #[tonic::async_trait]
-impl<V: Value> Kv for KvServer<V>
+impl<P: DocPersister, V: Value> Kv for KvServer<P, V>
 where
     <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
 {

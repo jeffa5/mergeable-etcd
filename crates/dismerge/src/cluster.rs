@@ -4,13 +4,16 @@ use tracing::error;
 use tracing::info;
 
 use crate::Doc;
+use crate::DocPersister;
 
-pub struct ClusterServer<V> {
-    pub document: Doc<V>,
+pub struct ClusterServer<P, V> {
+    pub document: Doc<P, V>,
 }
 
 #[tonic::async_trait]
-impl<V: Value> mergeable_proto::etcdserverpb::cluster_server::Cluster for ClusterServer<V> {
+impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::cluster_server::Cluster
+    for ClusterServer<P, V>
+{
     async fn member_add(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::MemberAddRequest>,

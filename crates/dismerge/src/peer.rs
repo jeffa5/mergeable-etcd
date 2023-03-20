@@ -13,7 +13,7 @@ use tracing::{debug, info, warn};
 
 use dismerge_core::{value::Value, Syncer};
 
-use crate::Doc;
+use crate::{Doc, DocPersister};
 
 const SYNC_SLEEP_DURATION: Duration = Duration::from_millis(10);
 
@@ -151,8 +151,8 @@ impl PeerSyncer {
     }
 }
 
-pub struct PeerServerInner<V> {
-    pub document: Doc<V>,
+pub struct PeerServerInner<P, V> {
+    pub document: Doc<P, V>,
     name: String,
     // map from peer id to the syncer running for them
     connections: HashMap<u64, PeerSyncer>,
@@ -161,9 +161,9 @@ pub struct PeerServerInner<V> {
     unknown_connections: HashMap<String, PeerSyncer>,
 }
 
-impl<V: Value> PeerServerInner<V> {
+impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
     fn new(
-        document: Doc<V>,
+        document: Doc<P, V>,
         name: &str,
         mut initial_cluster: HashMap<String, String>,
         ca_certificate: Option<Vec<u8>>,
@@ -289,13 +289,13 @@ impl<V: Value> PeerServerInner<V> {
 }
 
 #[derive(Clone)]
-pub struct PeerServer<V> {
-    inner: Arc<Mutex<PeerServerInner<V>>>,
+pub struct PeerServer<P, V> {
+    inner: Arc<Mutex<PeerServerInner<P, V>>>,
 }
 
-impl<V: Value> PeerServer<V> {
+impl<P: DocPersister, V: Value> PeerServer<P, V> {
     pub fn new(
-        document: Doc<V>,
+        document: Doc<P, V>,
         name: &str,
         initial_cluster: HashMap<String, String>,
         notify: Arc<tokio::sync::Notify>,
@@ -355,7 +355,10 @@ impl<V: Value> PeerServer<V> {
 }
 
 #[tonic::async_trait]
-impl<V: Value> peer_proto::peer_server::Peer for PeerServer<V> {
+impl<P: DocPersister, V: Value> peer_proto::peer_server::Peer for PeerServer<P, V>
+where
+    P::Error: Send,
+{
     async fn sync(
         &self,
         request: tonic::Request<tonic::Streaming<SyncMessage>>,

@@ -5,14 +5,15 @@ use mergeable_proto::etcdserverpb::ReplicationStatusResponse;
 use tracing::info;
 
 use crate::Doc;
+use crate::DocPersister;
 
-pub struct ReplicationServer<V> {
-    pub document: Doc<V>,
+pub struct ReplicationServer<P, V> {
+    pub document: Doc<P, V>,
 }
 
 #[tonic::async_trait]
-impl<V: Value> mergeable_proto::etcdserverpb::replication_server::Replication
-    for ReplicationServer<V>
+impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::replication_server::Replication
+    for ReplicationServer<P, V>
 {
     async fn replication_status(
         &self,

@@ -6,13 +6,13 @@ use axum::Router;
 use dismerge_core::value::Value;
 use tracing::{debug, error, warn};
 
-use crate::Doc;
+use crate::{Doc, DocPersister};
 
-pub struct MetricsServer<V> {
-    pub(crate) document: Doc<V>,
+pub struct MetricsServer<P, V> {
+    pub(crate) document: Doc<P, V>,
 }
 
-impl<V: Value> MetricsServer<V> {
+impl<P: DocPersister, V: Value> MetricsServer<P, V> {
     pub async fn serve(&self, address: SocketAddr) {
         let document = self.document.clone();
         let router = Router::new().route("/health", get(move || health(document.clone())));
@@ -25,7 +25,7 @@ impl<V: Value> MetricsServer<V> {
     }
 }
 
-async fn health<V: Value>(document: Doc<V>) -> Result<String, StatusCode> {
+async fn health<P: DocPersister, V: Value>(document: Doc<P, V>) -> Result<String, StatusCode> {
     let doc = document.lock().await;
     if doc.is_ready() {
         debug!(name=?doc.name(), healthy = true, "Got health check");

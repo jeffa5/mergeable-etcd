@@ -1,19 +1,19 @@
-use crate::Doc;
+use crate::{Doc, DocPersister};
 use dismerge_core::value::Value;
 use futures::Stream;
 use std::pin::Pin;
 use std::time::Duration;
 use tracing::{info, warn};
 
-pub struct MaintenanceServer<V> {
-    pub document: Doc<V>,
+pub struct MaintenanceServer<P, V> {
+    pub document: Doc<P, V>,
 }
 
 const VERSION: &str = "3.3.27";
 
 #[tonic::async_trait]
-impl<V: Value> mergeable_proto::etcdserverpb::maintenance_server::Maintenance
-    for MaintenanceServer<V>
+impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::maintenance_server::Maintenance
+    for MaintenanceServer<P, V>
 {
     async fn alarm(
         &self,

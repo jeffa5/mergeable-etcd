@@ -7,13 +7,16 @@ use tokio::sync::mpsc;
 use tracing::debug;
 
 use crate::Doc;
+use crate::DocPersister;
 
-pub(crate) struct LeaseServer<V> {
-    pub(crate) document: Doc<V>,
+pub(crate) struct LeaseServer<P, V> {
+    pub(crate) document: Doc<P, V>,
 }
 
 #[tonic::async_trait]
-impl<V: Value> mergeable_proto::etcdserverpb::lease_server::Lease for LeaseServer<V> {
+impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::lease_server::Lease
+    for LeaseServer<P, V>
+{
     async fn lease_grant(
         &self,
         request: tonic::Request<mergeable_proto::etcdserverpb::LeaseGrantRequest>,
