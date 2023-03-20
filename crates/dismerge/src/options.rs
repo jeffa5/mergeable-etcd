@@ -87,7 +87,7 @@ pub struct Options {
     #[clap(long)]
     pub no_colour: bool,
 
-    #[clap(long)]
+    #[clap(long, default_value = "sled")]
     pub persister: PersisterType,
 }
 
