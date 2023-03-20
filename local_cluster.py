@@ -139,7 +139,7 @@ def spawn_cluster(args: argparse.Namespace):
     """
     Spawn a cluster from the given arguments.
     """
-    bin_name = "mergeable-etcd"
+    bin_name = args.bin
     build_type = "release" if args.release else "debug"
     bin_path = os.path.join("target", build_type, bin_name)
     client_scheme = "https" if args.client_tls else "http"
@@ -215,6 +215,12 @@ def main():
         action="store_true",
         default=False,
         help="Whether to use a release build",
+    )
+    parser.add_argument(
+        "--bin",
+        type=str,
+        default="mergeable-etcd",
+        help="Binary to run",
     )
     args = parser.parse_args()
     print(args)
