@@ -1,6 +1,7 @@
 use crate::auth::AuthServer;
 use crate::kv::KvServer;
 use crate::lease::LeaseServer;
+use crate::persister::PersisterDispatcher;
 use automerge_persistent::Persister;
 use automerge_persistent_sled::SledPersister;
 use cluster::ClusterServer;
@@ -39,6 +40,7 @@ mod maintenance;
 mod metrics;
 mod options;
 mod peer;
+mod persister;
 mod replication;
 mod watch;
 
@@ -94,7 +96,7 @@ where
 
     let data_dir = data_dir.unwrap_or_else(|| format!("{}.metcd", name).into());
     info!(?data_dir, "Making db");
-    let persister = persister.create_persister(&data_dir);
+    let persister = PersisterDispatcher::new(persister, &data_dir);
 
     info!("Building document");
     let mut document = DocumentBuilder::<_, _, _, V>::default()

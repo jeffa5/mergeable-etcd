@@ -3,11 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use automerge_persistent_sled::SledPersister;
 use clap::{Parser, ValueEnum};
-use tracing::info;
 
-use crate::DocPersister;
+use crate::{persister::PersisterDispatcher, DocPersister};
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum ClusterState {
@@ -90,7 +88,7 @@ pub struct Options {
     pub no_colour: bool,
 
     #[clap(long)]
-    pub persister: Persister,
+    pub persister: PersisterType,
 }
 
 impl Default for Options {
@@ -122,32 +120,15 @@ impl Default for Options {
     }
 }
 
-#[derive(Debug, Clone, Default, clap::ValueEnum)]
-pub enum Persister {
+#[derive(Debug, Clone, Copy, Default, clap::ValueEnum)]
+pub enum PersisterType {
     #[default]
     Sled,
+    Fs,
 }
 
-impl Persister {
+impl PersisterType {
     pub fn create_persister(&self, data_dir: &Path) -> impl DocPersister {
-        match self {
-            Persister::Sled => Self::create_sled(data_dir),
-        }
-    }
-
-    fn create_sled(data_dir: &Path) -> SledPersister {
-        let db = sled::Config::new()
-            .mode(sled::Mode::HighThroughput) // set to use high throughput rather than low space mode
-            .flush_every_ms(None) // don't automatically flush, we have a loop for this ourselves
-            .path(data_dir)
-            .open()
-            .unwrap();
-        let changes_tree = db.open_tree("changes").unwrap();
-        let document_tree = db.open_tree("documennt").unwrap();
-        let sync_states_tree = db.open_tree("sync_states").unwrap();
-        info!("Making sled persister");
-        let sled_persister =
-            SledPersister::new(changes_tree, document_tree, sync_states_tree, "").unwrap();
-        sled_persister
+        PersisterDispatcher::new(*self, data_dir)
     }
 }

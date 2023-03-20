@@ -7,6 +7,7 @@ edition = "2021"
 automerge = "0.3.0"
 automerge-persistent = "0.3.0"
 automerge-persistent-sled = "0.3.0"
+automerge-persistent-fs = "0.3.0"
 axum = "0.6.10"
 chrono = "0.4.19"
 clap = { version = "4.1.8", features = ["derive"] }
@@ -27,6 +28,7 @@ url = "2.2.2"
 serde = { version = "1.0.155", features = ["derive"] }
 serde_json = "1.0.94"
 autosurgeon = "0.3.2"
+thiserror = "1.0.40"
 
 [dev-dependencies]
 pretty_assertions = "1.2.1"
