@@ -9,7 +9,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tracing::{info, warn};
 
 use crate::{
-    input::{DismergeWatchInput, EtcdWatchInput},
+    input::{DismergeWatchInput, EtcdWatchInput, YcsbInput},
     output::SleepOutput,
     output::{DismergeOutput, EtcdOutput, Output},
 };
@@ -289,6 +289,59 @@ impl Dispatcher for SleepDispatcher {
     ) {
         sleep(duration).await;
         outputs[0].stop();
+    }
+}
+
+#[derive(Clone)]
+pub struct YcsbDispatcher {
+    pub kv_client: EtcdKvClient<Channel>,
+}
+
+#[async_trait]
+impl Dispatcher for YcsbDispatcher {
+    type Input = YcsbInput;
+    type Output = EtcdOutput;
+    async fn execute_scenario(
+        &mut self,
+        input: Self::Input,
+        outputs: &mut Vec<Output<EtcdOutput>>,
+    ) {
+        match input {
+            Self::Input::Insert {
+                record_key,
+                field_key,
+                field_value,
+            } => {
+                let key = format!("{}/{}", record_key, field_key);
+                match self
+                    .kv_client
+                    .put(EtcdPutRequest {
+                        key: key.as_bytes().to_vec(),
+                        value: field_value.into_bytes(),
+                        ..Default::default()
+                    })
+                    .await
+                {
+                    Ok(response) => {
+                        let header = response.into_inner().header.unwrap();
+                        let member_id = header.member_id;
+                        let raft_term = header.raft_term;
+                        let data = EtcdOutput {
+                            member_id,
+                            raft_term,
+                            key,
+                        };
+                        outputs[0].data = Some(data);
+                        outputs[0].stop();
+                    }
+                    Err(error) => {
+                        warn!(%error);
+                        outputs[0].error(error.message().to_string());
+                    }
+                };
+            }
+            _ => todo!(),
+        }
     }
 }
 

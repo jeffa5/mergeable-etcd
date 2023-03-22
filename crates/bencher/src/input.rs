@@ -8,7 +8,7 @@ use mergeable_proto::etcdserverpb::{
     watch_request::RequestUnion as DismergeRequestUnion, PutRequest as DismergePutRequest,
     WatchCreateRequest as DismergeWatchCreateRequest, WatchRequest as DismergeWatchRequest,
 };
-use rand::{distributions::Standard, thread_rng, Rng};
+use rand::{distributions::{Standard, Alphanumeric}, thread_rng, Rng, rngs::StdRng};
 use tokio::sync::watch;
 use tracing::info;
 
@@ -296,4 +296,77 @@ fn value() -> Vec<u8> {
         .take(100)
         .collect();
     raw
+}
+
+/// Generate inputs for the YCSB workloads.
+///
+/// FIXME: currently only using uniform distributions.
+pub struct EtcdYcsbInputGenerator {
+    pub read_single_percentage: f64,
+    pub read_all_percentage: f64,
+    pub insert_percentage: f64,
+    pub update_percentage: f64,
+    pub fields_per_record: u32,
+    pub field_value_length: usize,
+    pub operation_rng: StdRng,
+}
+
+pub enum YcsbInput {
+    /// Insert a new record.
+    Insert {
+        record_key: String,
+        field_key: String,
+        field_value: String,
+    },
+    /// Update a record by replacing the value of one field.
+    Update {
+        record_key: String,
+        field_key: String,
+        field_value: String,
+    },
+    /// Read a single, randomly chosen field from the record.
+    ReadSingle {
+        record_key: String,
+        field_key: String,
+    },
+    /// Read all fields from a record.
+    ReadAll { record_key: String },
+    /// Scan records in order, starting at a randomly chosen key
+    Scan {
+        start_key: String,
+        scan_length: u32,
+    }
+}
+
+impl InputGenerator for EtcdYcsbInputGenerator {
+    type Input = YcsbInput;
+
+    fn close(self) {}
+
+    fn next(&mut self) -> Option<Self::Input> {
+        let request = YcsbInput::Insert { record_key: String::new(), field_key: "field0".to_owned(), field_value: random_string(self.field_value_length) };
+        Some(request)
+    }
+}
+
+pub struct DismergeYcsbInputGenerator {}
+
+impl InputGenerator for DismergeYcsbInputGenerator {
+    type Input = YcsbInput;
+
+    fn close(self) {}
+
+    fn next(&mut self) -> Option<Self::Input> {
+        let request = todo!();
+        Some(request)
+    }
+}
+
+fn random_string(len: usize) -> String{
+let s: String = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(len)
+        .map(char::from)
+        .collect();
+    s
 }

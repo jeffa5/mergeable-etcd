@@ -8,12 +8,14 @@ use anyhow::{bail, Context};
 use bencher::{
     client::{
         DismergePutDispatcher, DismergeWatchDispatcher, DispatcherGenerator, EtcdPutDispatcher,
+        YcsbDispatcher,
     },
     input::{
         DismergePutRandomInputGenerator, DismergePutRangeInputGenerator,
         DismergePutSingleInputGenerator, DismergeWatchSingleInputGenerator,
-        EtcdPutRandomInputGenerator, EtcdPutRangeInputGenerator, EtcdPutSingleInputGenerator,
-        EtcdWatchSingleInputGenerator, SleepInputGenerator,
+        DismergeYcsbInputGenerator, EtcdPutRandomInputGenerator, EtcdPutRangeInputGenerator,
+        EtcdPutSingleInputGenerator, EtcdWatchSingleInputGenerator, EtcdYcsbInputGenerator,
+        SleepInputGenerator,
     },
     DismergeCommand, EtcdCommand,
 };
@@ -30,6 +32,7 @@ use hyper::StatusCode;
 use mergeable_proto::etcdserverpb::{
     kv_client::KvClient as DismergeKvClient, watch_client::WatchClient as DismergeWatchClient,
 };
+use rand::{rngs::StdRng, SeedableRng};
 use tokio::{sync::watch, time::sleep};
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use tracing::{info, subscriber::set_global_default, warn, Level};
@@ -43,6 +46,22 @@ impl DispatcherGenerator for SleepDispatcherGenerator {
 
     fn generate(&mut self) -> Self::Dispatcher {
         SleepDispatcher {}
+    }
+}
+
+struct YcsbDispatcherGenerator {
+    kv_clients: Vec<EtcdKvClient<Channel>>,
+    kv_index: usize,
+}
+
+impl DispatcherGenerator for YcsbDispatcherGenerator {
+    type Dispatcher = YcsbDispatcher;
+
+    fn generate(&mut self) -> Self::Dispatcher {
+        let kv_client = self.kv_clients[self.kv_index].clone();
+        self.kv_index += 1;
+        self.kv_index %= self.kv_clients.len();
+        YcsbDispatcher { kv_client }
     }
 }
 
@@ -252,7 +271,7 @@ async fn main() -> anyhow::Result<()> {
                         })
                         .collect::<Vec<_>>();
                     let watch_dispatcher_generator = EtcdWatchDispatcherGenerator {
-                        kv_clients,
+                        kv_clients:kv_clients.clone(),
                         kv_index: 0,
                         watch_clients,
                         watch_index: 0,
@@ -297,6 +316,33 @@ async fn main() -> anyhow::Result<()> {
                                     receiver,
                                 },
                                 watch_dispatcher_generator,
+                                writer,
+                            )
+                            .await
+                        }
+                        EtcdCommand::Ycsb {
+                            read_single_percentage,
+                            read_all_percentage,
+                            insert_percentage,
+                            update_percentage,
+                            fields_per_record,
+                            field_value_length,
+                        } => {
+                            loadgen::generate_load(
+                                &options,
+                                EtcdYcsbInputGenerator {
+                                    read_single_percentage: *read_single_percentage,
+                                    read_all_percentage: *read_all_percentage,
+                                    insert_percentage: *insert_percentage,
+                                    update_percentage: *update_percentage,
+                                    fields_per_record: *fields_per_record,
+                                    field_value_length: *field_value_length,
+                                    operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+                                },
+                                YcsbDispatcherGenerator {
+                                    kv_clients,
+                                    kv_index: 0,
+                                },
                                 writer,
                             )
                             .await
@@ -432,6 +478,18 @@ async fn main() -> anyhow::Result<()> {
                                     receiver,
                                 },
                                 watch_dispatcher_generator,
+                                writer,
+                            )
+                            .await
+                        }
+                        DismergeCommand::Ycsb {} => {
+                            loadgen::generate_load(
+                                &options,
+                                DismergeYcsbInputGenerator {},
+                                YcsbDispatcherGenerator {
+                                    kv_clients:todo!(),
+                                    kv_index: 0,
+                                },
                                 writer,
                             )
                             .await

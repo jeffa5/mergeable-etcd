@@ -47,6 +47,21 @@ pub enum EtcdCommand {
         #[clap(long, default_value = "100")]
         num_watchers: u32,
     },
+    /// Launch a ycsb workload.
+    Ycsb {
+        #[clap(long, default_value = "0.5")]
+        read_single_percentage: f64,
+        #[clap(long, default_value = "0")]
+        read_all_percentage: f64,
+        #[clap(long, default_value = "0.5")]
+        insert_percentage: f64,
+        #[clap(long, default_value = "0")]
+        update_percentage: f64,
+        #[clap(long, default_value = "1")]
+        fields_per_record: u32,
+        #[clap(long, default_value = "32")]
+        field_value_length: usize,
+    },
 }
 
 #[derive(Args, Debug, Clone)]
@@ -58,15 +73,20 @@ pub struct Dismerge {
 #[derive(Subcommand, Debug, Clone)]
 pub enum DismergeCommand {
     /// Repeatedly write to the same key
-    PutSingle { key: String },
+    PutSingle {
+        key: String,
+    },
     /// Write to a sequence of keys
     PutRange,
     /// Write randomly to keys in a given number
-    PutRandom { size: usize },
+    PutRandom {
+        size: usize,
+    },
     /// Create many watches on a single key and continually write to it.
     WatchSingle {
         key: String,
         #[clap(long, default_value = "100")]
         num_watchers: u32,
     },
+    Ycsb {},
 }
