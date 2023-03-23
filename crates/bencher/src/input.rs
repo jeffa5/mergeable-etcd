@@ -8,7 +8,12 @@ use mergeable_proto::etcdserverpb::{
     watch_request::RequestUnion as DismergeRequestUnion, PutRequest as DismergePutRequest,
     WatchCreateRequest as DismergeWatchCreateRequest, WatchRequest as DismergeWatchRequest,
 };
-use rand::{distributions::{Standard, Alphanumeric}, thread_rng, Rng, rngs::StdRng};
+use rand::{
+    distributions::{Alphanumeric, Standard, WeightedIndex},
+    prelude::Distribution,
+    rngs::StdRng,
+    thread_rng, Rng, SeedableRng,
+};
 use tokio::sync::watch;
 use tracing::info;
 
@@ -302,21 +307,66 @@ fn value() -> Vec<u8> {
 ///
 /// FIXME: currently only using uniform distributions.
 pub struct EtcdYcsbInputGenerator {
-    pub read_single_percentage: f64,
-    pub read_all_percentage: f64,
-    pub insert_percentage: f64,
-    pub update_percentage: f64,
+    pub read_single_weight: u32,
+    pub read_all_weight: u32,
+    pub insert_weight: u32,
+    pub update_weight: u32,
     pub fields_per_record: u32,
     pub field_value_length: usize,
     pub operation_rng: StdRng,
+    pub max_record_index: u32,
 }
 
+impl EtcdYcsbInputGenerator {
+    pub fn new(
+        read_single_weight: u32,
+        read_all_weight: u32,
+        insert_weight: u32,
+        update_weight: u32,
+    ) -> Self {
+        Self {
+            read_single_weight,
+            read_all_weight,
+            insert_weight,
+            update_weight,
+            fields_per_record: 1,
+            field_value_length: 32,
+            operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+            max_record_index: 0,
+        }
+    }
+
+    pub fn new_record_key(&mut self) -> String {
+        // TODO: may not want incremental inserts
+        self.max_record_index += 1;
+        format!("user{:08}", self.max_record_index)
+    }
+
+    pub fn existing_record_key(&mut self) -> String {
+        // TODO: may not want this to be uniform
+        let index = self.operation_rng.gen_range(0..=self.max_record_index);
+        format!("user{:08}", index)
+    }
+
+    pub fn field_key(i: u32) -> String {
+        format!("field{i}")
+    }
+
+    pub fn field_value(&mut self) -> String {
+        (&mut self.operation_rng)
+            .sample_iter(&Alphanumeric)
+            .take(self.field_value_length)
+            .map(char::from)
+            .collect()
+    }
+}
+
+#[derive(Debug)]
 pub enum YcsbInput {
     /// Insert a new record.
     Insert {
         record_key: String,
-        field_key: String,
-        field_value: String,
+        fields: Vec<(String, String)>,
     },
     /// Update a record by replacing the value of one field.
     Update {
@@ -332,10 +382,7 @@ pub enum YcsbInput {
     /// Read all fields from a record.
     ReadAll { record_key: String },
     /// Scan records in order, starting at a randomly chosen key
-    Scan {
-        start_key: String,
-        scan_length: u32,
-    }
+    Scan { start_key: String, scan_length: u32 },
 }
 
 impl InputGenerator for EtcdYcsbInputGenerator {
@@ -344,8 +391,47 @@ impl InputGenerator for EtcdYcsbInputGenerator {
     fn close(self) {}
 
     fn next(&mut self) -> Option<Self::Input> {
-        let request = YcsbInput::Insert { record_key: String::new(), field_key: "field0".to_owned(), field_value: random_string(self.field_value_length) };
-        Some(request)
+        let weights = [
+            self.read_single_weight,
+            self.read_all_weight,
+            self.insert_weight,
+            self.update_weight,
+        ];
+        // TODO: should this use
+        // https://docs.rs/rand_distr/0.4.3/rand_distr/weighted_alias/index.html instead?
+        let dist = WeightedIndex::new(&weights).unwrap();
+        let weight_index = dist.sample(&mut self.operation_rng);
+        let input = match weight_index {
+            // read single
+            0 => YcsbInput::ReadSingle {
+                record_key: self.existing_record_key(),
+                field_key: "field0".to_owned(),
+            },
+            // read all
+            1 => YcsbInput::ReadAll {
+                record_key: self.existing_record_key(),
+            },
+            // insert
+            2 => YcsbInput::Insert {
+                record_key: self.new_record_key(),
+                fields: (0..self.fields_per_record)
+                    .into_iter()
+                    .map(|i| (Self::field_key(i), self.field_value()))
+                    .collect(),
+            },
+            // update
+            3 => YcsbInput::Update {
+                record_key: self.existing_record_key(),
+                field_key: "field0".to_owned(),
+                field_value: random_string(self.field_value_length),
+            },
+            i => {
+                println!("got weight index {i}, but there was no input type to match");
+                return None;
+            }
+        };
+        // println!("generated ycsb input {:?}", input);
+        Some(input)
     }
 }
 
@@ -362,8 +448,8 @@ impl InputGenerator for DismergeYcsbInputGenerator {
     }
 }
 
-fn random_string(len: usize) -> String{
-let s: String = rand::thread_rng()
+fn random_string(len: usize) -> String {
+    let s: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(len)
         .map(char::from)

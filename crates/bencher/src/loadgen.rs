@@ -72,6 +72,7 @@ where
             Ok(()) => {
                 // sent successfully, there must have been an available client
             }
+            // TODO: maybe preallocate clients, or always keep a few spare
             Err(TrySendError::Full(input)) => {
                 // wasn't available so create a new client to service the request
                 let generate_new_client = if let Some(max_clients) = options.max_clients {

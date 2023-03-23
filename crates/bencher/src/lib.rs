@@ -49,14 +49,14 @@ pub enum EtcdCommand {
     },
     /// Launch a ycsb workload.
     Ycsb {
-        #[clap(long, default_value = "0.5")]
-        read_single_percentage: f64,
+        #[clap(long, default_value = "1")]
+        read_single_weight: u32,
         #[clap(long, default_value = "0")]
-        read_all_percentage: f64,
-        #[clap(long, default_value = "0.5")]
-        insert_percentage: f64,
-        #[clap(long, default_value = "0")]
-        update_percentage: f64,
+        read_all_weight: u32,
+        #[clap(long, default_value = "1")]
+        insert_weight: u32,
+        #[clap(long, default_value = "1")]
+        update_weight: u32,
         #[clap(long, default_value = "1")]
         fields_per_record: u32,
         #[clap(long, default_value = "32")]

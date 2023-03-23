@@ -271,7 +271,7 @@ async fn main() -> anyhow::Result<()> {
                         })
                         .collect::<Vec<_>>();
                     let watch_dispatcher_generator = EtcdWatchDispatcherGenerator {
-                        kv_clients:kv_clients.clone(),
+                        kv_clients: kv_clients.clone(),
                         kv_index: 0,
                         watch_clients,
                         watch_index: 0,
@@ -321,23 +321,24 @@ async fn main() -> anyhow::Result<()> {
                             .await
                         }
                         EtcdCommand::Ycsb {
-                            read_single_percentage,
-                            read_all_percentage,
-                            insert_percentage,
-                            update_percentage,
+                            read_single_weight,
+                            read_all_weight,
+                            insert_weight,
+                            update_weight,
                             fields_per_record,
                             field_value_length,
                         } => {
                             loadgen::generate_load(
                                 &options,
                                 EtcdYcsbInputGenerator {
-                                    read_single_percentage: *read_single_percentage,
-                                    read_all_percentage: *read_all_percentage,
-                                    insert_percentage: *insert_percentage,
-                                    update_percentage: *update_percentage,
+                                    read_single_weight: *read_single_weight,
+                                    read_all_weight: *read_all_weight,
+                                    insert_weight: *insert_weight,
+                                    update_weight: *update_weight,
                                     fields_per_record: *fields_per_record,
                                     field_value_length: *field_value_length,
                                     operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+                                    max_record_index: 0,
                                 },
                                 YcsbDispatcherGenerator {
                                     kv_clients,
@@ -487,7 +488,7 @@ async fn main() -> anyhow::Result<()> {
                                 &options,
                                 DismergeYcsbInputGenerator {},
                                 YcsbDispatcherGenerator {
-                                    kv_clients:todo!(),
+                                    kv_clients: todo!(),
                                     kv_index: 0,
                                 },
                                 writer,

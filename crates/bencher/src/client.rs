@@ -14,7 +14,10 @@ use crate::{
     output::{DismergeOutput, EtcdOutput, Output},
 };
 use etcd_proto::etcdserverpb::watch_client::WatchClient as EtcdWatchClient;
-use etcd_proto::etcdserverpb::{kv_client::KvClient as EtcdKvClient, PutRequest as EtcdPutRequest};
+use etcd_proto::etcdserverpb::{
+    kv_client::KvClient as EtcdKvClient, PutRequest as EtcdPutRequest,
+    RangeRequest as EtcdRangeRequest,
+};
 use mergeable_proto::etcdserverpb::watch_client::WatchClient as DismergeWatchClient;
 use mergeable_proto::etcdserverpb::{
     kv_client::KvClient as DismergeKvClient, PutRequest as DismergePutRequest,
@@ -307,7 +310,42 @@ impl Dispatcher for YcsbDispatcher {
         outputs: &mut Vec<Output<EtcdOutput>>,
     ) {
         match input {
-            Self::Input::Insert {
+            Self::Input::Insert { record_key, fields } => {
+                let output = outputs[0].clone();
+                outputs.clear();
+                for (field_key, field_value) in fields {
+                    let mut output = output.clone();
+                    let key = format!("{}/{}", record_key, field_key);
+                    match self
+                        .kv_client
+                        .put(EtcdPutRequest {
+                            key: key.as_bytes().to_vec(),
+                            value: field_value.into_bytes(),
+                            ..Default::default()
+                        })
+                        .await
+                    {
+                        Ok(response) => {
+                            let header = response.into_inner().header.unwrap();
+                            let member_id = header.member_id;
+                            let raft_term = header.raft_term;
+                            let data = EtcdOutput {
+                                member_id,
+                                raft_term,
+                                key,
+                            };
+                            output.data = Some(data);
+                            output.stop();
+                        }
+                        Err(error) => {
+                            warn!(%error);
+                            output.error(error.message().to_string());
+                        }
+                    };
+                    outputs.push(output);
+                }
+            }
+            Self::Input::Update {
                 record_key,
                 field_key,
                 field_value,
@@ -340,7 +378,101 @@ impl Dispatcher for YcsbDispatcher {
                     }
                 };
             }
-            _ => todo!(),
+            YcsbInput::ReadSingle {
+                record_key,
+                field_key,
+            } => {
+                let key = format!("{}/{}", record_key, field_key);
+                match self
+                    .kv_client
+                    .range(EtcdRangeRequest {
+                        key: key.as_bytes().to_vec(),
+                        ..Default::default()
+                    })
+                    .await
+                {
+                    Ok(response) => {
+                        let header = response.into_inner().header.unwrap();
+                        let member_id = header.member_id;
+                        let raft_term = header.raft_term;
+                        let data = EtcdOutput {
+                            member_id,
+                            raft_term,
+                            key,
+                        };
+                        outputs[0].data = Some(data);
+                        outputs[0].stop();
+                    }
+                    Err(error) => {
+                        warn!(%error);
+                        outputs[0].error(error.message().to_string());
+                    }
+                };
+            }
+            YcsbInput::ReadAll { record_key } => {
+                let mut range_end = record_key.as_bytes().to_vec();
+                *range_end.last_mut().unwrap() += 1;
+                let key = record_key;
+                match self
+                    .kv_client
+                    .range(EtcdRangeRequest {
+                        key: key.as_bytes().to_vec(),
+                        range_end,
+                        ..Default::default()
+                    })
+                    .await
+                {
+                    Ok(response) => {
+                        let header = response.into_inner().header.unwrap();
+                        let member_id = header.member_id;
+                        let raft_term = header.raft_term;
+                        let data = EtcdOutput {
+                            member_id,
+                            raft_term,
+                            key,
+                        };
+                        outputs[0].data = Some(data);
+                        outputs[0].stop();
+                    }
+                    Err(error) => {
+                        warn!(%error);
+                        outputs[0].error(error.message().to_string());
+                    }
+                };
+            }
+            YcsbInput::Scan {
+                start_key,
+                scan_length,
+            } => {
+                let range_end = format!("{}/field{}", start_key, scan_length);
+                let key = start_key;
+                match self
+                    .kv_client
+                    .range(EtcdRangeRequest {
+                        key: key.as_bytes().to_vec(),
+                        range_end: range_end.as_bytes().to_vec(),
+                        ..Default::default()
+                    })
+                    .await
+                {
+                    Ok(response) => {
+                        let header = response.into_inner().header.unwrap();
+                        let member_id = header.member_id;
+                        let raft_term = header.raft_term;
+                        let data = EtcdOutput {
+                            member_id,
+                            raft_term,
+                            key,
+                        };
+                        outputs[0].data = Some(data);
+                        outputs[0].stop();
+                    }
+                    Err(error) => {
+                        warn!(%error);
+                        outputs[0].error(error.message().to_string());
+                    }
+                };
+            }
         }
     }
 }
