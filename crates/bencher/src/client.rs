@@ -1,4 +1,5 @@
 use futures::stream::StreamExt;
+use serde::Serialize;
 use std::{
     io::Write,
     sync::{atomic::AtomicUsize, Arc},
@@ -9,7 +10,8 @@ use tracing::{info, warn};
 
 use crate::{
     input::{DismergeWatchInput, EtcdWatchInput},
-    Output,
+    output::SleepOutput,
+    output::{DismergeOutput, EtcdOutput, Output},
 };
 use etcd_proto::etcdserverpb::watch_client::WatchClient as EtcdWatchClient;
 use etcd_proto::etcdserverpb::{kv_client::KvClient as EtcdKvClient, PutRequest as EtcdPutRequest};
@@ -31,7 +33,12 @@ pub trait DispatcherGenerator {
 #[async_trait]
 pub trait Dispatcher: Send + 'static {
     type Input: Send;
-    async fn execute_scenario(&mut self, request: Self::Input, outputs: &mut Vec<Output>);
+    type Output: Send;
+    async fn execute_scenario(
+        &mut self,
+        request: Self::Input,
+        outputs: &mut Vec<Output<Self::Output>>,
+    );
 }
 
 #[derive(Clone)]
@@ -42,14 +49,25 @@ pub struct EtcdPutDispatcher {
 #[async_trait]
 impl Dispatcher for EtcdPutDispatcher {
     type Input = EtcdPutRequest;
-    async fn execute_scenario(&mut self, request: Self::Input, outputs: &mut Vec<Output>) {
+    type Output = EtcdOutput;
+    async fn execute_scenario(
+        &mut self,
+        request: Self::Input,
+        outputs: &mut Vec<Output<EtcdOutput>>,
+    ) {
         let key = String::from_utf8(request.key.clone()).unwrap();
         match self.client.put(request).await {
             Ok(response) => {
                 let header = response.into_inner().header.unwrap();
                 let member_id = header.member_id;
                 let raft_term = header.raft_term;
-                outputs[0].stop(member_id, raft_term, vec![], key);
+                let data = EtcdOutput {
+                    member_id,
+                    raft_term,
+                    key,
+                };
+                outputs[0].data = Some(data);
+                outputs[0].stop();
             }
             Err(error) => {
                 warn!(%error);
@@ -68,10 +86,11 @@ pub struct EtcdWatchDispatcher {
 #[async_trait]
 impl Dispatcher for EtcdWatchDispatcher {
     type Input = (EtcdWatchInput, Receiver<()>);
+    type Output = EtcdOutput;
     async fn execute_scenario(
         &mut self,
         (request, mut close): Self::Input,
-        outputs: &mut Vec<Output>,
+        outputs: &mut Vec<Output<EtcdOutput>>,
     ) {
         match request {
             EtcdWatchInput::Put(request) => {
@@ -81,7 +100,13 @@ impl Dispatcher for EtcdWatchDispatcher {
                         let header = response.into_inner().header.unwrap();
                         let member_id = header.member_id;
                         let raft_term = header.raft_term;
-                        outputs[0].stop(member_id, raft_term, vec![], key);
+                        let data = EtcdOutput {
+                            member_id,
+                            raft_term,
+                            key,
+                        };
+                        outputs[0].data = Some(data);
+                        outputs[0].stop();
                     }
                     Err(error) => {
                         warn!(%error);
@@ -110,7 +135,11 @@ impl Dispatcher for EtcdWatchDispatcher {
                                         let raft_term = header.raft_term;
                                         let mut output = outputs[0].clone();
                                         let key = String::from_utf8(event.kv.unwrap().key).unwrap();
-                                        output.stop(member_id, raft_term, vec![], key);
+                                        let data = EtcdOutput {
+                                            member_id, raft_term, key
+                                        };
+                                        output.data = Some(data);
+                                        output.stop();
                                         outputs.push(output);
                                     }
                                 },
@@ -142,14 +171,20 @@ pub struct DismergePutDispatcher {
 #[async_trait]
 impl Dispatcher for DismergePutDispatcher {
     type Input = DismergePutRequest;
-    async fn execute_scenario(&mut self, request: Self::Input, outputs: &mut Vec<Output>) {
+    type Output = DismergeOutput;
+    async fn execute_scenario(
+        &mut self,
+        request: Self::Input,
+        outputs: &mut Vec<Output<DismergeOutput>>,
+    ) {
         let key = String::from_utf8(request.key.clone()).unwrap();
         match self.client.put(request).await {
             Ok(response) => {
                 let header = response.into_inner().header.unwrap();
                 let member_id = header.member_id;
-                let heads = header.heads;
-                outputs[0].stop(member_id, 0, heads, key);
+                let data = DismergeOutput { key, member_id };
+                outputs[0].data = Some(data);
+                outputs[0].stop();
             }
             Err(error) => {
                 warn!(%error);
@@ -168,10 +203,11 @@ pub struct DismergeWatchDispatcher {
 #[async_trait]
 impl Dispatcher for DismergeWatchDispatcher {
     type Input = (DismergeWatchInput, Receiver<()>);
+    type Output = DismergeOutput;
     async fn execute_scenario(
         &mut self,
         (request, mut close): Self::Input,
-        outputs: &mut Vec<Output>,
+        outputs: &mut Vec<Output<DismergeOutput>>,
     ) {
         match request {
             DismergeWatchInput::Put(request) => {
@@ -180,8 +216,10 @@ impl Dispatcher for DismergeWatchDispatcher {
                     Ok(response) => {
                         let header = response.into_inner().header.unwrap();
                         let member_id = header.member_id;
-                        let heads = header.heads;
-                        outputs[0].stop(member_id, 0, heads, key);
+
+                        let data = DismergeOutput { key, member_id };
+                        outputs[0].data = Some(data);
+                        outputs[0].stop();
                     }
                     Err(error) => {
                         warn!(%error);
@@ -207,10 +245,13 @@ impl Dispatcher for DismergeWatchDispatcher {
                                     let header = message.header.unwrap();
                                     for event in message.events {
                                         let member_id = header.member_id;
-                                        let heads = header.heads.clone();
                                         let mut output = outputs[0].clone();
                                         let key = String::from_utf8(event.kv.unwrap().key).unwrap();
-                                        output.stop(member_id, 0, heads, key);
+                                        let data = DismergeOutput{
+                                            key, member_id
+                                        };
+                                        output.data = Some(data);
+                                        output.stop();
                                         outputs.push(output);
                                     }
                                 },
@@ -240,22 +281,29 @@ pub struct SleepDispatcher {}
 #[async_trait]
 impl Dispatcher for SleepDispatcher {
     type Input = Duration;
-    async fn execute_scenario(&mut self, duration: Self::Input, outputs: &mut Vec<Output>) {
+    type Output = SleepOutput;
+    async fn execute_scenario(
+        &mut self,
+        duration: Self::Input,
+        outputs: &mut Vec<Output<SleepOutput>>,
+    ) {
         sleep(duration).await;
-        outputs[0].stop(0, 0, vec![], String::new());
+        outputs[0].stop();
     }
 }
 
 pub async fn run<D: Dispatcher>(
     receiver: async_channel::Receiver<D::Input>,
-    counter: usize,
+    counter: u32,
     mut dispatcher: D,
     writer: Option<Arc<Mutex<csv::Writer<impl Write>>>>,
     error_count: Arc<AtomicUsize>,
-) {
-    let mut global_outputs: Vec<Output> = Vec::new();
+) where
+    D::Output: Serialize,
+{
+    let mut global_outputs: Vec<Output<D::Output>> = Vec::new();
     let mut iteration = 0;
-    let mut local_outputs: Vec<Output> = Vec::new();
+    let mut local_outputs: Vec<Output<D::Output>> = Vec::new();
     while let Ok(input) = receiver.recv().await {
         let output = Output::start(counter as u32, iteration);
         local_outputs.push(output);

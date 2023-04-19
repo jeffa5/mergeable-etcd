@@ -1,3 +1,4 @@
+use serde::Serialize;
 use std::{
     sync::{atomic::AtomicUsize, Arc},
     time::Duration,
@@ -33,7 +34,10 @@ pub async fn generate_load<
     mut input_generator: I,
     mut dispatcher_generator: D,
     writer: Option<csv::Writer<impl Write + Send + 'static>>,
-) -> usize {
+) -> usize
+where
+    <D::Dispatcher as Dispatcher>::Output: Serialize,
+{
     let (sender, receiver) = async_channel::bounded(1);
     let writer = writer.map(|w| Arc::new(Mutex::new(w)));
 
@@ -45,6 +49,21 @@ pub async fn generate_load<
 
     let mut client_counter = 0;
     let mut i = 0;
+
+    for _ in 0..options.initial_clients {
+        client_counter += 1;
+        let receiver = receiver.clone();
+
+        let work = active_clients.add_work(1);
+        let writer = writer.clone();
+        let error_count = Arc::clone(&error_count);
+        let dispatcher = dispatcher_generator.generate();
+        tokio::spawn(async move {
+            let _work = work;
+            client::run(receiver, client_counter, dispatcher, writer, error_count).await;
+        });
+    }
+
     while let Some(input) = input_generator.next() {
         if i % 1000 == 0 {
             info!(done = i, total = options.total, "Progressing");
@@ -55,18 +74,26 @@ pub async fn generate_load<
             }
             Err(TrySendError::Full(input)) => {
                 // wasn't available so create a new client to service the request
-                client_counter += 1;
-                let receiver = receiver.clone();
+                let generate_new_client = if let Some(max_clients) = options.max_clients {
+                    client_counter < max_clients
+                } else {
+                    true
+                };
+                if generate_new_client {
+                    client_counter += 1;
+                    let receiver = receiver.clone();
 
-                let work = active_clients.add_work(1);
-                let dispatcher = dispatcher_generator.generate();
-                let writer = writer.clone();
-                let error_count = Arc::clone(&error_count);
-                tokio::spawn(async move {
-                    let _work = work;
-                    client::run(receiver, client_counter, dispatcher, writer, error_count).await;
-                });
-                sender.send(input).await.unwrap()
+                    let work = active_clients.add_work(1);
+                    let writer = writer.clone();
+                    let error_count = Arc::clone(&error_count);
+                    let dispatcher = dispatcher_generator.generate();
+                    tokio::spawn(async move {
+                        let _work = work;
+                        client::run(receiver, client_counter, dispatcher, writer, error_count)
+                            .await;
+                    });
+                }
+                sender.send(input).await.unwrap();
             }
             Err(TrySendError::Closed(_value)) => {
                 // nothing else to do but stop the loop

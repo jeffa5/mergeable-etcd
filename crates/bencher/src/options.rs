@@ -29,10 +29,19 @@ pub struct Options {
     #[clap(long, global = true, default_value = "10")]
     pub clients: u32,
 
+    /// Maximum number of clients (connections) to create.
+    #[clap(long, global = true)]
+    pub max_clients: Option<u32>,
+
+    /// Initial number of clients (connections) to create.
+    #[clap(long, global = true, default_value = "0")]
+    pub initial_clients: u32,
+
     /// The timeout to apply to requests, in milliseconds
     #[clap(long, global = true, default_value = "60000")]
     pub timeout: u64,
 
+    /// File to write outputs to.
     #[clap(short, long, global = true)]
     pub out_file: Option<String>,
 

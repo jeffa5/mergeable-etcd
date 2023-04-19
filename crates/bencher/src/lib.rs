@@ -1,4 +1,5 @@
 mod address;
+mod output;
 pub mod client;
 pub mod input;
 pub mod loadgen;
@@ -8,55 +9,7 @@ mod trace;
 pub use address::{Address, Error, Scheme};
 use clap::{Args, Subcommand};
 pub use options::{Options, Type};
-use serde::{Deserialize, Serialize};
 pub use trace::{execute_trace, TraceValue};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Output {
-    pub start_ns: i64,
-    pub end_ns: i64,
-    pub key: String,
-    pub error: Option<String>,
-    pub client: u32,
-    pub iteration: u32,
-    pub member_id: u64,
-    pub raft_term: u64,
-    pub heads: Vec<Vec<u8>>,
-}
-
-impl Output {
-    pub fn start(client: u32, iteration: u32) -> Self {
-        let now = chrono::Utc::now();
-        Self {
-            start_ns: now.timestamp_nanos(),
-            end_ns: now.timestamp_nanos(),
-            key: String::new(),
-            error: None,
-            client,
-            iteration,
-            member_id: 0,
-            raft_term: 0,
-            heads: Vec::new(),
-        }
-    }
-
-    pub fn stop(&mut self, member_id: u64, raft_term: u64, heads: Vec<Vec<u8>>, key: String) {
-        self.member_id = member_id;
-        self.raft_term = raft_term;
-        self.heads = heads;
-        self.key = key;
-        self.end_ns = chrono::Utc::now().timestamp_nanos();
-    }
-
-    pub fn error(&mut self, error: String) {
-        self.error = Some(error);
-        self.end_ns = chrono::Utc::now().timestamp_nanos();
-    }
-
-    pub fn is_error(&self) -> bool {
-        self.error.is_some()
-    }
-}
 
 #[derive(Args, Debug, Clone)]
 pub struct Scenario {
