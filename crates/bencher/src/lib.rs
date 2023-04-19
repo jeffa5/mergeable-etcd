@@ -20,7 +20,7 @@ pub struct Scenario {
 #[derive(Subcommand, Debug, Clone)]
 pub enum ScenarioCommands {
     /// Run a dummy action to test throughput of raw loop
-    Sleep { milliseconds: u64 },
+    Sleep { milliseconds: f64 },
     /// Benchmarking commands for etcd.
     Etcd(Etcd),
     /// Benchmarking commands for dismerge.

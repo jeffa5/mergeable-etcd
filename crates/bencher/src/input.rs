@@ -19,7 +19,7 @@ pub trait InputGenerator {
 }
 
 pub struct SleepInputGenerator {
-    pub milliseconds: u64,
+    pub milliseconds: f64,
 }
 
 impl InputGenerator for SleepInputGenerator {
@@ -28,7 +28,9 @@ impl InputGenerator for SleepInputGenerator {
     fn close(self) {}
 
     fn next(&mut self) -> Option<Self::Input> {
-        Some(Duration::from_millis(self.milliseconds))
+        Some(Duration::from_nanos(
+            (self.milliseconds * 1_000_000.) as u64,
+        ))
     }
 }
 
