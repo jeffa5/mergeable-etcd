@@ -1,9 +1,9 @@
 mod address;
-mod output;
 pub mod client;
 pub mod input;
 pub mod loadgen;
 mod options;
+mod output;
 mod trace;
 
 pub use address::{Address, Error, Scheme};

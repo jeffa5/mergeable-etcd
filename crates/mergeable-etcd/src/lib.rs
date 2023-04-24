@@ -81,6 +81,7 @@ pub async fn run(options: options::Options) {
         log_filter: _,
         no_colour: _,
         persister,
+        concurrency_limit,
     } = options;
 
     let (watch_sender, watch_receiver) = mpsc::channel(10);
@@ -257,6 +258,7 @@ pub async fn run(options: options::Options) {
                 server.clone(),
                 watcher.clone(),
                 document.clone(),
+                concurrency_limit,
             )
             .await,
         );
@@ -276,6 +278,7 @@ async fn start_client_server<P: DocPersister>(
     server: KvServer<P>,
     watch_server: watch::WatchService<P>,
     document: Doc<P>,
+    concurrency_limit: usize,
 ) -> tokio::task::JoinHandle<()> {
     let client_url = url::Url::parse(&address).unwrap();
     let client_address = format!(
@@ -311,8 +314,10 @@ async fn start_client_server<P: DocPersister>(
         let builder = tonic::transport::Server::builder();
 
         // drop requests when we're too busy to try and retain performance
-        let layer = ServiceBuilder::new().load_shed().into_inner();
-
+        let layer = ServiceBuilder::new()
+            .load_shed()
+            .concurrency_limit(concurrency_limit)
+            .into_inner();
         let mut router = builder.layer(layer).timeout(Duration::from_secs(1));
         if let Some(tls) = tls {
             router = router.tls_config(tls).unwrap();
@@ -453,7 +458,9 @@ fn start_flush_loop<P: DocPersister>(doc: Doc<P>, flush_interval: Duration) {
             // flush after a while, rather than all of the time
             {
                 let start = Instant::now();
-                let _bytes = doc.lock().await.flush();
+                let mut lock = doc.lock().await;
+                debug!(duration=?start.elapsed(), "Flush lock");
+                let _bytes = lock.flush();
                 let duration = start.elapsed();
                 if duration > threshold {
                     warn!(?duration, ?threshold, "Flush took too long");

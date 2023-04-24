@@ -1,15 +1,16 @@
-use std::path::Path;
+use std::{convert::Infallible, path::Path, time::Instant};
 
-use automerge_persistent::Persister;
+use automerge_persistent::{MemoryPersister, Persister};
 use automerge_persistent_fs::{FsPersister, FsPersisterError};
 use automerge_persistent_sled::{SledPersister, SledPersisterError};
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{options::PersisterType, DocPersister};
 
 pub enum PersisterDispatcher {
     Sled(SledPersister),
     Fs(FsPersister),
+    Memory(MemoryPersister),
 }
 
 impl PersisterDispatcher {
@@ -17,6 +18,7 @@ impl PersisterDispatcher {
         match typ {
             PersisterType::Sled => Self::Sled(Self::create_sled(data_dir)),
             PersisterType::Fs => Self::Fs(Self::create_fs(data_dir)),
+            PersisterType::Memory => Self::Memory(MemoryPersister::default()),
         }
     }
 
@@ -47,6 +49,8 @@ pub enum PersisterDispatcherError {
     Sled(SledPersisterError),
     #[error("fs: {0}")]
     Fs(FsPersisterError),
+    #[error("memory: {0}")]
+    Memory(Infallible),
 }
 
 impl Persister for PersisterDispatcher {
@@ -60,6 +64,9 @@ impl Persister for PersisterDispatcher {
             PersisterDispatcher::Fs(p) => {
                 p.get_changes().map_err(|e| PersisterDispatcherError::Fs(e))
             }
+            PersisterDispatcher::Memory(p) => p
+                .get_changes()
+                .map_err(|e| PersisterDispatcherError::Memory(e)),
         }
     }
 
@@ -74,6 +81,9 @@ impl Persister for PersisterDispatcher {
             PersisterDispatcher::Fs(p) => p
                 .insert_changes(changes)
                 .map_err(|e| PersisterDispatcherError::Fs(e)),
+            PersisterDispatcher::Memory(p) => p
+                .insert_changes(changes)
+                .map_err(|e| PersisterDispatcherError::Memory(e)),
         }
     }
 
@@ -88,6 +98,9 @@ impl Persister for PersisterDispatcher {
             PersisterDispatcher::Fs(p) => p
                 .remove_changes(changes)
                 .map_err(|e| PersisterDispatcherError::Fs(e)),
+            PersisterDispatcher::Memory(p) => p
+                .remove_changes(changes)
+                .map_err(|e| PersisterDispatcherError::Memory(e)),
         }
     }
 
@@ -99,6 +112,9 @@ impl Persister for PersisterDispatcher {
             PersisterDispatcher::Fs(p) => p
                 .get_document()
                 .map_err(|e| PersisterDispatcherError::Fs(e)),
+            PersisterDispatcher::Memory(p) => p
+                .get_document()
+                .map_err(|e| PersisterDispatcherError::Memory(e)),
         }
     }
 
@@ -110,6 +126,9 @@ impl Persister for PersisterDispatcher {
             PersisterDispatcher::Fs(p) => p
                 .set_document(data)
                 .map_err(|e| PersisterDispatcherError::Fs(e)),
+            PersisterDispatcher::Memory(p) => p
+                .set_document(data)
+                .map_err(|e| PersisterDispatcherError::Memory(e)),
         }
     }
 
@@ -121,6 +140,9 @@ impl Persister for PersisterDispatcher {
             PersisterDispatcher::Fs(p) => p
                 .get_sync_state(peer_id)
                 .map_err(|e| PersisterDispatcherError::Fs(e)),
+            PersisterDispatcher::Memory(p) => p
+                .get_sync_state(peer_id)
+                .map_err(|e| PersisterDispatcherError::Memory(e)),
         }
     }
 
@@ -132,6 +154,9 @@ impl Persister for PersisterDispatcher {
             PersisterDispatcher::Fs(p) => p
                 .set_sync_state(peer_id, sync_state)
                 .map_err(|e| PersisterDispatcherError::Fs(e)),
+            PersisterDispatcher::Memory(p) => p
+                .set_sync_state(peer_id, sync_state)
+                .map_err(|e| PersisterDispatcherError::Memory(e)),
         }
     }
 
@@ -143,6 +168,9 @@ impl Persister for PersisterDispatcher {
             PersisterDispatcher::Fs(p) => p
                 .remove_sync_states(peer_ids)
                 .map_err(|e| PersisterDispatcherError::Fs(e)),
+            PersisterDispatcher::Memory(p) => p
+                .remove_sync_states(peer_ids)
+                .map_err(|e| PersisterDispatcherError::Memory(e)),
         }
     }
 
@@ -154,6 +182,9 @@ impl Persister for PersisterDispatcher {
             PersisterDispatcher::Fs(p) => p
                 .get_peer_ids()
                 .map_err(|e| PersisterDispatcherError::Fs(e)),
+            PersisterDispatcher::Memory(p) => p
+                .get_peer_ids()
+                .map_err(|e| PersisterDispatcherError::Memory(e)),
         }
     }
 
@@ -161,16 +192,23 @@ impl Persister for PersisterDispatcher {
         match self {
             PersisterDispatcher::Sled(p) => p.sizes(),
             PersisterDispatcher::Fs(p) => p.sizes(),
+            PersisterDispatcher::Memory(p) => p.sizes(),
         }
     }
 
     fn flush(&mut self) -> Result<usize, Self::Error> {
-        match self {
+        let start = Instant::now();
+        let res = match self {
             PersisterDispatcher::Sled(p) => {
                 p.flush().map_err(|e| PersisterDispatcherError::Sled(e))
             }
             PersisterDispatcher::Fs(p) => p.flush().map_err(|e| PersisterDispatcherError::Fs(e)),
-        }
+            PersisterDispatcher::Memory(p) => {
+                p.flush().map_err(|e| PersisterDispatcherError::Memory(e))
+            }
+        };
+        debug!(duration=?start.elapsed(), "Flushed persister");
+        res
     }
 }
 
