@@ -1,6 +1,8 @@
 use crate::auth::AuthServer;
 use crate::kv::KvServer;
 use crate::lease::LeaseServer;
+use crate::persister::PersisterDispatcher;
+use automerge_persistent::Persister;
 use automerge_persistent_sled::SledPersister;
 use cluster::ClusterServer;
 use futures::future::join_all;
@@ -36,13 +38,22 @@ mod maintenance;
 mod metrics;
 mod options;
 mod peer;
+mod persister;
 mod watch;
 
 pub use options::ClusterState;
 pub use options::Options;
 
-type DocInner = Document<SledPersister, DocumentChangedSyncer, watch::MyWatcher>;
-type Doc = Arc<Mutex<DocInner>>;
+type DocInner<P> = Document<P, DocumentChangedSyncer, watch::MyWatcher>;
+type Doc<P> = Arc<Mutex<DocInner<P>>>;
+
+pub trait DocPersister: Persister<Error = Self::E> + Send + Sync + 'static {
+    type E: Send + std::error::Error;
+}
+
+impl DocPersister for SledPersister {
+    type E = <Self as Persister>::Error;
+}
 
 #[tracing::instrument(skip(options), fields(name = %options.name))]
 pub async fn run(options: options::Options) {
@@ -69,6 +80,7 @@ pub async fn run(options: options::Options) {
         flush_interval_ms,
         log_filter: _,
         no_colour: _,
+        persister,
     } = options;
 
     let (watch_sender, watch_receiver) = mpsc::channel(10);
@@ -78,18 +90,7 @@ pub async fn run(options: options::Options) {
 
     let data_dir = data_dir.unwrap_or_else(|| format!("{}.metcd", name).into());
     info!(?data_dir, "Making db");
-    let db = sled::Config::new()
-        .mode(sled::Mode::HighThroughput) // set to use high throughput rather than low space mode
-        .flush_every_ms(None) // don't automatically flush, we have a loop for this ourselves
-        .path(data_dir)
-        .open()
-        .unwrap();
-    let changes_tree = db.open_tree("changes").unwrap();
-    let document_tree = db.open_tree("documennt").unwrap();
-    let sync_states_tree = db.open_tree("sync_states").unwrap();
-    info!("Making automerge persister");
-    let sled_persister =
-        SledPersister::new(changes_tree, document_tree, sync_states_tree, "").unwrap();
+    let persister = PersisterDispatcher::new(persister, &data_dir);
 
     info!("Building document");
     let mut document = DocumentBuilder::default()
@@ -100,7 +101,7 @@ pub async fn run(options: options::Options) {
             notify: Arc::clone(&notify),
             member_changed: member_changed_sender.clone(),
         })
-        .with_persister(sled_persister)
+        .with_persister(persister)
         .with_auto_flush(false)
         .with_name(name.clone())
         .with_peer_urls(initial_advertise_peer_urls.clone())
@@ -268,13 +269,13 @@ pub async fn run(options: options::Options) {
     ];
 }
 
-async fn start_client_server(
+async fn start_client_server<P: DocPersister>(
     address: String,
     cert_file: &str,
     key_file: &str,
-    server: KvServer,
-    watch_server: watch::WatchService,
-    document: Doc,
+    server: KvServer<P>,
+    watch_server: watch::WatchService<P>,
+    document: Doc<P>,
 ) -> tokio::task::JoinHandle<()> {
     let client_url = url::Url::parse(&address).unwrap();
     let client_address = format!(
@@ -351,12 +352,12 @@ async fn start_client_server(
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn start_peer_server(
+async fn start_peer_server<P: DocPersister>(
     address: String,
     cert_file: &str,
     key_file: &str,
     trusted_ca_file: &str,
-    document: Doc,
+    document: Doc<P>,
     name: String,
     initial_cluster: HashMap<String, String>,
     notify: Arc<tokio::sync::Notify>,
@@ -425,7 +426,10 @@ async fn start_peer_server(
     })
 }
 
-fn start_metrics_server(address: String, document: Doc) -> tokio::task::JoinHandle<()> {
+fn start_metrics_server<P: DocPersister>(
+    address: String,
+    document: Doc<P>,
+) -> tokio::task::JoinHandle<()> {
     let metrics_url = url::Url::parse(&address).unwrap();
     let metrics_address = format!(
         "{}:{}",
@@ -441,7 +445,7 @@ fn start_metrics_server(address: String, document: Doc) -> tokio::task::JoinHand
     })
 }
 
-fn start_flush_loop(doc: Doc, flush_interval: Duration) {
+fn start_flush_loop<P: DocPersister>(doc: Doc<P>, flush_interval: Duration) {
     tokio::spawn(async move {
         info!("Started flush loop");
         let threshold = Duration::from_millis(100);

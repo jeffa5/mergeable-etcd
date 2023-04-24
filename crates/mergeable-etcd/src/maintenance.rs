@@ -1,17 +1,19 @@
-use crate::Doc;
+use crate::{Doc, DocPersister};
 use futures::Stream;
 use std::pin::Pin;
 use std::time::Duration;
 use tracing::{info, warn};
 
-pub struct MaintenanceServer {
-    pub document: Doc,
+pub struct MaintenanceServer<P> {
+    pub document: Doc<P>,
 }
 
 const VERSION: &str = "3.3.27";
 
 #[tonic::async_trait]
-impl etcd_proto::etcdserverpb::maintenance_server::Maintenance for MaintenanceServer {
+impl<P: DocPersister> etcd_proto::etcdserverpb::maintenance_server::Maintenance
+    for MaintenanceServer<P>
+{
     async fn alarm(
         &self,
         _request: tonic::Request<etcd_proto::etcdserverpb::AlarmRequest>,

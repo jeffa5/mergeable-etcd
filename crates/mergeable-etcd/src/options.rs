@@ -1,6 +1,11 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 use clap::{Parser, ValueEnum};
+
+use crate::{persister::PersisterDispatcher, DocPersister};
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum ClusterState {
@@ -81,6 +86,9 @@ pub struct Options {
     /// Don't print logs with colour.
     #[clap(long)]
     pub no_colour: bool,
+
+    #[clap(long, default_value = "sled")]
+    pub persister: PersisterType,
 }
 
 impl Default for Options {
@@ -107,6 +115,20 @@ impl Default for Options {
             flush_interval_ms: 10,
             log_filter: None,
             no_colour: false,
+            persister: Default::default(),
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, clap::ValueEnum)]
+pub enum PersisterType {
+    #[default]
+    Sled,
+    Fs,
+}
+
+impl PersisterType {
+    pub fn create_persister(&self, data_dir: &Path) -> impl DocPersister {
+        PersisterDispatcher::new(*self, data_dir)
     }
 }

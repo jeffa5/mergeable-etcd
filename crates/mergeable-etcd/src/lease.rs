@@ -6,13 +6,14 @@ use tokio::sync::mpsc;
 use tracing::debug;
 
 use crate::Doc;
+use crate::DocPersister;
 
-pub(crate) struct LeaseServer {
-    pub(crate) document: Doc,
+pub(crate) struct LeaseServer<P> {
+    pub(crate) document: Doc<P>,
 }
 
 #[tonic::async_trait]
-impl etcd_proto::etcdserverpb::lease_server::Lease for LeaseServer {
+impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseServer<P> {
     async fn lease_grant(
         &self,
         request: tonic::Request<etcd_proto::etcdserverpb::LeaseGrantRequest>,

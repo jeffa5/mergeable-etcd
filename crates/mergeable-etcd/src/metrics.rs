@@ -5,13 +5,13 @@ use axum::routing::get;
 use axum::Router;
 use tracing::{debug, error, warn};
 
-use crate::Doc;
+use crate::{Doc, DocPersister};
 
-pub struct MetricsServer {
-    pub(crate) document: Doc,
+pub struct MetricsServer<P> {
+    pub(crate) document: Doc<P>,
 }
 
-impl MetricsServer {
+impl<P: DocPersister> MetricsServer<P> {
     pub async fn serve(&self, address: SocketAddr) {
         let document = self.document.clone();
         let router = Router::new().route("/health", get(move || health(document.clone())));
@@ -24,7 +24,7 @@ impl MetricsServer {
     }
 }
 
-async fn health(document: Doc) -> Result<String, StatusCode> {
+async fn health<P: DocPersister>(document: Doc<P>) -> Result<String, StatusCode> {
     let doc = document.lock().await;
     if doc.is_ready() {
         debug!(name=?doc.name(), healthy = true, "Got health check");

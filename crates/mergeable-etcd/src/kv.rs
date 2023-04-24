@@ -1,18 +1,25 @@
 use tonic::Response;
 
-use crate::Doc;
+use crate::{Doc, DocPersister};
 use etcd_proto::etcdserverpb::{kv_server::Kv, RangeResponse};
 use etcd_proto::etcdserverpb::{DeleteRangeResponse, PutResponse, TxnResponse};
 use tracing::debug;
 use tracing::error;
 
-#[derive(Clone)]
-pub struct KvServer {
-    pub document: Doc,
+pub struct KvServer<P> {
+    pub document: Doc<P>,
+}
+
+impl<P: DocPersister> Clone for KvServer<P> {
+    fn clone(&self) -> Self {
+        Self {
+            document: self.document.clone(),
+        }
+    }
 }
 
 #[tonic::async_trait]
-impl Kv for KvServer {
+impl<P: DocPersister> Kv for KvServer<P> {
     async fn range(
         &self,
         request: tonic::Request<etcd_proto::etcdserverpb::RangeRequest>,

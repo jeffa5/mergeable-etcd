@@ -9,16 +9,24 @@ use tokio::sync::mpsc;
 use tokio::sync::Mutex;
 use tracing::{debug, warn};
 
-use crate::Doc;
+use crate::{Doc, DocPersister};
 
-#[derive(Clone)]
-pub struct WatchService {
+pub struct WatchService<P> {
     pub(crate) watch_server: Arc<Mutex<mergeable_etcd_core::WatchServer>>,
-    pub(crate) document: Doc,
+    pub(crate) document: Doc<P>,
+}
+
+impl<P: DocPersister> Clone for WatchService<P> {
+    fn clone(&self) -> Self {
+        Self {
+            watch_server: self.watch_server.clone(),
+            document: self.document.clone(),
+        }
+    }
 }
 
 #[tonic::async_trait]
-impl Watch for WatchService {
+impl<P: DocPersister> Watch for WatchService<P> {
     type WatchStream = Pin<
         Box<
             dyn Stream<Item = Result<etcd_proto::etcdserverpb::WatchResponse, tonic::Status>>

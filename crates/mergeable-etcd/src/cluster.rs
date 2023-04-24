@@ -2,13 +2,14 @@ use tracing::error;
 use tracing::info;
 
 use crate::Doc;
+use crate::DocPersister;
 
-pub struct ClusterServer {
-    pub document: Doc,
+pub struct ClusterServer<P> {
+    pub document: Doc<P>,
 }
 
 #[tonic::async_trait]
-impl etcd_proto::etcdserverpb::cluster_server::Cluster for ClusterServer {
+impl<P: DocPersister> etcd_proto::etcdserverpb::cluster_server::Cluster for ClusterServer<P> {
     async fn member_add(
         &self,
         request: tonic::Request<etcd_proto::etcdserverpb::MemberAddRequest>,

@@ -1211,6 +1211,7 @@ version = "0.1.0"
 dependencies = [
  "automerge",
  "automerge-persistent",
+ "automerge-persistent-fs",
  "automerge-persistent-sled",
  "axum",
  "chrono",
@@ -1227,6 +1228,7 @@ dependencies = [
  "sled",
  "tempdir",
  "test-log",
+ "thiserror",
  "tokio",
  "tokio-stream",
  "tonic",

@@ -13,7 +13,7 @@ use tracing::{debug, info, warn};
 
 use mergeable_etcd_core::Syncer;
 
-use crate::Doc;
+use crate::{Doc, DocPersister};
 
 const SYNC_SLEEP_DURATION: Duration = Duration::from_millis(10);
 
@@ -151,8 +151,8 @@ impl PeerSyncer {
     }
 }
 
-pub struct PeerServerInner {
-    pub document: Doc,
+pub struct PeerServerInner<P> {
+    pub document: Doc<P>,
     name: String,
     // map from peer id to the syncer running for them
     connections: HashMap<u64, PeerSyncer>,
@@ -161,9 +161,9 @@ pub struct PeerServerInner {
     unknown_connections: HashMap<String, PeerSyncer>,
 }
 
-impl PeerServerInner {
+impl<P: DocPersister> PeerServerInner<P> {
     fn new(
-        document: Doc,
+        document: Doc<P>,
         name: &str,
         mut initial_cluster: HashMap<String, String>,
         ca_certificate: Option<Vec<u8>>,
@@ -289,13 +289,13 @@ impl PeerServerInner {
 }
 
 #[derive(Clone)]
-pub struct PeerServer {
-    inner: Arc<Mutex<PeerServerInner>>,
+pub struct PeerServer<P> {
+    inner: Arc<Mutex<PeerServerInner<P>>>,
 }
 
-impl PeerServer {
+impl<P: DocPersister> PeerServer<P> {
     pub fn new(
-        document: Doc,
+        document: Doc<P>,
         name: &str,
         initial_cluster: HashMap<String, String>,
         notify: Arc<tokio::sync::Notify>,
@@ -355,7 +355,7 @@ impl PeerServer {
 }
 
 #[tonic::async_trait]
-impl peer_proto::peer_server::Peer for PeerServer {
+impl<P: DocPersister> peer_proto::peer_server::Peer for PeerServer<P> {
     async fn sync(
         &self,
         request: tonic::Request<tonic::Streaming<SyncMessage>>,
