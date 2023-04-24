@@ -10,8 +10,8 @@ use tracing::{info, warn};
 
 use crate::{
     input::{DismergeWatchInput, EtcdWatchInput, YcsbInput},
-    output::SleepOutput,
-    output::{DismergeOutput, EtcdOutput, Output},
+    output::{DismergeOutput, EtcdOutput},
+    output::{OutputData, SleepOutput},
 };
 use etcd_proto::etcdserverpb::watch_client::WatchClient as EtcdWatchClient;
 use etcd_proto::etcdserverpb::{
@@ -36,11 +36,11 @@ pub trait DispatcherGenerator {
 #[async_trait]
 pub trait Dispatcher: Send + 'static {
     type Input: Send;
-    type Output: Send;
+    type Output: Send + Default;
     async fn execute_scenario(
         &mut self,
         request: Self::Input,
-        outputs: &mut Vec<Output<Self::Output>>,
+        outputs: &mut Vec<OutputData<Self::Output>>,
     );
 }
 
@@ -56,7 +56,7 @@ impl Dispatcher for EtcdPutDispatcher {
     async fn execute_scenario(
         &mut self,
         request: Self::Input,
-        outputs: &mut Vec<Output<EtcdOutput>>,
+        outputs: &mut Vec<OutputData<EtcdOutput>>,
     ) {
         let key = String::from_utf8(request.key.clone()).unwrap();
         match self.client.put(request).await {
@@ -68,8 +68,9 @@ impl Dispatcher for EtcdPutDispatcher {
                     member_id,
                     raft_term,
                     key,
+                    endpoint: "put".to_owned(),
                 };
-                outputs[0].data = Some(data);
+                *outputs[0].data_mut() = data;
                 outputs[0].stop();
             }
             Err(error) => {
@@ -93,7 +94,7 @@ impl Dispatcher for EtcdWatchDispatcher {
     async fn execute_scenario(
         &mut self,
         (request, mut close): Self::Input,
-        outputs: &mut Vec<Output<EtcdOutput>>,
+        outputs: &mut Vec<OutputData<EtcdOutput>>,
     ) {
         match request {
             EtcdWatchInput::Put(request) => {
@@ -107,8 +108,9 @@ impl Dispatcher for EtcdWatchDispatcher {
                             member_id,
                             raft_term,
                             key,
+                            endpoint: "put".to_owned(),
                         };
-                        outputs[0].data = Some(data);
+                        *outputs[0].data_mut() = data;
                         outputs[0].stop();
                     }
                     Err(error) => {
@@ -139,9 +141,10 @@ impl Dispatcher for EtcdWatchDispatcher {
                                         let mut output = outputs[0].clone();
                                         let key = String::from_utf8(event.kv.unwrap().key).unwrap();
                                         let data = EtcdOutput {
-                                            member_id, raft_term, key
+                                            member_id, raft_term, key,
+                                            endpoint: "watch".to_owned(),
                                         };
-                                        output.data = Some(data);
+                                        *output.data_mut() = data;
                                         output.stop();
                                         outputs.push(output);
                                     }
@@ -178,7 +181,7 @@ impl Dispatcher for DismergePutDispatcher {
     async fn execute_scenario(
         &mut self,
         request: Self::Input,
-        outputs: &mut Vec<Output<DismergeOutput>>,
+        outputs: &mut Vec<OutputData<DismergeOutput>>,
     ) {
         let key = String::from_utf8(request.key.clone()).unwrap();
         match self.client.put(request).await {
@@ -186,7 +189,7 @@ impl Dispatcher for DismergePutDispatcher {
                 let header = response.into_inner().header.unwrap();
                 let member_id = header.member_id;
                 let data = DismergeOutput { key, member_id };
-                outputs[0].data = Some(data);
+                *outputs[0].data_mut() = data;
                 outputs[0].stop();
             }
             Err(error) => {
@@ -210,7 +213,7 @@ impl Dispatcher for DismergeWatchDispatcher {
     async fn execute_scenario(
         &mut self,
         (request, mut close): Self::Input,
-        outputs: &mut Vec<Output<DismergeOutput>>,
+        outputs: &mut Vec<OutputData<DismergeOutput>>,
     ) {
         match request {
             DismergeWatchInput::Put(request) => {
@@ -221,7 +224,7 @@ impl Dispatcher for DismergeWatchDispatcher {
                         let member_id = header.member_id;
 
                         let data = DismergeOutput { key, member_id };
-                        outputs[0].data = Some(data);
+                        *outputs[0].data_mut() = data;
                         outputs[0].stop();
                     }
                     Err(error) => {
@@ -253,7 +256,7 @@ impl Dispatcher for DismergeWatchDispatcher {
                                         let data = DismergeOutput{
                                             key, member_id
                                         };
-                                        output.data = Some(data);
+                                        *output.data_mut() = data;
                                         output.stop();
                                         outputs.push(output);
                                     }
@@ -288,7 +291,7 @@ impl Dispatcher for SleepDispatcher {
     async fn execute_scenario(
         &mut self,
         duration: Self::Input,
-        outputs: &mut Vec<Output<SleepOutput>>,
+        outputs: &mut Vec<OutputData<SleepOutput>>,
     ) {
         sleep(duration).await;
         outputs[0].stop();
@@ -307,7 +310,7 @@ impl Dispatcher for YcsbDispatcher {
     async fn execute_scenario(
         &mut self,
         input: Self::Input,
-        outputs: &mut Vec<Output<EtcdOutput>>,
+        outputs: &mut Vec<OutputData<EtcdOutput>>,
     ) {
         match input {
             Self::Input::Insert { record_key, fields } => {
@@ -333,8 +336,9 @@ impl Dispatcher for YcsbDispatcher {
                                 member_id,
                                 raft_term,
                                 key,
+                                endpoint: "put".to_owned(),
                             };
-                            output.data = Some(data);
+                            *output.data_mut() = data;
                             output.stop();
                         }
                         Err(error) => {
@@ -368,8 +372,9 @@ impl Dispatcher for YcsbDispatcher {
                             member_id,
                             raft_term,
                             key,
+                            endpoint: "put".to_owned(),
                         };
-                        outputs[0].data = Some(data);
+                        *outputs[0].data_mut() = data;
                         outputs[0].stop();
                     }
                     Err(error) => {
@@ -399,8 +404,9 @@ impl Dispatcher for YcsbDispatcher {
                             member_id,
                             raft_term,
                             key,
+                            endpoint: "read".to_owned(),
                         };
-                        outputs[0].data = Some(data);
+                        *outputs[0].data_mut() = data;
                         outputs[0].stop();
                     }
                     Err(error) => {
@@ -430,8 +436,9 @@ impl Dispatcher for YcsbDispatcher {
                             member_id,
                             raft_term,
                             key,
+                            endpoint: "read".to_owned(),
                         };
-                        outputs[0].data = Some(data);
+                        *outputs[0].data_mut() = data;
                         outputs[0].stop();
                     }
                     Err(error) => {
@@ -463,8 +470,9 @@ impl Dispatcher for YcsbDispatcher {
                             member_id,
                             raft_term,
                             key,
+                            endpoint: "range".to_owned(),
                         };
-                        outputs[0].data = Some(data);
+                        *outputs[0].data_mut() = data;
                         outputs[0].stop();
                     }
                     Err(error) => {
@@ -484,13 +492,13 @@ pub async fn run<D: Dispatcher>(
     writer: Option<Arc<Mutex<csv::Writer<impl Write>>>>,
     error_count: Arc<AtomicUsize>,
 ) where
-    D::Output: Serialize,
+    D::Output: Serialize + Default,
 {
-    let mut global_outputs: Vec<Output<D::Output>> = Vec::new();
+    let mut global_outputs: Vec<OutputData<D::Output>> = Vec::new();
     let mut iteration = 0;
-    let mut local_outputs: Vec<Output<D::Output>> = Vec::new();
+    let mut local_outputs: Vec<OutputData<D::Output>> = Vec::new();
     while let Ok(input) = receiver.recv().await {
-        let output = Output::start(counter as u32, iteration);
+        let output = OutputData::start(counter as u32, iteration);
         local_outputs.push(output);
         dispatcher.execute_scenario(input, &mut local_outputs).await;
         global_outputs.append(&mut local_outputs);

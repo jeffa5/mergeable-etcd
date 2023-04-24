@@ -36,7 +36,7 @@ pub async fn generate_load<
     writer: Option<csv::Writer<impl Write + Send + 'static>>,
 ) -> usize
 where
-    <D::Dispatcher as Dispatcher>::Output: Serialize,
+    <D::Dispatcher as Dispatcher>::Output: Serialize + Default,
 {
     let (sender, receiver) = async_channel::bounded(1);
     let writer = writer.map(|w| Arc::new(Mutex::new(w)));
