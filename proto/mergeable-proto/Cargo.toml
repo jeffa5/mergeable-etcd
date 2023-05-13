@@ -2,15 +2,15 @@
 name = "mergeable-proto"
 version = "0.1.0"
 authors = ["Andrew Jeffery <dev@jeffas.io>"]
-edition = "2018"
+edition = "2021"
 description = "Etcd API protobuf types in Rust"
 readme = "README.md"
 repository = "https://gitlab.developers.cam.ac.uk/apj39/eckd-rs"
 
 [dependencies]
-tonic = "0.8.3"
-prost = "0.11.8"
+tonic = "0.9.2"
+prost = "0.11.9"
 serde = { version = "1.0.123", features = ["derive"] }
 
 [build-dependencies]
-tonic-build = "0.8.4"
+tonic-build = "0.9.2"
