@@ -41,6 +41,7 @@ impl InputGenerator for SleepInputGenerator {
 
 pub struct EtcdPutSingleInputGenerator {
     pub key: String,
+    pub index: u64,
 }
 
 impl InputGenerator for EtcdPutSingleInputGenerator {
@@ -49,7 +50,8 @@ impl InputGenerator for EtcdPutSingleInputGenerator {
     fn close(self) {}
 
     fn next(&mut self) -> Option<Self::Input> {
-        let value = vec![];
+        let value = sequential_value(self.index);
+        self.index += 1;
         let request = EtcdPutRequest {
             key: self.key.as_bytes().to_vec(),
             value,
@@ -64,6 +66,7 @@ impl InputGenerator for EtcdPutSingleInputGenerator {
 
 pub struct EtcdPutRangeInputGenerator {
     pub iteration: usize,
+    pub index: u64,
 }
 
 impl InputGenerator for EtcdPutRangeInputGenerator {
@@ -72,7 +75,8 @@ impl InputGenerator for EtcdPutRangeInputGenerator {
     fn close(self) {}
 
     fn next(&mut self) -> Option<Self::Input> {
-        let value = vec![];
+        let value = sequential_value(self.index);
+        self.index += 1;
         let request = EtcdPutRequest {
             key: format!("bench-{}", self.iteration).into_bytes(),
             value,
@@ -87,6 +91,7 @@ impl InputGenerator for EtcdPutRangeInputGenerator {
 
 pub struct EtcdPutRandomInputGenerator {
     pub size: usize,
+    pub index: u64,
 }
 
 impl InputGenerator for EtcdPutRandomInputGenerator {
@@ -96,7 +101,8 @@ impl InputGenerator for EtcdPutRandomInputGenerator {
 
     fn next(&mut self) -> Option<Self::Input> {
         let key: usize = thread_rng().gen_range(0..self.size);
-        let value = vec![];
+        let value = sequential_value(self.index);
+        self.index += 1;
         let request = EtcdPutRequest {
             key: format!("bench-{}", key).into_bytes(),
             value,
@@ -168,6 +174,7 @@ impl InputGenerator for EtcdWatchSingleInputGenerator {
 
 pub struct DismergePutSingleInputGenerator {
     pub key: String,
+    pub index: u64,
 }
 
 impl InputGenerator for DismergePutSingleInputGenerator {
@@ -176,7 +183,8 @@ impl InputGenerator for DismergePutSingleInputGenerator {
     fn close(self) {}
 
     fn next(&mut self) -> Option<Self::Input> {
-        let value = vec![];
+        let value = sequential_value(self.index);
+        self.index += 1;
         let request = DismergePutRequest {
             key: self.key.as_bytes().to_vec(),
             value,
@@ -191,6 +199,7 @@ impl InputGenerator for DismergePutSingleInputGenerator {
 
 pub struct DismergePutRangeInputGenerator {
     pub iteration: usize,
+    pub index: u64,
 }
 
 impl InputGenerator for DismergePutRangeInputGenerator {
@@ -199,7 +208,8 @@ impl InputGenerator for DismergePutRangeInputGenerator {
     fn close(self) {}
 
     fn next(&mut self) -> Option<Self::Input> {
-        let value = vec![];
+        let value = sequential_value(self.index);
+        self.index += 1;
         let request = DismergePutRequest {
             key: format!("bench-{}", self.iteration).into_bytes(),
             value,
@@ -214,6 +224,7 @@ impl InputGenerator for DismergePutRangeInputGenerator {
 
 pub struct DismergePutRandomInputGenerator {
     pub size: usize,
+    pub index: u64,
 }
 
 impl InputGenerator for DismergePutRandomInputGenerator {
@@ -223,7 +234,8 @@ impl InputGenerator for DismergePutRandomInputGenerator {
 
     fn next(&mut self) -> Option<Self::Input> {
         let key: usize = thread_rng().gen_range(0..self.size);
-        let value = vec![];
+        let value = sequential_value(self.index);
+        self.index += 1;
         let request = DismergePutRequest {
             key: format!("bench-{}", key).into_bytes(),
             value,
@@ -455,4 +467,8 @@ fn random_string(len: usize) -> String {
         .map(char::from)
         .collect();
     s
+}
+
+fn sequential_value(i: u64) -> Vec<u8> {
+    format!("value{}", i).into_bytes()
 }

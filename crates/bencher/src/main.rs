@@ -281,7 +281,10 @@ async fn main() -> anyhow::Result<()> {
                         EtcdCommand::PutSingle { key } => {
                             loadgen::generate_load(
                                 &options,
-                                EtcdPutSingleInputGenerator { key: key.clone() },
+                                EtcdPutSingleInputGenerator {
+                                    key: key.clone(),
+                                    index: 0,
+                                },
                                 kv_dispatcher_generator,
                                 writer,
                             )
@@ -290,7 +293,10 @@ async fn main() -> anyhow::Result<()> {
                         EtcdCommand::PutRange {} => {
                             loadgen::generate_load(
                                 &options,
-                                EtcdPutRangeInputGenerator { iteration: 0 },
+                                EtcdPutRangeInputGenerator {
+                                    iteration: 0,
+                                    index: 0,
+                                },
                                 kv_dispatcher_generator,
                                 writer,
                             )
@@ -299,7 +305,10 @@ async fn main() -> anyhow::Result<()> {
                         EtcdCommand::PutRandom { size } => {
                             loadgen::generate_load(
                                 &options,
-                                EtcdPutRandomInputGenerator { size: *size },
+                                EtcdPutRandomInputGenerator {
+                                    size: *size,
+                                    index: 0,
+                                },
                                 kv_dispatcher_generator,
                                 writer,
                             )
@@ -444,7 +453,10 @@ async fn main() -> anyhow::Result<()> {
                         DismergeCommand::PutSingle { key } => {
                             loadgen::generate_load(
                                 &options,
-                                DismergePutSingleInputGenerator { key: key.clone() },
+                                DismergePutSingleInputGenerator {
+                                    key: key.clone(),
+                                    index: 0,
+                                },
                                 kv_dispatcher_generator,
                                 writer,
                             )
@@ -453,7 +465,10 @@ async fn main() -> anyhow::Result<()> {
                         DismergeCommand::PutRange {} => {
                             loadgen::generate_load(
                                 &options,
-                                DismergePutRangeInputGenerator { iteration: 0 },
+                                DismergePutRangeInputGenerator {
+                                    iteration: 0,
+                                    index: 0,
+                                },
                                 kv_dispatcher_generator,
                                 writer,
                             )
@@ -462,7 +477,10 @@ async fn main() -> anyhow::Result<()> {
                         DismergeCommand::PutRandom { size } => {
                             loadgen::generate_load(
                                 &options,
-                                DismergePutRandomInputGenerator { size: *size },
+                                DismergePutRandomInputGenerator {
+                                    size: *size,
+                                    index: 0,
+                                },
                                 kv_dispatcher_generator,
                                 writer,
                             )
