@@ -7,6 +7,7 @@ use crate::cache::Cache;
 use crate::cache::KvCache;
 use crate::document::make_lease_string;
 use crate::document::make_revision_string;
+use crate::document::parse_revision_string;
 use crate::Compare;
 use crate::DeleteRangeRequest;
 use crate::DeleteRangeResponse;
@@ -20,9 +21,9 @@ use crate::RangeResponse;
 use crate::TxnRequest;
 use crate::TxnResponse;
 use crate::VecWatcher;
+use automerge::iter::MapRange;
 use automerge::transaction::Transactable;
 use automerge::AutoCommit;
-use automerge::MapRange;
 use automerge::ObjId;
 use automerge::ObjType;
 use automerge::ReadDoc;
@@ -71,9 +72,8 @@ pub fn get_create_mod_version_slow_inner(
 ) -> Option<(u64, u64, u64)> {
     match revs
         .into_iter()
-        .rev()
         // handle cases when we're looking for a value in the past
-        .skip_while(|(rev, _value, _id)| rev > &revision_string)
+        .skip_while(|(rev, _value, _id)| rev < &revision_string)
         // null is a deleted value
         .take_while(|(_rev, value, _id)| !value.is_null())
         .fold(
@@ -87,10 +87,10 @@ pub fn get_create_mod_version_slow_inner(
             },
         ) {
         (Some(create_revision), Some(mod_revision), version) => {
-            assert!(create_revision <= mod_revision);
+            assert!(create_revision >= mod_revision);
             Some((
-                create_revision.parse().unwrap(),
-                mod_revision.parse().unwrap(),
+                parse_revision_string(create_revision),
+                parse_revision_string(mod_revision),
                 version,
             ))
         }
@@ -130,9 +130,9 @@ pub fn range(
                     let mut revs = txn.keys(&revs_obj);
                     let rev = if let Some(revision) = revision {
                         let revision_string = make_revision_string(revision);
-                        revs.rev().find(|x| x <= &revision_string)
+                        revs.find(|x| x >= &revision_string)
                     } else {
-                        revs.next_back()
+                        revs.next()
                     };
                     if let Some(rev) = rev {
                         if let Some((value, _)) = txn.get(&revs_obj, &rev).unwrap() {
@@ -145,13 +145,13 @@ pub fn range(
                                         get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap(),
                                         (
                                             kv_cache.create_revision,
-                                            rev.parse().unwrap(),
+                                            parse_revision_string(&rev),
                                             kv_cache.version
                                         )
                                     );
                                     (
                                         kv_cache.create_revision,
-                                        rev.parse().unwrap(),
+                                        parse_revision_string(&rev),
                                         kv_cache.version,
                                     )
                                 } else {
@@ -174,7 +174,8 @@ pub fn range(
                                 }
                                 count += 1;
                             } else {
-                                delete_revisions.insert(key.to_owned(), rev.parse().unwrap());
+                                delete_revisions
+                                    .insert(key.to_owned(), parse_revision_string(&rev));
                             }
                         }
                     }
@@ -185,9 +186,9 @@ pub fn range(
                 let mut revs = txn.keys(&revs_obj);
                 let rev = if let Some(revision) = revision {
                     let revision_string = make_revision_string(revision);
-                    revs.rev().find(|x| x <= &revision_string)
+                    revs.find(|x| x >= &revision_string)
                 } else {
-                    revs.next_back()
+                    revs.next()
                 };
                 if let Some(rev) = rev {
                     if let Some((value, _)) = txn.get(&revs_obj, &rev).unwrap() {
@@ -199,13 +200,13 @@ pub fn range(
                                     get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap(),
                                     (
                                         kv_cache.create_revision,
-                                        rev.parse().unwrap(),
+                                        parse_revision_string(&rev),
                                         kv_cache.version
                                     )
                                 );
                                 (
                                     kv_cache.create_revision,
-                                    rev.parse().unwrap(),
+                                    parse_revision_string(&rev),
                                     kv_cache.version,
                                 )
                             } else {
@@ -230,7 +231,7 @@ pub fn range(
                             count += 1;
                         } else {
                             // deleted value
-                            delete_revisions.insert(start.clone(), rev.parse().unwrap());
+                            delete_revisions.insert(start.clone(), parse_revision_string(&rev));
                         }
                     }
                 }
@@ -295,7 +296,7 @@ pub fn put(
         txn.put_object(&key_obj, "revs", ObjType::Map).unwrap()
     };
 
-    let prev_key_value = match txn.map_range(&revs_obj, ..).next_back() {
+    let prev_key_value = match txn.map_range(&revs_obj, ..).next() {
         Some((revision, value, _id)) => {
             if value.is_null() {
                 None
@@ -304,7 +305,7 @@ pub fn put(
                     if let Some(kv_cache) = cache.get(&key) {
                         (
                             kv_cache.create_revision,
-                            revision.parse().unwrap(),
+                            parse_revision_string(&revision),
                             kv_cache.version,
                         )
                     } else {
@@ -409,7 +410,7 @@ pub fn delete_range(
             };
 
             let prev_key_value = if prev_kv {
-                match txn.map_range(&revs_obj, ..).next_back() {
+                match txn.map_range(&revs_obj, ..).next() {
                     Some((revision, value, _id)) => {
                         if value.is_null() {
                             None
@@ -474,7 +475,7 @@ pub fn delete_range(
                 txn.put_object(&key_obj, "revs", ObjType::Map).unwrap()
             };
 
-            let prev_key_value = match txn.map_range(&revs_obj, ..).next_back() {
+            let prev_key_value = match txn.map_range(&revs_obj, ..).next() {
                 Some((revision, value, _id)) => {
                     if value.is_null() {
                         None

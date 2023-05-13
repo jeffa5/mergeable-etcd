@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use automerge::op_observer::HasPatches;
 use automerge::{
     sync, transaction::Transactable, ActorId, AutomergeError, ChangeHash, ObjId, ObjType, Prop,
     ScalarValue, VecOpObserver, ROOT,
@@ -410,16 +411,16 @@ where
         self.refresh_revision_cache();
 
         for patch in observer.take_patches() {
-            match patch {
-                automerge::Patch::Put {
-                    obj,
-                    prop: rev,
+            let obj = patch.obj;
+            match patch.action {
+                automerge::op_observer::PatchAction::PutMap {
+                    key: rev,
                     value: _,
                     conflict,
-                    path: _,
+                    expose: _,
                 } => {
                     if conflict {
-                        self.deep_merge(&obj, rev.clone());
+                        self.deep_merge(&obj, Prop::Map(rev.clone()));
                     }
 
                     // see if this is a change in the revs of a key
@@ -543,38 +544,30 @@ where
                         self.syncer.member_change(&member).await;
                     }
                 }
-                automerge::Patch::Increment {
-                    obj: _,
-                    value: _,
-                    path: _,
-                    prop: _,
-                } => {}
-                automerge::Patch::Insert {
-                    obj: _,
+                automerge::op_observer::PatchAction::PutSeq {
                     index: _,
                     value: _,
-                    path: _,
-                } => {}
-                automerge::Patch::Delete {
-                    obj: _,
-                    path: _,
-                    prop: _,
-                    num: _,
-                    opids: _,
-                } => {}
-                automerge::Patch::Expose {
-                    path: _,
-                    obj: _,
-                    prop: _,
-                    value: _,
+                    expose: _,
                     conflict: _,
                 } => {}
-                automerge::Patch::Splice {
-                    path: _,
-                    obj: _,
+                automerge::op_observer::PatchAction::Increment { value: _, prop: _ } => {}
+                automerge::op_observer::PatchAction::Insert {
                     index: _,
-                    value: _,
+                    values: _,
+                    conflict: _,
                 } => {}
+                automerge::op_observer::PatchAction::DeleteMap { key: _ } => {}
+                automerge::op_observer::PatchAction::DeleteSeq {
+                    index: _,
+                    length: _,
+                } => {}
+                automerge::op_observer::PatchAction::SpliceText { index: _, value: _ } => {}
+                automerge::op_observer::PatchAction::Mark { marks: _ } => {}
+                // automerge::op_observer::PatchAction::Unmark {
+                //     name: _,
+                //     start: _,
+                //     end: _,
+                // } => {}
             }
         }
 
@@ -602,7 +595,7 @@ where
         let document = self.am.document();
         if let Some((_, key_obj)) = document.get(&self.kvs_objid, &key).unwrap() {
             if let Some((_, revs_obj)) = document.get(&key_obj, "revs").unwrap() {
-                let revision = document.keys(&revs_obj).next_back().unwrap();
+                let revision = document.keys(&revs_obj).next().unwrap();
                 if let Some((create_revision, _mod_revision, version)) =
                     get_create_mod_version_slow_inner(document.map_range(&revs_obj, ..), &revision)
                 {
@@ -1042,5 +1035,12 @@ pub fn make_lease_string(lease_id: i64) -> String {
 
 /// Make a revision into a string by padding it with zeros
 pub fn make_revision_string(revision: u64) -> String {
-    format!("{:0>8}", revision)
+    let anti_rev = u64::MAX - revision;
+    format!("{:0>20}", anti_rev)
+}
+
+/// Convert an encoded revision string back to the revision.
+pub fn parse_revision_string(s: &str) -> u64 {
+    let anti_rev: u64 = s.parse().unwrap();
+    u64::MAX - anti_rev
 }
