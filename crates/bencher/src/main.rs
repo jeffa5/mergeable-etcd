@@ -513,13 +513,12 @@ async fn main() -> anyhow::Result<()> {
             let total_throughput = 1000. * options.total as f64 / runtime.as_millis() as f64;
             let actual_throughput =
                 1000. * (options.total as f64 - error_count as f64) / runtime.as_millis() as f64;
-            println!(" Total throughput (r/s): {:?}", total_throughput);
-            println!("Actual Throughput (r/s): {:?}", actual_throughput);
-            let ideal_throughput = 1_000_000_000. / options.interval as f64;
-            println!(" Ideal Throughput (r/s): {:?}", ideal_throughput);
+            println!("  Total throughput (r/s): {:?}", total_throughput);
+            println!("Success Throughput (r/s): {:?}", actual_throughput);
+            println!("  Ideal Throughput (r/s): {:?}", options.rate);
             println!(
                 "  % of Ideal Throughput: {:?}",
-                (actual_throughput / ideal_throughput) * 100.
+                (actual_throughput / options.rate as f64) * 100.
             );
         }
         Type::Trace { in_file, out_file } => {

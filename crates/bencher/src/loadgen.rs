@@ -41,7 +41,10 @@ where
     let (sender, receiver) = async_channel::bounded(1);
     let writer = writer.map(|w| Arc::new(Mutex::new(w)));
 
-    let mut ticker = interval(Duration::from_nanos(options.interval));
+    let nanos_in_second = 1_000_000_000;
+    let interval_nanos = nanos_in_second / options.rate;
+
+    let mut ticker = interval(Duration::from_nanos(interval_nanos));
 
     let active_clients = TaskGroup::new();
 

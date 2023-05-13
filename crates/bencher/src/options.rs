@@ -18,9 +18,10 @@ pub struct Options {
     #[clap(long, global = true, value_parser = Address::try_from_str, default_value = "http://localhost:2381", value_delimiter = ',')]
     pub metrics_endpoints: Vec<Address>,
 
-    /// Interval between requests (in nanoseconds)
-    #[clap(long, global = true, default_value = "1000000")]
-    pub interval: u64,
+    /// Rate of requests per second.
+    #[clap(long, global = true, default_value = "1000")]
+    pub rate: u64,
+
     /// Start at rfc3339 encoded datetime, useful for synchronising multiple benchers
     #[clap(long, global = true)]
     pub start_at: Option<DateTime<Utc>>,
