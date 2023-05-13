@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 mergeable-proto = { path = "../../proto/mergeable-proto" }
-tokio = { version = "1.1.0", features = ["macros", "rt", "rt-multi-thread", "fs", "signal", "sync"] }
-clap = { version = "4.1.8", features = ["derive"] }
+tokio = { version = "1.28.1", features = ["macros", "rt", "rt-multi-thread", "fs", "signal", "sync"] }
+clap = { version = "4.2.7", features = ["derive"] }
 hex = "0.4.3"
-automerge = "0.3.0"
+automerge = "0.4.1"

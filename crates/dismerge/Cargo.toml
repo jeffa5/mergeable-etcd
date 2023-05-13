@@ -4,35 +4,35 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-automerge = "0.3.0"
-automerge-persistent = "0.3.0"
-automerge-persistent-sled = "0.3.0"
-automerge-persistent-fs = "0.3.0"
-axum = "0.6.10"
-chrono = "0.4.19"
-clap = { version = "4.1.8", features = ["derive"] }
+automerge = "0.4.1"
+automerge-persistent = "0.4.0"
+automerge-persistent-sled = "0.4.0"
+automerge-persistent-fs = "0.4.0"
+axum = "0.6.18"
+chrono = "0.4.24"
+clap = { version = "4.2.7", features = ["derive"] }
 mergeable-proto = { path = "../../proto/mergeable-proto" }
-futures = "0.3.21"
+futures = "0.3.28"
 dismerge-core = { path = "../dismerge-core" }
 peer-proto = { path = "../../proto/peer-proto" }
-prometheus-client = "0.19.0"
+prometheus-client = "0.20.0"
 rand = "0.8.5"
 sled = "0.34.7"
-tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread", "fs"] }
-tokio-stream = { version = "0.1.8", features = ["net"] }
+tokio = { version = "1.28.1", features = ["macros", "rt-multi-thread", "fs"] }
+tokio-stream = { version = "0.1.14", features = ["net"] }
 tonic = { version = "0.9.2", features = ["tls"] }
-tower = { version = "0.4.12", features = ["load-shed"] }
-tracing = "0.1.34"
-tracing-subscriber = { version = "0.3.11", features = ["env-filter"] }
-url = "2.2.2"
-serde = { version = "1.0.155", features = ["derive"] }
-serde_json = "1.0.94"
-autosurgeon = "0.3.2"
+tower = { version = "0.4.13", features = ["load-shed"] }
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+url = "2.3.1"
+serde = { version = "1.0.163", features = ["derive"] }
+serde_json = "1.0.96"
+autosurgeon = "0.6.0"
 thiserror = "1.0.40"
 
 [dev-dependencies]
-pretty_assertions = "1.2.1"
-reqwest = "0.11.10"
+pretty_assertions = "1.3.0"
+reqwest = "0.11.17"
 tempdir = "0.3.7"
-test-log = { version = "0.2.8", default-features = false, features = ["trace"] }
-hyper = "0.14.18"
+test-log = { version = "0.2.11", default-features = false, features = ["trace"] }
+hyper = "0.14.26"

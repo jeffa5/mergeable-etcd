@@ -498,36 +498,37 @@ where
                     path,
                     prop,
                     num: _,
-                    opids,
+                    // opids,
                 } => {
-                    if path.len() == 1 && obj == self.kvs_objid {
-                        let opid = opids.into_iter().next().unwrap();
-                        let hash = self.am.document().hash_for_opid(&opid).unwrap();
-
-                        let key = prop.to_string();
-                        let change = self.am.document().get_change_by_hash(&hash).unwrap();
-                        let parent_heads = change.deps();
-                        let prev_kv = if let Some((_, key_obj)) = self
-                            .am
-                            .document()
-                            .get_at(&self.kvs_objid, &key, parent_heads)
-                            .unwrap()
-                        {
-                            Some(extract_key_value_at(
-                                self.am.document(),
-                                key,
-                                &key_obj,
-                                parent_heads,
-                            ))
-                        } else {
-                            None
-                        };
-                        let event = crate::WatchEvent {
-                            typ: crate::watcher::WatchEventType::Delete(prop.to_string(), hash),
-                            prev_kv,
-                        };
-                        self.watcher.publish_event(header.clone(), event).await;
-                    }
+                    warn!(?obj, ?path, ?prop, "got delete patch from synchronisation");
+                    // if path.len() == 1 && obj == self.kvs_objid {
+                    //     let opid = opids.into_iter().next().unwrap();
+                    //     let hash = self.am.document().hash_for_opid(&opid).unwrap();
+                    //
+                    //     let key = prop.to_string();
+                    //     let change = self.am.document().get_change_by_hash(&hash).unwrap();
+                    //     let parent_heads = change.deps();
+                    //     let prev_kv = if let Some((_, key_obj)) = self
+                    //         .am
+                    //         .document()
+                    //         .get_at(&self.kvs_objid, &key, parent_heads)
+                    //         .unwrap()
+                    //     {
+                    //         Some(extract_key_value_at(
+                    //             self.am.document(),
+                    //             key,
+                    //             &key_obj,
+                    //             parent_heads,
+                    //         ))
+                    //     } else {
+                    //         None
+                    //     };
+                    //     let event = crate::WatchEvent {
+                    //         typ: crate::watcher::WatchEventType::Delete(prop.to_string(), hash),
+                    //         prev_kv,
+                    //     };
+                    //     self.watcher.publish_event(header.clone(), event).await;
+                    // }
                 }
                 automerge::Patch::Expose {
                     path: _,

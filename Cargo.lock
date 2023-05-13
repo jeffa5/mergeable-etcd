@@ -130,8 +130,8 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "automerge"
-version = "0.3.0"
-source = "git+https://github.com/jeffa5/automerge?branch=cmp-heads#b1be17c49b8975cc616a0ea2f6c689a8e8cbb00c"
+version = "0.4.1"
+source = "git+https://github.com/jeffa5/automerge?branch=cmp-heads#2709a252a148b9ddf6381b845ff803c2a3dc9cc2"
 dependencies = [
  "flate2",
  "fxhash",
@@ -149,9 +149,9 @@ dependencies = [
 
 [[package]]
 name = "automerge-persistent"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24495bb3eda7a5ccad1d5c682be2df3ff4d3ce7aad8f80773779acab4e4d211d"
+checksum = "e0c490146b9b751a08d76dc9a62657a1d4a402b649be567be699853f1f5bbb8e"
 dependencies = [
  "automerge",
  "thiserror",
@@ -159,9 +159,9 @@ dependencies = [
 
 [[package]]
 name = "automerge-persistent-fs"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dda4398d4f5a4070272ace6971168b05a393e94e06ad8fcb4b02d7c3428b05f"
+checksum = "806e52c709f3e81d63d32734c10b2370f915d7b56c095c9f911e543b47ae9dce"
 dependencies = [
  "automerge",
  "automerge-persistent",
@@ -171,9 +171,9 @@ dependencies = [
 
 [[package]]
 name = "automerge-persistent-sled"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "175f14c1d8cebf222143610ae1038cb5963ca8972473da6921967f2f5c5f304b"
+checksum = "085d12fca9f08c4a4e7d58a5933625b49228122405f1d7cd199be1159fed74be"
 dependencies = [
  "automerge",
  "automerge-persistent",
@@ -183,9 +183,8 @@ dependencies = [
 
 [[package]]
 name = "autosurgeon"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5724c8cb72a0b69c6aff3ca1b4ad0e4ada37e93079bd82f7cc2d719196b5d185"
+version = "0.6.0"
+source = "git+https://github.com/jeffa5/autosurgeon?branch=metcd#fbbec7fd021a7cc0e8f4a42a063a9724b763a0dc"
 dependencies = [
  "automerge",
  "autosurgeon-derive",
@@ -196,14 +195,13 @@ dependencies = [
 
 [[package]]
 name = "autosurgeon-derive"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "471c61ea71b0693cae0cd4cad4a4a94e37ef3ce2a5ba7beba471745302261cff"
+version = "0.6.0"
+source = "git+https://github.com/jeffa5/autosurgeon?branch=metcd#fbbec7fd021a7cc0e8f4a42a063a9724b763a0dc"
 dependencies = [
  "proc-macro2",
  "quote",
  "smol_str",
- "syn 1.0.109",
+ "syn 2.0.15",
  "thiserror",
 ]
 
@@ -1558,9 +1556,9 @@ dependencies = [
 
 [[package]]
 name = "prometheus-client"
-version = "0.19.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d6fa99d535dd930d1249e6c79cb3c2915f9172a540fe2b02a4c8f9ca954721e"
+checksum = "e227aeb6c2cfec819e999c4773b35f8c7fa37298a203ff46420095458eee567e"
 dependencies = [
  "dtoa",
  "itoa",
