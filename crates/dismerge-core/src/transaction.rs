@@ -161,8 +161,8 @@ impl<'r, Read: automerge::ReadDoc> automerge::ReadDoc for ReadableDocAt<'r, Read
         self.0.list_range(obj, range)
     }
 
-    fn list_range_at< O: AsRef<ObjId>, R: std::ops::RangeBounds<usize>>(
-        & self,
+    fn list_range_at<O: AsRef<ObjId>, R: std::ops::RangeBounds<usize>>(
+        &self,
         obj: O,
         range: R,
         heads: &[ChangeHash],

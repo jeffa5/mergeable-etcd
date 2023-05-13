@@ -1,7 +1,7 @@
 mod builder;
 mod document;
-mod readdoc;
 mod error;
+mod readdoc;
 mod req_resp;
 mod syncer;
 mod transaction;

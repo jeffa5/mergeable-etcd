@@ -1,4 +1,4 @@
-use automerge::{ObjId, ChangeHash};
+use automerge::{ChangeHash, ObjId};
 
 pub trait ReadDoc: automerge::ReadDoc + autosurgeon::ReadDoc {
     fn hash_for_opid(&self, opid: &ObjId) -> Option<ChangeHash>;

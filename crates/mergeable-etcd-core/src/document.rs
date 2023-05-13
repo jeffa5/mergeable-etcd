@@ -562,12 +562,11 @@ where
                     length: _,
                 } => {}
                 automerge::op_observer::PatchAction::SpliceText { index: _, value: _ } => {}
-                automerge::op_observer::PatchAction::Mark { marks: _ } => {}
-                // automerge::op_observer::PatchAction::Unmark {
-                //     name: _,
-                //     start: _,
-                //     end: _,
-                // } => {}
+                automerge::op_observer::PatchAction::Mark { marks: _ } => {} // automerge::op_observer::PatchAction::Unmark {
+                                                                             //     name: _,
+                                                                             //     start: _,
+                                                                             //     end: _,
+                                                                             // } => {}
             }
         }
 
