@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
+use automerge::op_observer::HasPatches;
 use automerge::ReadDoc;
 use automerge::{
     sync, transaction::Transactable, ActorId, AutomergeError, ChangeHash, ObjId, ObjType, Prop,
@@ -391,20 +392,21 @@ where
         self.flush();
 
         for patch in observer.take_patches() {
-            match patch {
-                automerge::Patch::Put {
-                    obj,
-                    prop,
+            let obj = patch.obj;
+            let path = patch.path;
+            match patch.action {
+                automerge::op_observer::PatchAction::PutMap {
+                    key,
                     value: (_, opid),
                     conflict,
-                    path,
+                    expose: _,
                 } => {
                     if path.len() >= 2 && path[1].0 == self.kvs_objid {
                         if conflict {
-                            debug!(?prop, "ignoring patch for conflict in kvs");
+                            debug!(?key, "ignoring patch for conflict in kvs");
                             continue;
                         }
-                        debug!(?prop, "kvs changed");
+                        debug!(?key, "kvs changed");
                         let key = path[1].1.to_string();
                         let patch_key_obj = if path.len() == 2 {
                             obj.clone()
@@ -455,9 +457,9 @@ where
                         self.watcher.publish_event(header.clone(), event).await;
                     } else if obj == self.members_objid {
                         let member = self.get_member(
-                            prop.to_string()
+                            key.to_string()
                                 .parse()
-                                .map_err(|_| crate::Error::NotParseableAsId(prop.to_string()))?,
+                                .map_err(|_| crate::Error::NotParseableAsId(key.to_string()))?,
                         );
                         self.syncer.member_change(&member).await;
                     } else if let Some(member_id) = self
@@ -481,26 +483,23 @@ where
                         self.syncer.member_change(&member).await;
                     }
                 }
-                automerge::Patch::Increment {
-                    obj: _,
-                    value: _,
-                    path: _,
-                    prop: _,
-                } => {}
-                automerge::Patch::Insert {
-                    obj: _,
+                automerge::op_observer::PatchAction::PutSeq {
                     index: _,
                     value: _,
-                    path: _,
+                    expose: _,
+                    conflict: _,
                 } => {}
-                automerge::Patch::Delete {
-                    obj,
-                    path,
-                    prop,
-                    num: _,
+                automerge::op_observer::PatchAction::Increment { value: _, prop: _ } => {}
+                automerge::op_observer::PatchAction::Insert {
+                    index: _,
+                    values: _,
+                    conflict: _,
+                } => {}
+                automerge::op_observer::PatchAction::DeleteMap {
+                    key,
                     // opids,
                 } => {
-                    warn!(?obj, ?path, ?prop, "got delete patch from synchronisation");
+                    warn!(?obj, ?path, ?key, "got delete patch from synchronisation");
                     // if path.len() == 1 && obj == self.kvs_objid {
                     //     let opid = opids.into_iter().next().unwrap();
                     //     let hash = self.am.document().hash_for_opid(&opid).unwrap();
@@ -530,19 +529,12 @@ where
                     //     self.watcher.publish_event(header.clone(), event).await;
                     // }
                 }
-                automerge::Patch::Expose {
-                    path: _,
-                    obj: _,
-                    prop: _,
-                    value: _,
-                    conflict: _,
-                } => {}
-                automerge::Patch::Splice {
-                    path: _,
-                    obj: _,
+                automerge::op_observer::PatchAction::DeleteSeq {
                     index: _,
-                    value: _,
+                    length: _,
                 } => {}
+                automerge::op_observer::PatchAction::SpliceText { index: _, value: _ } => {}
+                automerge::op_observer::PatchAction::Mark { marks: _ } => {}
             }
         }
 

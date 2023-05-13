@@ -1,5 +1,6 @@
 mod builder;
 mod document;
+mod readdoc;
 mod error;
 mod req_resp;
 mod syncer;

@@ -6,6 +6,7 @@ use tracing::debug;
 use tracing::warn;
 
 use crate::document::make_lease_string;
+use crate::readdoc::ReadDoc;
 use crate::value::Value;
 use crate::Compare;
 use crate::DeleteRangeRequest;
@@ -23,12 +24,11 @@ use crate::VecWatcher;
 use automerge::transaction::Transactable;
 use automerge::ObjId;
 use automerge::ObjType;
-use automerge::ReadDoc;
 use automerge::ROOT;
 
 type Transaction<'a> = automerge::transaction::Transaction<'a, UnObserved>;
 
-pub fn extract_key_value<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
+pub fn extract_key_value<R: ReadDoc, V: Value>(
     txn: &R,
     key: String,
     key_obj: &ObjId,
@@ -51,10 +51,24 @@ pub fn extract_key_value<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
     }
 }
 
+impl<'a> ReadDoc for Transaction<'a> {
+    fn hash_for_opid(&self, opid: &ObjId) -> Option<ChangeHash> {
+        self.hash_for_opid(opid)
+    }
+
+    fn partial_cmp_heads(
+        &self,
+        heads1: &[ChangeHash],
+        heads2: &[ChangeHash],
+    ) -> Option<std::cmp::Ordering> {
+        self.partial_cmp_heads(heads1, heads2)
+    }
+}
+
 // FIXME: With a nicer historical document abstraction in automerge we can do something better than
 // this mess: https://github.com/automerge/autosurgeon/issues/16
-struct ReadableDocAt<'a, R: ReadDoc>(&'a R, &'a [ChangeHash]);
-impl<'r, Read: ReadDoc> autosurgeon::ReadDoc for ReadableDocAt<'r, Read> {
+struct ReadableDocAt<'a, R: automerge::ReadDoc>(&'a R, &'a [ChangeHash]);
+impl<'r, Read: automerge::ReadDoc> autosurgeon::ReadDoc for ReadableDocAt<'r, Read> {
     type Parents<'a> = automerge::Parents<'a> where Read: 'a, Self: 'a;
 
     fn get_heads(&self) -> Vec<automerge::ChangeHash> {
@@ -73,11 +87,11 @@ impl<'r, Read: ReadDoc> autosurgeon::ReadDoc for ReadableDocAt<'r, Read> {
         automerge::ReadDoc::object_type(self, obj).ok()
     }
 
-    fn map_range<O: AsRef<ObjId>, R: std::ops::RangeBounds<String>>(
-        &self,
+    fn map_range<'a, O: AsRef<ObjId>, R: std::ops::RangeBounds<String> + 'a>(
+        &'a self,
         _obj: O,
         _range: R,
-    ) -> automerge::MapRange<'_, R> {
+    ) -> automerge::iter::MapRange<'_, R> {
         // self.0.map_range_at(obj, range, &self.1)
         todo!()
     }
@@ -86,7 +100,7 @@ impl<'r, Read: ReadDoc> autosurgeon::ReadDoc for ReadableDocAt<'r, Read> {
         &self,
         _obj: O,
         _range: R,
-    ) -> automerge::ListRange<'_, R> {
+    ) -> automerge::iter::ListRange<'_, R> {
         // self.0.list_range_at(obj, range, &self.1)
         todo!()
     }
@@ -106,7 +120,7 @@ impl<'r, Read: ReadDoc> autosurgeon::ReadDoc for ReadableDocAt<'r, Read> {
         self.0.parents(obj)
     }
 }
-impl<'r, Read: ReadDoc> ReadDoc for ReadableDocAt<'r, Read> {
+impl<'r, Read: automerge::ReadDoc> automerge::ReadDoc for ReadableDocAt<'r, Read> {
     fn parents<O: AsRef<ObjId>>(
         &self,
         obj: O,
@@ -114,35 +128,28 @@ impl<'r, Read: ReadDoc> ReadDoc for ReadableDocAt<'r, Read> {
         self.0.parents(obj)
     }
 
-    fn path_to_object<O: AsRef<ObjId>>(
-        &self,
-        obj: O,
-    ) -> Result<Vec<(ObjId, automerge::Prop)>, automerge::AutomergeError> {
-        self.0.path_to_object(obj)
-    }
-
-    fn keys<O: AsRef<ObjId>>(&self, obj: O) -> automerge::Keys<'_, '_> {
+    fn keys<O: AsRef<ObjId>>(&self, obj: O) -> automerge::iter::Keys<'_> {
         self.0.keys(obj)
     }
 
-    fn keys_at<O: AsRef<ObjId>>(&self, obj: O, heads: &[ChangeHash]) -> automerge::KeysAt<'_, '_> {
+    fn keys_at<O: AsRef<ObjId>>(&self, obj: O, heads: &[ChangeHash]) -> automerge::iter::Keys<'_> {
         self.0.keys_at(obj, heads)
     }
 
-    fn map_range<O: AsRef<ObjId>, R: std::ops::RangeBounds<String>>(
-        &self,
+    fn map_range<'a, O: AsRef<ObjId>, R: std::ops::RangeBounds<String> + 'a>(
+        &'a self,
         obj: O,
         range: R,
-    ) -> automerge::MapRange<'_, R> {
+    ) -> automerge::iter::MapRange<'a, R> {
         self.0.map_range(obj, range)
     }
 
-    fn map_range_at<O: AsRef<ObjId>, R: std::ops::RangeBounds<String>>(
-        &self,
+    fn map_range_at<'a, O: AsRef<ObjId>, R: std::ops::RangeBounds<String> + 'a>(
+        &'a self,
         obj: O,
         range: R,
         heads: &[ChangeHash],
-    ) -> automerge::MapRangeAt<'_, R> {
+    ) -> automerge::iter::MapRange<'a, R> {
         self.0.map_range_at(obj, range, heads)
     }
 
@@ -150,24 +157,28 @@ impl<'r, Read: ReadDoc> ReadDoc for ReadableDocAt<'r, Read> {
         &self,
         obj: O,
         range: R,
-    ) -> automerge::ListRange<'_, R> {
+    ) -> automerge::iter::ListRange<'_, R> {
         self.0.list_range(obj, range)
     }
 
-    fn list_range_at<O: AsRef<ObjId>, R: std::ops::RangeBounds<usize>>(
-        &self,
+    fn list_range_at< O: AsRef<ObjId>, R: std::ops::RangeBounds<usize>>(
+        & self,
         obj: O,
         range: R,
         heads: &[ChangeHash],
-    ) -> automerge::ListRangeAt<'_, R> {
+    ) -> automerge::iter::ListRange<'_, R> {
         self.0.list_range_at(obj, range, heads)
     }
 
-    fn values<O: AsRef<ObjId>>(&self, obj: O) -> automerge::Values<'_> {
+    fn values<O: AsRef<ObjId>>(&self, obj: O) -> automerge::iter::Values<'_> {
         self.0.values(obj)
     }
 
-    fn values_at<O: AsRef<ObjId>>(&self, obj: O, heads: &[ChangeHash]) -> automerge::Values<'_> {
+    fn values_at<O: AsRef<ObjId>>(
+        &self,
+        obj: O,
+        heads: &[ChangeHash],
+    ) -> automerge::iter::Values<'_> {
         self.0.values_at(obj, heads)
     }
 
@@ -237,20 +248,49 @@ impl<'r, Read: ReadDoc> ReadDoc for ReadableDocAt<'r, Read> {
         self.0.get_change_by_hash(hash)
     }
 
-    fn hash_for_opid(&self, opid: &ObjId) -> Option<ChangeHash> {
-        self.0.hash_for_opid(opid)
+    fn parents_at<O: AsRef<ObjId>>(
+        &self,
+        _obj: O,
+        _heads: &[ChangeHash],
+    ) -> Result<automerge::Parents<'_>, automerge::AutomergeError> {
+        todo!()
     }
 
-    fn partial_cmp_heads(
+    fn marks<O: AsRef<ObjId>>(
         &self,
-        heads1: &[ChangeHash],
-        heads2: &[ChangeHash],
-    ) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp_heads(heads1, heads2)
+        _obj: O,
+    ) -> Result<Vec<automerge::marks::Mark<'_>>, automerge::AutomergeError> {
+        todo!()
+    }
+
+    fn marks_at<O: AsRef<ObjId>>(
+        &self,
+        _obj: O,
+        _heads: &[ChangeHash],
+    ) -> Result<Vec<automerge::marks::Mark<'_>>, automerge::AutomergeError> {
+        todo!()
+    }
+
+    fn get_cursor<O: AsRef<ObjId>>(
+        &self,
+        _obj: O,
+        _position: usize,
+        _at: Option<&[ChangeHash]>,
+    ) -> Result<automerge::Cursor, automerge::AutomergeError> {
+        todo!()
+    }
+
+    fn get_cursor_position<O: AsRef<ObjId>>(
+        &self,
+        _obj: O,
+        _cursor: &automerge::Cursor,
+        _at: Option<&[ChangeHash]>,
+    ) -> Result<usize, automerge::AutomergeError> {
+        todo!()
     }
 }
 
-pub fn extract_key_value_at<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
+pub fn extract_key_value_at<R: ReadDoc, V: Value>(
     txn: &R,
     key: String,
     key_obj: &ObjId,
@@ -277,10 +317,7 @@ pub fn extract_key_value_at<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
 
 /// Get the values in the half-open interval `[start, end)`.
 /// Returns the usual response as well as the revision of a delete if one occurred.
-pub fn range<R: ReadDoc + autosurgeon::ReadDoc, V: Value>(
-    txn: &R,
-    request: RangeRequest,
-) -> RangeResponse<V> {
+pub fn range<R: ReadDoc, V: Value>(txn: &R, request: RangeRequest) -> RangeResponse<V> {
     let RangeRequest {
         start,
         end,
@@ -354,6 +391,7 @@ pub fn put<V: Value>(
         lease_id,
         prev_kv: return_prev_kv,
     } = request;
+    use automerge::ReadDoc;
     let kvs = txn.get(ROOT, "kvs").unwrap();
     let kvs = if let Some(kvs) = kvs {
         kvs.1
@@ -418,6 +456,7 @@ pub fn delete_range<V: Value>(
         ?return_prev_kv,
         "Processing delete_range request"
     );
+    use automerge::ReadDoc;
     let kvs = txn.get(ROOT, "kvs").unwrap();
     let kvs = if let Some(kvs) = kvs {
         kvs.1
