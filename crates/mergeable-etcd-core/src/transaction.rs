@@ -46,8 +46,8 @@ pub fn increment_revision(txn: &mut AutoCommit, cache: &mut Cache) -> u64 {
         txn.put_object(ROOT, "server", ObjType::Map).unwrap()
     };
 
-    txn.increment(&server, "revision", 1).unwrap();
     let revision = cache.revision();
+    txn.put(&server, "revision", revision + 1).unwrap();
     cache.set_revision(revision + 1);
     cache.revision()
 }

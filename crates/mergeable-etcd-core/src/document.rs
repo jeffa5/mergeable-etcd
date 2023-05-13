@@ -623,9 +623,14 @@ where
             .map_or(1, |(_, server)| {
                 self.am
                     .document()
-                    .get(&server, "revision")
+                    // ensure that we always take the maximum revision in the case that concurrent
+                    // merges won with a lower revision
+                    .get_all(&server, "revision")
                     .unwrap()
-                    .map_or(1, |(revision, _)| revision.to_u64().unwrap())
+                    .into_iter()
+                    .map(|(r, _)| r.to_u64().unwrap())
+                    .max()
+                    .unwrap_or(1)
             });
         self.cache.set_revision(revision);
         debug!("Finished refreshing revision cache");
