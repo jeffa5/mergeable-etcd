@@ -89,6 +89,10 @@ pub struct Options {
 
     #[clap(long, default_value = "sled")]
     pub persister: PersisterType,
+
+    /// Number of client requests to handle in-flight at a time.
+    #[clap(long, default_value = "1000")]
+    pub concurrency_limit: usize,
 }
 
 impl Default for Options {
@@ -116,6 +120,7 @@ impl Default for Options {
             log_filter: None,
             no_colour: false,
             persister: Default::default(),
+            concurrency_limit: 1000,
         }
     }
 }

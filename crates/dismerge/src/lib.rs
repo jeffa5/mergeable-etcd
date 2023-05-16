@@ -87,6 +87,7 @@ where
         log_filter: _,
         no_colour: _,
         persister,
+        concurrency_limit,
     } = options;
 
     let (watch_sender, watch_receiver) = mpsc::channel(10);
@@ -263,6 +264,7 @@ where
                 server.clone(),
                 watcher.clone(),
                 document.clone(),
+                concurrency_limit,
             )
             .await,
         );
@@ -282,6 +284,7 @@ async fn start_client_server<P: DocPersister, V: Value>(
     server: KvServer<P, V>,
     watch_server: watch::WatchService<P, V>,
     document: Doc<P, V>,
+    concurrency_limit: usize,
 ) -> tokio::task::JoinHandle<()>
 where
     <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
@@ -320,7 +323,10 @@ where
         let builder = tonic::transport::Server::builder();
 
         // drop requests when we're too busy to try and retain performance
-        let layer = ServiceBuilder::new().load_shed().into_inner();
+        let layer = ServiceBuilder::new()
+            .load_shed()
+            .concurrency_limit(concurrency_limit)
+            .into_inner();
 
         let mut router = builder.layer(layer).timeout(Duration::from_secs(1));
         if let Some(tls) = tls {
