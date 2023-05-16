@@ -131,7 +131,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 [[package]]
 name = "automerge"
 version = "0.4.1"
-source = "git+https://github.com/jeffa5/automerge?branch=cmp-heads#6373e832e0f7ebd7a1854d8ec5947d3d72e84045"
+source = "git+https://github.com/jeffa5/automerge?branch=cmp-heads#0ec0b90647e6522fc401f17bc68fc1436c449109"
 dependencies = [
  "flate2",
  "fxhash",
