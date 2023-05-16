@@ -130,6 +130,7 @@ pub enum PersisterType {
     #[default]
     Sled,
     Fs,
+    Memory,
 }
 
 impl PersisterType {
