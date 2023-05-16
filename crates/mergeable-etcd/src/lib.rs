@@ -82,6 +82,7 @@ pub async fn run(options: options::Options) {
         no_colour: _,
         persister,
         concurrency_limit,
+        timeout,
     } = options;
 
     let (watch_sender, watch_receiver) = mpsc::channel(10);
@@ -259,6 +260,7 @@ pub async fn run(options: options::Options) {
                 watcher.clone(),
                 document.clone(),
                 concurrency_limit,
+                timeout,
             )
             .await,
         );
@@ -279,6 +281,7 @@ async fn start_client_server<P: DocPersister>(
     watch_server: watch::WatchService<P>,
     document: Doc<P>,
     concurrency_limit: usize,
+    timeout: u64,
 ) -> tokio::task::JoinHandle<()> {
     let client_url = url::Url::parse(&address).unwrap();
     let client_address = format!(
@@ -318,7 +321,7 @@ async fn start_client_server<P: DocPersister>(
             .load_shed()
             .concurrency_limit(concurrency_limit)
             .into_inner();
-        let mut router = builder.layer(layer).timeout(Duration::from_secs(1));
+        let mut router = builder.layer(layer).timeout(Duration::from_millis(timeout));
         if let Some(tls) = tls {
             router = router.tls_config(tls).unwrap();
         }
