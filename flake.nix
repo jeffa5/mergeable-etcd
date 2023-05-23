@@ -74,10 +74,11 @@
         inherit cargoArtifacts pname version;
       });
     packages = import ./nix {inherit pkgs;};
+    container-registry = "jeffas";
   in {
     packages.${system} = {
       bencher-docker = pkgs.dockerTools.buildLayeredImage {
-        name = "jeffas/bencher";
+        name = "${container-registry}/bencher";
         tag = "latest";
         contents = [
           pkgs.busybox
@@ -98,7 +99,7 @@
       };
 
       mergeable-etcd-docker = pkgs.dockerTools.buildLayeredImage {
-        name = "jeffas/mergeable-etcd";
+        name = "${container-registry}/mergeable-etcd";
         tag = "latest";
         contents = [
           pkgs.busybox
@@ -107,15 +108,23 @@
         config.Cmd = ["/bin/mergeable-etcd"];
       };
 
-      mergeable-etcd-docker-etcd = pkgs.dockerTools.buildLayeredImage {
-        name = "jeffas/etcd";
+      dismerge = pkgs.stdenv.mkDerivation {
+        name = "dismerge";
+        src = self.packages.${system}.workspace;
+        installPhase = ''
+          mkdir -p $out/bin
+          cp $src/bin/dismerge $out/bin/dismerge
+        '';
+      };
+
+      dismerge-docker = pkgs.dockerTools.buildLayeredImage {
+        name = "${container-registry}/dismerge";
         tag = "latest";
         contents = [
-          # to allow debugging and using `kubectl cp`
           pkgs.busybox
-          self.packages.${system}.mergeable-etcd
+          self.packages.${system}.dismerge
         ];
-        config.Cmd = ["/bin/etcd"];
+        config.Cmd = ["/bin/dismerge"];
       };
 
       etcd = pkgs.buildGoModule rec {
