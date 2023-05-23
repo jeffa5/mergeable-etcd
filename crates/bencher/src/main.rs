@@ -180,10 +180,11 @@ async fn main() -> anyhow::Result<()> {
         .as_ref()
         .map(|out_file| get_writer(out_file));
 
-    let start = Instant::now();
+    let start: Instant;
     info!("generating load");
     let error_count = match &options.scenario {
         bencher::ScenarioCommands::Sleep { milliseconds } => {
+            start = Instant::now();
             loadgen::generate_load(
                 &options,
                 SleepInputGenerator {
@@ -284,6 +285,7 @@ async fn main() -> anyhow::Result<()> {
 
             match &etcd_command.command {
                 EtcdCommand::PutSingle { key } => {
+                    start = Instant::now();
                     loadgen::generate_load(
                         &options,
                         EtcdPutSingleInputGenerator {
@@ -296,6 +298,7 @@ async fn main() -> anyhow::Result<()> {
                     .await
                 }
                 EtcdCommand::PutRange {} => {
+                    start = Instant::now();
                     loadgen::generate_load(
                         &options,
                         EtcdPutRangeInputGenerator {
@@ -308,6 +311,7 @@ async fn main() -> anyhow::Result<()> {
                     .await
                 }
                 EtcdCommand::PutRandom { size } => {
+                    start = Instant::now();
                     loadgen::generate_load(
                         &options,
                         EtcdPutRandomInputGenerator {
@@ -321,6 +325,7 @@ async fn main() -> anyhow::Result<()> {
                 }
                 EtcdCommand::WatchSingle { key, num_watchers } => {
                     let (sender, receiver) = watch::channel(());
+                    start = Instant::now();
                     loadgen::generate_load(
                         &options,
                         EtcdWatchSingleInputGenerator {
@@ -368,6 +373,7 @@ async fn main() -> anyhow::Result<()> {
                     .await;
                     info!(max_record = options.total, "Running the main benchmark");
                     // now run the benchmark
+                    start = Instant::now();
                     loadgen::generate_load(
                         &options,
                         EtcdYcsbInputGenerator {
@@ -481,6 +487,7 @@ async fn main() -> anyhow::Result<()> {
 
             match &dismerge_command.command {
                 DismergeCommand::PutSingle { key } => {
+                    start = Instant::now();
                     loadgen::generate_load(
                         &options,
                         DismergePutSingleInputGenerator {
@@ -493,6 +500,7 @@ async fn main() -> anyhow::Result<()> {
                     .await
                 }
                 DismergeCommand::PutRange {} => {
+                    start = Instant::now();
                     loadgen::generate_load(
                         &options,
                         DismergePutRangeInputGenerator {
@@ -505,6 +513,7 @@ async fn main() -> anyhow::Result<()> {
                     .await
                 }
                 DismergeCommand::PutRandom { size } => {
+                    start = Instant::now();
                     loadgen::generate_load(
                         &options,
                         DismergePutRandomInputGenerator {
@@ -518,6 +527,7 @@ async fn main() -> anyhow::Result<()> {
                 }
                 DismergeCommand::WatchSingle { key, num_watchers } => {
                     let (sender, receiver) = watch::channel(());
+                    start = Instant::now();
                     loadgen::generate_load(
                         &options,
                         DismergeWatchSingleInputGenerator {
@@ -532,6 +542,7 @@ async fn main() -> anyhow::Result<()> {
                     .await
                 }
                 DismergeCommand::Ycsb {} => {
+                    start = Instant::now();
                     loadgen::generate_load(
                         &options,
                         DismergeYcsbInputGenerator {},
