@@ -1,4 +1,4 @@
-use rand_distr::Zipf;
+use rand_distr::{WeightedAliasIndex, Zipf};
 use std::time::Duration;
 
 use etcd_proto::etcdserverpb::{
@@ -10,7 +10,7 @@ use mergeable_proto::etcdserverpb::{
     WatchCreateRequest as DismergeWatchCreateRequest, WatchRequest as DismergeWatchRequest,
 };
 use rand::{
-    distributions::{Alphanumeric, Standard, WeightedIndex},
+    distributions::{Alphanumeric, Standard},
     prelude::Distribution,
     rngs::StdRng,
     thread_rng, Rng, SeedableRng,
@@ -317,8 +317,6 @@ fn value() -> Vec<u8> {
 }
 
 /// Generate inputs for the YCSB workloads.
-///
-/// FIXME: currently only using uniform distributions.
 pub struct EtcdYcsbInputGenerator {
     pub read_single_weight: u32,
     pub read_all_weight: u32,
@@ -368,7 +366,6 @@ impl EtcdYcsbInputGenerator {
     }
 
     pub fn existing_record_key(&mut self) -> String {
-        // TODO: may not want this to be uniform
         let index = match self.request_distribution {
             RequestDistribution::Zipfian => {
                 let s: f64 = self
@@ -431,9 +428,7 @@ impl InputGenerator for EtcdYcsbInputGenerator {
             self.insert_weight,
             self.update_weight,
         ];
-        // TODO: should this use
-        // https://docs.rs/rand_distr/0.4.3/rand_distr/weighted_alias/index.html instead?
-        let dist = WeightedIndex::new(&weights).unwrap();
+        let dist = WeightedAliasIndex::new(weights.to_vec()).unwrap();
         let weight_index = dist.sample(&mut self.operation_rng);
         let input = match weight_index {
             // read single
