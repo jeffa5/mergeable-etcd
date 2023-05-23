@@ -1,6 +1,12 @@
 [workspace]
 members = [
   "crates/*",
+  "experiments/automerge-changes",
+  # "experiments/bencher",
+  # "experiments/clusterloader",
+  # "experiments/etcd-bencher",
+  # "experiments/go-ycsb",
+  # "experiments/kubernetes-scheduling",
 ]
 
 [profile.release]

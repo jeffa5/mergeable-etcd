@@ -1,8 +1,0 @@
-[workspace]
-members = [
-  "bencher",
-  "clusterloader",
-  "etcd-bencher",
-  "go-ycsb",
-  "kubernetes-scheduling",
-]
