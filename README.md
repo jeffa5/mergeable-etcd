@@ -46,4 +46,35 @@ Adding `trace-file: /tmp/trace.out` to the `extraArgs` toggles trace capturing.
 
 To actually gather some data spin up kind, `make kind`, and play around with it (or run a dataset simulating load over it).
 
-To get the trace file out from the etcd pod we can use `kubectl -n kube-system cp etcd-kind-control-plane:/tmp/trace.out trace.out
+To get the trace file out from the etcd pod we can use `kubectl -n kube-system cp etcd-kind-control-plane:/tmp/trace.out trace.out`
+
+## Benchmarking
+
+The benchmarker (`crates/bencher/`) supports different benchmarking strategies.
+
+### YCSB
+
+#### Workload A
+
+```
+recordcount=1000
+operationcount=1000
+workload=core
+
+readallfields=true
+
+readproportion=0.5
+updateproportion=0.5
+scanproportion=0
+insertproportion=0
+
+requestdistribution=uniform
+```
+
+translates to the arguments
+
+```
+--read-all-weight 1 --update-weight 1 --read-single-weight 0 --insert-weight 0 --request-distribution uniform --total 1000
+```
+
+#### Workload B

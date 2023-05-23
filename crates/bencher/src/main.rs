@@ -151,7 +151,6 @@ impl DispatcherGenerator for DismergeWatchDispatcherGenerator {
 async fn main() -> anyhow::Result<()> {
     let options = Options::parse();
 
-
     let log_filter = if let Some(log_filter) = &options.log_filter {
         EnvFilter::from(log_filter)
     } else {
@@ -346,7 +345,33 @@ async fn main() -> anyhow::Result<()> {
                             update_weight,
                             fields_per_record,
                             field_value_length,
+                            request_distribution,
                         } => {
+                            info!(entries = options.total, "Setting up the database");
+                            // setup the db
+                            loadgen::generate_load(
+                                &options,
+                                EtcdYcsbInputGenerator {
+                                    read_single_weight: 0,
+                                    read_all_weight: 0,
+                                    insert_weight: 1,
+                                    update_weight: 0,
+                                    fields_per_record: *fields_per_record,
+                                    field_value_length: *field_value_length,
+                                    operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+                                    max_record_index: 0,
+                                    request_distribution: *request_distribution,
+                                },
+                                YcsbDispatcherGenerator {
+                                    kv_clients: kv_clients.clone(),
+                                    kv_index: 0,
+                                },
+                                // FIXME: could probably tag outputs or write to different output
+                                None::<csv::Writer<File>>,
+                            )
+                            .await;
+                            info!(max_record = options.total, "Running the main benchmark");
+                            // now run the benchmark
                             loadgen::generate_load(
                                 &options,
                                 EtcdYcsbInputGenerator {
@@ -357,7 +382,8 @@ async fn main() -> anyhow::Result<()> {
                                     fields_per_record: *fields_per_record,
                                     field_value_length: *field_value_length,
                                     operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
-                                    max_record_index: 0,
+                                    max_record_index: options.total as u32,
+                                    request_distribution: *request_distribution,
                                 },
                                 YcsbDispatcherGenerator {
                                     kv_clients,

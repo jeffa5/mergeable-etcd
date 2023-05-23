@@ -1,8 +1,8 @@
 use std::convert::Infallible;
 use std::path::Path;
 
-use automerge_persistent::Persister;
 use automerge_persistent::MemoryPersister;
+use automerge_persistent::Persister;
 use automerge_persistent_fs::{FsPersister, FsPersisterError};
 use automerge_persistent_sled::{SledPersister, SledPersisterError};
 use tracing::info;

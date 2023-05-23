@@ -1,3 +1,4 @@
+use rand_distr::Zipf;
 use std::time::Duration;
 
 use etcd_proto::etcdserverpb::{
@@ -327,6 +328,17 @@ pub struct EtcdYcsbInputGenerator {
     pub field_value_length: usize,
     pub operation_rng: StdRng,
     pub max_record_index: u32,
+    pub request_distribution: RequestDistribution,
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+pub enum RequestDistribution {
+    /// Uniformly over the existing keys.
+    Uniform,
+    /// Weighted toward one end.
+    Zipfian,
+    /// The last one available.
+    Latest,
 }
 
 impl EtcdYcsbInputGenerator {
@@ -345,6 +357,7 @@ impl EtcdYcsbInputGenerator {
             field_value_length: 32,
             operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
             max_record_index: 0,
+            request_distribution: RequestDistribution::Uniform,
         }
     }
 
@@ -356,7 +369,16 @@ impl EtcdYcsbInputGenerator {
 
     pub fn existing_record_key(&mut self) -> String {
         // TODO: may not want this to be uniform
-        let index = self.operation_rng.gen_range(0..=self.max_record_index);
+        let index = match self.request_distribution {
+            RequestDistribution::Zipfian => {
+                let s: f64 = self
+                    .operation_rng
+                    .sample(Zipf::new(self.max_record_index as u64, 1.5).unwrap());
+                s.floor() as u32
+            }
+            RequestDistribution::Uniform => self.operation_rng.gen_range(0..=self.max_record_index),
+            RequestDistribution::Latest => self.max_record_index,
+        };
         format!("user{:08}", index)
     }
 

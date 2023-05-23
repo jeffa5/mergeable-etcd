@@ -28,3 +28,4 @@ tower = "0.4.13"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.3.1"
+rand_distr = "0.4.3"

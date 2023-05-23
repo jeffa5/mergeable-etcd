@@ -108,8 +108,7 @@ where
                     tx.put_object(ROOT, "server", ObjType::Map).unwrap()
                 };
                 if tx.get(&server, "revision").unwrap().is_none() {
-                    tx.put(&server, "revision", ScalarValue::Uint(1))
-                        .unwrap();
+                    tx.put(&server, "revision", ScalarValue::Uint(1)).unwrap();
                 }
                 self.members_objid = if let Some((_, id)) = tx.get(ROOT, "members").unwrap() {
                     id
