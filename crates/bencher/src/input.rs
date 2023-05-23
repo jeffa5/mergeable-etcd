@@ -13,7 +13,7 @@ use rand::{
     distributions::{Alphanumeric, Standard},
     prelude::Distribution,
     rngs::StdRng,
-    thread_rng, Rng, SeedableRng,
+    thread_rng, Rng,
 };
 use tokio::sync::watch;
 use tracing::info;
@@ -318,10 +318,11 @@ fn value() -> Vec<u8> {
 
 /// Generate inputs for the YCSB workloads.
 pub struct YcsbInputGenerator {
-    pub read_single_weight: u32,
-    pub read_all_weight: u32,
+    pub read_weight: u32,
+    pub scan_weight: u32,
     pub insert_weight: u32,
     pub update_weight: u32,
+    pub read_all_fields: bool,
     pub fields_per_record: u32,
     pub field_value_length: usize,
     pub operation_rng: StdRng,
@@ -340,25 +341,6 @@ pub enum RequestDistribution {
 }
 
 impl YcsbInputGenerator {
-    pub fn new(
-        read_single_weight: u32,
-        read_all_weight: u32,
-        insert_weight: u32,
-        update_weight: u32,
-    ) -> Self {
-        Self {
-            read_single_weight,
-            read_all_weight,
-            insert_weight,
-            update_weight,
-            fields_per_record: 1,
-            field_value_length: 32,
-            operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
-            max_record_index: 0,
-            request_distribution: RequestDistribution::Uniform,
-        }
-    }
-
     pub fn new_record_key(&mut self) -> String {
         // TODO: may not want incremental inserts
         self.max_record_index += 1;
@@ -423,8 +405,8 @@ impl InputGenerator for YcsbInputGenerator {
 
     fn next(&mut self) -> Option<Self::Input> {
         let weights = [
-            self.read_single_weight,
-            self.read_all_weight,
+            self.read_weight,
+            self.scan_weight,
             self.insert_weight,
             self.update_weight,
         ];

@@ -56,25 +56,84 @@ The benchmarker (`crates/bencher/`) supports different benchmarking strategies.
 
 #### Workload A
 
-```
-recordcount=1000
-operationcount=1000
-workload=core
+Update heavy workload
 
-readallfields=true
+Application example: Session store recording recent actions
 
-readproportion=0.5
-updateproportion=0.5
-scanproportion=0
-insertproportion=0
-
-requestdistribution=uniform
-```
-
-translates to the arguments
+Read/update ratio: 50/50
+Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
+Request distribution: zipfian
 
 ```
---read-all-weight 1 --update-weight 1 --read-single-weight 0 --insert-weight 0 --request-distribution uniform --total 1000
+--read-all-fields --read-weight 1 --update-weight 1 --request-distribution zipfian --fields-per-record 10 --field-value-length 100
 ```
 
 #### Workload B
+
+Read mostly workload
+
+Application example: photo tagging; add a tag is an update, but most operations are to read tags
+
+Read/update ratio: 95/5
+Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
+Request distribution: zipfian
+
+```
+--read-all-fields --read-weight 95 --update-weight 5 --request-distribution zipfian --fields-per-record 10 --field-value-length 100
+```
+
+#### Workload C
+
+Read only
+
+Application example: user profile cache, where profiles are constructed elsewhere (e.g., Hadoop)
+
+Read/update ratio: 100/0
+Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
+Request distribution: zipfian
+
+```
+--read-all-fields --read-weight 1 --request-distribution zipfian --fields-per-record 10 --field-value-length 100
+```
+
+#### Workload D
+
+Read latest workload
+
+Application example: user status updates; people want to read the latest
+
+Read/update/insert ratio: 95/0/5
+Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
+Request distribution: latest
+
+```
+--read-all-fields --read-weight 95 --insert-weight 5 --request-distribution latest --fields-per-record 10 --field-value-length 100
+```
+
+#### Workload E
+
+Short ranges
+
+Application example: threaded conversations, where each scan is for the posts in a given thread (assumed to be clustered by thread id)
+
+Scan/insert ratio: 95/5
+Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
+Request distribution: zipfian
+
+```
+--read-all-fields --scan-weight 95 --insert-weight 5 --request-distribution zipfian --fields-per-record 10 --field-value-length 100
+```
+
+#### Workload F
+
+Read-modify-write workload
+
+Application example: user database, where user records are read and modified by the user or to record user activity.
+
+Read/read-modify-write ratio: 50/50
+Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
+Request distribution: zipfian
+
+```
+--read-all-fields --read-weight 1 --rmw-weight 1 --request-distribution zipfian --fields-per-record 10 --field-value-length 100
+```

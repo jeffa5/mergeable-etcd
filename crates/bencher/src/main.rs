@@ -16,7 +16,7 @@ use bencher::{
         EtcdPutRandomInputGenerator, EtcdPutRangeInputGenerator, EtcdPutSingleInputGenerator,
         EtcdWatchSingleInputGenerator, SleepInputGenerator, YcsbInputGenerator,
     },
-    DismergeCommand, EtcdCommand,
+    DismergeCommand, EtcdCommand, YcsbArgs,
 };
 use bencher::{
     client::{EtcdWatchDispatcher, SleepDispatcher},
@@ -354,24 +354,26 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .await
                 }
-                EtcdCommand::Ycsb {
-                    read_single_weight,
-                    read_all_weight,
+                EtcdCommand::Ycsb(YcsbArgs {
+                    read_weight,
+                    scan_weight,
                     insert_weight,
                     update_weight,
+                    read_all_fields,
                     fields_per_record,
                     field_value_length,
                     request_distribution,
-                } => {
+                }) => {
                     info!(entries = options.total, "Setting up the database");
                     // setup the db
                     loadgen::generate_load(
                         &options,
                         YcsbInputGenerator {
-                            read_single_weight: 0,
-                            read_all_weight: 0,
+                            read_weight: 0,
+                            scan_weight: 0,
                             insert_weight: 1,
                             update_weight: 0,
+                            read_all_fields: *read_all_fields,
                             fields_per_record: *fields_per_record,
                             field_value_length: *field_value_length,
                             operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
@@ -392,10 +394,11 @@ async fn main() -> anyhow::Result<()> {
                     loadgen::generate_load(
                         &options,
                         YcsbInputGenerator {
-                            read_single_weight: *read_single_weight,
-                            read_all_weight: *read_all_weight,
+                            read_weight: *read_weight,
+                            scan_weight: *scan_weight,
                             insert_weight: *insert_weight,
                             update_weight: *update_weight,
+                            read_all_fields: *read_all_fields,
                             fields_per_record: *fields_per_record,
                             field_value_length: *field_value_length,
                             operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
@@ -556,24 +559,26 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .await
                 }
-                DismergeCommand::Ycsb {
-                    read_single_weight,
-                    read_all_weight,
+                DismergeCommand::Ycsb(YcsbArgs {
+                    read_weight,
+                    scan_weight,
                     insert_weight,
                     update_weight,
+                    read_all_fields,
                     fields_per_record,
                     field_value_length,
                     request_distribution,
-                } => {
+                }) => {
                     info!(entries = options.total, "Setting up the database");
                     // setup the db
                     loadgen::generate_load(
                         &options,
                         YcsbInputGenerator {
-                            read_single_weight: 0,
-                            read_all_weight: 0,
+                            read_weight: 0,
+                            scan_weight: 0,
                             insert_weight: 1,
                             update_weight: 0,
+                            read_all_fields: *read_all_fields,
                             fields_per_record: *fields_per_record,
                             field_value_length: *field_value_length,
                             operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
@@ -594,10 +599,11 @@ async fn main() -> anyhow::Result<()> {
                     loadgen::generate_load(
                         &options,
                         YcsbInputGenerator {
-                            read_single_weight: *read_single_weight,
-                            read_all_weight: *read_all_weight,
+                            read_weight: *read_weight,
+                            scan_weight: *scan_weight,
                             insert_weight: *insert_weight,
                             update_weight: *update_weight,
+                            read_all_fields: *read_all_fields,
                             fields_per_record: *fields_per_record,
                             field_value_length: *field_value_length,
                             operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
