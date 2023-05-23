@@ -35,7 +35,9 @@ use mergeable_proto::etcdserverpb::{
 use rand::{rngs::StdRng, SeedableRng};
 use tokio::{sync::watch, time::sleep};
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
-use tracing::{info, subscriber::set_global_default, warn, Level};
+use tracing::{info, metadata::LevelFilter, warn};
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::{fmt, EnvFilter};
 
 const MAX_HEALTH_RETRIES: u32 = 50;
 
@@ -147,14 +149,22 @@ impl DispatcherGenerator for DismergeWatchDispatcherGenerator {
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
-    set_global_default(
-        tracing_subscriber::fmt()
-            .with_max_level(Level::INFO)
-            .with_ansi(false)
-            .finish(),
-    )?;
-
     let options = Options::parse();
+
+
+    let log_filter = if let Some(log_filter) = &options.log_filter {
+        EnvFilter::from(log_filter)
+    } else {
+        EnvFilter::builder()
+            .with_default_directive(LevelFilter::INFO.into())
+            .from_env_lossy()
+    };
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_ansi(!options.no_colour))
+        .with(log_filter)
+        .init();
+
+    info!(?options, "Got options");
 
     if let Some(start_at) = options.start_at {
         let duration = (start_at - Utc::now())

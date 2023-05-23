@@ -46,6 +46,14 @@ pub struct Options {
     #[clap(short, long, global = true)]
     pub out_file: Option<String>,
 
+    /// Filter logs using this string, rather than the `RUST_LOG` environment variable.
+    #[clap(long)]
+    pub log_filter: Option<String>,
+
+    /// Don't print logs with colour.
+    #[clap(long)]
+    pub no_colour: bool,
+
     #[clap(subcommand)]
     pub ty: Type,
 }

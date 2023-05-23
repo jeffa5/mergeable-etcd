@@ -26,5 +26,5 @@ tokio-stream = "0.1.14"
 tonic = { version = "0.9.2", features = ["transport", "tls"] }
 tower = "0.4.13"
 tracing = "0.1.37"
-tracing-subscriber = "0.3.17"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.3.1"
