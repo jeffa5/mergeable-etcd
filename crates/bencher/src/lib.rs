@@ -4,19 +4,11 @@ pub mod input;
 pub mod loadgen;
 mod options;
 mod output;
-mod trace;
 
 pub use address::{Address, Error, Scheme};
 use clap::{Args, Subcommand};
 use input::RequestDistribution;
-pub use options::{Options, Type};
-pub use trace::{execute_trace, TraceValue};
-
-#[derive(Args, Debug, Clone)]
-pub struct Scenario {
-    #[clap(subcommand)]
-    pub command: ScenarioCommands,
-}
+pub use options::{Options };
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum ScenarioCommands {

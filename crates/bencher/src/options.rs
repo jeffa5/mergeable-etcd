@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
-use clap::{Parser, Subcommand};
+use clap::{Parser};
 
-use crate::{Address, Scenario};
+use crate::{Address, ScenarioCommands};
 
 #[derive(Parser, Debug, Clone)]
 pub struct Options {
@@ -55,18 +55,5 @@ pub struct Options {
     pub no_colour: bool,
 
     #[clap(subcommand)]
-    pub ty: Type,
-}
-
-#[derive(Subcommand, Debug, Clone)]
-pub enum Type {
-    /// Run a synthetic benchmark scenario
-    Bench(Scenario),
-    /// Replay a trace from a file, saving responses to the `out_file`
-    Trace {
-        #[clap(long, default_value = "trace.requests")]
-        in_file: PathBuf,
-        #[clap(long, default_value = "trace.responses")]
-        out_file: PathBuf,
-    },
+    pub scenario: ScenarioCommands,
 }
