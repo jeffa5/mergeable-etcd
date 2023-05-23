@@ -7,15 +7,14 @@ use std::{
 use anyhow::{bail, Context};
 use bencher::{
     client::{
-        DismergePutDispatcher, DismergeWatchDispatcher, DispatcherGenerator, EtcdPutDispatcher,
-        YcsbDispatcher,
+        DismergePutDispatcher, DismergeWatchDispatcher, DismergeYcsbDispatcher,
+        DispatcherGenerator, EtcdPutDispatcher, EtcdYcsbDispatcher,
     },
     input::{
         DismergePutRandomInputGenerator, DismergePutRangeInputGenerator,
         DismergePutSingleInputGenerator, DismergeWatchSingleInputGenerator,
-        DismergeYcsbInputGenerator, EtcdPutRandomInputGenerator, EtcdPutRangeInputGenerator,
-        EtcdPutSingleInputGenerator, EtcdWatchSingleInputGenerator, EtcdYcsbInputGenerator,
-        SleepInputGenerator,
+        EtcdPutRandomInputGenerator, EtcdPutRangeInputGenerator, EtcdPutSingleInputGenerator,
+        EtcdWatchSingleInputGenerator, SleepInputGenerator, YcsbInputGenerator,
     },
     DismergeCommand, EtcdCommand,
 };
@@ -51,19 +50,19 @@ impl DispatcherGenerator for SleepDispatcherGenerator {
     }
 }
 
-struct YcsbDispatcherGenerator {
+struct EtcdYcsbDispatcherGenerator {
     kv_clients: Vec<EtcdKvClient<Channel>>,
     kv_index: usize,
 }
 
-impl DispatcherGenerator for YcsbDispatcherGenerator {
-    type Dispatcher = YcsbDispatcher;
+impl DispatcherGenerator for EtcdYcsbDispatcherGenerator {
+    type Dispatcher = EtcdYcsbDispatcher;
 
     fn generate(&mut self) -> Self::Dispatcher {
         let kv_client = self.kv_clients[self.kv_index].clone();
         self.kv_index += 1;
         self.kv_index %= self.kv_clients.len();
-        YcsbDispatcher { kv_client }
+        EtcdYcsbDispatcher { kv_client }
     }
 }
 
@@ -104,6 +103,22 @@ impl DispatcherGenerator for EtcdWatchDispatcherGenerator {
             kv_client,
             watch_client,
         }
+    }
+}
+
+struct DismergeYcsbDispatcherGenerator {
+    kv_clients: Vec<DismergeKvClient<Channel>>,
+    kv_index: usize,
+}
+
+impl DispatcherGenerator for DismergeYcsbDispatcherGenerator {
+    type Dispatcher = DismergeYcsbDispatcher;
+
+    fn generate(&mut self) -> Self::Dispatcher {
+        let kv_client = self.kv_clients[self.kv_index].clone();
+        self.kv_index += 1;
+        self.kv_index %= self.kv_clients.len();
+        DismergeYcsbDispatcher { kv_client }
     }
 }
 
@@ -352,7 +367,7 @@ async fn main() -> anyhow::Result<()> {
                     // setup the db
                     loadgen::generate_load(
                         &options,
-                        EtcdYcsbInputGenerator {
+                        YcsbInputGenerator {
                             read_single_weight: 0,
                             read_all_weight: 0,
                             insert_weight: 1,
@@ -363,7 +378,7 @@ async fn main() -> anyhow::Result<()> {
                             max_record_index: 0,
                             request_distribution: *request_distribution,
                         },
-                        YcsbDispatcherGenerator {
+                        EtcdYcsbDispatcherGenerator {
                             kv_clients: kv_clients.clone(),
                             kv_index: 0,
                         },
@@ -376,7 +391,7 @@ async fn main() -> anyhow::Result<()> {
                     start = Instant::now();
                     loadgen::generate_load(
                         &options,
-                        EtcdYcsbInputGenerator {
+                        YcsbInputGenerator {
                             read_single_weight: *read_single_weight,
                             read_all_weight: *read_all_weight,
                             insert_weight: *insert_weight,
@@ -387,7 +402,7 @@ async fn main() -> anyhow::Result<()> {
                             max_record_index: options.total as u32,
                             request_distribution: *request_distribution,
                         },
-                        YcsbDispatcherGenerator {
+                        EtcdYcsbDispatcherGenerator {
                             kv_clients,
                             kv_index: 0,
                         },
@@ -479,7 +494,7 @@ async fn main() -> anyhow::Result<()> {
                 })
                 .collect::<Vec<_>>();
             let watch_dispatcher_generator = DismergeWatchDispatcherGenerator {
-                kv_clients,
+                kv_clients: kv_clients.clone(),
                 kv_index: 0,
                 watch_clients,
                 watch_index: 0,
@@ -541,13 +556,56 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .await
                 }
-                DismergeCommand::Ycsb {} => {
+                DismergeCommand::Ycsb {
+                    read_single_weight,
+                    read_all_weight,
+                    insert_weight,
+                    update_weight,
+                    fields_per_record,
+                    field_value_length,
+                    request_distribution,
+                } => {
+                    info!(entries = options.total, "Setting up the database");
+                    // setup the db
+                    loadgen::generate_load(
+                        &options,
+                        YcsbInputGenerator {
+                            read_single_weight: 0,
+                            read_all_weight: 0,
+                            insert_weight: 1,
+                            update_weight: 0,
+                            fields_per_record: *fields_per_record,
+                            field_value_length: *field_value_length,
+                            operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+                            max_record_index: 0,
+                            request_distribution: *request_distribution,
+                        },
+                        DismergeYcsbDispatcherGenerator {
+                            kv_clients: kv_clients.clone(),
+                            kv_index: 0,
+                        },
+                        // FIXME: could probably tag outputs or write to different output
+                        None::<csv::Writer<File>>,
+                    )
+                    .await;
+                    info!(max_record = options.total, "Running the main benchmark");
+                    // now run the benchmark
                     start = Instant::now();
                     loadgen::generate_load(
                         &options,
-                        DismergeYcsbInputGenerator {},
-                        YcsbDispatcherGenerator {
-                            kv_clients: todo!(),
+                        YcsbInputGenerator {
+                            read_single_weight: *read_single_weight,
+                            read_all_weight: *read_all_weight,
+                            insert_weight: *insert_weight,
+                            update_weight: *update_weight,
+                            fields_per_record: *fields_per_record,
+                            field_value_length: *field_value_length,
+                            operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+                            max_record_index: options.total as u32,
+                            request_distribution: *request_distribution,
+                        },
+                        DismergeYcsbDispatcherGenerator {
+                            kv_clients,
                             kv_index: 0,
                         },
                         writer,

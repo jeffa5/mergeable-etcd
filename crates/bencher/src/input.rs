@@ -317,7 +317,7 @@ fn value() -> Vec<u8> {
 }
 
 /// Generate inputs for the YCSB workloads.
-pub struct EtcdYcsbInputGenerator {
+pub struct YcsbInputGenerator {
     pub read_single_weight: u32,
     pub read_all_weight: u32,
     pub insert_weight: u32,
@@ -339,7 +339,7 @@ pub enum RequestDistribution {
     Latest,
 }
 
-impl EtcdYcsbInputGenerator {
+impl YcsbInputGenerator {
     pub fn new(
         read_single_weight: u32,
         read_all_weight: u32,
@@ -416,7 +416,7 @@ pub enum YcsbInput {
     Scan { start_key: String, scan_length: u32 },
 }
 
-impl InputGenerator for EtcdYcsbInputGenerator {
+impl InputGenerator for YcsbInputGenerator {
     type Input = YcsbInput;
 
     fn close(self) {}
@@ -461,19 +461,6 @@ impl InputGenerator for EtcdYcsbInputGenerator {
         };
         // println!("generated ycsb input {:?}", input);
         Some(input)
-    }
-}
-
-pub struct DismergeYcsbInputGenerator {}
-
-impl InputGenerator for DismergeYcsbInputGenerator {
-    type Input = YcsbInput;
-
-    fn close(self) {}
-
-    fn next(&mut self) -> Option<Self::Input> {
-        let request = todo!();
-        Some(request)
     }
 }
 

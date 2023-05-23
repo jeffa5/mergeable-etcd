@@ -90,5 +90,28 @@ pub enum DismergeCommand {
         #[clap(long, default_value = "100")]
         num_watchers: u32,
     },
-    Ycsb {},
+    /// Launch a ycsb workload.
+    Ycsb {
+        /// Weighting for performing reads of single fields for a user.
+        #[clap(long, default_value = "1")]
+        read_single_weight: u32,
+        /// Weighting for performing reads of all fields of a user.
+        #[clap(long, default_value = "0")]
+        read_all_weight: u32,
+        /// Weighting for performing inserts.
+        #[clap(long, default_value = "1")]
+        insert_weight: u32,
+        /// Weighting for performing updates.
+        #[clap(long, default_value = "1")]
+        update_weight: u32,
+        /// Number of fields to make for each user.
+        #[clap(long, default_value = "1")]
+        fields_per_record: u32,
+        /// Length of the value each field has.
+        #[clap(long, default_value = "32")]
+        field_value_length: usize,
+        /// Distribution shape for the user keys.
+        #[clap(long, default_value = "uniform")]
+        request_distribution: RequestDistribution,
+    },
 }

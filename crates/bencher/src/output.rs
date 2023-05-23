@@ -63,6 +63,7 @@ pub struct EtcdOutput {
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct DismergeOutput {
+    pub endpoint: String,
     pub key: String,
     pub member_id: u64,
 }
