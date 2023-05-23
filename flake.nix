@@ -73,7 +73,6 @@
       // {
         inherit cargoArtifacts pname version;
       });
-    packages = import ./nix {inherit pkgs;};
     container-registry = "jeffas";
   in {
     packages.${system} = {
@@ -149,7 +148,6 @@
       workspace-nextest = nextest;
       workspace-clippy = clippy;
 
-      go-ycsb = packages.go-ycsb;
     };
 
     apps.${system} = {
@@ -231,10 +229,6 @@
 
           ansible_2_12
           python3Packages.ruamel-yaml
-        ]
-        ++ [
-          # kind.packages.${system}.kind
-          # self.packages.${system}.go-ycsb
         ];
 
       ETCDCTL_API = 3;
