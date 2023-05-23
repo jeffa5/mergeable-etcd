@@ -88,6 +88,7 @@ where
         no_colour: _,
         persister,
         concurrency_limit,
+        timeout
     } = options;
 
     let (watch_sender, watch_receiver) = mpsc::channel(10);
@@ -265,6 +266,7 @@ where
                 watcher.clone(),
                 document.clone(),
                 concurrency_limit,
+                timeout,
             )
             .await,
         );
@@ -285,6 +287,7 @@ async fn start_client_server<P: DocPersister, V: Value>(
     watch_server: watch::WatchService<P, V>,
     document: Doc<P, V>,
     concurrency_limit: usize,
+    timeout: u64,
 ) -> tokio::task::JoinHandle<()>
 where
     <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
@@ -328,7 +331,7 @@ where
             .concurrency_limit(concurrency_limit)
             .into_inner();
 
-        let mut router = builder.layer(layer).timeout(Duration::from_secs(1));
+        let mut router = builder.layer(layer).timeout(Duration::from_secs(timeout));
         if let Some(tls) = tls {
             router = router.tls_config(tls).unwrap();
         }

@@ -93,6 +93,10 @@ pub struct Options {
     /// Number of client requests to handle in-flight at a time.
     #[clap(long, default_value = "1000")]
     pub concurrency_limit: usize,
+
+    /// Duration of request before it times out, in milliseconds.
+    #[clap(long, default_value = "1000")]
+    pub timeout: u64,
 }
 
 impl Default for Options {
@@ -121,6 +125,7 @@ impl Default for Options {
             no_colour: false,
             persister: Default::default(),
             concurrency_limit: 1000,
+            timeout: 1000,
         }
     }
 }
