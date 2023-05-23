@@ -4,19 +4,8 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
-    rust-overlay.inputs.flake-utils.follows = "flake-utils";
     flake-utils.url = "github:numtide/flake-utils";
-    perf-tests.url = "github:jeffa5/perf-tests";
-    perf-tests.inputs.nixpkgs.follows = "nixpkgs";
-    perf-tests.inputs.flake-utils.follows = "flake-utils";
-    kind.url = "github:jeffa5/kind/dev";
-    kind.inputs.nixpkgs.follows = "nixpkgs";
-    kind.inputs.flake-utils.follows = "flake-utils";
     crane.url = "github:ipetkov/crane";
-    crane.inputs.nixpkgs.follows = "nixpkgs";
-    crane.inputs.rust-overlay.follows = "rust-overlay";
-    crane.inputs.flake-utils.follows = "flake-utils";
   };
 
   outputs = {
@@ -24,8 +13,6 @@
     nixpkgs,
     rust-overlay,
     flake-utils,
-    perf-tests,
-    kind,
     crane,
   }: let
     system = "x86_64-linux";
@@ -50,6 +37,8 @@
         cmake
       ];
     };
+    pname = "mergeable-etcd";
+    version = "0.1.0";
     workspaceArgs = let
       protoFilter = path: type: null != (builtins.match "^.+\\.proto$" path);
       protoOrCargo = path: type: (protoFilter path type) || (craneLib.filterCargoSources path type);
@@ -65,24 +54,24 @@
       };
     cargoArtifacts = craneLib.buildDepsOnly (commonArgs
       // {
-        pname = "mergeable-etcd-deps";
+        inherit pname version;
       });
     clippy = craneLib.cargoClippy (workspaceArgs
       // {
-        inherit cargoArtifacts;
+        inherit cargoArtifacts pname version;
         cargoClippyExtraArgs = "--all-targets";
       });
     workspace = craneLib.buildPackage (workspaceArgs
       // {
-        inherit cargoArtifacts;
+        inherit cargoArtifacts pname version;
       });
     tarpaulin = craneLib.cargoTarpaulin (workspaceArgs
       // {
-        inherit cargoArtifacts;
+        inherit cargoArtifacts pname version;
       });
     nextest = craneLib.cargoNextest (workspaceArgs
       // {
-        inherit cargoArtifacts;
+        inherit cargoArtifacts pname version;
       });
     packages = import ./nix {inherit pkgs;};
   in {
@@ -235,8 +224,8 @@
           python3Packages.ruamel-yaml
         ]
         ++ [
-          kind.packages.${system}.kind
-          self.packages.${system}.go-ycsb
+          # kind.packages.${system}.kind
+          # self.packages.${system}.go-ycsb
         ];
 
       ETCDCTL_API = 3;
