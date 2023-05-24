@@ -4172,10 +4172,10 @@ async fn sync_two_documents_trigger_watches() {
                 member_id: 2,
                 heads: [
                     ChangeHash(
-                        "57899acb182b89ede30510c11183a8ed03d2ab23157ccdb1fed9e6645cfca8ba",
+                        "a9a38aeb5be80dae60a3ce1f75524e080c550f08dd80deb79730760c9e020c6a",
                     ),
                     ChangeHash(
-                        "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
+                        "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
                     ),
                 ],
             },
@@ -4194,10 +4194,10 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
                         ),
                         mod_head: ChangeHash(
-                            "fa9f429f91d7d1142c5341642535b91d6e5da3d1724c02166870ec3d645f01ff",
+                            "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
                         ),
                         lease: None,
                     },
@@ -4216,10 +4216,10 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
                         ),
                         mod_head: ChangeHash(
-                            "6efcc759de6fed79721145dfb83ce286083f09ad65a441af5823657c70105772",
+                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
                         ),
                         lease: None,
                     },
@@ -6446,10 +6446,10 @@ async fn kv_leases() {
                     ],
                 ),
                 create_head: ChangeHash(
-                    "9c4b9efe00e41ba7e36eed0f3ae8691fdb8611649d027e80ed106d52782f82b0",
+                    "5e3cf9ee156318153dc5db58bc49315dca0088203208ff3c86abcc9db58ba624",
                 ),
                 mod_head: ChangeHash(
-                    "9c4b9efe00e41ba7e36eed0f3ae8691fdb8611649d027e80ed106d52782f82b0",
+                    "5e3cf9ee156318153dc5db58bc49315dca0088203208ff3c86abcc9db58ba624",
                 ),
                 lease: Some(
                     20,
