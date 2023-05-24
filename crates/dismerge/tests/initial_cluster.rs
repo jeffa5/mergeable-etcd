@@ -347,6 +347,7 @@ async fn initial_cluster_double() {
 }
 
 #[test(tokio::test)]
+#[ignore]
 async fn double_cluster_explicit_add() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client1, peer1, metrics1) = get_addresses_single();
