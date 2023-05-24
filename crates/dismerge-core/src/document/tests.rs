@@ -482,7 +482,7 @@ async fn delete_value() {
 }
 
 #[tokio::test]
-async fn range_focus() {
+async fn range() {
     let mut doc = TestDocumentBuilder::default().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
