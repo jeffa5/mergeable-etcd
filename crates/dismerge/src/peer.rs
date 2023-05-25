@@ -194,14 +194,6 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
     ) {
         let member_id = self.document.lock().await.member_id();
         debug!(?from, ?to, ?name, ?member_id, "received message");
-        let member_id = if let Some(member_id) = member_id {
-            member_id
-        } else {
-            // this message is the first received after joining the cluster so we can use it to
-            // set our member_id
-            self.document.lock().await.set_member_id(to);
-            to
-        };
 
         let message = {
             let mut doc = self.document.lock().await;
@@ -248,42 +240,38 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
             "peer document changed"
         );
         let mut document = self.document.lock().await;
-        if let Some(member_id) = document.member_id() {
-            debug!("found some member_id in document changed");
-            for (id, syncer) in &mut self.connections {
-                debug!(?id, "attempting to send change");
-                let start = Instant::now();
-                debug!("Started generating sync message");
-                if let Some(message) = document.generate_sync_message(*id).unwrap() {
-                    debug!(changes = ?message.changes.len(), "Sending changes");
-                    syncer.send(member_id, *id, self.name.clone(), message);
-                }
-                debug!("Finished generating sync message");
-                let duration = start.elapsed();
-                if duration > Duration::from_millis(100) {
-                    warn!(
-                        ?duration,
-                        "Generating sync message (document changed) took too long"
-                    )
-                }
+        debug!("found some member_id in document changed");
+        for (id, syncer) in &mut self.connections {
+            debug!(?id, "attempting to send change");
+            let start = Instant::now();
+            debug!("Started generating sync message");
+            if let Some(message) = document.generate_sync_message(*id).unwrap() {
+                debug!(changes = ?message.changes.len(), "Sending changes");
+                syncer.send(document.member_id(), *id, self.name.clone(), message);
             }
-            for (name, syncer) in &mut self.unknown_connections {
-                debug!(?name, "attempting to send change to unknown connection");
-                // try and initiate a connection from the peer
-                syncer.send(
-                    member_id,
-                    0,
-                    self.name.clone(),
-                    sync::Message {
-                        heads: vec![],
-                        need: vec![],
-                        have: vec![],
-                        changes: vec![],
-                    },
-                );
+            debug!("Finished generating sync message");
+            let duration = start.elapsed();
+            if duration > Duration::from_millis(100) {
+                warn!(
+                    ?duration,
+                    "Generating sync message (document changed) took too long"
+                )
             }
-        } else {
-            warn!("not sending document changes due to no member_id");
+        }
+        for (name, syncer) in &mut self.unknown_connections {
+            debug!(?name, "attempting to send change to unknown connection");
+            // try and initiate a connection from the peer
+            syncer.send(
+                document.member_id(),
+                0,
+                self.name.clone(),
+                sync::Message {
+                    heads: vec![],
+                    need: vec![],
+                    have: vec![],
+                    changes: vec![],
+                },
+            );
         }
     }
 }
@@ -394,13 +382,10 @@ where
         request: tonic::Request<peer_proto::Empty>,
     ) -> Result<tonic::Response<peer_proto::GetMemberIdResponse>, tonic::Status> {
         let _request = request.into_inner();
-        if let Some(member_id) = self.inner.lock().await.document.lock().await.member_id() {
-            Ok(tonic::Response::new(peer_proto::GetMemberIdResponse {
-                id: member_id,
-            }))
-        } else {
-            Err(tonic::Status::new(tonic::Code::Internal, "not initialised"))
-        }
+        let member_id = self.inner.lock().await.document.lock().await.member_id();
+        Ok(tonic::Response::new(peer_proto::GetMemberIdResponse {
+            id: member_id,
+        }))
     }
 
     async fn member_list(
@@ -420,7 +405,7 @@ where
                 client_ur_ls: m.client_ur_ls,
             })
             .collect();
-        let header = doc.header().unwrap();
+        let header = doc.header();
 
         Ok(tonic::Response::new(peer_proto::MemberListResponse {
             cluster_id: header.cluster_id,

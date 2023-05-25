@@ -22,7 +22,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::replication_serve
         let ReplicationStatusRequest { heads } = request.into_inner();
         info!(?heads, "got replication status request");
         let document = self.document.lock().await;
-        let header = document.header()?;
+        let header = document.header();
         let heads_hashes = heads
             .into_iter()
             .map(|hash_bytes| ChangeHash(hash_bytes.try_into().unwrap()))

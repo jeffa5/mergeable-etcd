@@ -21,7 +21,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::cluster_server::C
     {
         let request = request.into_inner();
         let mut document = self.document.lock().await;
-        let header = document.header()?;
+        let header = document.header();
         let member_id = document.rng.gen();
         let member = document
             .add_member(request.peer_ur_ls.clone(), member_id)
@@ -46,7 +46,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::cluster_server::C
         error!(?request, "Got member remove request but unimplemented");
 
         let document = self.document.lock().await;
-        let header = document.header()?;
+        let header = document.header();
         let list = document.list_members()?;
 
         Ok(tonic::Response::new(
@@ -66,7 +66,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::cluster_server::C
         error!(?request, "Got member update request but unimplemented");
 
         let document = self.document.lock().await;
-        let header = document.header()?;
+        let header = document.header();
         let list = document.list_members()?;
 
         Ok(tonic::Response::new(
@@ -85,7 +85,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::cluster_server::C
         let _request = request.into_inner();
         info!("member list");
         let document = self.document.lock().await;
-        let header = document.header()?;
+        let header = document.header();
         let list = document.list_members()?;
         Ok(tonic::Response::new(
             mergeable_proto::etcdserverpb::MemberListResponse {
@@ -104,7 +104,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::cluster_server::C
         error!(?request, "Got member_promote request but unimplemented");
 
         let document = self.document.lock().await;
-        let header = document.header()?;
+        let header = document.header();
         let list = document.list_members()?;
 
         Ok(tonic::Response::new(

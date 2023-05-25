@@ -63,7 +63,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::lease_server::Lea
                 debug!(lease_id=?id, "Closing lease revoke check loop");
             });
 
-            let header = document.header().unwrap();
+            let header = document.header();
             Ok(tonic::Response::new(
                 mergeable_proto::etcdserverpb::LeaseGrantResponse {
                     header: Some(header.into()),
@@ -94,7 +94,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::lease_server::Lea
 
         Ok(tonic::Response::new(
             mergeable_proto::etcdserverpb::LeaseRevokeResponse {
-                header: Some(document.header().unwrap().into()),
+                header: Some(document.header().into()),
             },
         ))
     }
@@ -145,7 +145,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::lease_server::Lea
 
                 response_sender
                     .send(Ok(mergeable_proto::etcdserverpb::LeaseKeepAliveResponse {
-                        header: Some(header.unwrap().into()),
+                        header: Some(header.into()),
                         id,
                         ttl,
                     }))
@@ -194,7 +194,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::lease_server::Lea
 
         Ok(tonic::Response::new(
             mergeable_proto::etcdserverpb::LeaseTimeToLiveResponse {
-                header: Some(header.unwrap().into()),
+                header: Some(header.into()),
                 id,
                 ttl,
                 granted_ttl,
@@ -231,7 +231,7 @@ impl<P: DocPersister, V: Value> mergeable_proto::etcdserverpb::lease_server::Lea
 
         Ok(tonic::Response::new(
             mergeable_proto::etcdserverpb::LeaseLeasesResponse {
-                header: Some(header.unwrap().into()),
+                header: Some(header.into()),
                 leases,
             },
         ))
