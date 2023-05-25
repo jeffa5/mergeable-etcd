@@ -14,7 +14,6 @@ pub struct DocumentBuilder<P, S, W, V> {
     watcher: W,
     cluster_id: u64,
     member_id: u64,
-    cluster_exists: bool,
     name: String,
     peer_urls: Vec<String>,
     client_urls: Vec<String>,
@@ -31,7 +30,6 @@ impl<V> Default for DocumentBuilder<MemoryPersister, (), (), V> {
             watcher: (),
             cluster_id: 1,
             member_id: 1,
-            cluster_exists: false,
             name: "default".to_owned(),
             peer_urls: vec![],
             client_urls: vec![],
@@ -51,7 +49,6 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
             watcher: self.watcher,
             cluster_id: self.cluster_id,
             member_id: self.member_id,
-            cluster_exists: self.cluster_exists,
             name: self.name,
             peer_urls: self.peer_urls,
             client_urls: self.client_urls,
@@ -69,7 +66,6 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
             watcher: self.watcher,
             cluster_id: self.cluster_id,
             member_id: self.member_id,
-            cluster_exists: self.cluster_exists,
             name: self.name,
             peer_urls: self.peer_urls,
             client_urls: self.client_urls,
@@ -87,7 +83,6 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
             watcher,
             cluster_id: self.cluster_id,
             member_id: self.member_id,
-            cluster_exists: self.cluster_exists,
             name: self.name,
             peer_urls: self.peer_urls,
             client_urls: self.client_urls,
@@ -164,17 +159,6 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
     }
 
     #[must_use]
-    pub fn with_cluster_exists(mut self, cluster_exists: bool) -> Self {
-        self.cluster_exists = cluster_exists;
-        self
-    }
-
-    pub fn set_cluster_exists(&mut self, cluster_exists: bool) -> &mut Self {
-        self.cluster_exists = cluster_exists;
-        self
-    }
-
-    #[must_use]
     pub fn with_auto_flush(mut self, auto_flush: bool) -> Self {
         self.auto_flush = auto_flush;
         self
@@ -212,11 +196,7 @@ where
         let mut s = Document {
             am,
             cluster_id: self.cluster_id,
-            member_id: if self.cluster_exists {
-                None
-            } else {
-                Some(self.member_id)
-            },
+            member_id: self.member_id,
             name: self.name,
             peer_urls: self.peer_urls,
             client_urls: self.client_urls,
@@ -226,13 +206,12 @@ where
             members_objid: automerge::ObjId::Root,
             leases_objid: automerge::ObjId::Root,
             rng: StdRng::seed_from_u64(self.seed),
-            updated_self_member: false,
             flush_notifier,
             flush_notifier_receiver,
             auto_flush: self.auto_flush,
             _value_type: PhantomData::default(),
         };
-        s.init(self.cluster_exists);
+        s.init();
         s
     }
 }

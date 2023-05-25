@@ -45,7 +45,7 @@ const DEFAULT_LEASE_TTL: i64 = 30;
 pub struct Document<P, S, W, V> {
     pub(crate) am: PersistentAutomerge<P>,
     pub(crate) cluster_id: u64,
-    pub(crate) member_id: Option<u64>,
+    pub(crate) member_id: u64,
     pub(crate) name: String,
     pub(crate) peer_urls: Vec<String>,
     pub(crate) client_urls: Vec<String>,
@@ -55,8 +55,6 @@ pub struct Document<P, S, W, V> {
     pub(crate) members_objid: ObjId,
     pub(crate) leases_objid: ObjId,
     pub rng: StdRng,
-    // whether we have updated our entry in the members object (after seeing ourselves there)
-    pub(crate) updated_self_member: bool,
     pub(crate) flush_notifier: watch::Sender<()>,
     // keep this around so that we don't close the channel
     #[allow(dead_code)]
@@ -73,24 +71,17 @@ where
     W: Watcher<V>,
     V: Value,
 {
-    pub(crate) fn init(&mut self, cluster_exists: bool) {
+    pub(crate) fn init(&mut self) {
         if self.am.document().get_heads().is_empty() {
             self.init_document();
         }
 
-        if let Some(member_id) = self.member_id {
-            self.am
-                .document_mut()
-                .set_actor(ActorId::from(member_id.to_be_bytes()));
-        } else {
-            self.am.document_mut().set_actor(ActorId::random());
-        }
+        self.am
+            .document_mut()
+            .set_actor(ActorId::from(self.member_id.to_be_bytes()));
 
-        if !cluster_exists {
-            // new cluster (assuming we are the first node so add ourselves to the members_list)
-            self.add_member_local();
-            self.updated_self_member = true;
-        }
+        // new cluster (assuming we are the first node so add ourselves to the members_list)
+        self.add_member_local();
     }
 
     /// set up the document's initial structure
@@ -104,7 +95,7 @@ where
                 } else {
                     tx.put_object(ROOT, "kvs", ObjType::Map).unwrap()
                 };
-                let server = if let Some((_, server)) = tx.get(ROOT, "server").unwrap() {
+                if let Some((_, server)) = tx.get(ROOT, "server").unwrap() {
                     server
                 } else {
                     tx.put_object(ROOT, "server", ObjType::Map).unwrap()
@@ -126,13 +117,16 @@ where
             .unwrap();
     }
 
-    pub fn member_id(&self) -> Option<u64> {
+    pub fn member_id(&self) -> u64 {
         self.member_id
     }
 
     pub fn set_member_id(&mut self, id: u64) {
         info!(member_id=?id, "Assumed new member_id");
-        self.member_id = Some(id);
+        self.member_id = id;
+        self.am
+            .document_mut()
+            .set_actor(ActorId::from(id.to_be_bytes()));
     }
 
     pub fn cluster_id(&self) -> u64 {
@@ -140,7 +134,8 @@ where
     }
 
     pub fn is_ready(&self) -> bool {
-        self.member_id.is_some()
+        // TODO: may want to ensure we have a sync before serving requests
+        true
     }
 
     pub fn db_size(&self) -> u64 {
@@ -156,16 +151,12 @@ where
         self.am.document().get_heads()
     }
 
-    pub fn header(&self) -> crate::Result<Header> {
-        if let Some(member_id) = self.member_id {
-            let heads = self.heads();
-            Ok(Header {
-                cluster_id: self.cluster_id,
-                member_id,
-                heads,
-            })
-        } else {
-            Err(crate::Error::NotReady)
+    pub fn header(&self) -> Header {
+        let heads = self.heads();
+        Header {
+            cluster_id: self.cluster_id,
+            member_id: self.member_id,
+            heads,
         }
     }
 
@@ -198,7 +189,7 @@ where
             .unwrap();
         debug!("document changed in put");
 
-        let header = self.header()?;
+        let header = self.header();
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -241,7 +232,7 @@ where
             .unwrap();
         debug!("document changed in delete range");
 
-        let header = self.header()?;
+        let header = self.header();
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -268,7 +259,7 @@ where
         request: RangeRequest,
     ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse<V>)>> {
         let result = crate::transaction::range(self.am.document(), request);
-        let header = self.header()?;
+        let header = self.header();
 
         let (sender, receiver) = oneshot::channel();
         let mut flush_receiver = self.flush_notifier.subscribe();
@@ -297,7 +288,7 @@ where
             })
             .unwrap();
 
-        let header = self.header()?;
+        let header = self.header();
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -383,8 +374,6 @@ where
             &mut observer,
         );
 
-        let header = self.header().unwrap();
-
         self.flush();
 
         for patch in observer.take_patches() {
@@ -450,7 +439,9 @@ where
                             typ: crate::watcher::WatchEventType::Put(kv),
                             prev_kv,
                         };
-                        self.watcher.publish_event(header.clone(), event).await;
+                        self.watcher
+                            .publish_event(self.header(), event)
+                            .await;
                     } else if obj == self.members_objid {
                         let member = self.get_member(
                             key.to_string()
@@ -544,17 +535,11 @@ where
             self.document_changed();
         }
 
-        if !self.updated_self_member {
-            if let Some(member_id) = self.member_id {
-                self.try_find_member(member_id);
-            }
-        }
-
         Ok(res)
     }
 
     pub fn replication_status(&self, heads: &[ChangeHash]) -> BTreeMap<u64, bool> {
-        let self_member_id = self.member_id().unwrap();
+        let self_member_id = self.member_id();
         // abort if even we don't have the heads
         match self.am.document().partial_cmp_heads(&self.heads(), heads) {
             Some(ordering) => match ordering {
@@ -745,7 +730,7 @@ where
     }
 
     fn add_member_local(&mut self) -> Member {
-        let id = self.member_id.unwrap();
+        let id = self.member_id;
         let name = self.name.clone();
         let result = self
             .am
@@ -783,20 +768,6 @@ where
         debug!("document changed in add_member_local");
         self.document_changed();
         result
-    }
-
-    fn try_find_member(&mut self, member_id: u64) {
-        info!(?member_id, "looking for ourselves in members");
-        let document = self.am.document();
-        if document
-            .get(&self.members_objid, member_id.to_string())
-            .unwrap()
-            .is_some()
-        {
-            info!(?member_id, "found ourselves in members");
-            self.add_member_local();
-            self.updated_self_member = true;
-        }
     }
 
     /// Add a lease to the document with the given ttl, returns none if the id already existed.

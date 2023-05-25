@@ -2785,7 +2785,6 @@ async fn sync_two_documents() {
 
     let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
-        .with_member_id(id2)
         .with_cluster_id(cluster_id)
         .with_syncer(())
         .build();
@@ -4535,7 +4534,6 @@ async fn cluster_startup_2() {
         .with_syncer(())
         .with_name("node2".to_owned())
         .with_peer_urls(vec!["2".to_owned()])
-        .with_cluster_exists(true)
         .build();
     doc2.set_member_id(id2);
 
@@ -4677,7 +4675,6 @@ async fn cluster_startup_3() {
         .with_syncer(())
         .with_name("node2".to_owned())
         .with_peer_urls(peer_urls2.clone())
-        .with_cluster_exists(true)
         .build();
     doc2.set_member_id(id2);
 
@@ -4807,7 +4804,6 @@ async fn cluster_startup_3() {
         .with_syncer(())
         .with_name("node3".to_owned())
         .with_peer_urls(peer_urls3.clone())
-        .with_cluster_exists(true)
         .build();
     doc3.set_member_id(id3);
 
@@ -6517,27 +6513,19 @@ async fn replication_status_double_node() {
     let name1 = "node1".to_string();
     let name2 = "node2".to_string();
 
-    let mut doc1 = TestDocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_name(name1)
         .with_cluster_id(cluster_id)
         .with_syncer(())
         .build();
-    doc1.add_member(vec![], id2).await;
     let members = doc1.list_members().unwrap();
     assert_debug_snapshot!(members, @r###"
     [
         Member {
             id: 1,
             name: "node1",
-            peer_ur_ls: [],
-            client_ur_ls: [],
-            is_learner: false,
-        },
-        Member {
-            id: 2,
-            name: "",
             peer_ur_ls: [],
             client_ur_ls: [],
             is_learner: false,
