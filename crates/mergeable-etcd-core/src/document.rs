@@ -555,17 +555,13 @@ where
                     values: _,
                     conflict: _,
                 } => {}
-                automerge::op_observer::PatchAction::DeleteMap { key: _ } => {}
+                automerge::op_observer::PatchAction::DeleteMap { key: _, opid: _ } => {}
                 automerge::op_observer::PatchAction::DeleteSeq {
                     index: _,
                     length: _,
                 } => {}
                 automerge::op_observer::PatchAction::SpliceText { index: _, value: _ } => {}
-                automerge::op_observer::PatchAction::Mark { marks: _ } => {} // automerge::op_observer::PatchAction::Unmark {
-                                                                             //     name: _,
-                                                                             //     start: _,
-                                                                             //     end: _,
-                                                                             // } => {}
+                automerge::op_observer::PatchAction::Mark { marks: _ } => {}
             }
         }
 
