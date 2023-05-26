@@ -59,7 +59,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseSer
                 debug!(lease_id=?id, "Closing lease revoke check loop");
             });
 
-            let header = document.header().unwrap();
+            let header = document.header();
             Ok(tonic::Response::new(
                 etcd_proto::etcdserverpb::LeaseGrantResponse {
                     header: Some(header.into()),
@@ -89,7 +89,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseSer
 
         Ok(tonic::Response::new(
             etcd_proto::etcdserverpb::LeaseRevokeResponse {
-                header: Some(document.header().unwrap().into()),
+                header: Some(document.header().into()),
             },
         ))
     }
@@ -135,7 +135,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseSer
 
                 response_sender
                     .send(Ok(etcd_proto::etcdserverpb::LeaseKeepAliveResponse {
-                        header: Some(header.unwrap().into()),
+                        header: Some(header.into()),
                         id,
                         ttl,
                     }))
@@ -181,7 +181,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseSer
 
         Ok(tonic::Response::new(
             etcd_proto::etcdserverpb::LeaseTimeToLiveResponse {
-                header: Some(header.unwrap().into()),
+                header: Some(header.into()),
                 id,
                 ttl,
                 granted_ttl,
@@ -217,7 +217,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseSer
 
         Ok(tonic::Response::new(
             etcd_proto::etcdserverpb::LeaseLeasesResponse {
-                header: Some(header.unwrap().into()),
+                header: Some(header.into()),
                 leases,
             },
         ))

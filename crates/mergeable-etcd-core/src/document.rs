@@ -45,7 +45,7 @@ const DEFAULT_LEASE_TTL: i64 = 30;
 pub struct Document<P, S, W> {
     pub(crate) am: PersistentAutoCommit<P>,
     pub(crate) cluster_id: u64,
-    pub(crate) member_id: Option<u64>,
+    pub(crate) member_id: u64,
     pub(crate) name: String,
     pub(crate) peer_urls: Vec<String>,
     pub(crate) client_urls: Vec<String>,
@@ -55,8 +55,6 @@ pub struct Document<P, S, W> {
     pub(crate) members_objid: ObjId,
     pub(crate) leases_objid: ObjId,
     pub(crate) rng: StdRng,
-    // whether we have updated our entry in the members object (after seeing ourselves there)
-    pub(crate) updated_self_member: bool,
     pub(crate) cache: crate::cache::Cache,
     pub(crate) flush_notifier: watch::Sender<()>,
     // keep this around so that we don't close the channel
@@ -71,24 +69,17 @@ where
     S: Syncer,
     W: Watcher,
 {
-    pub(crate) fn init(&mut self, cluster_exists: bool) {
+    pub(crate) fn init(&mut self ) {
         if self.am.document_mut().get_heads().is_empty() {
             self.init_document();
         }
 
-        if let Some(member_id) = self.member_id {
-            self.am
-                .document_mut()
-                .set_actor(ActorId::from(member_id.to_be_bytes()));
-        } else {
-            self.am.document_mut().set_actor(ActorId::random());
-        }
+        self.am
+            .document_mut()
+            .set_actor(ActorId::from(self.member_id.to_be_bytes()));
 
-        if !cluster_exists {
-            // new cluster (assuming we are the first node so add ourselves to the members_list)
-            self.add_member_local();
-            self.updated_self_member = true;
-        }
+        // new cluster (assuming we are the first node so add ourselves to the members_list)
+        self.add_member_local();
     }
 
     /// set up the document's initial structure
@@ -127,13 +118,16 @@ where
             .unwrap();
     }
 
-    pub fn member_id(&self) -> Option<u64> {
+    pub fn member_id(&self) -> u64 {
         self.member_id
     }
 
     pub fn set_member_id(&mut self, id: u64) {
         info!(member_id=?id, "Assumed new member_id");
-        self.member_id = Some(id);
+        self.member_id = id;
+        self.am
+            .document_mut()
+            .set_actor(ActorId::from(id.to_be_bytes()));
     }
 
     pub fn cluster_id(&self) -> u64 {
@@ -141,7 +135,7 @@ where
     }
 
     pub fn is_ready(&self) -> bool {
-        self.member_id.is_some()
+        true
     }
 
     pub fn db_size(&self) -> u64 {
@@ -157,16 +151,12 @@ where
         self.am.document_mut().get_heads()
     }
 
-    pub fn header(&self) -> crate::Result<Header> {
-        if let Some(member_id) = self.member_id {
-            let revision = self.revision() as i64;
-            Ok(Header {
-                cluster_id: self.cluster_id,
-                member_id,
-                revision,
-            })
-        } else {
-            Err(crate::Error::NotReady)
+    pub fn header(&self) -> Header {
+        let revision = self.revision() as i64;
+        Header {
+            cluster_id: self.cluster_id,
+            member_id: self.member_id,
+            revision,
         }
     }
 
@@ -211,7 +201,7 @@ where
             .unwrap();
         debug!("document changed in put");
 
-        let header = self.header()?;
+        let header = self.header();
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -249,7 +239,7 @@ where
             .unwrap();
         debug!("document changed in delete range");
 
-        let header = self.header()?;
+        let header = self.header();
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -279,7 +269,7 @@ where
                 Ok(crate::transaction::range(txn, &mut self.cache, request))
             })
             .unwrap();
-        let header = self.header()?;
+        let header = self.header();
 
         let (sender, receiver) = oneshot::channel();
         let mut flush_receiver = self.flush_notifier.subscribe();
@@ -309,7 +299,7 @@ where
                 Ok(crate::transaction::range(txn, &mut self.cache, request))
             })
             .unwrap();
-        let header = self.header()?;
+        let header = self.header();
         Ok((header, result, delete_revision))
     }
 
@@ -333,7 +323,7 @@ where
             })
             .unwrap();
 
-        let header = self.header()?;
+        let header = self.header();
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -516,11 +506,13 @@ where
                             }
                         }
                     } else if obj == self.members_objid {
-                        let member = self.get_member(
-                            rev.to_string()
-                                .parse()
-                                .map_err(|_| crate::Error::NotParseableAsId(rev.to_string()))?,
-                        );
+                        let member = self
+                            .get_member(
+                                rev.to_string()
+                                    .parse()
+                                    .map_err(|_| crate::Error::NotParseableAsId(rev.to_string()))?,
+                            )
+                            .unwrap();
                         self.syncer.member_change(&member).await;
                     } else if let Some(member_id) = self
                         .am
@@ -535,11 +527,13 @@ where
                             }
                         })
                     {
-                        let member = self.get_member(
-                            member_id
-                                .parse()
-                                .map_err(|_| crate::Error::NotParseableAsId(member_id))?,
-                        );
+                        let member = self
+                            .get_member(
+                                member_id
+                                    .parse()
+                                    .map_err(|_| crate::Error::NotParseableAsId(member_id))?,
+                            )
+                            .unwrap();
                         self.syncer.member_change(&member).await;
                     }
                 }
@@ -573,12 +567,6 @@ where
                 "got new heads after receiving sync message"
             );
             self.document_changed();
-        }
-
-        if !self.updated_self_member {
-            if let Some(member_id) = self.member_id {
-                self.try_find_member(member_id);
-            }
         }
 
         Ok(res)
@@ -675,10 +663,12 @@ where
         let document = self.am.document();
         let members_map = document.map_range(&self.members_objid, ..);
         for (id, _, _map) in members_map {
-            let member = self.get_member(
-                id.parse()
-                    .map_err(|_| crate::Error::NotParseableAsId(id.to_owned()))?,
-            );
+            let member = self
+                .get_member(
+                    id.parse()
+                        .map_err(|_| crate::Error::NotParseableAsId(id.to_owned()))?,
+                )
+                .unwrap();
             members.push(member);
         }
         Ok(members)
@@ -688,12 +678,15 @@ where
         &self.name
     }
 
-    fn get_member(&self, id: u64) -> Member {
+    pub fn member(&self) -> Member {
+        self.get_member(self.member_id).unwrap()
+    }
+
+    pub fn get_member(&self, id: u64) -> Option<Member> {
         let document = self.am.document();
         let map = document
             .get(&self.members_objid, id.to_string())
-            .unwrap()
-            .unwrap()
+            .unwrap()?
             .1;
         let name = document
             .get(&map, "name")
@@ -734,13 +727,13 @@ where
                         })
                         .collect()
                 });
-        Member {
+        Some(Member {
             name,
             id,
             peer_ur_ls: peer_urls,
             client_ur_ls: client_urls,
             is_learner: false, // unsupported
-        }
+        })
     }
 
     pub async fn add_member(&mut self, peer_urls: Vec<String>) -> Member {
@@ -771,7 +764,7 @@ where
     }
 
     fn add_member_local(&mut self) -> Member {
-        let id = self.member_id.unwrap();
+        let id = self.member_id;
         let name = self.name.clone();
         let result = self
             .am
@@ -808,20 +801,6 @@ where
         debug!("document changed in add_member_local");
         self.document_changed();
         result
-    }
-
-    fn try_find_member(&mut self, member_id: u64) {
-        info!(?member_id, "looking for ourselves in members");
-        let document = self.am.document();
-        if document
-            .get(&self.members_objid, member_id.to_string())
-            .unwrap()
-            .is_some()
-        {
-            info!(?member_id, "found ourselves in members");
-            self.add_member_local();
-            self.updated_self_member = true;
-        }
     }
 
     /// Add a lease to the document with the given ttl, returns none if the id already existed.

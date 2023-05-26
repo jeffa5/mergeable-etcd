@@ -3072,7 +3072,6 @@ async fn cluster_startup_2() {
         .with_syncer(())
         .with_name("node2".to_owned())
         .with_peer_urls(vec!["2".to_owned()])
-        .with_cluster_exists(true)
         .build();
     doc2.set_member_id(id2);
 
@@ -3190,7 +3189,6 @@ async fn cluster_startup_3() {
         .with_syncer(())
         .with_name("node2".to_owned())
         .with_peer_urls(peer_urls2.clone())
-        .with_cluster_exists(true)
         .build();
     doc2.set_member_id(id2);
 
@@ -3284,7 +3282,6 @@ async fn cluster_startup_3() {
         .with_syncer(())
         .with_name("node3".to_owned())
         .with_peer_urls(peer_urls3.clone())
-        .with_cluster_exists(true)
         .build();
     doc3.set_member_id(id3);
 

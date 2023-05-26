@@ -142,7 +142,7 @@ impl<P: DocPersister> Kv for KvServer<P> {
         // FIXME: implement compaction
         let document = self.document.lock().await;
         error!("got compaction request but not implemented");
-        let header = document.header()?;
+        let header = document.header();
 
         Ok(tonic::Response::new(
             etcd_proto::etcdserverpb::CompactionResponse {

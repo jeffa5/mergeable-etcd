@@ -1,8 +1,7 @@
 use crate::{Doc, DocPersister};
 use futures::Stream;
 use std::pin::Pin;
-use std::time::Duration;
-use tracing::{info, warn};
+use tracing::info;
 
 pub struct MaintenanceServer<P> {
     pub document: Doc<P>,
@@ -28,18 +27,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::maintenance_server::Maintenance
         let _request = request.into_inner();
 
         let document = self.document.lock().await;
-        let header = match document.header() {
-            Ok(h) => h,
-            Err(_error) => {
-                warn!("Replying unavailable to status request");
-                // delay the response so that the kubeadm retry doesn't spam us
-                // FIXME: we shouldn't need this, primarily by only allowing other connections if
-                // we already have a member id and the bits necessary to function (c.f. peer code
-                // using member list on startup)
-                tokio::time::sleep(Duration::from_millis(100)).await;
-                return Err(tonic::Status::unavailable("node not ready"));
-            }
-        };
+        let header = document.header();
         let member_id = document.member_id();
         let db_size = document.db_size();
 
@@ -49,7 +37,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::maintenance_server::Maintenance
             header: Some(header.into()),
             version: VERSION.to_owned(),
             db_size: db_size as i64,
-            leader: member_id.unwrap_or_default(),
+            leader: member_id,
             raft_index: 1,
             raft_term: 1,
             raft_applied_index: 1,
