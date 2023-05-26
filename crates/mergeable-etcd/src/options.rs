@@ -1,9 +1,8 @@
 use std::{
-    fmt::Display,
     path::{Path, PathBuf},
 };
 
-use clap::{Parser, ValueEnum};
+use clap::{Parser};
 
 use crate::{persister::PersisterDispatcher, DocPersister};
 
