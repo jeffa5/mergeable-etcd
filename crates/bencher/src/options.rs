@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
-use clap::{Parser};
+use clap::Parser;
 
 use crate::{Address, ScenarioCommands};
 

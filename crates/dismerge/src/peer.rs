@@ -1,6 +1,6 @@
 use automerge::sync;
 use mergeable_proto::etcdserverpb::Member;
-use peer_proto::SyncMessage;
+use peer_proto::{HelloRequest, HelloResponse, SyncMessage};
 use std::{
     collections::HashMap,
     fmt::Debug,
@@ -48,31 +48,53 @@ impl Debug for PeerSyncer {
 }
 
 impl PeerSyncer {
-    fn new(address: String, ca_certificate: Option<Vec<u8>>) -> Self {
+    async fn new(address: String, ca_certificate: &Option<Vec<u8>>, member: Member) -> (u64, Self) {
+        debug!(address, "Setting up peer syncer");
         let (msg_sender, mut msg_receiver) = mpsc::channel(1);
         let address_clone = address.clone();
-        tokio::spawn(async move {
-            let tls_config = ca_certificate
-                .as_ref()
-                .map(|cert| ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert)));
-            let mut channel = Channel::from_shared(address_clone.clone().into_bytes()).unwrap();
-            if let Some(tls_config) = tls_config {
-                channel = channel.tls_config(tls_config).unwrap();
-            }
-            let mut client = loop {
-                match channel.connect().await {
-                    Ok(channel) => {
-                        let client = peer_proto::peer_client::PeerClient::new(channel);
-                        info!(address=?address_clone, "Connected client");
-                        break client;
-                    }
-                    Err(err) => {
-                        debug!(address=?address_clone, %err, "Failed to connect client");
-                        tokio::time::sleep(Duration::from_millis(100)).await;
+        let tls_config = ca_certificate
+            .as_ref()
+            .map(|cert| ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert)));
+        let mut channel = Channel::from_shared(address_clone.clone().into_bytes()).unwrap();
+        if let Some(tls_config) = tls_config {
+            channel = channel.tls_config(tls_config).unwrap();
+        }
+        let (id, mut client) = loop {
+            debug!(address = address_clone, "Trying to connect to peer");
+            match channel.connect().await {
+                Ok(channel) => {
+                    let mut client = peer_proto::peer_client::PeerClient::new(channel);
+                    info!(address=?address_clone, "Connected client");
+                    let request = HelloRequest {
+                        myself: Some(peer_proto::Member {
+                            id: member.id,
+                            name: member.name.clone(),
+                            peer_ur_ls: member.peer_ur_ls.clone(),
+                            client_ur_ls: member.client_ur_ls.clone(),
+                        }),
+                    };
+                    debug!(address=?address_clone, ?request, "Sending hello");
+                    match client.hello(request).await {
+                        Ok(res) => {
+                            let res = res.into_inner();
+                            debug!(?res, "Got peer member id");
+                            break (res.themselves.unwrap().id, client);
+                        }
+                        Err(err) => {
+                            debug!(%err, "Error trying to get peer member id");
+                        }
                     }
                 }
-            };
-            debug!("Connected client, waiting on messages to send");
+                Err(err) => {
+                    warn!(address=?address_clone, %err, "Failed to connect client");
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+            }
+        };
+        debug!(address = address_clone, "Connected client");
+
+        tokio::spawn(async move {
+            debug!(address = address_clone, "Waiting on messages to send");
             loop {
                 match msg_receiver.recv().await {
                     Some(message) => {
@@ -111,7 +133,7 @@ impl PeerSyncer {
                                                 break client;
                                             }
                                             Err(err) => {
-                                                debug!(address=?address_clone, %err, "Failed to reconnect client");
+                                                warn!(address=?address_clone, %err, "Failed to reconnect client");
                                                 tokio::time::sleep(Duration::from_millis(100))
                                                     .await;
                                             }
@@ -128,10 +150,13 @@ impl PeerSyncer {
                 }
             }
         });
-        Self {
-            address,
-            sender: msg_sender,
-        }
+        (
+            id,
+            Self {
+                address,
+                sender: msg_sender,
+            },
+        )
     }
 
     pub fn send(&mut self, from: u64, to: u64, name: String, message: sync::Message) {
@@ -156,47 +181,188 @@ pub struct PeerServerInner<P, V> {
     name: String,
     // map from peer id to the syncer running for them
     connections: HashMap<u64, PeerSyncer>,
-    // map from peer name to the syncer running for them, should only be here temporarily until
-    // we discover their id
-    unknown_connections: HashMap<String, PeerSyncer>,
+    ca_certificate: Option<Vec<u8>>,
 }
 
 impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
-    fn new(
-        document: Doc<P, V>,
-        name: &str,
-        mut initial_cluster: HashMap<String, String>,
-        ca_certificate: Option<Vec<u8>>,
-    ) -> Self {
-        // remove self from initial_cluster
-        initial_cluster.remove(name);
+    async fn new(document: Doc<P, V>, name: &str, ca_certificate: Option<Vec<u8>>) -> Self {
         let connections = HashMap::new();
-        let mut unknown_connections = HashMap::new();
-        for (peer, address) in initial_cluster {
-            info!(?peer, ?address, "Adding initial cluster peer connection");
-            let syncer = PeerSyncer::new(address, ca_certificate.clone());
-            unknown_connections.insert(peer, syncer);
-        }
-        Self {
+        let s = Self {
             document,
             name: name.to_owned(),
             connections,
-            unknown_connections,
+            ca_certificate,
+        };
+        s
+    }
+
+    async fn sync_with_peer(&mut self, from_name: &str, from_id: u64, to_id: u64) {
+        debug!(?to_id, "attempting to send change");
+        let start = Instant::now();
+        debug!("Started generating sync message");
+        let syncer = self.connections.get_mut(&to_id).unwrap();
+        if let Some(message) = self
+            .document
+            .lock()
+            .await
+            .generate_sync_message(to_id)
+            .unwrap()
+        {
+            debug!(changes = ?message.changes.len(), "Sending changes");
+            syncer.send(from_id, to_id, from_name.to_owned(), message);
+        }
+        debug!("Finished generating sync message");
+        let duration = start.elapsed();
+        if duration > Duration::from_millis(100) {
+            warn!(
+                ?duration,
+                "Generating sync message (document changed) took too long"
+            )
         }
     }
 
-    pub async fn receive_message(
-        &mut self,
-        from: u64,
-        to: u64,
-        name: String,
-        message: sync::Message,
-    ) {
-        let member_id = self.document.lock().await.member_id();
+    async fn member(&self) -> Member {
+        self.document.lock().await.member()
+    }
+}
+
+pub struct PeerServer<P, V> {
+    inner: Arc<Mutex<PeerServerInner<P, V>>>,
+}
+
+impl<P, V> Clone for PeerServer<P, V> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl<P: DocPersister, V: Value> PeerServer<P, V> {
+    pub async fn new(
+        document: Doc<P, V>,
+        name: &str,
+        mut initial_cluster: HashMap<String, String>,
+        notify: Arc<tokio::sync::Notify>,
+        mut member_changed: broadcast::Receiver<Member>,
+        ca_certificate: Option<Vec<u8>>,
+    ) -> Self {
+        let inner = Arc::new(Mutex::new(
+            PeerServerInner::new(document, name, ca_certificate.clone()).await,
+        ));
+        let s = Self { inner };
+
+        // remove self from initial_cluster
+        initial_cluster.remove(name);
+        for (name, address) in initial_cluster {
+            let s = s.clone();
+            tokio::spawn(async move {
+                let name = name;
+                s.add_connection(&name, address).await
+            });
+        }
+
+        let s_clone = s.clone();
+        tokio::spawn(async move {
+            // handle changes to members in the document
+            while let Ok(member) = member_changed.recv().await {
+                // when some member changes in the document try and get the value
+                s_clone.member_changed(member).await;
+            }
+        });
+
+        let s_clone = s.clone();
+        tokio::spawn(async move {
+            // trigger a sync whenever we get a change on the document
+            loop {
+                notify.notified().await;
+                s_clone.document_changed().await;
+                tokio::time::sleep(SYNC_SLEEP_DURATION).await;
+            }
+        });
+        s
+    }
+
+    pub async fn member_changed(&self, member: Member) {
+        let inner = self.inner.lock().await;
+        // see if we have a connection to that member
+        if let Some(syncer) = inner.connections.get(&member.id) {
+            // they have the same address
+            let our_peer_address = member.peer_ur_ls.first().unwrap();
+            let us = inner.member().await;
+            let name = us.name;
+            if member.peer_ur_ls.contains(&syncer.address) {
+                // no change
+            } else if member.peer_ur_ls.contains(&our_peer_address) {
+                debug!(?name, ?member, "Skipping updated member as it is us!");
+            } else {
+                warn!(?name, ?member, ?our_peer_address, ?syncer.address, "hit update member");
+                // FIXME: should update address somehow
+            }
+        } else {
+            let s = self.clone();
+            tokio::spawn(async move {
+                let name = member.name;
+                s.add_connection(&name, member.peer_ur_ls.first().unwrap().to_owned())
+                    .await;
+            });
+        }
+    }
+
+    pub async fn document_changed(&self) {
+        let num_connections = self.inner.lock().await.connections.len();
+        debug!(connections = num_connections, "peer document changed");
+        let member = self.inner.lock().await.member().await;
+        let member_id = member.id;
+        let name = member.name;
+        let peer_ids = self
+            .inner
+            .lock()
+            .await
+            .connections
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
+        for id in peer_ids {
+            let name = name.clone();
+            let s = self.clone();
+            tokio::spawn(async move {
+                s.inner
+                    .lock()
+                    .await
+                    .sync_with_peer(&name, member_id, id)
+                    .await
+            });
+        }
+    }
+
+    /// Check whether a connection has been set up to a peer.
+    pub async fn has_connection(&self, id: &u64) -> bool {
+        self.inner.lock().await.connections.contains_key(id)
+    }
+
+    /// Add a connection, including setting up the underlying syncer.
+    pub async fn add_connection(&self, name: &str, address: String) {
+        info!(?name, ?address, "Adding peer connection");
+        let us = self.inner.lock().await.member().await;
+        let (id, syncer) =
+            PeerSyncer::new(address, &self.inner.lock().await.ca_certificate, us.clone()).await;
+        self.inner.lock().await.connections.insert(id, syncer);
+        self.inner
+            .lock()
+            .await
+            .sync_with_peer(name, us.id, id)
+            .await;
+    }
+
+    /// Receive a message from a peer, set up a reverse connection if there isn't one for them.
+    pub async fn receive_message(&self, from: u64, to: u64, name: String, message: sync::Message) {
+        let mut inner = self.inner.lock().await;
+        let member_id = inner.document.lock().await.member_id();
         debug!(?from, ?to, ?name, ?member_id, "received message");
 
         let message = {
-            let mut doc = self.document.lock().await;
+            let mut doc = inner.document.lock().await;
             let start = Instant::now();
             debug!(changes = ?message.changes.len(), "Started receiving sync message");
             doc.receive_sync_message(from, message)
@@ -216,129 +382,36 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
             }
             message
         };
+        debug!("finished message bits");
+
+        // try to connect back if we don't have a connection
+        if !inner.connections.contains_key(&from) {
+            debug!("Setting up connection");
+            let member = inner.document.lock().await.get_member(from);
+            if let Some(member) = member {
+                debug!("Initiating reverse connection");
+                let us = inner.document.lock().await.member();
+                let (id, syncer) = PeerSyncer::new(
+                    member.peer_ur_ls.first().unwrap().to_owned(),
+                    &inner.ca_certificate,
+                    us,
+                )
+                .await;
+                debug!("Setup reverse connection");
+                inner.connections.insert(id, syncer);
+                todo!("skip")
+            }
+        }
 
         if let Some(message) = message {
             debug!(changes = ?message.changes.len(), "Sending changes");
-            if let Some(connection) = self.connections.get_mut(&from) {
-                connection.send(member_id, from, self.name.clone(), message);
-            } else if let Some(mut connection) = self.unknown_connections.remove(&name) {
-                info!(
-                    ?member_id,
-                    ?from,
-                    "Upgrading connection from unknown to known"
-                );
-                connection.send(member_id, from, self.name.clone(), message);
-                self.connections.insert(from, connection);
+            let name = inner.name.clone();
+            if let Some(connection) = inner.connections.get_mut(&from) {
+                connection.send(member_id, from, name, message);
             }
+        } else {
+            debug!("No message to send");
         }
-    }
-
-    pub async fn document_changed(&mut self) {
-        debug!(
-            unknown = self.unknown_connections.len(),
-            connections = self.connections.len(),
-            "peer document changed"
-        );
-        let mut document = self.document.lock().await;
-        debug!("found some member_id in document changed");
-        for (id, syncer) in &mut self.connections {
-            debug!(?id, "attempting to send change");
-            let start = Instant::now();
-            debug!("Started generating sync message");
-            if let Some(message) = document.generate_sync_message(*id).unwrap() {
-                debug!(changes = ?message.changes.len(), "Sending changes");
-                syncer.send(document.member_id(), *id, self.name.clone(), message);
-            }
-            debug!("Finished generating sync message");
-            let duration = start.elapsed();
-            if duration > Duration::from_millis(100) {
-                warn!(
-                    ?duration,
-                    "Generating sync message (document changed) took too long"
-                )
-            }
-        }
-        for (name, syncer) in &mut self.unknown_connections {
-            debug!(?name, "attempting to send change to unknown connection");
-            // try and initiate a connection from the peer
-            syncer.send(
-                document.member_id(),
-                0,
-                self.name.clone(),
-                sync::Message {
-                    heads: vec![],
-                    need: vec![],
-                    have: vec![],
-                    changes: vec![],
-                },
-            );
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct PeerServer<P, V> {
-    inner: Arc<Mutex<PeerServerInner<P, V>>>,
-}
-
-impl<P: DocPersister, V: Value> PeerServer<P, V> {
-    pub fn new(
-        document: Doc<P, V>,
-        name: &str,
-        initial_cluster: HashMap<String, String>,
-        notify: Arc<tokio::sync::Notify>,
-        mut member_changed: broadcast::Receiver<Member>,
-        ca_certificate: Option<Vec<u8>>,
-        our_peer_address: String,
-    ) -> Self {
-        let inner = Arc::new(Mutex::new(PeerServerInner::new(
-            document,
-            name,
-            initial_cluster,
-            ca_certificate.clone(),
-        )));
-
-        let inner_clone = Arc::clone(&inner);
-
-        let name = name.to_owned();
-        tokio::spawn(async move {
-            // handle changes to members in the document
-            loop {
-                while let Ok(member) = member_changed.recv().await {
-                    // when some member changes in the document try and get the value
-                    let mut inner = inner_clone.lock().await;
-
-                    // see if we have a connection to that member
-                    if let Some(syncer) = inner.connections.get(&member.id) {
-                        // they have the same address
-                        if member.peer_ur_ls.contains(&syncer.address) {
-                            // no change
-                        } else if member.peer_ur_ls.contains(&our_peer_address) {
-                            debug!(?name, ?member, "Skipping updated member as it is us!");
-                        } else {
-                            warn!(?name, ?member, ?our_peer_address, ?syncer.address, "hit update member");
-                            // FIXME: should update address somehow
-                        }
-                    } else {
-                        let address = member.peer_ur_ls.first().unwrap();
-                        info!(?name, id=?member.id, ?address, "Adding connection to member after member change");
-                        let syncer = PeerSyncer::new(address.clone(), ca_certificate.clone());
-                        inner.connections.insert(member.id, syncer);
-                    }
-                }
-            }
-        });
-
-        let inner_clone = Arc::clone(&inner);
-        tokio::spawn(async move {
-            // trigger a sync whenever we get a change on the document
-            loop {
-                notify.notified().await;
-                inner_clone.lock().await.document_changed().await;
-                tokio::time::sleep(SYNC_SLEEP_DURATION).await;
-            }
-        });
-        Self { inner }
     }
 }
 
@@ -368,23 +441,36 @@ where
             data,
         } = request.into_inner();
         let message = sync::Message::decode(&data).unwrap();
-        self.inner
-            .lock()
-            .await
-            .receive_message(from, to, name, message)
-            .await;
+        self.receive_message(from, to, name, message).await;
 
         Ok(tonic::Response::new(peer_proto::Empty {}))
     }
 
-    async fn get_member_id(
+    async fn hello(
         &self,
-        request: tonic::Request<peer_proto::Empty>,
-    ) -> Result<tonic::Response<peer_proto::GetMemberIdResponse>, tonic::Status> {
-        let _request = request.into_inner();
-        let member_id = self.inner.lock().await.document.lock().await.member_id();
-        Ok(tonic::Response::new(peer_proto::GetMemberIdResponse {
-            id: member_id,
+        request: tonic::Request<HelloRequest>,
+    ) -> Result<tonic::Response<HelloResponse>, tonic::Status> {
+        let request = request.into_inner();
+        debug!(?request, "HELLO from peer");
+        let them = request.myself.unwrap();
+        let us = self.inner.lock().await.member().await;
+        let s = self.clone();
+        if !self.has_connection(&them.id).await {
+            debug!(them.id, "Creating new connection from hello");
+            tokio::spawn(async move {
+                s.add_connection(&them.name, them.peer_ur_ls.first().unwrap().to_owned())
+                    .await;
+            });
+        } else {
+            debug!(them.id, "Already have a connection");
+        }
+        Ok(tonic::Response::new(HelloResponse {
+            themselves: Some(peer_proto::Member {
+                id: us.id,
+                name: us.name,
+                peer_ur_ls: us.peer_ur_ls,
+                client_ur_ls: us.client_ur_ls,
+            }),
         }))
     }
 

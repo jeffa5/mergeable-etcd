@@ -42,6 +42,14 @@ message MemberListResponse {
   repeated Member members = 2;
 }
 
+message HelloRequest {
+  Member myself = 1;
+}
+
+message HelloResponse {
+  Member themselves = 1;
+}
+
 service Peer {
   // Sync accepts many sync messages.
   rpc Sync(stream SyncMessage) returns (Empty) { }
@@ -49,9 +57,9 @@ service Peer {
   // SyncOne accepts a single sync message.
   rpc SyncOne(SyncMessage) returns (Empty) { }
 
-  // gets the members id (for use as a sync peer id)
-  rpc GetMemberID(Empty) returns (GetMemberIDResponse) {}
-
   // MemberList lists all the members in the cluster.
   rpc MemberList(MemberListRequest) returns (MemberListResponse) {}
+
+  // Say hello to a node with information about yourself.
+  rpc Hello(HelloRequest) returns (HelloResponse) {}
 }

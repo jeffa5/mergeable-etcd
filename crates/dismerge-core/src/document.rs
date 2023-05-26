@@ -115,6 +115,8 @@ where
                 Ok(())
             })
             .unwrap();
+        let heads = self.am.document().get_heads();
+        debug!(?heads, "Initialised document");
     }
 
     pub fn member_id(&self) -> u64 {
@@ -441,11 +443,13 @@ where
                         };
                         self.watcher.publish_event(self.header(), event).await;
                     } else if obj == self.members_objid {
-                        let member = self.get_member(
-                            key.to_string()
-                                .parse()
-                                .map_err(|_| crate::Error::NotParseableAsId(key.to_string()))?,
-                        );
+                        let member = self
+                            .get_member(
+                                key.to_string()
+                                    .parse()
+                                    .map_err(|_| crate::Error::NotParseableAsId(key.to_string()))?,
+                            )
+                            .unwrap();
                         self.syncer.member_change(&member).await;
                     } else if let Some(member_id) = self
                         .am
@@ -460,11 +464,13 @@ where
                             }
                         })
                     {
-                        let member = self.get_member(
-                            member_id
-                                .parse()
-                                .map_err(|_| crate::Error::NotParseableAsId(member_id))?,
-                        );
+                        let member = self
+                            .get_member(
+                                member_id
+                                    .parse()
+                                    .map_err(|_| crate::Error::NotParseableAsId(member_id))?,
+                            )
+                            .unwrap();
                         self.syncer.member_change(&member).await;
                     }
                 }
@@ -628,10 +634,12 @@ where
         let document = self.am.document();
         let members_map = document.map_range(&self.members_objid, ..);
         for (id, _, _map) in members_map {
-            let member = self.get_member(
-                id.parse()
-                    .map_err(|_| crate::Error::NotParseableAsId(id.to_owned()))?,
-            );
+            let member = self
+                .get_member(
+                    id.parse()
+                        .map_err(|_| crate::Error::NotParseableAsId(id.to_owned()))?,
+                )
+                .unwrap();
             members.push(member);
         }
         Ok(members)
@@ -641,12 +649,15 @@ where
         &self.name
     }
 
-    fn get_member(&self, id: u64) -> Member {
+    pub fn member(&self) -> Member {
+        self.get_member(self.member_id).unwrap()
+    }
+
+    pub fn get_member(&self, id: u64) -> Option<Member> {
         let document = self.am.document();
         let map = document
             .get(&self.members_objid, id.to_string())
-            .unwrap()
-            .unwrap()
+            .unwrap()?
             .1;
         let name = document
             .get(&map, "name")
@@ -687,13 +698,13 @@ where
                         })
                         .collect()
                 });
-        Member {
+        Some(Member {
             name,
             id,
             peer_ur_ls: peer_urls,
             client_ur_ls: client_urls,
             is_learner: false, // unsupported
-        }
+        })
     }
 
     /// Add a cluster member with the given peer urls to connect to.

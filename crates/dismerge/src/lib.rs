@@ -21,13 +21,9 @@ use std::time::Instant;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
-use tonic::transport::Certificate;
-use tonic::transport::Channel;
-use tonic::transport::ClientTlsConfig;
 use tonic::transport::Identity;
 use tonic::transport::ServerTlsConfig;
 use tower::ServiceBuilder;
-use tracing::debug;
 use tracing::error;
 use tracing::info;
 use tracing::warn;
@@ -139,94 +135,6 @@ where
     };
 
     let initial_cluster = peer::split_initial_cluster(&initial_cluster);
-
-    let ca_cert = if !peer_key_file.is_empty() && !peer_cert_file.is_empty() {
-        let ca_cert = tokio::fs::read(&peer_trusted_ca_file)
-            .await
-            .expect("failed to read peer ca cert");
-        Some(ca_cert)
-    } else {
-        None
-    };
-    // go through initial cluster and find the list of current members with us in
-    'outer: for (peer, address) in &initial_cluster {
-        if peer == &name {
-            // skip ourselves
-            continue;
-        }
-        let address_clone = address.clone();
-        let tls_config =
-            ca_cert.map(|cert| ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert)));
-        let mut channel = Channel::from_shared(address.clone().into_bytes()).unwrap();
-        if let Some(tls_config) = tls_config {
-            channel = channel.tls_config(tls_config).unwrap();
-        }
-        let mut client = loop {
-            match channel.connect().await {
-                Ok(channel) => {
-                    let client = peer_proto::peer_client::PeerClient::new(channel);
-                    info!(address=?address_clone, "Connected client");
-                    break client;
-                }
-                Err(err) => {
-                    debug!(address=?address_clone, %err, "Failed to connect client");
-                    tokio::time::sleep(Duration::from_millis(100)).await;
-                }
-            }
-        };
-        debug!("Connected client, waiting on messages to send");
-        loop {
-            // Try and send the message, retrying if it fails
-            let mut retry_wait = Duration::from_millis(1);
-            let retry_max = Duration::from_secs(5);
-
-            for _ in 0..5 {
-                match client.member_list(peer_proto::MemberListRequest {}).await {
-                    Ok(list) => {
-                        let list = list.into_inner();
-                        for member in list.members {
-                            for our_peer_url in &listen_peer_urls {
-                                if member.peer_ur_ls.contains(our_peer_url) {
-                                    // found our peer!
-                                    let member_id = member.id;
-                                    document.lock().await.set_member_id(member_id);
-                                    info!(?member_id, "Set member id from member list");
-                                    break 'outer;
-                                }
-                            }
-                        }
-                        debug!(address=?address_clone, "Sent message to client");
-                        break;
-                    }
-                    Err(error) => {
-                        // don't race into the next request
-                        tokio::time::sleep(retry_wait).await;
-
-                        // exponential backoff
-                        retry_wait *= 2;
-                        // but don't let it get too high!
-                        retry_wait = std::cmp::min(retry_wait, retry_max);
-
-                        warn!(%error, ?retry_wait, address=?address_clone, "Got error asking for member list");
-                        // had an error, reconnect the client
-                        client = loop {
-                            match channel.connect().await {
-                                Ok(channel) => {
-                                    let client = peer_proto::peer_client::PeerClient::new(channel);
-                                    info!(address=?address_clone, "Reconnected client");
-                                    break client;
-                                }
-                                Err(err) => {
-                                    debug!(address=?address_clone, %err, "Failed to reconnect client");
-                                    tokio::time::sleep(Duration::from_millis(100)).await;
-                                }
-                            }
-                        };
-                    }
-                }
-            }
-        }
-    }
 
     let mut metrics_servers = Vec::new();
     for address in listen_metrics_urls {
@@ -431,8 +339,8 @@ async fn start_peer_server<P: DocPersister, V: Value>(
         notify,
         member_changed_receiver,
         ca_cert,
-        address.clone(),
-    );
+    )
+    .await;
     info!(?address, "Starting peer server");
     tokio::spawn(async move {
         let mut builder = tonic::transport::Server::builder();
