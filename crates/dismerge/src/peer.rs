@@ -48,7 +48,12 @@ impl Debug for PeerSyncer {
 }
 
 impl PeerSyncer {
-    async fn new(address: String, ca_certificate: &Option<Vec<u8>>, member: Member) -> (u64, Self) {
+    async fn new(
+        address: String,
+        ca_certificate: &Option<Vec<u8>>,
+        member: Member,
+        their_id: Option<u64>,
+    ) -> (u64, Self) {
         debug!(address, "Setting up peer syncer");
         let (msg_sender, mut msg_receiver) = mpsc::channel(1);
         let address_clone = address.clone();
@@ -65,6 +70,11 @@ impl PeerSyncer {
                 Ok(channel) => {
                     let mut client = peer_proto::peer_client::PeerClient::new(channel);
                     info!(address=?address_clone, "Connected client");
+                    // if we already know who they are then don't worry about finding out
+                    if let Some(their_id) = their_id {
+                        break (their_id, client);
+                    }
+                    // otherwise introduce ourselves
                     let request = HelloRequest {
                         myself: Some(peer_proto::Member {
                             id: member.id,
@@ -108,7 +118,7 @@ impl PeerSyncer {
                         loop {
                             match client.sync_one(message.clone()).await {
                                 Ok(_) => {
-                                    debug!(address=?address_clone, "Sent message to client");
+                                    debug!(address=?address_clone, "Sent sync message to client");
                                     break;
                                 }
                                 Err(error) => {
@@ -196,6 +206,7 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
         s
     }
 
+    #[tracing::instrument(skip(self))]
     async fn sync_with_peer(&mut self, from_name: &str, from_id: u64, to_id: u64) {
         debug!(?to_id, "attempting to send change");
         let start = Instant::now();
@@ -254,11 +265,13 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
 
         // remove self from initial_cluster
         initial_cluster.remove(name);
+        let our_id = s.inner.lock().await.member().await.id;
         for (name, address) in initial_cluster {
             let s = s.clone();
             tokio::spawn(async move {
                 let name = name;
-                s.add_connection(&name, address).await
+                let id = s.add_connection(&name, address, None).await;
+                s.inner.lock().await.sync_with_peer(&name, our_id, id).await;
             });
         }
 
@@ -303,8 +316,12 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
             let s = self.clone();
             tokio::spawn(async move {
                 let name = member.name;
-                s.add_connection(&name, member.peer_ur_ls.first().unwrap().to_owned())
-                    .await;
+                s.add_connection(
+                    &name,
+                    member.peer_ur_ls.first().unwrap().to_owned(),
+                    Some(member.id),
+                )
+                .await;
             });
         }
     }
@@ -342,20 +359,19 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
     }
 
     /// Add a connection, including setting up the underlying syncer.
-    pub async fn add_connection(&self, name: &str, address: String) {
-        info!(?name, ?address, "Adding peer connection");
+    #[tracing::instrument(skip(self))]
+    pub async fn add_connection(&self, name: &str, address: String, their_id: Option<u64>) -> u64 {
+        info!("Started adding peer connection");
         let us = self.inner.lock().await.member().await;
-        let (id, syncer) =
-            PeerSyncer::new(address, &self.inner.lock().await.ca_certificate, us.clone()).await;
+        let ca_cert = self.inner.lock().await.ca_certificate.clone();
+        let (id, syncer) = PeerSyncer::new(address.clone(), &ca_cert, us.clone(), their_id).await;
         self.inner.lock().await.connections.insert(id, syncer);
-        self.inner
-            .lock()
-            .await
-            .sync_with_peer(name, us.id, id)
-            .await;
+        info!("Finished adding peer connection");
+        id
     }
 
     /// Receive a message from a peer, set up a reverse connection if there isn't one for them.
+    #[tracing::instrument(skip(self, message))]
     pub async fn receive_message(&self, from: u64, to: u64, name: String, message: sync::Message) {
         let mut inner = self.inner.lock().await;
         let member_id = inner.document.lock().await.member_id();
@@ -395,11 +411,13 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
                     member.peer_ur_ls.first().unwrap().to_owned(),
                     &inner.ca_certificate,
                     us,
+                    Some(from),
                 )
                 .await;
                 debug!("Setup reverse connection");
                 inner.connections.insert(id, syncer);
-                todo!("skip")
+            } else {
+                debug!("no member");
             }
         }
 
@@ -408,6 +426,8 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
             let name = inner.name.clone();
             if let Some(connection) = inner.connections.get_mut(&from) {
                 connection.send(member_id, from, name, message);
+            } else {
+                debug!("no connection to send to");
             }
         } else {
             debug!("No message to send");
@@ -430,22 +450,26 @@ where
         Ok(tonic::Response::new(peer_proto::Empty {}))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn sync_one(
         &self,
         request: tonic::Request<SyncMessage>,
     ) -> Result<tonic::Response<peer_proto::Empty>, tonic::Status> {
+        let request = request.into_inner();
+        debug!(?request, "SYNC_ONE from peer");
         let SyncMessage {
             from,
             to,
             name,
             data,
-        } = request.into_inner();
+        } = request;
         let message = sync::Message::decode(&data).unwrap();
         self.receive_message(from, to, name, message).await;
 
         Ok(tonic::Response::new(peer_proto::Empty {}))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn hello(
         &self,
         request: tonic::Request<HelloRequest>,
@@ -457,10 +481,12 @@ where
         let s = self.clone();
         if !self.has_connection(&them.id).await {
             debug!(them.id, "Creating new connection from hello");
-            tokio::spawn(async move {
-                s.add_connection(&them.name, them.peer_ur_ls.first().unwrap().to_owned())
-                    .await;
-            });
+            s.add_connection(
+                &them.name,
+                them.peer_ur_ls.first().unwrap().to_owned(),
+                Some(them.id),
+            )
+            .await;
         } else {
             debug!(them.id, "Already have a connection");
         }
