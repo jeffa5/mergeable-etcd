@@ -69,7 +69,7 @@ where
     S: Syncer,
     W: Watcher,
 {
-    pub(crate) fn init(&mut self ) {
+    pub(crate) fn init(&mut self) {
         if self.am.document_mut().get_heads().is_empty() {
             self.init_document();
         }
@@ -409,7 +409,9 @@ where
                     expose: _,
                 } => {
                     if conflict {
-                        self.deep_merge(&obj, Prop::Map(rev.clone()));
+                        if obj == self.kvs_objid {
+                            self.deep_merge_key(&obj, Prop::Map(rev.clone()));
+                        }
                     }
 
                     // see if this is a change in the revs of a key
@@ -618,7 +620,8 @@ where
         debug!("Finished refreshing revision cache");
     }
 
-    fn deep_merge(&mut self, obj: &ObjId, key: Prop) {
+    /// Merge two conflicted key objects, mainly merging revision histories.
+    fn deep_merge_key(&mut self, obj: &ObjId, key: Prop) {
         // TODO: check it is for a kv object and handle case of no revisions (should exist)
         self.am
             .transact::<_, _, AutomergeError>(|txn| {

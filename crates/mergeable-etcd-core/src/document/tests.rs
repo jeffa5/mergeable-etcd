@@ -2016,7 +2016,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         Header {
             cluster_id,
             member_id: id1,
-            revision: 4
+            revision: 3
         }
     );
 
@@ -2038,14 +2038,14 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         Header {
             cluster_id,
             member_id: id2,
-            revision: 4
+            revision: 3
         }
     );
     doc2.lock().await.dump_key(&key);
     doc1.lock().await.dump_key(&key);
 
-    assert_eq!(doc1.lock().await.revision(), 4);
-    assert_eq!(doc2.lock().await.revision(), 4);
+    assert_eq!(doc1.lock().await.revision(), 3);
+    assert_eq!(doc2.lock().await.revision(), 3);
 
     // should now be in sync, doc1 should win because it created the value with a higher
     // revision
@@ -2069,7 +2069,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         Header {
             cluster_id,
             member_id: id2,
-            revision: 4
+            revision: 3
         }
     );
     assert_eq!(
