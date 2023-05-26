@@ -443,10 +443,7 @@ where
                             // delete occurred
                             let revision = *delete_revisions.get(&key).unwrap();
                             // only send a response if this patch is for a most recent value
-                            if rev
-                                .to_string()
-                                .parse::<u64>()
-                                .map_err(|_| crate::Error::NotParseableAsId(rev.to_string()))?
+                            if parse_revision_string(&rev)
                                 >= revision
                             {
                                 let (_header, past_response, _) =
@@ -478,12 +475,10 @@ where
                         } else {
                             // only send a response if this patch is for a most recent value
 
-                            if rev
-                                .to_string()
-                                .parse::<u64>()
-                                .map_err(|_| crate::Error::NotParseableAsId(rev.to_string()))?
-                                >= response.values.first().unwrap().mod_revision
-                            {
+                            let modified_rev = parse_revision_string(&rev);
+                            let biggest_rev = response.values.first().unwrap().mod_revision;
+                            dbg!(modified_rev, biggest_rev);
+                            if modified_rev >= biggest_rev {
                                 // put occurred
                                 let (_header, past_response, _) =
                                     self.range_or_delete_revision(RangeRequest {

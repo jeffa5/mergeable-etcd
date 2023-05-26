@@ -40,7 +40,6 @@ mod persister;
 mod replication;
 mod watch;
 
-pub use options::ClusterState;
 pub use options::Options;
 
 type DocInner<P, V> = Document<P, DocumentChangedSyncer, watch::MyWatcher<V>, V>;
@@ -66,7 +65,6 @@ where
         advertise_client_urls,
         initial_advertise_peer_urls,
         initial_cluster,
-        initial_cluster_state,
         cert_file,
         client_cert_auth: _,
         key_file,
@@ -110,11 +108,11 @@ where
         .with_name(name.clone())
         .with_peer_urls(initial_advertise_peer_urls.clone())
         .with_client_urls(advertise_client_urls.clone());
-    if matches!(initial_cluster_state, ClusterState::New) {
-        let id = rand::random();
-        info!(?id, "Setting member id");
-        document = document.with_member_id(id);
-    }
+
+    let id = rand::random();
+    info!(?id, "Setting member id");
+    document = document.with_member_id(id);
+
     info!("Doing actual build");
     let document = document.build();
     info!(member_id=?document.member_id(), "Built document");

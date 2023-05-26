@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use automerge::op_observer::HasPatches;
 use automerge::ReadDoc;
 use automerge::{
-    sync, transaction::Transactable, ActorId, AutomergeError, ChangeHash, ObjId, ObjType, Prop,
+    sync, transaction::Transactable, ActorId, AutomergeError, ChangeHash, ObjId, ObjType,
     ScalarValue, VecOpObserver, ROOT,
 };
 use automerge_persistent::Persister;
@@ -587,46 +587,6 @@ where
             replication_states.insert(member_id, they_have_the_heads);
         }
         replication_states
-    }
-
-    fn deep_merge(&mut self, obj: &ObjId, key: Prop) {
-        // TODO: check it is for a kv object and handle case of no revisions (should exist)
-        self.am
-            .transact::<_, _, AutomergeError>(|txn| {
-                let conflicting_values: Vec<_> = txn
-                    .get_all(obj, key)
-                    .unwrap()
-                    .into_iter()
-                    .map(|(_, id)| id)
-                    .collect();
-
-                let key_obj_winner = conflicting_values.last().unwrap().clone();
-                if let Some((_, revs_obj_winner)) = txn.get(&key_obj_winner, "revs").unwrap() {
-                    for key_obj in conflicting_values {
-                        if key_obj != key_obj_winner {
-                            let revs_objs = txn.get_all(&key_obj, "revs").unwrap();
-                            assert_eq!(revs_objs.len(), 1, "revs_objs should not have conflicts");
-                            let revs_obj = revs_objs.last().unwrap().1.clone();
-                            let values: Vec<_> = txn
-                                .map_range(revs_obj, ..)
-                                .map(|(rev, value, _)| (rev.to_owned(), value.to_owned()))
-                                .collect();
-                            for (rev, value) in values {
-                                if txn.get(&revs_obj_winner, &rev).unwrap().is_none() {
-                                    // not already in the winning object
-                                    txn.put(&revs_obj_winner, rev, value.into_scalar().unwrap())
-                                        .unwrap();
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    warn!(?key_obj_winner, "didn't find revs in key_obj_winner");
-                }
-
-                Ok(())
-            })
-            .unwrap();
     }
 
     pub fn list_members(&self) -> crate::Result<Vec<Member>> {

@@ -2816,7 +2816,7 @@ async fn sync_two_documents_trigger_watches() {
             Header {
                 cluster_id,
                 member_id: 2,
-                revision: 4
+                revision: 3
             },
             WatchEvent {
                 typ: crate::watcher::WatchEventType::Put,
@@ -2833,40 +2833,10 @@ async fn sync_two_documents_trigger_watches() {
         ))
     );
 
-    // assert_eq!(
-    //     receiver2.try_recv(),
-    //     Ok((
-    //         Header {
-    //             cluster_id,
-    //             member_id: 2,
-    //             revision: 4
-    //         },
-    //         WatchEvent {
-    //             typ: crate::watcher::WatchEventType::Put,
-    //             kv: KeyValue {
-    //                 key: key1.clone(),
-    //                 value: value1.clone(),
-    //                 create_revision: 2,
-    //                 mod_revision: 3,
-    //                 version: 2,
-    //                 lease: None
-    //             },
-    //             prev_kv: Some(KeyValue {
-    //                 key: key1.clone(),
-    //                 value: value2.clone(),
-    //                 create_revision: 2,
-    //                 mod_revision: 2,
-    //                 version: 1,
-    //                 lease: None
-    //             }),
-    //         }
-    //     ))
-    // );
-
     assert_eq!(receiver2.try_recv(), Err(TryRecvError::Empty));
 
-    assert_eq!(doc1.lock().await.revision(), 4);
-    assert_eq!(doc2.lock().await.revision(), 4);
+    assert_eq!(doc1.lock().await.revision(), 3);
+    assert_eq!(doc2.lock().await.revision(), 3);
 
     doc1.lock()
         .await
@@ -2891,7 +2861,7 @@ async fn sync_two_documents_trigger_watches() {
             Header {
                 cluster_id,
                 member_id: id1,
-                revision: 5
+                revision: 4
             },
             WatchEvent {
                 typ: crate::watcher::WatchEventType::Delete,
@@ -2899,7 +2869,7 @@ async fn sync_two_documents_trigger_watches() {
                     key: key1.clone(),
                     value: Vec::new(),
                     create_revision: 0,
-                    mod_revision: 5,
+                    mod_revision: 4,
                     version: 0,
                     lease: None
                 },
@@ -2946,7 +2916,7 @@ async fn sync_two_documents_trigger_watches() {
             Header {
                 cluster_id,
                 member_id: id2,
-                revision: 6
+                revision: 4
             },
             WatchEvent {
                 typ: crate::watcher::WatchEventType::Delete,
@@ -2954,7 +2924,7 @@ async fn sync_two_documents_trigger_watches() {
                     key: key1.clone(),
                     value: Vec::new(),
                     create_revision: 0,
-                    mod_revision: 5,
+                    mod_revision: 4,
                     version: 0,
                     lease: None
                 },
@@ -2980,48 +2950,13 @@ async fn start_with_ourselves_as_member() {
 }
 
 #[tokio::test]
-async fn add_other_member() {
-    let mut doc = DocumentBuilder::default().build();
-    assert_eq!(
-        doc.list_members().unwrap(),
-        vec![Member {
-            id: 1,
-            name: "default".to_owned(),
-            peer_ur_ls: vec![],
-            client_ur_ls: vec![],
-            is_learner: false
-        }]
-    );
-
-    let member = doc.add_member(vec![]).await;
-    assert_eq!(
-        doc.list_members().unwrap(),
-        vec![
-            Member {
-                id: 1,
-                name: "default".to_owned(),
-                peer_ur_ls: vec![],
-                client_ur_ls: vec![],
-                is_learner: false
-            },
-            Member {
-                id: member.id,
-                name: "".to_owned(),
-                peer_ur_ls: vec![],
-                client_ur_ls: vec![],
-                is_learner: false
-            }
-        ]
-    );
-}
-
-#[tokio::test]
 async fn cluster_startup_2() {
     let id1 = 1;
+    let id2 = 2;
     let cluster_id = 1;
 
     // new node is stood up
-    let mut doc1 = DocumentBuilder::default()
+    let doc1 = DocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -3040,42 +2975,28 @@ async fn cluster_startup_2() {
         }]
     );
 
-    // another node wants to join the cluster so we add it first on the existing node
-    let id2 = doc1.add_member(vec![]).await.id;
-
-    assert_eq!(
-        doc1.list_members().unwrap(),
-        vec![
-            Member {
-                id: id1,
-                name: "node1".to_owned(),
-                peer_ur_ls: vec!["1".to_owned()],
-                client_ur_ls: vec![],
-                is_learner: false
-            },
-            Member {
-                id: id2,
-                name: "".to_owned(),
-                peer_ur_ls: vec![],
-                client_ur_ls: vec![],
-                is_learner: false
-            }
-        ]
-    );
-
     let doc1 = Arc::new(Mutex::new(doc1));
 
     // then it starts with the id given from the existing cluster node
-    let mut doc2 = DocumentBuilder::default()
+    let doc2 = DocumentBuilder::default()
         .with_in_memory()
         .with_cluster_id(cluster_id)
+        .with_member_id(id2)
         .with_syncer(())
         .with_name("node2".to_owned())
         .with_peer_urls(vec!["2".to_owned()])
         .build();
-    doc2.set_member_id(id2);
 
-    assert_eq!(doc2.list_members().unwrap(), vec![]);
+    assert_eq!(
+        doc2.list_members().unwrap(),
+        vec![Member {
+            id: id2,
+            name: "node2".to_owned(),
+            peer_ur_ls: vec!["2".to_owned()],
+            client_ur_ls: vec![],
+            is_learner: false
+        }]
+    );
 
     let doc2 = Arc::new(Mutex::new(doc2));
 
@@ -3131,6 +3052,8 @@ async fn cluster_startup_2() {
 #[test(tokio::test)]
 async fn cluster_startup_3() {
     let id1 = 1;
+    let id2 = 2;
+    let id3 = 3;
     let cluster_id = 1;
 
     let peer_urls1 = vec!["1".to_owned()];
@@ -3138,7 +3061,7 @@ async fn cluster_startup_3() {
     let peer_urls3 = vec!["3".to_owned()];
 
     // new node is stood up
-    let mut doc1 = DocumentBuilder::default()
+    let doc1 = DocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -3157,42 +3080,28 @@ async fn cluster_startup_3() {
         }]
     );
 
-    // another node wants to join the cluster so we add it first on the existing node
-    let id2 = doc1.add_member(peer_urls2.clone()).await.id;
-
-    assert_eq!(
-        doc1.list_members().unwrap(),
-        vec![
-            Member {
-                id: id1,
-                name: "node1".to_owned(),
-                peer_ur_ls: peer_urls1.clone(),
-                client_ur_ls: vec![],
-                is_learner: false
-            },
-            Member {
-                id: id2,
-                name: "".to_owned(),
-                peer_ur_ls: peer_urls2.clone(),
-                client_ur_ls: vec![],
-                is_learner: false
-            }
-        ]
-    );
-
     let doc1 = Arc::new(Mutex::new(doc1));
 
     // then it starts with the id given from the existing cluster node
-    let mut doc2 = DocumentBuilder::default()
+    let doc2 = DocumentBuilder::default()
         .with_in_memory()
         .with_cluster_id(cluster_id)
+        .with_member_id(id2)
         .with_syncer(())
         .with_name("node2".to_owned())
         .with_peer_urls(peer_urls2.clone())
         .build();
-    doc2.set_member_id(id2);
 
-    assert_eq!(doc2.list_members().unwrap(), vec![]);
+    assert_eq!(
+        doc2.list_members().unwrap(),
+        vec![Member {
+            id: id2,
+            name: "node2".to_owned(),
+            peer_ur_ls: peer_urls2.clone(),
+            client_ur_ls: vec![],
+            is_learner: false
+        }]
+    );
 
     let doc2 = Arc::new(Mutex::new(doc2));
 
@@ -3244,9 +3153,6 @@ async fn cluster_startup_3() {
         ]
     );
 
-    // another node wants to join the cluster so we add it first on the existing node
-    let id3 = doc1.lock().await.add_member(peer_urls3.clone()).await.id;
-
     let mut members = doc1.lock().await.list_members().unwrap();
     members.sort_by_key(|m| m.id);
     let mut result = vec![
@@ -3264,28 +3170,30 @@ async fn cluster_startup_3() {
             client_ur_ls: vec![],
             is_learner: false,
         },
-        Member {
-            id: id3,
-            name: "".to_owned(),
-            peer_ur_ls: peer_urls3.clone(),
-            client_ur_ls: vec![],
-            is_learner: false,
-        },
     ];
     result.sort_by_key(|m| m.id);
     assert_eq!(members, result);
 
     // then it starts with the id given from the existing cluster node
-    let mut doc3 = DocumentBuilder::default()
+    let doc3 = DocumentBuilder::default()
         .with_in_memory()
         .with_cluster_id(cluster_id)
+        .with_member_id(id3)
         .with_syncer(())
         .with_name("node3".to_owned())
         .with_peer_urls(peer_urls3.clone())
         .build();
-    doc3.set_member_id(id3);
 
-    assert_eq!(doc3.list_members().unwrap(), vec![]);
+    assert_eq!(
+        doc3.list_members().unwrap(),
+        vec![Member {
+            id: id3,
+            name: "node3".to_owned(),
+            peer_ur_ls: peer_urls3.clone(),
+            client_ur_ls: vec![],
+            is_learner: false,
+        }]
+    );
 
     let doc3 = Arc::new(Mutex::new(doc3));
 

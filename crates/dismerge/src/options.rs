@@ -7,27 +7,6 @@ use clap::{Parser, ValueEnum};
 
 use crate::{persister::PersisterDispatcher, DocPersister};
 
-#[derive(Debug, Clone, ValueEnum)]
-pub enum ClusterState {
-    New,
-    Existing,
-}
-
-impl Default for ClusterState {
-    fn default() -> Self {
-        ClusterState::New
-    }
-}
-
-impl Display for ClusterState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ClusterState::New => write!(f, "new"),
-            ClusterState::Existing => write!(f, "existing"),
-        }
-    }
-}
-
 #[derive(Debug, Parser)]
 pub struct Options {
     #[clap(long, default_value = "default")]
@@ -69,9 +48,6 @@ pub struct Options {
 
     #[clap(long, default_value = "100000")]
     pub snapshot_count: u32,
-
-    #[clap(long, default_value_t)]
-    pub initial_cluster_state: ClusterState,
 
     /// How frequently to trigger a db flush.
     ///
@@ -119,7 +95,6 @@ impl Default for Options {
             peer_trusted_ca_file: Default::default(),
             peer_client_cert_auth: Default::default(),
             snapshot_count: Default::default(),
-            initial_cluster_state: Default::default(),
             flush_interval_ms: 10,
             log_filter: None,
             no_colour: false,
