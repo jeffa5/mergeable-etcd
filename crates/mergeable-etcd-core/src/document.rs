@@ -347,6 +347,13 @@ where
         Ok(receiver)
     }
 
+    /// Print out the entire document.
+    pub fn dump(&self) {
+        let serializable = automerge::AutoSerde::from(self.am.document());
+        let string = serde_json::to_string_pretty(&serializable).unwrap();
+        println!("{}", string);
+    }
+
     /// Print the document's contents to stdout
     pub fn dump_json(&mut self) {
         self.am.document_mut().dump()
