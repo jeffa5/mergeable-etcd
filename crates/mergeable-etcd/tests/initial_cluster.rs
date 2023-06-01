@@ -18,7 +18,7 @@ use tracing::info;
 
 use etcd_proto::etcdserverpb::{MemberAddRequest, PutRequest, RangeRequest, RangeResponse};
 
-static BASE_PORT: AtomicU32 = AtomicU32::new(2379);
+static BASE_PORT: AtomicU32 = AtomicU32::new(3379);
 const CERT_FILE: &str = "../../certs/server.crt";
 const KEY_FILE: &str = "../../certs/server.key";
 const CA_FILE: &str = "../../certs/ca.pem";
