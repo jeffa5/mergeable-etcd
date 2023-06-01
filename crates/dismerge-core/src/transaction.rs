@@ -38,7 +38,7 @@ pub fn extract_key_value<R: ReadDoc, V: Value>(
         .unwrap()
         .unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap_or(ChangeHash([0; 32]));
-    let lease = automerge::ReadDoc::get(txn, key_obj, "lease")
+    let lease = automerge::ReadDoc::get(txn, key_obj, "lease_id")
         .unwrap()
         .and_then(|v| v.0.to_i64());
     let value: V = hydrate_prop(txn, key_obj, "value").unwrap();
@@ -300,7 +300,7 @@ pub fn extract_key_value_at<R: ReadDoc, V: Value>(
     let (_value, value_id) = txn.get_at(key_obj, "value", heads).unwrap().unwrap();
     let mod_head = txn.hash_for_opid(&value_id).unwrap();
     let lease = txn
-        .get_at(key_obj, "lease", heads)
+        .get_at(key_obj, "lease_id", heads)
         .unwrap()
         .and_then(|v| v.0.to_i64());
     // TODO: fix this to query in history
@@ -409,7 +409,7 @@ pub fn put<V: Value>(
     };
 
     if let Some(lease_id) = lease_id {
-        txn.put(&key_obj, "lease", lease_id).unwrap();
+        txn.put(&key_obj, "lease_id", lease_id).unwrap();
         let (_, leases_objid) = txn.get(&ROOT, "leases").unwrap().unwrap();
         if let Some((_, lease_objid)) = txn.get(&leases_objid, make_lease_string(lease_id)).unwrap()
         {
