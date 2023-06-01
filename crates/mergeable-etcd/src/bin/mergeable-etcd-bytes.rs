@@ -1,4 +1,5 @@
 use clap::Parser;
+use mergeable_etcd_core::value::Bytes;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::fmt;
 use tracing_subscriber::prelude::*;
@@ -24,5 +25,5 @@ async fn main() {
         .with(log_filter)
         .init();
 
-    mergeable_etcd::run(options).await
+    mergeable_etcd::run::<Bytes>(options).await
 }

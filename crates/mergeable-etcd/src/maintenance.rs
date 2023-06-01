@@ -1,17 +1,18 @@
 use crate::{Doc, DocPersister};
 use futures::Stream;
+use mergeable_etcd_core::value::Value;
 use std::pin::Pin;
 use tracing::info;
 
-pub struct MaintenanceServer<P> {
-    pub document: Doc<P>,
+pub struct MaintenanceServer<P, V> {
+    pub document: Doc<P, V>,
 }
 
 const VERSION: &str = "3.3.27";
 
 #[tonic::async_trait]
-impl<P: DocPersister> etcd_proto::etcdserverpb::maintenance_server::Maintenance
-    for MaintenanceServer<P>
+impl<P: DocPersister, V: Value> etcd_proto::etcdserverpb::maintenance_server::Maintenance
+    for MaintenanceServer<P, V>
 {
     async fn alarm(
         &self,

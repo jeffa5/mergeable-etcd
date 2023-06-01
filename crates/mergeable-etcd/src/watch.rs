@@ -2,6 +2,7 @@ use etcd_proto::etcdserverpb::{watch_request::RequestUnion, watch_server::Watch,
 use etcd_proto::etcdserverpb::{WatchCancelRequest, WatchCreateRequest};
 use futures::Stream;
 use futures::StreamExt;
+use mergeable_etcd_core::value::Value;
 use mergeable_etcd_core::Header;
 use mergeable_etcd_core::WatchEvent;
 use std::{collections::HashSet, pin::Pin, sync::Arc};
@@ -11,12 +12,12 @@ use tracing::{debug, warn};
 
 use crate::{Doc, DocPersister};
 
-pub struct WatchService<P> {
-    pub(crate) watch_server: Arc<Mutex<mergeable_etcd_core::WatchServer>>,
-    pub(crate) document: Doc<P>,
+pub struct WatchService<P, V> {
+    pub(crate) watch_server: Arc<Mutex<mergeable_etcd_core::WatchServer<V>>>,
+    pub(crate) document: Doc<P, V>,
 }
 
-impl<P: DocPersister> Clone for WatchService<P> {
+impl<P: DocPersister, V> Clone for WatchService<P, V> {
     fn clone(&self) -> Self {
         Self {
             watch_server: self.watch_server.clone(),
@@ -26,7 +27,7 @@ impl<P: DocPersister> Clone for WatchService<P> {
 }
 
 #[tonic::async_trait]
-impl<P: DocPersister> Watch for WatchService<P> {
+impl<P: DocPersister, V: Value> Watch for WatchService<P, V> {
     type WatchStream = Pin<
         Box<
             dyn Stream<Item = Result<etcd_proto::etcdserverpb::WatchResponse, tonic::Status>>
@@ -56,10 +57,10 @@ impl<P: DocPersister> Watch for WatchService<P> {
         let tx_response_clone = tx_response.clone();
         tokio::spawn(async move {
             while let Some((watch_id, header, event)) = local_receiver.recv().await {
-                let event: WatchEvent = event;
-                debug!(watch_id, typ=?event.typ, key=?event.kv.key, create_revision=?event.kv.create_revision, mod_revision=?event.kv.mod_revision, version=?event.kv.version, lease=?event.kv.lease, "Sending watch response");
+                let event: WatchEvent<V> = event;
+                debug!(watch_id, typ=?event.typ, "Sending watch response");
                 let header: mergeable_etcd_core::Header = header;
-                let event: WatchEvent = event;
+                let event: WatchEvent<V> = event;
                 let event: etcd_proto::mvccpb::Event = event.into();
                 let response = WatchResponse {
                     header: Some(header.into()),
@@ -197,20 +198,20 @@ impl<P: DocPersister> Watch for WatchService<P> {
     }
 }
 
-pub struct MyWatcher {
-    pub(crate) sender: mpsc::Sender<(Header, WatchEvent)>,
+pub struct MyWatcher<V> {
+    pub(crate) sender: mpsc::Sender<(Header, WatchEvent<V>)>,
 }
 
 #[tonic::async_trait]
-impl mergeable_etcd_core::Watcher for MyWatcher {
-    async fn publish_event(&mut self, header: Header, event: WatchEvent) {
+impl<V: Value> mergeable_etcd_core::Watcher<V> for MyWatcher<V> {
+    async fn publish_event(&mut self, header: Header, event: WatchEvent<V>) {
         self.sender.send((header, event)).await.unwrap()
     }
 }
 
-pub async fn propagate_watches(
-    mut receiver: mpsc::Receiver<(Header, WatchEvent)>,
-    watch_server: Arc<Mutex<mergeable_etcd_core::WatchServer>>,
+pub async fn propagate_watches<V: Value>(
+    mut receiver: mpsc::Receiver<(Header, WatchEvent<V>)>,
+    watch_server: Arc<Mutex<mergeable_etcd_core::WatchServer<V>>>,
 ) {
     while let Some((header, event)) = receiver.recv().await {
         watch_server.lock().await.receive_event(header, event).await;

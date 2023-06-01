@@ -11,7 +11,7 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use tracing::{debug, info, warn};
 
-use mergeable_etcd_core::Syncer;
+use mergeable_etcd_core::{value::Value, Syncer};
 
 use crate::{Doc, DocPersister};
 
@@ -186,16 +186,16 @@ impl PeerSyncer {
     }
 }
 
-pub struct PeerServerInner<P> {
-    pub document: Doc<P>,
+pub struct PeerServerInner<P, V> {
+    pub document: Doc<P, V>,
     name: String,
     // map from peer id to the syncer running for them
     connections: HashMap<u64, PeerSyncer>,
     ca_certificate: Option<Vec<u8>>,
 }
 
-impl<P: DocPersister> PeerServerInner<P> {
-    async fn new(document: Doc<P>, name: &str, ca_certificate: Option<Vec<u8>>) -> Self {
+impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
+    async fn new(document: Doc<P, V>, name: &str, ca_certificate: Option<Vec<u8>>) -> Self {
         let connections = HashMap::new();
         let s = Self {
             document,
@@ -237,11 +237,11 @@ impl<P: DocPersister> PeerServerInner<P> {
     }
 }
 
-pub struct PeerServer<P> {
-    inner: Arc<Mutex<PeerServerInner<P>>>,
+pub struct PeerServer<P, V> {
+    inner: Arc<Mutex<PeerServerInner<P, V>>>,
 }
 
-impl<P> Clone for PeerServer<P> {
+impl<P, V> Clone for PeerServer<P, V> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
@@ -249,9 +249,9 @@ impl<P> Clone for PeerServer<P> {
     }
 }
 
-impl<P: DocPersister> PeerServer<P> {
+impl<P: DocPersister, V: Value> PeerServer<P, V> {
     pub async fn new(
-        document: Doc<P>,
+        document: Doc<P, V>,
         name: &str,
         mut initial_cluster: HashMap<String, String>,
         notify: Arc<tokio::sync::Notify>,
@@ -436,7 +436,7 @@ impl<P: DocPersister> PeerServer<P> {
 }
 
 #[tonic::async_trait]
-impl<P: DocPersister> peer_proto::peer_server::Peer for PeerServer<P>
+impl<P: DocPersister, V: Value> peer_proto::peer_server::Peer for PeerServer<P, V>
 where
     P::Error: Send,
 {

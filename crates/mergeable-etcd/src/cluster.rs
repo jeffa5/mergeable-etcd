@@ -1,15 +1,18 @@
+use mergeable_etcd_core::value::Value;
 use tracing::error;
 use tracing::info;
 
 use crate::Doc;
 use crate::DocPersister;
 
-pub struct ClusterServer<P> {
-    pub document: Doc<P>,
+pub struct ClusterServer<P, V> {
+    pub document: Doc<P, V>,
 }
 
 #[tonic::async_trait]
-impl<P: DocPersister> etcd_proto::etcdserverpb::cluster_server::Cluster for ClusterServer<P> {
+impl<P: DocPersister, V: Value> etcd_proto::etcdserverpb::cluster_server::Cluster
+    for ClusterServer<P, V>
+{
     async fn member_add(
         &self,
         request: tonic::Request<etcd_proto::etcdserverpb::MemberAddRequest>,

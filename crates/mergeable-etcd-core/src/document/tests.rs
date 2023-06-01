@@ -4,7 +4,7 @@ use test_log::test;
 use tokio::sync::Mutex;
 
 use crate::{
-    syncer::LocalSyncer, watcher::TestWatcher, Compare, CompareResult, CompareTarget,
+    syncer::LocalSyncer, value::Bytes, watcher::TestWatcher, Compare, CompareResult, CompareTarget,
     DocumentBuilder, KeyValue, KvRequest, KvResponse, WatchEvent, WatchServer,
 };
 
@@ -13,8 +13,10 @@ use tokio::sync::mpsc::{self, error::TryRecvError};
 
 use super::*;
 
-fn single_node_doc() -> DocumentBuilder<MemoryPersister, (), ()> {
-    DocumentBuilder::default()
+type TestDocumentBuilder = DocumentBuilder<MemoryPersister, (), (), Bytes>;
+
+fn single_node_doc() -> TestDocumentBuilder {
+    TestDocumentBuilder::default()
         .with_in_memory()
         .with_cluster_id(1)
         .with_member_id(1)
@@ -24,7 +26,7 @@ fn single_node_doc() -> DocumentBuilder<MemoryPersister, (), ()> {
 async fn write_value() {
     let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
-    let value = b"value1".to_vec();
+    let value = Bytes::from(b"value1".to_vec());
     assert_eq!(
         doc.put(PutRequest {
             key: key.clone(),
@@ -170,7 +172,7 @@ async fn write_value() {
 async fn delete_value() {
     let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
-    let value = b"value1".to_vec();
+    let value = Bytes::from(b"value1".to_vec());
     assert_eq!(
         doc.put(PutRequest {
             key: key.clone(),
@@ -315,7 +317,7 @@ async fn range() {
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
     let key4 = "key4".to_owned();
-    let value = b"value1".to_vec();
+    let value = Bytes::from(b"value1".to_vec());
 
     assert_eq!(
         doc.put(PutRequest {
@@ -695,7 +697,7 @@ async fn remove_range() {
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
     let key4 = "key4".to_owned();
-    let value = b"value1".to_vec();
+    let value = Bytes::from(b"value1".to_vec());
 
     assert_eq!(
         doc.put(PutRequest {
@@ -1302,7 +1304,7 @@ async fn increment_revision() {
 async fn put_no_prev_kv() {
     let mut doc = single_node_doc().build();
     let key = "key".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
     assert_eq!(
         doc.put(PutRequest {
             key: key.clone(),
@@ -1349,7 +1351,7 @@ async fn put_no_prev_kv() {
 async fn delete_range_no_prev_kv() {
     let mut doc = single_node_doc().build();
     let key = "key".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
     assert_eq!(
         doc.put(PutRequest {
             key: key.clone(),
@@ -1398,7 +1400,7 @@ async fn delete_range_no_prev_kv() {
 async fn transaction() {
     let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
     // success
     assert_eq!(doc.revision(), 1);
     assert_eq!(
@@ -1577,7 +1579,7 @@ async fn transaction_single_revision() {
     let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     assert_eq!(doc.revision(), 1);
     assert_eq!(
@@ -1662,7 +1664,7 @@ async fn transaction_no_modification() {
     let mut doc = single_node_doc().build();
 
     let key = "key1".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     assert_eq!(doc.revision(), 1);
     doc.put(PutRequest {
@@ -1769,7 +1771,7 @@ async fn sync_two_documents() {
     let id2 = 2;
     let cluster_id = 1;
 
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -1777,7 +1779,7 @@ async fn sync_two_documents() {
         .build();
     let doc1 = Arc::new(Mutex::new(doc1));
 
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id2)
         .with_cluster_id(cluster_id)
@@ -1792,7 +1794,7 @@ async fn sync_two_documents() {
     };
 
     let key = "key".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     doc1.lock()
         .await
@@ -1845,7 +1847,7 @@ async fn sync_two_documents_conflicting_puts_same_revision() {
     let id2 = 2;
     let cluster_id = 1;
 
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -1853,7 +1855,7 @@ async fn sync_two_documents_conflicting_puts_same_revision() {
         .build();
     let doc1 = Arc::new(Mutex::new(doc1));
 
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id2)
         .with_cluster_id(cluster_id)
@@ -1868,8 +1870,8 @@ async fn sync_two_documents_conflicting_puts_same_revision() {
     };
 
     let key = "key".to_owned();
-    let value1 = b"value1".to_vec();
-    let value2 = b"value2".to_vec();
+    let value1 = Bytes::from(b"value1".to_vec());
+    let value2 = Bytes::from(b"value2".to_vec());
 
     doc1.lock()
         .await
@@ -1936,7 +1938,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
     let id2 = 2;
     let cluster_id = 1;
 
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -1944,7 +1946,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         .build();
     let doc1 = Arc::new(Mutex::new(doc1));
 
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id2)
         .with_cluster_id(cluster_id)
@@ -1960,8 +1962,8 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
 
     let key = "key".to_owned();
     let other_key = "okey".to_owned();
-    let value1 = b"value1".to_vec();
-    let value2 = b"value2".to_vec();
+    let value1 = Bytes::from(b"value1".to_vec());
+    let value2 = Bytes::from(b"value2".to_vec());
 
     doc1.lock()
         .await
@@ -2110,7 +2112,7 @@ async fn watch_value_creation() {
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let key3 = "key3".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     doc.put(PutRequest {
         key: key1.clone(),
@@ -2132,15 +2134,14 @@ async fn watch_value_creation() {
                 revision: 2
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
+                typ: crate::watcher::WatchEventType::Put(KeyValue {
                     key: key1.clone(),
                     value: value.clone(),
                     create_revision: 2,
                     mod_revision: 2,
                     version: 1,
                     lease: None
-                },
+                }),
                 prev_kv: None
             }
         )]
@@ -2165,15 +2166,7 @@ async fn watch_value_creation() {
                 revision: 3
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 3,
-                    version: 0,
-                    lease: None
-                },
+                typ: crate::watcher::WatchEventType::Delete(key1.clone(), 3),
                 prev_kv: Some(KeyValue {
                     key: key1.clone(),
                     value: value.clone(),
@@ -2229,15 +2222,7 @@ async fn watch_value_creation() {
                     revision: 6
                 },
                 WatchEvent {
-                    typ: crate::watcher::WatchEventType::Delete,
-                    kv: KeyValue {
-                        key: key1.clone(),
-                        value: vec![],
-                        create_revision: 0,
-                        mod_revision: 6,
-                        version: 0,
-                        lease: None
-                    },
+                    typ: crate::watcher::WatchEventType::Delete(key1.clone(), 6),
                     prev_kv: Some(KeyValue {
                         key: key1.clone(),
                         value: value.clone(),
@@ -2255,15 +2240,7 @@ async fn watch_value_creation() {
                     revision: 6
                 },
                 WatchEvent {
-                    typ: crate::watcher::WatchEventType::Delete,
-                    kv: KeyValue {
-                        key: key2.clone(),
-                        value: vec![],
-                        create_revision: 0,
-                        mod_revision: 6,
-                        version: 0,
-                        lease: None
-                    },
+                    typ: crate::watcher::WatchEventType::Delete(key2.clone(), 6),
                     prev_kv: Some(KeyValue {
                         key: key2,
                         value: value.clone(),
@@ -2309,15 +2286,14 @@ async fn watch_value_creation() {
                     revision: 7
                 },
                 WatchEvent {
-                    typ: crate::watcher::WatchEventType::Put,
-                    kv: KeyValue {
+                    typ: crate::watcher::WatchEventType::Put(KeyValue {
                         key: key1.clone(),
                         value: value.clone(),
                         create_revision: 7,
                         mod_revision: 7,
                         version: 1,
                         lease: None
-                    },
+                    }),
                     prev_kv: None
                 }
             ),
@@ -2328,15 +2304,7 @@ async fn watch_value_creation() {
                     revision: 7
                 },
                 WatchEvent {
-                    typ: crate::watcher::WatchEventType::Delete,
-                    kv: KeyValue {
-                        key: key1.clone(),
-                        value: vec![],
-                        create_revision: 0,
-                        mod_revision: 7,
-                        version: 0,
-                        lease: None
-                    },
+                    typ: crate::watcher::WatchEventType::Delete(key1.clone(), 7),
                     prev_kv: Some(KeyValue {
                         key: key1,
                         value,
@@ -2364,7 +2332,7 @@ async fn watch_server_value_creation() {
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let key3 = "key3".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     let (sender, mut receiver) = mpsc::channel(100);
     let watch_id = watch_server
@@ -2407,15 +2375,14 @@ async fn watch_server_value_creation() {
                 revision: 2
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
+                typ: crate::watcher::WatchEventType::Put(KeyValue {
                     key: key1.clone(),
                     value: value.clone(),
                     create_revision: 2,
                     mod_revision: 2,
                     version: 1,
                     lease: None
-                },
+                }),
                 prev_kv: None
             }
         ))
@@ -2445,15 +2412,7 @@ async fn watch_server_value_creation() {
                 revision: 3
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 3,
-                    version: 0,
-                    lease: None
-                },
+                typ: crate::watcher::WatchEventType::Delete(key1.clone(), 3),
                 prev_kv: None,
             }
         ))
@@ -2506,15 +2465,7 @@ async fn watch_server_value_creation() {
                 revision: 6
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 6,
-                    version: 0,
-                    lease: None
-                },
+                typ: crate::watcher::WatchEventType::Delete(key1.clone(), 6),
                 prev_kv: None,
             }
         ))
@@ -2530,15 +2481,7 @@ async fn watch_server_value_creation() {
                 revision: 6
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key2.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 6,
-                    version: 0,
-                    lease: None
-                },
+                typ: crate::watcher::WatchEventType::Delete(key2.clone(), 6),
                 prev_kv: None,
             }
         ))
@@ -2580,15 +2523,14 @@ async fn watch_server_value_creation() {
                 revision: 7
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
+                typ: crate::watcher::WatchEventType::Put(KeyValue {
                     key: key1.clone(),
                     value: value.clone(),
                     create_revision: 7,
                     mod_revision: 7,
                     version: 1,
                     lease: None
-                },
+                }),
                 prev_kv: None,
             }
         ))
@@ -2604,15 +2546,7 @@ async fn watch_server_value_creation() {
                 revision: 7
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 7,
-                    version: 0,
-                    lease: None
-                },
+                typ: crate::watcher::WatchEventType::Delete(key1.clone(), 7),
                 prev_kv: None
             }
         ))
@@ -2645,7 +2579,7 @@ async fn sync_two_documents_trigger_watches() {
     let mut watch_server1 = WatchServer::default();
     let mut watch_server2 = WatchServer::default();
 
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -2654,7 +2588,7 @@ async fn sync_two_documents_trigger_watches() {
         .build();
     let doc1 = Arc::new(Mutex::new(doc1));
 
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id2)
         .with_cluster_id(cluster_id)
@@ -2673,8 +2607,8 @@ async fn sync_two_documents_trigger_watches() {
     let key2 = "key2".to_owned();
     let key3 = "key3".to_owned();
     let other_key = "okey".to_owned();
-    let value1 = b"value1".to_vec();
-    let value2 = b"value2".to_vec();
+    let value1 = Bytes::from(b"value1".to_vec());
+    let value2 = Bytes::from(b"value2".to_vec());
 
     let (sender1, mut receiver1) = mpsc::channel(100);
     let watch_id1 = watch_server1
@@ -2742,15 +2676,14 @@ async fn sync_two_documents_trigger_watches() {
                 revision: 3
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
+                typ: crate::watcher::WatchEventType::Put(KeyValue {
                     key: key1.clone(),
                     value: value1.clone(),
                     create_revision: 3,
                     mod_revision: 3,
                     version: 1,
                     lease: None
-                },
+                }),
                 prev_kv: None
             }
         ))
@@ -2785,15 +2718,14 @@ async fn sync_two_documents_trigger_watches() {
                 revision: 2
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
+                typ: crate::watcher::WatchEventType::Put(KeyValue {
                     key: key1.clone(),
                     value: value2.clone(),
                     create_revision: 2,
                     mod_revision: 2,
                     version: 1,
                     lease: None
-                },
+                }),
                 prev_kv: None
             }
         ))
@@ -2824,15 +2756,14 @@ async fn sync_two_documents_trigger_watches() {
                 revision: 3
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
+                typ: crate::watcher::WatchEventType::Put(KeyValue {
                     key: key1.clone(),
                     value: value1.clone(),
                     create_revision: 2,
                     mod_revision: 3,
                     version: 2,
                     lease: None
-                },
+                }),
                 prev_kv: None,
             }
         ))
@@ -2869,15 +2800,7 @@ async fn sync_two_documents_trigger_watches() {
                 revision: 4
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: Vec::new(),
-                    create_revision: 0,
-                    mod_revision: 4,
-                    version: 0,
-                    lease: None
-                },
+                typ: crate::watcher::WatchEventType::Delete(key1.clone(), 4),
                 prev_kv: None,
             }
         ))
@@ -2924,15 +2847,7 @@ async fn sync_two_documents_trigger_watches() {
                 revision: 4
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: Vec::new(),
-                    create_revision: 0,
-                    mod_revision: 4,
-                    version: 0,
-                    lease: None
-                },
+                typ: crate::watcher::WatchEventType::Delete(key1.clone(), 4),
                 prev_kv: None,
             }
         ))
@@ -2961,7 +2876,7 @@ async fn cluster_startup_2() {
     let cluster_id = 1;
 
     // new node is stood up
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -2983,7 +2898,7 @@ async fn cluster_startup_2() {
     let doc1 = Arc::new(Mutex::new(doc1));
 
     // then it starts with the id given from the existing cluster node
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_cluster_id(cluster_id)
         .with_member_id(id2)
@@ -3061,7 +2976,7 @@ async fn cluster_startup_2_no_cluster_id() {
 
     // new node is stood up
     // give the first node a cluster id
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(1)
@@ -3083,7 +2998,7 @@ async fn cluster_startup_2_no_cluster_id() {
     let doc1 = Arc::new(Mutex::new(doc1));
 
     // then it starts with the id given from the existing cluster node
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id2)
         .with_syncer(())
@@ -3171,7 +3086,7 @@ async fn cluster_startup_3() {
     let peer_urls3 = vec!["3".to_owned()];
 
     // new node is stood up
-    let doc1 = DocumentBuilder::default()
+    let doc1 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_member_id(id1)
         .with_cluster_id(cluster_id)
@@ -3193,7 +3108,7 @@ async fn cluster_startup_3() {
     let doc1 = Arc::new(Mutex::new(doc1));
 
     // then it starts with the id given from the existing cluster node
-    let doc2 = DocumentBuilder::default()
+    let doc2 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_cluster_id(cluster_id)
         .with_member_id(id2)
@@ -3285,7 +3200,7 @@ async fn cluster_startup_3() {
     assert_eq!(members, result);
 
     // then it starts with the id given from the existing cluster node
-    let doc3 = DocumentBuilder::default()
+    let doc3 = TestDocumentBuilder::default()
         .with_in_memory()
         .with_cluster_id(cluster_id)
         .with_member_id(id3)
@@ -3407,7 +3322,7 @@ async fn range_limited() {
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
     let key4 = "key4".to_owned();
-    let value = b"value1".to_vec();
+    let value = Bytes::from(b"value1".to_vec());
 
     assert_eq!(
         doc.put(PutRequest {
@@ -3779,7 +3694,7 @@ async fn range_count_only() {
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
     let key4 = "key4".to_owned();
-    let value = b"value1".to_vec();
+    let value = Bytes::from(b"value1".to_vec());
 
     assert_eq!(
         doc.put(PutRequest {
@@ -4088,7 +4003,7 @@ async fn watch_server_value_creation_start_revision() {
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let key3 = "key3".to_owned();
-    let value = b"value".to_vec();
+    let value = Bytes::from(b"value".to_vec());
 
     doc.put(PutRequest {
         key: key1.clone(),
@@ -4181,15 +4096,7 @@ async fn watch_server_value_creation_start_revision() {
                 revision: 7
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 3,
-                    version: 0,
-                    lease: None
-                },
+                typ: crate::watcher::WatchEventType::Delete(key1.clone(), 3),
                 prev_kv: Some(KeyValue {
                     key: key1.clone(),
                     value: value.clone(),
@@ -4212,15 +4119,14 @@ async fn watch_server_value_creation_start_revision() {
                 revision: 7
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
+                typ: crate::watcher::WatchEventType::Put(KeyValue {
                     key: key1.clone(),
                     value: value.clone(),
                     create_revision: 4,
                     mod_revision: 4,
                     version: 1,
                     lease: None
-                },
+                }),
                 prev_kv: None
             }
         ))
@@ -4236,15 +4142,14 @@ async fn watch_server_value_creation_start_revision() {
                 revision: 7
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Put,
-                kv: KeyValue {
+                typ: crate::watcher::WatchEventType::Put(KeyValue {
                     key: key2.clone(),
                     value: value.clone(),
                     create_revision: 5,
                     mod_revision: 5,
                     version: 1,
                     lease: None
-                },
+                }),
                 prev_kv: None
             }
         ))
@@ -4260,15 +4165,7 @@ async fn watch_server_value_creation_start_revision() {
                 revision: 7
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key1.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 6,
-                    version: 0,
-                    lease: None
-                },
+                typ: crate::watcher::WatchEventType::Delete(key1.clone(), 6),
                 prev_kv: Some(KeyValue {
                     key: key1.clone(),
                     value: value.clone(),
@@ -4290,15 +4187,7 @@ async fn watch_server_value_creation_start_revision() {
                 revision: 7
             },
             WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: key2.clone(),
-                    value: vec![],
-                    create_revision: 0,
-                    mod_revision: 6,
-                    version: 0,
-                    lease: None
-                },
+                typ: crate::watcher::WatchEventType::Delete(key2.clone(), 6),
                 prev_kv: Some(KeyValue {
                     key: key2.clone(),
                     value: value.clone(),
@@ -4337,7 +4226,7 @@ async fn txn_compare() {
             }],
             success: vec![KvRequest::Put(PutRequest {
                 key: key1.clone(),
-                value: vec![],
+                value: Bytes::from(vec![]),
                 lease_id: None,
                 prev_kv: false,
             })],
@@ -4373,7 +4262,7 @@ async fn txn_compare() {
             }],
             success: vec![KvRequest::Put(PutRequest {
                 key: key1.clone(),
-                value: vec![],
+                value: Bytes::from(vec![]),
                 lease_id: None,
                 prev_kv: false,
             })],
@@ -4398,7 +4287,7 @@ async fn txn_compare() {
             responses: vec![KvResponse::Range(RangeResponse {
                 values: vec![KeyValue {
                     key: key1.clone(),
-                    value: vec![],
+                    value: Bytes::from(vec![]),
                     create_revision: 2,
                     mod_revision: 2,
                     version: 1,
@@ -4420,7 +4309,7 @@ async fn txn_compare() {
             }],
             success: vec![KvRequest::Put(PutRequest {
                 key: key1.clone(),
-                value: vec![],
+                value: Bytes::from(vec![]),
                 lease_id: None,
                 prev_kv: false,
             })],
@@ -4506,7 +4395,7 @@ async fn kv_leases() {
 
     doc.put(PutRequest {
         key: key.clone(),
-        value: vec![],
+        value: Bytes::from(vec![]),
         lease_id: Some(id),
         prev_kv: false,
     })
@@ -4530,7 +4419,7 @@ async fn kv_leases() {
         RangeResponse {
             values: vec![KeyValue {
                 key: key.clone(),
-                value: vec![],
+                value: Bytes::from(vec![]),
                 create_revision: 2,
                 mod_revision: 2,
                 version: 1,

@@ -1,21 +1,23 @@
+use crate::value::Value;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct KeyValue {
+pub struct KeyValue<V> {
     pub key: String,
-    pub value: Vec<u8>,
+    pub value: V,
     pub create_revision: u64,
     pub mod_revision: u64,
     pub version: u64,
     pub lease: Option<i64>,
 }
 
-impl From<KeyValue> for etcd_proto::mvccpb::KeyValue {
-    fn from(kv: KeyValue) -> Self {
+impl<V: Value> From<KeyValue<V>> for etcd_proto::mvccpb::KeyValue {
+    fn from(kv: KeyValue<V>) -> Self {
         etcd_proto::mvccpb::KeyValue {
             key: kv.key.into_bytes(),
             create_revision: kv.create_revision as i64,
             mod_revision: kv.mod_revision as i64,
             version: kv.version as i64,
-            value: kv.value,
+            value: kv.value.into(),
             lease: kv.lease.unwrap_or(0),
         }
     }
@@ -77,12 +79,12 @@ impl From<etcd_proto::etcdserverpb::RangeRequest> for RangeRequest {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct RangeResponse {
-    pub values: Vec<KeyValue>,
+pub struct RangeResponse<V> {
+    pub values: Vec<KeyValue<V>>,
     pub count: usize,
 }
 
-impl RangeResponse {
+impl<V: Value> RangeResponse<V> {
     pub fn into_etcd(self, header: Header) -> etcd_proto::etcdserverpb::RangeResponse {
         etcd_proto::etcdserverpb::RangeResponse {
             header: Some(header.into()),
@@ -95,15 +97,19 @@ impl RangeResponse {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PutRequest {
+pub struct PutRequest<V> {
     pub key: String,
-    pub value: Vec<u8>,
+    pub value: V,
     pub lease_id: Option<i64>,
     pub prev_kv: bool,
 }
 
-impl From<etcd_proto::etcdserverpb::PutRequest> for PutRequest {
-    fn from(
+impl<V: Value> TryFrom<etcd_proto::etcdserverpb::PutRequest> for PutRequest<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
+    type Error = <V as TryFrom<Vec<u8>>>::Error;
+    fn try_from(
         etcd_proto::etcdserverpb::PutRequest {
             key,
             value,
@@ -112,25 +118,25 @@ impl From<etcd_proto::etcdserverpb::PutRequest> for PutRequest {
             ignore_value,
             ignore_lease,
         }: etcd_proto::etcdserverpb::PutRequest,
-    ) -> Self {
+    ) -> Result<Self, Self::Error> {
         assert!(!ignore_value);
         assert!(!ignore_lease);
 
-        PutRequest {
+        Ok(PutRequest {
             key: String::from_utf8(key).unwrap(),
-            value,
+            value: value.try_into()?,
             lease_id: if lease == 0 { None } else { Some(lease) },
             prev_kv,
-        }
+        })
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PutResponse {
-    pub prev_kv: Option<KeyValue>,
+pub struct PutResponse<V> {
+    pub prev_kv: Option<KeyValue<V>>,
 }
 
-impl PutResponse {
+impl<V: Value> PutResponse<V> {
     pub fn into_etcd(self, header: Header) -> etcd_proto::etcdserverpb::PutResponse {
         etcd_proto::etcdserverpb::PutResponse {
             header: Some(header.into()),
@@ -167,12 +173,12 @@ impl From<etcd_proto::etcdserverpb::DeleteRangeRequest> for DeleteRangeRequest {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct DeleteRangeResponse {
+pub struct DeleteRangeResponse<V> {
     pub deleted: u64,
-    pub prev_kvs: Vec<KeyValue>,
+    pub prev_kvs: Vec<KeyValue<V>>,
 }
 
-impl DeleteRangeResponse {
+impl<V: Value> DeleteRangeResponse<V> {
     pub fn into_etcd(self, header: Header) -> etcd_proto::etcdserverpb::DeleteRangeResponse {
         etcd_proto::etcdserverpb::DeleteRangeResponse {
             header: Some(header.into()),
@@ -282,35 +288,43 @@ impl From<etcd_proto::etcdserverpb::Compare> for Compare {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct TxnRequest {
+pub struct TxnRequest<V> {
     pub compare: Vec<Compare>,
-    pub success: Vec<KvRequest>,
-    pub failure: Vec<KvRequest>,
+    pub success: Vec<KvRequest<V>>,
+    pub failure: Vec<KvRequest<V>>,
 }
 
-impl From<etcd_proto::etcdserverpb::TxnRequest> for TxnRequest {
-    fn from(
+impl<V: Value> TryFrom<etcd_proto::etcdserverpb::TxnRequest> for TxnRequest<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
+    type Error = <V as TryFrom<Vec<u8>>>::Error;
+    fn try_from(
         etcd_proto::etcdserverpb::TxnRequest {
             compare,
             success,
             failure,
         }: etcd_proto::etcdserverpb::TxnRequest,
-    ) -> Self {
-        TxnRequest {
+    ) -> Result<Self, Self::Error> {
+        let success: Result<Vec<_>, _> = success.into_iter().map(|s| s.try_into()).collect();
+        let success = success?;
+        let failure: Result<Vec<_>, _> = failure.into_iter().map(|f| f.try_into()).collect();
+        let failure = failure?;
+        Ok(TxnRequest {
             compare: compare.into_iter().map(|c| c.into()).collect(),
-            success: success.into_iter().map(|s| s.into()).collect(),
-            failure: failure.into_iter().map(|f| f.into()).collect(),
-        }
+            success,
+            failure,
+        })
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub struct TxnResponse {
+pub struct TxnResponse<V> {
     pub succeeded: bool,
-    pub responses: Vec<KvResponse>,
+    pub responses: Vec<KvResponse<V>>,
 }
 
-impl TxnResponse {
+impl<V: Value> TxnResponse<V> {
     pub fn into_etcd(self, header: Header) -> etcd_proto::etcdserverpb::TxnResponse {
         etcd_proto::etcdserverpb::TxnResponse {
             header: Some(header.clone().into()),
@@ -325,43 +339,48 @@ impl TxnResponse {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum KvRequest {
+pub enum KvRequest<V> {
     Range(RangeRequest),
-    Put(PutRequest),
+    Put(PutRequest<V>),
     DeleteRange(DeleteRangeRequest),
-    Txn(TxnRequest),
+    Txn(TxnRequest<V>),
 }
 
-impl From<etcd_proto::etcdserverpb::RequestOp> for KvRequest {
-    fn from(
+impl<V: Value> TryFrom<etcd_proto::etcdserverpb::RequestOp> for KvRequest<V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
+    type Error = <V as TryFrom<Vec<u8>>>::Error;
+    fn try_from(
         etcd_proto::etcdserverpb::RequestOp { request }: etcd_proto::etcdserverpb::RequestOp,
-    ) -> Self {
-        match request.unwrap() {
+    ) -> Result<Self, Self::Error> {
+        let val = match request.unwrap() {
             etcd_proto::etcdserverpb::request_op::Request::RequestRange(req) => {
                 KvRequest::Range(req.into())
             }
             etcd_proto::etcdserverpb::request_op::Request::RequestPut(req) => {
-                KvRequest::Put(req.into())
+                KvRequest::Put(req.try_into()?)
             }
             etcd_proto::etcdserverpb::request_op::Request::RequestDeleteRange(req) => {
                 KvRequest::DeleteRange(req.into())
             }
             etcd_proto::etcdserverpb::request_op::Request::RequestTxn(req) => {
-                KvRequest::Txn(req.into())
+                KvRequest::Txn(req.try_into()?)
             }
-        }
+        };
+        Ok(val)
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub enum KvResponse {
-    Range(RangeResponse),
-    Put(PutResponse),
-    DeleteRange(DeleteRangeResponse),
-    Txn(TxnResponse),
+pub enum KvResponse<V> {
+    Range(RangeResponse<V>),
+    Put(PutResponse<V>),
+    DeleteRange(DeleteRangeResponse<V>),
+    Txn(TxnResponse<V>),
 }
 
-impl KvResponse {
+impl<V: Value> KvResponse<V> {
     pub fn into_etcd(self, header: Header) -> etcd_proto::etcdserverpb::ResponseOp {
         let response = match self {
             KvResponse::Range(res) => {

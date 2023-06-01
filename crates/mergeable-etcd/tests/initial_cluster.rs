@@ -1,5 +1,6 @@
 use etcd_proto::etcdserverpb::cluster_client::ClusterClient;
 use etcd_proto::etcdserverpb::kv_client::KvClient;
+use mergeable_etcd_core::value::Bytes;
 
 use hyper::Uri;
 use pretty_assertions::assert_eq;
@@ -127,7 +128,7 @@ async fn make_cluster(
 
         // actually start running this node
         tokio::spawn(async move {
-            mergeable_etcd::run(node_opts).await;
+            mergeable_etcd::run::<Bytes>(node_opts).await;
         });
         info!(?name, "Started node");
 
@@ -195,7 +196,7 @@ async fn initial_cluster_single() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        mergeable_etcd::run::<Bytes>(node1_opts).await;
     });
 
     poll_ready(&metrics.clone()).await;
@@ -229,7 +230,7 @@ async fn initial_cluster_double() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        mergeable_etcd::run::<Bytes>(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
@@ -247,7 +248,7 @@ async fn initial_cluster_double() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node2_opts).await;
+        mergeable_etcd::run::<Bytes>(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;
@@ -353,7 +354,7 @@ async fn double_cluster_explicit_add() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        mergeable_etcd::run::<Bytes>(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
@@ -384,7 +385,7 @@ async fn double_cluster_explicit_add() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node2_opts).await;
+        mergeable_etcd::run::<Bytes>(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;
@@ -500,7 +501,7 @@ async fn initial_cluster_single_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        mergeable_etcd::run::<Bytes>(node1_opts).await;
     });
 
     poll_ready(&metrics.clone()).await;
@@ -539,7 +540,7 @@ async fn initial_cluster_double_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        mergeable_etcd::run::<Bytes>(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
@@ -562,7 +563,7 @@ async fn initial_cluster_double_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node2_opts).await;
+        mergeable_etcd::run::<Bytes>(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;
@@ -670,7 +671,7 @@ async fn double_cluster_explicit_add_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node1_opts).await;
+        mergeable_etcd::run::<Bytes>(node1_opts).await;
     });
 
     poll_ready(&metrics1.clone()).await;
@@ -703,7 +704,7 @@ async fn double_cluster_explicit_add_tls() {
         ..Default::default()
     };
     tokio::spawn(async move {
-        mergeable_etcd::run(node2_opts).await;
+        mergeable_etcd::run::<Bytes>(node2_opts).await;
     });
 
     poll_ready(&metrics2.clone()).await;

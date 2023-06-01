@@ -1,3 +1,5 @@
+use autosurgeon::hydrate_prop;
+use autosurgeon::reconcile_prop;
 use std::collections::BTreeMap;
 use std::ops::RangeFull;
 use tracing::debug;
@@ -8,6 +10,7 @@ use crate::cache::KvCache;
 use crate::document::make_lease_string;
 use crate::document::make_revision_string;
 use crate::document::parse_revision_string;
+use crate::value::Value;
 use crate::Compare;
 use crate::DeleteRangeRequest;
 use crate::DeleteRangeResponse;
@@ -100,11 +103,11 @@ pub fn get_create_mod_version_slow_inner(
 
 /// Get the values in the half-open interval `[start, end)`.
 /// Returns the usual response as well as the revision of a delete if one occurred.
-pub fn range(
+pub fn range<V: Value>(
     txn: &mut AutoCommit,
     cache: &mut Cache,
     request: RangeRequest,
-) -> (RangeResponse, BTreeMap<String, u64>) {
+) -> (RangeResponse<V>, BTreeMap<String, u64>) {
     let RangeRequest {
         start,
         end,
@@ -136,7 +139,7 @@ pub fn range(
                     };
                     if let Some(rev) = rev {
                         if let Some((value, _)) = txn.get(&revs_obj, &rev).unwrap() {
-                            if let Ok(value) = value.into_bytes() {
+                            if let Ok(value) = hydrate_prop(txn, &revs_obj, rev.as_str()) {
                                 let (create_revision, mod_revision, version) = if revision.is_some()
                                 {
                                     get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap()
@@ -192,7 +195,7 @@ pub fn range(
                 };
                 if let Some(rev) = rev {
                     if let Some((value, _)) = txn.get(&revs_obj, &rev).unwrap() {
-                        if let Ok(value) = value.into_bytes() {
+                        if let Ok(value) = hydrate_prop(txn, &revs_obj, rev.as_str()) {
                             let (create_revision, mod_revision, version) = if revision.is_some() {
                                 get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap()
                             } else if let Some(kv_cache) = cache.get(&start) {
@@ -250,13 +253,13 @@ pub fn range(
     (RangeResponse { values, count }, delete_revisions)
 }
 
-pub fn put(
+pub fn put<V: Value>(
     txn: &mut AutoCommit,
     cache: &mut Cache,
-    watcher: &mut VecWatcher,
-    request: PutRequest,
+    watcher: &mut VecWatcher<V>,
+    request: PutRequest<V>,
     revision: u64,
-) -> PutResponse {
+) -> PutResponse<V> {
     let PutRequest {
         key,
         value,
@@ -300,7 +303,7 @@ pub fn put(
         Some((revision, value, _id)) => {
             if value.is_null() {
                 None
-            } else if let Ok(value) = value.into_bytes() {
+            } else if let Ok(value) = hydrate_prop(txn, &revs_obj, revision) {
                 let (create_revision, mod_revision, version) =
                     if let Some(kv_cache) = cache.get(&key) {
                         (
@@ -327,7 +330,7 @@ pub fn put(
     };
 
     let revision_string = make_revision_string(revision);
-    txn.put(&revs_obj, &revision_string, value.clone()).unwrap();
+    reconcile_prop(txn, &revs_obj, revision_string.as_str(), value.clone()).unwrap();
 
     let (create_revision, mod_revision, version) = if let Some(kv_cache) = cache.get_mut(&key) {
         kv_cache.version += 1;
@@ -346,15 +349,14 @@ pub fn put(
     };
 
     watcher.publish_event(crate::WatchEvent {
-        typ: crate::watcher::WatchEventType::Put,
-        kv: KeyValue {
+        typ: crate::watcher::WatchEventType::Put(KeyValue {
             key: key.clone(),
             value,
             create_revision,
             mod_revision,
             version,
             lease: None,
-        },
+        }),
         prev_kv: prev_key_value.clone(),
     });
 
@@ -365,13 +367,13 @@ pub fn put(
     }
 }
 
-pub fn delete_range(
+pub fn delete_range<V: Value>(
     txn: &mut AutoCommit,
     cache: &mut Cache,
-    watcher: &mut VecWatcher,
+    watcher: &mut VecWatcher<V>,
     request: DeleteRangeRequest,
     revision: u64,
-) -> DeleteRangeResponse {
+) -> DeleteRangeResponse<V> {
     let DeleteRangeRequest {
         start,
         end,
@@ -414,7 +416,7 @@ pub fn delete_range(
                     Some((revision, value, _id)) => {
                         if value.is_null() {
                             None
-                        } else if let Ok(value) = value.into_bytes() {
+                        } else if let Ok(value) = hydrate_prop(txn, &revs_obj, revision) {
                             let (create_revision, mod_revision, version) =
                                 get_create_mod_version_slow(txn, &revs_obj, revision).unwrap();
                             Some(KeyValue {
@@ -441,15 +443,7 @@ pub fn delete_range(
             }
 
             watcher.publish_event(crate::WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key,
-                    value: Vec::new(),
-                    create_revision: 0,
-                    mod_revision: revision,
-                    version: 0,
-                    lease: None,
-                },
+                typ: crate::watcher::WatchEventType::Delete(key, revision),
                 prev_kv: prev_key_value.clone(),
             });
 
@@ -479,7 +473,7 @@ pub fn delete_range(
                 Some((revision, value, _id)) => {
                     if value.is_null() {
                         None
-                    } else if let Ok(value) = value.into_bytes() {
+                    } else if let Ok(value) = hydrate_prop(txn, &revs_obj, revision) {
                         let (create_revision, mod_revision, version) =
                             get_create_mod_version_slow(txn, &revs_obj, revision).unwrap();
                         Some(KeyValue {
@@ -503,15 +497,7 @@ pub fn delete_range(
             }
 
             watcher.publish_event(crate::WatchEvent {
-                typ: crate::watcher::WatchEventType::Delete,
-                kv: KeyValue {
-                    key: start,
-                    value: Vec::new(),
-                    create_revision: 0,
-                    mod_revision: revision,
-                    version: 0,
-                    lease: None,
-                },
+                typ: crate::watcher::WatchEventType::Delete(start, revision),
                 prev_kv: prev_key_value,
             });
 
@@ -523,18 +509,18 @@ pub fn delete_range(
     DeleteRangeResponse { deleted, prev_kvs }
 }
 
-pub fn txn(
+pub fn txn<V: Value>(
     tx: &mut AutoCommit,
     cache: &mut Cache,
-    watcher: &mut VecWatcher,
-    request: TxnRequest,
+    watcher: &mut VecWatcher<V>,
+    request: TxnRequest<V>,
     mut revision: u64,
     mut revision_incremented: bool,
-) -> TxnResponse {
+) -> TxnResponse<V> {
     let succeeded = request
         .compare
         .into_iter()
-        .all(|c| txn_compare(tx, cache, c, revision));
+        .all(|c| txn_compare::<V>(tx, cache, c, revision));
     let ops = if succeeded {
         request.success
     } else {
@@ -574,7 +560,12 @@ pub fn txn(
     }
 }
 
-fn txn_compare(txn: &mut AutoCommit, cache: &mut Cache, compare: Compare, revision: u64) -> bool {
+fn txn_compare<V: Value>(
+    txn: &mut AutoCommit,
+    cache: &mut Cache,
+    compare: Compare,
+    revision: u64,
+) -> bool {
     let Compare {
         key,
         range_end,
@@ -582,7 +573,7 @@ fn txn_compare(txn: &mut AutoCommit, cache: &mut Cache, compare: Compare, revisi
         result,
     } = compare;
 
-    let RangeResponse { values, count: _ } = range(
+    let RangeResponse { values, count: _ } = range::<V>(
         txn,
         cache,
         RangeRequest {
@@ -614,12 +605,15 @@ fn txn_compare(txn: &mut AutoCommit, cache: &mut Cache, compare: Compare, revisi
             crate::CompareResult::Greater => value.mod_revision > *v,
             crate::CompareResult::NotEqual => value.mod_revision != *v,
         },
-        crate::CompareTarget::Value(v) => match result {
-            crate::CompareResult::Less => &value.value < v,
-            crate::CompareResult::Equal => &value.value == v,
-            crate::CompareResult::Greater => &value.value > v,
-            crate::CompareResult::NotEqual => &value.value != v,
-        },
+        crate::CompareTarget::Value(_v) => {
+            todo!();
+            // match result {
+            //     crate::CompareResult::Less => &value.value < v,
+            //     crate::CompareResult::Equal => &value.value == v,
+            //     crate::CompareResult::Greater => &value.value > v,
+            //     crate::CompareResult::NotEqual => &value.value != v,
+            // }
+        }
         crate::CompareTarget::Lease(v) => match result {
             crate::CompareResult::Less => value.lease < *v,
             crate::CompareResult::Equal => value.lease == *v,

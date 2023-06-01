@@ -5,6 +5,7 @@ mod error;
 mod req_resp;
 mod syncer;
 mod transaction;
+pub mod value;
 mod watch_server;
 mod watcher;
 

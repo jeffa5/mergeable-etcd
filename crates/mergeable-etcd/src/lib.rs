@@ -9,6 +9,7 @@ use cluster::ClusterServer;
 use futures::future::join_all;
 use futures::join;
 use maintenance::MaintenanceServer;
+use mergeable_etcd_core::value::Value;
 use mergeable_etcd_core::Document;
 use mergeable_etcd_core::DocumentBuilder;
 use peer::DocumentChangedSyncer;
@@ -41,8 +42,8 @@ mod watch;
 
 pub use options::Options;
 
-type DocInner<P> = Document<P, DocumentChangedSyncer, watch::MyWatcher>;
-type Doc<P> = Arc<Mutex<DocInner<P>>>;
+type DocInner<P, V> = Document<P, DocumentChangedSyncer, watch::MyWatcher<V>, V>;
+type Doc<P, V> = Arc<Mutex<DocInner<P, V>>>;
 
 pub trait DocPersister: Persister<Error = Self::E> + Send + Sync + 'static {
     type E: Send + std::error::Error;
@@ -53,7 +54,10 @@ impl DocPersister for SledPersister {
 }
 
 #[tracing::instrument(skip(options), fields(name = %options.name))]
-pub async fn run(options: options::Options) {
+pub async fn run<V: Value>(options: options::Options)
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     info!(?options, "Starting");
     let options::Options {
         name,
@@ -92,7 +96,7 @@ pub async fn run(options: options::Options) {
     let persister = PersisterDispatcher::new(persister, &data_dir);
 
     info!("Building document");
-    let mut document = DocumentBuilder::default()
+    let mut document = DocumentBuilder::<_, _, _, V>::default()
         .with_watcher(watch::MyWatcher {
             sender: watch_sender,
         })
@@ -182,16 +186,19 @@ pub async fn run(options: options::Options) {
     ];
 }
 
-async fn start_client_server<P: DocPersister>(
+async fn start_client_server<P: DocPersister, V: Value>(
     address: String,
     cert_file: &str,
     key_file: &str,
-    server: KvServer<P>,
-    watch_server: watch::WatchService<P>,
-    document: Doc<P>,
+    server: KvServer<P, V>,
+    watch_server: watch::WatchService<P, V>,
+    document: Doc<P, V>,
     concurrency_limit: usize,
     timeout: u64,
-) -> tokio::task::JoinHandle<()> {
+) -> tokio::task::JoinHandle<()>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     let client_url = url::Url::parse(&address).unwrap();
     let client_address = format!(
         "{}:{}",
@@ -269,12 +276,12 @@ async fn start_client_server<P: DocPersister>(
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn start_peer_server<P: DocPersister>(
+async fn start_peer_server<P: DocPersister, V: Value>(
     address: String,
     cert_file: &str,
     key_file: &str,
     trusted_ca_file: &str,
-    document: Doc<P>,
+    document: Doc<P, V>,
     name: String,
     initial_cluster: HashMap<String, String>,
     notify: Arc<tokio::sync::Notify>,
@@ -343,9 +350,9 @@ async fn start_peer_server<P: DocPersister>(
     })
 }
 
-fn start_metrics_server<P: DocPersister>(
+fn start_metrics_server<P: DocPersister, V: Value>(
     address: String,
-    document: Doc<P>,
+    document: Doc<P, V>,
 ) -> tokio::task::JoinHandle<()> {
     let metrics_url = url::Url::parse(&address).unwrap();
     let metrics_address = format!(
@@ -362,7 +369,7 @@ fn start_metrics_server<P: DocPersister>(
     })
 }
 
-fn start_flush_loop<P: DocPersister>(doc: Doc<P>, flush_interval: Duration) {
+fn start_flush_loop<P: DocPersister, V: Value>(doc: Doc<P, V>, flush_interval: Duration) {
     tokio::spawn(async move {
         info!("Started flush loop");
         let threshold = Duration::from_millis(100);

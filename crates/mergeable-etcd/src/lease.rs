@@ -1,5 +1,6 @@
 use futures::Stream;
 use futures::StreamExt;
+use mergeable_etcd_core::value::Value;
 use std::pin::Pin;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -8,12 +9,14 @@ use tracing::debug;
 use crate::Doc;
 use crate::DocPersister;
 
-pub(crate) struct LeaseServer<P> {
-    pub(crate) document: Doc<P>,
+pub(crate) struct LeaseServer<P, V> {
+    pub(crate) document: Doc<P, V>,
 }
 
 #[tonic::async_trait]
-impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseServer<P> {
+impl<P: DocPersister, V: Value> etcd_proto::etcdserverpb::lease_server::Lease
+    for LeaseServer<P, V>
+{
     async fn lease_grant(
         &self,
         request: tonic::Request<etcd_proto::etcdserverpb::LeaseGrantRequest>,

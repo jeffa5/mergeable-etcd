@@ -1,3 +1,4 @@
+use mergeable_etcd_core::value::Value;
 use tonic::Response;
 
 use crate::{Doc, DocPersister};
@@ -6,11 +7,11 @@ use etcd_proto::etcdserverpb::{DeleteRangeResponse, PutResponse, TxnResponse};
 use tracing::debug;
 use tracing::error;
 
-pub struct KvServer<P> {
-    pub document: Doc<P>,
+pub struct KvServer<P, V> {
+    pub document: Doc<P, V>,
 }
 
-impl<P: DocPersister> Clone for KvServer<P> {
+impl<P: DocPersister, V: Value> Clone for KvServer<P, V> {
     fn clone(&self) -> Self {
         Self {
             document: self.document.clone(),
@@ -19,7 +20,10 @@ impl<P: DocPersister> Clone for KvServer<P> {
 }
 
 #[tonic::async_trait]
-impl<P: DocPersister> Kv for KvServer<P> {
+impl<P: DocPersister, V: Value> Kv for KvServer<P, V>
+where
+    <V as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
+{
     async fn range(
         &self,
         request: tonic::Request<etcd_proto::etcdserverpb::RangeRequest>,
@@ -57,7 +61,10 @@ impl<P: DocPersister> Kv for KvServer<P> {
         &self,
         request: tonic::Request<etcd_proto::etcdserverpb::PutRequest>,
     ) -> Result<tonic::Response<etcd_proto::etcdserverpb::PutResponse>, tonic::Status> {
-        let request: mergeable_etcd_core::PutRequest = request.into_inner().into();
+        let request: mergeable_etcd_core::PutRequest<V> =
+            request.into_inner().try_into().map_err(|err| {
+                tonic::Status::invalid_argument(format!("Failed to parse request: {:?}", err))
+            })?;
         debug!(key=?request.key, "PUT");
 
         let result = {
@@ -107,7 +114,9 @@ impl<P: DocPersister> Kv for KvServer<P> {
         &self,
         request: tonic::Request<etcd_proto::etcdserverpb::TxnRequest>,
     ) -> Result<tonic::Response<etcd_proto::etcdserverpb::TxnResponse>, tonic::Status> {
-        let request = request.into_inner().into();
+        let request = request.into_inner().try_into().map_err(|err| {
+            tonic::Status::invalid_argument(format!("Failed to parse request: {:?}", err))
+        })?;
         debug!("TXN");
 
         let result = {

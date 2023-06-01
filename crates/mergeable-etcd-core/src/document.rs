@@ -1,11 +1,13 @@
+use crate::value::Value;
 use std::collections::BTreeMap;
+use std::marker::PhantomData;
 
 use automerge::op_observer::HasPatches;
+use automerge::ReadDoc;
 use automerge::{
     sync, transaction::Transactable, ActorId, AutomergeError, ChangeHash, ObjId, ObjType, Prop,
     ScalarValue, VecOpObserver, ROOT,
 };
-use automerge::{ReadDoc, Value};
 use automerge_persistent::StoredSizes;
 use automerge_persistent::{PersistentAutoCommit, Persister};
 use etcd_proto::etcdserverpb::Member;
@@ -42,7 +44,7 @@ const DEFAULT_LEASE_TTL: i64 = 30;
 ///   "members": { 0: {"name": "default", "peer_urls":[], "client_urls":[]} }
 /// }
 #[derive(Debug)]
-pub struct Document<P, S, W> {
+pub struct Document<P, S, W, V> {
     pub(crate) am: PersistentAutoCommit<P>,
     pub(crate) member_id: u64,
     pub(crate) name: String,
@@ -61,13 +63,16 @@ pub struct Document<P, S, W> {
     #[allow(dead_code)]
     pub(crate) flush_notifier_receiver: watch::Receiver<()>,
     pub(crate) auto_flush: bool,
+
+    pub(crate) _value_type: PhantomData<V>,
 }
 
-impl<P, S, W> Document<P, S, W>
+impl<P, S, W, V> Document<P, S, W, V>
 where
     P: Persister + 'static,
     S: Syncer,
-    W: Watcher,
+    W: Watcher<V>,
+    V: Value,
 {
     pub(crate) fn init(&mut self, cluster_id: Option<u64>) {
         if self.am.document_mut().get_heads().is_empty() {
@@ -202,8 +207,8 @@ where
 
     pub async fn put(
         &mut self,
-        request: PutRequest,
-    ) -> crate::Result<oneshot::Receiver<(Header, PutResponse)>> {
+        request: PutRequest<V>,
+    ) -> crate::Result<oneshot::Receiver<(Header, PutResponse<V>)>> {
         let mut temp_watcher = VecWatcher::default();
         let result = self
             .am
@@ -241,7 +246,7 @@ where
     pub async fn delete_range(
         &mut self,
         request: DeleteRangeRequest,
-    ) -> crate::Result<oneshot::Receiver<(Header, DeleteRangeResponse)>> {
+    ) -> crate::Result<oneshot::Receiver<(Header, DeleteRangeResponse<V>)>> {
         let mut temp_watcher = VecWatcher::default();
         let result = self
             .am
@@ -281,7 +286,7 @@ where
     pub fn range(
         &mut self,
         request: RangeRequest,
-    ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse)>> {
+    ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse<V>)>> {
         let (result, _) = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
@@ -311,7 +316,7 @@ where
     pub fn range_or_delete_revision(
         &mut self,
         request: RangeRequest,
-    ) -> crate::Result<(Header, RangeResponse, BTreeMap<String, u64>)> {
+    ) -> crate::Result<(Header, RangeResponse<V>, BTreeMap<String, u64>)> {
         let (result, delete_revision) = self
             .am
             .transact::<_, _, AutomergeError>(|txn| {
@@ -324,8 +329,8 @@ where
 
     pub async fn txn(
         &mut self,
-        request: TxnRequest,
-    ) -> crate::Result<oneshot::Receiver<(Header, TxnResponse)>> {
+        request: TxnRequest<V>,
+    ) -> crate::Result<oneshot::Receiver<(Header, TxnResponse<V>)>> {
         let mut temp_watcher = VecWatcher::default();
         let revision = self.revision();
         let result = self
@@ -482,15 +487,10 @@ where
                                     .publish_event(
                                         header,
                                         crate::WatchEvent {
-                                            typ: crate::watcher::WatchEventType::Delete,
-                                            kv: crate::KeyValue {
-                                                key: key.clone(),
-                                                value: Vec::new(),
-                                                create_revision: 0,
-                                                mod_revision: revision,
-                                                version: 0,
-                                                lease: None,
-                                            },
+                                            typ: crate::watcher::WatchEventType::Delete(
+                                                key.clone(),
+                                                revision,
+                                            ),
                                             prev_kv: past_response.values.first().cloned(),
                                         },
                                     )
@@ -518,8 +518,9 @@ where
                                     .publish_event(
                                         header,
                                         crate::WatchEvent {
-                                            typ: crate::watcher::WatchEventType::Put,
-                                            kv: response.values.first().unwrap().clone(),
+                                            typ: crate::watcher::WatchEventType::Put(
+                                                response.values.first().unwrap().clone(),
+                                            ),
                                             prev_kv: past_response.values.first().cloned(),
                                         },
                                     )
@@ -618,23 +619,23 @@ where
     fn refresh_revision_cache(&mut self) {
         debug!("Started refreshing revision cache");
         // update the revision in case it was modified by the peer
-        let revision = self
-            .am
-            .document()
-            .get(ROOT, "cluster")
-            .unwrap()
-            .map_or(1, |(_, cluster)| {
-                self.am
-                    .document()
-                    // ensure that we always take the maximum revision in the case that concurrent
-                    // merges won with a lower revision
-                    .get_all(&cluster, "revision")
-                    .unwrap()
-                    .into_iter()
-                    .map(|(r, _)| r.to_u64().unwrap())
-                    .max()
-                    .unwrap_or(1)
-            });
+        let revision =
+            self.am
+                .document()
+                .get(ROOT, "cluster")
+                .unwrap()
+                .map_or(1, |(_, cluster)| {
+                    self.am
+                        .document()
+                        // ensure that we always take the maximum revision in the case that concurrent
+                        // merges won with a lower revision
+                        .get_all(&cluster, "revision")
+                        .unwrap()
+                        .into_iter()
+                        .map(|(r, _)| r.to_u64().unwrap())
+                        .max()
+                        .unwrap_or(1)
+                });
         self.cache.set_revision(revision);
         debug!("Finished refreshing revision cache");
     }
@@ -880,7 +881,7 @@ where
     /// Remove a lease from the document and delete any associated keys.
     pub async fn remove_lease(&mut self, id: i64) {
         let document = self.am.document();
-        if let Some((Value::Object(ObjType::Map), lease_obj)) = document
+        if let Some((automerge::Value::Object(ObjType::Map), lease_obj)) = document
             .get(&self.leases_objid, make_lease_string(id))
             .unwrap()
         {
