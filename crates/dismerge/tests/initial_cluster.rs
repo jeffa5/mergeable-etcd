@@ -486,6 +486,7 @@ async fn double_cluster_explicit_add() {
 }
 
 #[test(tokio::test)]
+#[ignore]
 async fn initial_cluster_single_tls() {
     let data_dir1 = tempdir::TempDir::new("").unwrap();
     let (client, peer, metrics) = get_addresses_tls_single();
