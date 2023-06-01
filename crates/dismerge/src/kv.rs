@@ -151,7 +151,7 @@ where
 
         let mut document = self.document.lock().await;
         document.compact();
-        let header = document.header();
+        let header = document.header()?;
 
         Ok(tonic::Response::new(
             mergeable_proto::etcdserverpb::CompactionResponse {

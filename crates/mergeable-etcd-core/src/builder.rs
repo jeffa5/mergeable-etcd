@@ -9,7 +9,7 @@ pub struct DocumentBuilder<P, S, W> {
     persister: P,
     syncer: S,
     watcher: W,
-    cluster_id: u64,
+    cluster_id: Option<u64>,
     member_id: u64,
     name: String,
     peer_urls: Vec<String>,
@@ -24,7 +24,7 @@ impl Default for DocumentBuilder<MemoryPersister, (), ()> {
             persister: MemoryPersister::default(),
             syncer: (),
             watcher: (),
-            cluster_id: 1,
+            cluster_id: None,
             member_id: 1,
             name: "default".to_owned(),
             peer_urls: vec![],
@@ -86,12 +86,12 @@ impl<P, S, W> DocumentBuilder<P, S, W> {
 
     #[must_use]
     pub fn with_cluster_id(mut self, cluster_id: u64) -> Self {
-        self.cluster_id = cluster_id;
+        self.cluster_id = Some(cluster_id);
         self
     }
 
     pub fn set_cluster_id(&mut self, cluster_id: u64) -> &mut Self {
-        self.cluster_id = cluster_id;
+        self.cluster_id = Some(cluster_id);
         self
     }
 
@@ -186,7 +186,6 @@ where
         let (flush_notifier, flush_notifier_receiver) = watch::channel(());
         let mut s = Document {
             am,
-            cluster_id: self.cluster_id,
             member_id: self.member_id,
             name: self.name,
             peer_urls: self.peer_urls,
@@ -196,13 +195,14 @@ where
             kvs_objid: automerge::ObjId::Root,
             members_objid: automerge::ObjId::Root,
             leases_objid: automerge::ObjId::Root,
+            server_objid: automerge::ObjId::Root,
             rng: StdRng::seed_from_u64(self.seed),
             cache: Default::default(),
             flush_notifier,
             flush_notifier_receiver,
             auto_flush: self.auto_flush,
         };
-        s.init();
+        s.init(self.cluster_id);
         s
     }
 }

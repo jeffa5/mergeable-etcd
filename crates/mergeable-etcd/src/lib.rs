@@ -1,6 +1,7 @@
 use crate::auth::AuthServer;
 use crate::kv::KvServer;
 use crate::lease::LeaseServer;
+use crate::options::InitialClusterState;
 use crate::persister::PersisterDispatcher;
 use automerge_persistent::Persister;
 use automerge_persistent_sled::SledPersister;
@@ -60,6 +61,7 @@ pub async fn run(options: options::Options) {
         advertise_client_urls,
         initial_advertise_peer_urls,
         initial_cluster,
+        initial_cluster_state,
         cert_file,
         client_cert_auth: _,
         key_file,
@@ -103,6 +105,10 @@ pub async fn run(options: options::Options) {
         .with_name(name.clone())
         .with_peer_urls(initial_advertise_peer_urls.clone())
         .with_client_urls(advertise_client_urls.clone());
+
+    if matches!(initial_cluster_state, InitialClusterState::New) {
+        document.set_cluster_id(rand::random());
+    }
 
     let id = rand::random();
     info!(?id, "Setting member id");

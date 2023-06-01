@@ -144,7 +144,7 @@ impl<P: DocPersister, V: Value> Watch for WatchService<P, V> {
                     .expect("watch shouldn't be able to be created if the node isn't ready");
 
                                 ids_created_here.insert(watch_id);
-                                let header = document.header().into();
+                                let header = document.header().unwrap().into();
                                 let response = WatchResponse {
                                     header: Some(header),
                                     watch_id,
@@ -169,7 +169,7 @@ impl<P: DocPersister, V: Value> Watch for WatchService<P, V> {
                                         "Got watch cancel request for unknown watch_id"
                                     )
                                 }
-                                let header = s.document.lock().await.header().into();
+                                let header = s.document.lock().await.header().unwrap().into();
                                 let response = WatchResponse {
                                     header: Some(header),
                                     watch_id,

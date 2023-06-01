@@ -517,7 +517,7 @@ where
                 client_ur_ls: m.client_ur_ls,
             })
             .collect();
-        let header = doc.header();
+        let header = doc.header()?;
 
         Ok(tonic::Response::new(peer_proto::MemberListResponse {
             cluster_id: header.cluster_id,

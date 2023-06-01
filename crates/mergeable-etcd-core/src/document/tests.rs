@@ -1,3 +1,4 @@
+use automerge_persistent::MemoryPersister;
 use std::sync::Arc;
 use test_log::test;
 use tokio::sync::Mutex;
@@ -12,9 +13,16 @@ use tokio::sync::mpsc::{self, error::TryRecvError};
 
 use super::*;
 
+fn single_node_doc() -> DocumentBuilder<MemoryPersister, (), ()> {
+    DocumentBuilder::default()
+        .with_in_memory()
+        .with_cluster_id(1)
+        .with_member_id(1)
+}
+
 #[tokio::test]
 async fn write_value() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
     let value = b"value1".to_vec();
     assert_eq!(
@@ -160,7 +168,7 @@ async fn write_value() {
 
 #[tokio::test]
 async fn delete_value() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
     let value = b"value1".to_vec();
     assert_eq!(
@@ -298,11 +306,13 @@ async fn delete_value() {
             }
         )
     );
+    doc.dump();
+    todo!()
 }
 
 #[tokio::test]
 async fn range() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -682,7 +692,7 @@ async fn range() {
 
 #[tokio::test]
 async fn remove_range() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -1243,7 +1253,7 @@ async fn remove_range() {
 
 #[tokio::test]
 async fn delete_non_existent_key() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
     assert_eq!(
         doc.delete_range(DeleteRangeRequest {
@@ -1271,7 +1281,7 @@ async fn delete_non_existent_key() {
 
 #[tokio::test]
 async fn increment_revision() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     use crate::transaction::increment_revision;
     use crate::transaction::revision;
     doc.am
@@ -1292,7 +1302,7 @@ async fn increment_revision() {
 
 #[tokio::test]
 async fn put_no_prev_kv() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key".to_owned();
     let value = b"value".to_vec();
     assert_eq!(
@@ -1339,7 +1349,7 @@ async fn put_no_prev_kv() {
 
 #[tokio::test]
 async fn delete_range_no_prev_kv() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key".to_owned();
     let value = b"value".to_vec();
     assert_eq!(
@@ -1388,7 +1398,7 @@ async fn delete_range_no_prev_kv() {
 
 #[tokio::test]
 async fn transaction() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
     let value = b"value".to_vec();
     // success
@@ -1566,7 +1576,7 @@ async fn transaction() {
 
 #[tokio::test]
 async fn transaction_single_revision() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let value = b"value".to_vec();
@@ -1651,7 +1661,7 @@ async fn transaction_single_revision() {
 
 #[tokio::test]
 async fn transaction_no_modification() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     let key = "key1".to_owned();
     let value = b"value".to_vec();
@@ -1751,7 +1761,7 @@ async fn transaction_no_modification() {
 
 #[tokio::test]
 async fn first_revision() {
-    let doc = DocumentBuilder::default().build();
+    let doc = single_node_doc().build();
     assert_eq!(doc.revision(), 1);
 }
 
@@ -2095,7 +2105,7 @@ async fn watch_value_creation() {
         events: Arc::clone(&events),
     };
 
-    let mut doc = DocumentBuilder::default()
+    let mut doc = single_node_doc()
         .with_in_memory()
         .with_watcher(watcher)
         .build();
@@ -2352,10 +2362,7 @@ async fn watch_server_value_creation() {
 
     let mut watch_server = WatchServer::default();
 
-    let mut doc = DocumentBuilder::default()
-        .with_in_memory()
-        .with_watcher(watcher)
-        .build();
+    let mut doc = single_node_doc().with_watcher(watcher).build();
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let key3 = "key3".to_owned();
@@ -2936,7 +2943,7 @@ async fn sync_two_documents_trigger_watches() {
 
 #[tokio::test]
 async fn start_with_ourselves_as_member() {
-    let doc = DocumentBuilder::default().build();
+    let doc = single_node_doc().build();
     assert_eq!(
         doc.list_members().unwrap(),
         vec![Member {
@@ -3047,6 +3054,111 @@ async fn cluster_startup_2() {
             }
         ]
     );
+}
+
+#[tokio::test]
+async fn cluster_startup_2_no_cluster_id() {
+    let id1 = 1;
+    let id2 = 2;
+
+    // new node is stood up
+    // give the first node a cluster id
+    let doc1 = DocumentBuilder::default()
+        .with_in_memory()
+        .with_member_id(id1)
+        .with_cluster_id(1)
+        .with_syncer(())
+        .with_name("node1".to_owned())
+        .with_peer_urls(vec!["1".to_owned()])
+        .build();
+    assert_eq!(
+        doc1.list_members().unwrap(),
+        vec![Member {
+            id: id1,
+            name: "node1".to_owned(),
+            peer_ur_ls: vec!["1".to_owned()],
+            client_ur_ls: vec![],
+            is_learner: false
+        }]
+    );
+
+    let doc1 = Arc::new(Mutex::new(doc1));
+
+    // then it starts with the id given from the existing cluster node
+    let doc2 = DocumentBuilder::default()
+        .with_in_memory()
+        .with_member_id(id2)
+        .with_syncer(())
+        .with_name("node2".to_owned())
+        .with_peer_urls(vec!["2".to_owned()])
+        .build();
+
+    assert_eq!(
+        doc2.list_members().unwrap(),
+        vec![Member {
+            id: id2,
+            name: "node2".to_owned(),
+            peer_ur_ls: vec!["2".to_owned()],
+            client_ur_ls: vec![],
+            is_learner: false
+        }]
+    );
+
+    let doc2 = Arc::new(Mutex::new(doc2));
+
+    let syncer1 = LocalSyncer {
+        local_id: id1,
+        local_document: Arc::clone(&doc1),
+        other_documents: vec![(id2, Arc::clone(&doc2))],
+    };
+
+    syncer1.sync_all().await;
+
+    assert_eq!(
+        doc1.lock().await.list_members().unwrap(),
+        vec![
+            Member {
+                id: id1,
+                name: "node1".to_owned(),
+                peer_ur_ls: vec!["1".to_owned()],
+                client_ur_ls: vec![],
+                is_learner: false
+            },
+            Member {
+                id: id2,
+                name: "node2".to_owned(),
+                peer_ur_ls: vec!["2".to_owned()],
+                client_ur_ls: vec![],
+                is_learner: false
+            }
+        ]
+    );
+
+    assert_eq!(
+        doc2.lock().await.list_members().unwrap(),
+        vec![
+            Member {
+                id: id1,
+                name: "node1".to_owned(),
+                peer_ur_ls: vec!["1".to_owned()],
+                client_ur_ls: vec![],
+                is_learner: false
+            },
+            Member {
+                id: id2,
+                name: "node2".to_owned(),
+                peer_ur_ls: vec!["2".to_owned()],
+                client_ur_ls: vec![],
+                is_learner: false
+            }
+        ]
+    );
+
+    // should have a cluster id
+    let cluster_id1 = doc1.lock().await.cluster_id().unwrap();
+    let cluster_id2 = doc2.lock().await.cluster_id().unwrap();
+    dbg!(cluster_id1, cluster_id2);
+    assert_eq!(cluster_id1, cluster_id2);
 }
 
 #[test(tokio::test)]
@@ -3292,7 +3404,7 @@ async fn cluster_startup_3() {
 
 #[tokio::test]
 async fn range_limited() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -3664,7 +3776,7 @@ async fn range_limited() {
 
 #[tokio::test]
 async fn range_count_only() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -3974,10 +4086,7 @@ async fn watch_server_value_creation_start_revision() {
 
     let mut watch_server = WatchServer::default();
 
-    let mut doc = DocumentBuilder::default()
-        .with_in_memory()
-        .with_watcher(watcher)
-        .build();
+    let mut doc = single_node_doc().with_watcher(watcher).build();
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let key3 = "key3".to_owned();
@@ -4216,7 +4325,7 @@ async fn watch_server_value_creation_start_revision() {
 
 #[tokio::test]
 async fn txn_compare() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     let key1 = "key1".to_owned();
 
@@ -4342,7 +4451,7 @@ async fn txn_compare() {
 
 #[test]
 fn add_lease() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     // don't care, just give me a lease
     let (id, ttl) = doc.add_lease(None, None).unwrap();
@@ -4366,7 +4475,7 @@ fn add_lease() {
 
 #[tokio::test]
 async fn remove_lease() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     let (id, _ttl) = doc.add_lease(None, None).unwrap();
 
@@ -4375,7 +4484,7 @@ async fn remove_lease() {
 
 #[test]
 fn refresh_lease() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     let (id, ttl) = doc.add_lease(None, None).unwrap();
 
@@ -4391,7 +4500,7 @@ fn refresh_lease() {
 
 #[tokio::test]
 async fn kv_leases() {
-    let mut doc = DocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     let (id, _ttl) = doc.add_lease(None, None).unwrap();
 

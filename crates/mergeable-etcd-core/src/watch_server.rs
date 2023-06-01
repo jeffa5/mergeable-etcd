@@ -53,7 +53,7 @@ impl WatchServer {
         );
         if let Some(start_revision) = start_revision {
             let current_revision = document.revision();
-            let header = document.header();
+            let header = document.header()?;
 
             let mut events = Vec::new();
 

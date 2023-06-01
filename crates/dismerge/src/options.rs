@@ -1,8 +1,6 @@
-use std::{
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
-use clap::{Parser};
+use clap::Parser;
 
 use crate::{persister::PersisterDispatcher, DocPersister};
 
@@ -26,6 +24,9 @@ pub struct Options {
     pub initial_advertise_peer_urls: Vec<String>,
     #[clap(long, default_value = "default=http://127.0.0.1:2380")]
     pub initial_cluster: String,
+
+    #[clap(long, default_value = "new")]
+    pub initial_cluster_state: InitialClusterState,
 
     #[clap(long, default_value = "")]
     pub cert_file: String,
@@ -85,6 +86,7 @@ impl Default for Options {
             advertise_client_urls: vec!["http://127.0.0.1:2379".to_owned()],
             initial_advertise_peer_urls: vec!["http://127.0.0.1:2380".to_owned()],
             initial_cluster: "default=http://127.0.0.1:2380".to_owned(),
+            initial_cluster_state: InitialClusterState::New,
             cert_file: Default::default(),
             client_cert_auth: Default::default(),
             key_file: Default::default(),
@@ -102,6 +104,13 @@ impl Default for Options {
             timeout: 1000,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, Default, clap::ValueEnum)]
+pub enum InitialClusterState {
+    #[default]
+    New,
+    Existing,
 }
 
 #[derive(Debug, Clone, Copy, Default, clap::ValueEnum)]

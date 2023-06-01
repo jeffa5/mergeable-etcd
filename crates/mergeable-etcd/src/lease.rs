@@ -59,7 +59,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseSer
                 debug!(lease_id=?id, "Closing lease revoke check loop");
             });
 
-            let header = document.header();
+            let header = document.header()?;
             Ok(tonic::Response::new(
                 etcd_proto::etcdserverpb::LeaseGrantResponse {
                     header: Some(header.into()),
@@ -89,7 +89,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseSer
 
         Ok(tonic::Response::new(
             etcd_proto::etcdserverpb::LeaseRevokeResponse {
-                header: Some(document.header().into()),
+                header: Some(document.header()?.into()),
             },
         ))
     }
@@ -131,7 +131,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseSer
 
                 let mut document = document.lock().await;
                 let ttl = document.refresh_lease(id);
-                let header = document.header();
+                let header = document.header().unwrap();
 
                 response_sender
                     .send(Ok(etcd_proto::etcdserverpb::LeaseKeepAliveResponse {
@@ -168,7 +168,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseSer
         }
 
         let document = self.document.lock().await;
-        let header = document.header();
+        let header = document.header()?;
         let last_refresh = document.last_lease_refresh(id).unwrap();
         let granted_ttl = document.granted_lease_ttl(id).unwrap();
         let time_since_refresh = chrono::Utc::now().timestamp() - last_refresh;
@@ -213,7 +213,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::lease_server::Lease for LeaseSer
             .into_iter()
             .map(|id| etcd_proto::etcdserverpb::LeaseStatus { id })
             .collect();
-        let header = document.header();
+        let header = document.header()?;
 
         Ok(tonic::Response::new(
             etcd_proto::etcdserverpb::LeaseLeasesResponse {

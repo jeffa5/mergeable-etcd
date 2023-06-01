@@ -27,7 +27,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::maintenance_server::Maintenance
         let _request = request.into_inner();
 
         let document = self.document.lock().await;
-        let header = document.header();
+        let header = document.header()?;
         let member_id = document.member_id();
         let db_size = document.db_size();
 

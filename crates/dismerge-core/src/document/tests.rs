@@ -20,9 +20,16 @@ use super::*;
 
 type TestDocumentBuilder = DocumentBuilder<MemoryPersister, (), (), Bytes>;
 
+fn single_node_doc() -> TestDocumentBuilder {
+    TestDocumentBuilder::default()
+        .with_in_memory()
+        .with_cluster_id(1)
+        .with_member_id(1)
+}
+
 #[tokio::test]
 async fn write_value() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
     let value1 = Bytes::from(b"value1".to_vec());
     let value2 = Bytes::from(b"value2".to_vec());
@@ -46,7 +53,7 @@ async fn write_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                    "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                 ),
             ],
         },
@@ -73,7 +80,7 @@ async fn write_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                    "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                 ),
             ],
         },
@@ -92,10 +99,10 @@ async fn write_value() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -122,7 +129,7 @@ async fn write_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "62c4ea00157924b721d604c9bebe41ee661360a2fdac5fbf5c48a125bd932434",
+                    "f1bcfc9f916a8831c990004a124f831089f8fdaeaceb7661810ea0dcbe226cf0",
                 ),
             ],
         },
@@ -141,10 +148,10 @@ async fn write_value() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -170,7 +177,7 @@ async fn write_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "62c4ea00157924b721d604c9bebe41ee661360a2fdac5fbf5c48a125bd932434",
+                    "f1bcfc9f916a8831c990004a124f831089f8fdaeaceb7661810ea0dcbe226cf0",
                 ),
             ],
         },
@@ -189,10 +196,10 @@ async fn write_value() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "62c4ea00157924b721d604c9bebe41ee661360a2fdac5fbf5c48a125bd932434",
+                        "f1bcfc9f916a8831c990004a124f831089f8fdaeaceb7661810ea0dcbe226cf0",
                     ),
                     lease: None,
                 },
@@ -219,7 +226,7 @@ async fn write_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "62c4ea00157924b721d604c9bebe41ee661360a2fdac5fbf5c48a125bd932434",
+                    "f1bcfc9f916a8831c990004a124f831089f8fdaeaceb7661810ea0dcbe226cf0",
                 ),
             ],
         },
@@ -238,10 +245,10 @@ async fn write_value() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -254,7 +261,7 @@ async fn write_value() {
 
 #[tokio::test]
 async fn delete_value() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
     let value = b"value1".to_vec();
     assert_debug_snapshot!(
@@ -275,7 +282,7 @@ async fn delete_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                    "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                 ),
             ],
         },
@@ -289,7 +296,7 @@ async fn delete_value() {
     assert_debug_snapshot!(old_heads, @r###"
     [
         ChangeHash(
-            "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+            "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
         ),
     ]
     "###);
@@ -311,7 +318,7 @@ async fn delete_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                    "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                 ),
             ],
         },
@@ -330,10 +337,10 @@ async fn delete_value() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -361,7 +368,7 @@ async fn delete_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "c8a98b56d67df0076887becdc39ea13a504a1e6e6ebf7e0021ddfabe27ec3b52",
+                    "8e486a78a09a80aede1109278a9766072ff87a9a48894083da809126e7d7ea40",
                 ),
             ],
         },
@@ -381,10 +388,10 @@ async fn delete_value() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -396,7 +403,7 @@ async fn delete_value() {
     assert_debug_snapshot!(doc.heads(), @r###"
     [
         ChangeHash(
-            "c8a98b56d67df0076887becdc39ea13a504a1e6e6ebf7e0021ddfabe27ec3b52",
+            "8e486a78a09a80aede1109278a9766072ff87a9a48894083da809126e7d7ea40",
         ),
     ]
     "###);
@@ -418,7 +425,7 @@ async fn delete_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "c8a98b56d67df0076887becdc39ea13a504a1e6e6ebf7e0021ddfabe27ec3b52",
+                    "8e486a78a09a80aede1109278a9766072ff87a9a48894083da809126e7d7ea40",
                 ),
             ],
         },
@@ -447,7 +454,7 @@ async fn delete_value() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "c8a98b56d67df0076887becdc39ea13a504a1e6e6ebf7e0021ddfabe27ec3b52",
+                    "8e486a78a09a80aede1109278a9766072ff87a9a48894083da809126e7d7ea40",
                 ),
             ],
         },
@@ -466,10 +473,10 @@ async fn delete_value() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -479,11 +486,13 @@ async fn delete_value() {
     )
     "###
     );
+    doc.dump();
+    todo!()
 }
 
 #[tokio::test]
 async fn range() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -508,7 +517,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                    "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                 ),
             ],
         },
@@ -536,7 +545,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                    "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                 ),
             ],
         },
@@ -564,7 +573,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                    "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                 ),
             ],
         },
@@ -592,7 +601,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -620,7 +629,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -639,10 +648,10 @@ async fn range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -670,7 +679,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -689,10 +698,10 @@ async fn range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     mod_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     lease: None,
                 },
@@ -720,7 +729,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -739,10 +748,10 @@ async fn range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     mod_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     lease: None,
                 },
@@ -770,7 +779,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -789,10 +798,10 @@ async fn range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                        "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                     ),
                     mod_head: ChangeHash(
-                        "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                        "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                     ),
                     lease: None,
                 },
@@ -821,7 +830,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -850,7 +859,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -869,10 +878,10 @@ async fn range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -889,10 +898,10 @@ async fn range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     mod_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     lease: None,
                 },
@@ -909,10 +918,10 @@ async fn range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     mod_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     lease: None,
                 },
@@ -940,7 +949,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -959,10 +968,10 @@ async fn range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -990,7 +999,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1009,10 +1018,10 @@ async fn range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -1029,10 +1038,10 @@ async fn range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     mod_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     lease: None,
                 },
@@ -1060,7 +1069,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1089,7 +1098,7 @@ async fn range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1104,7 +1113,7 @@ async fn range() {
 
 #[tokio::test]
 async fn remove_range() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -1129,7 +1138,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                    "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                 ),
             ],
         },
@@ -1157,7 +1166,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                    "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                 ),
             ],
         },
@@ -1185,7 +1194,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                    "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                 ),
             ],
         },
@@ -1213,7 +1222,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1241,7 +1250,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1260,10 +1269,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -1291,7 +1300,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1310,10 +1319,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     mod_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     lease: None,
                 },
@@ -1341,7 +1350,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1360,10 +1369,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     mod_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     lease: None,
                 },
@@ -1391,7 +1400,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1410,10 +1419,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                        "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                     ),
                     mod_head: ChangeHash(
-                        "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                        "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                     ),
                     lease: None,
                 },
@@ -1442,7 +1451,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1471,7 +1480,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1490,10 +1499,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -1510,10 +1519,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     mod_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     lease: None,
                 },
@@ -1530,10 +1539,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     mod_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     lease: None,
                 },
@@ -1561,7 +1570,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1580,10 +1589,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -1611,7 +1620,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1630,10 +1639,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -1650,10 +1659,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     mod_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     lease: None,
                 },
@@ -1681,7 +1690,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1710,7 +1719,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -1739,7 +1748,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "6b4f27931d3440ca030c5c30643e1850930120aaaee032174f5f11b34dc2065d",
+                    "2276c4e05e579ad18b6e115eb6cabef6a78a6a8d934213489d9f13925bb4db7e",
                 ),
             ],
         },
@@ -1759,10 +1768,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     mod_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     lease: None,
                 },
@@ -1779,10 +1788,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     mod_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     lease: None,
                 },
@@ -1810,7 +1819,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "6b4f27931d3440ca030c5c30643e1850930120aaaee032174f5f11b34dc2065d",
+                    "2276c4e05e579ad18b6e115eb6cabef6a78a6a8d934213489d9f13925bb4db7e",
                 ),
             ],
         },
@@ -1839,7 +1848,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "6b4f27931d3440ca030c5c30643e1850930120aaaee032174f5f11b34dc2065d",
+                    "2276c4e05e579ad18b6e115eb6cabef6a78a6a8d934213489d9f13925bb4db7e",
                 ),
             ],
         },
@@ -1858,10 +1867,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -1889,7 +1898,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "6b4f27931d3440ca030c5c30643e1850930120aaaee032174f5f11b34dc2065d",
+                    "2276c4e05e579ad18b6e115eb6cabef6a78a6a8d934213489d9f13925bb4db7e",
                 ),
             ],
         },
@@ -1908,10 +1917,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -1939,7 +1948,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "6b4f27931d3440ca030c5c30643e1850930120aaaee032174f5f11b34dc2065d",
+                    "2276c4e05e579ad18b6e115eb6cabef6a78a6a8d934213489d9f13925bb4db7e",
                 ),
             ],
         },
@@ -1958,10 +1967,10 @@ async fn remove_range() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -1989,7 +1998,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "6b4f27931d3440ca030c5c30643e1850930120aaaee032174f5f11b34dc2065d",
+                    "2276c4e05e579ad18b6e115eb6cabef6a78a6a8d934213489d9f13925bb4db7e",
                 ),
             ],
         },
@@ -2018,7 +2027,7 @@ async fn remove_range() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "6b4f27931d3440ca030c5c30643e1850930120aaaee032174f5f11b34dc2065d",
+                    "2276c4e05e579ad18b6e115eb6cabef6a78a6a8d934213489d9f13925bb4db7e",
                 ),
             ],
         },
@@ -2033,7 +2042,7 @@ async fn remove_range() {
 
 #[tokio::test]
 async fn delete_non_existent_key() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
     assert_debug_snapshot!(
         doc.delete_range(DeleteRangeRequest {
@@ -2052,7 +2061,7 @@ async fn delete_non_existent_key() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "616146d490f0c081793a453a4930da4ae20d1f74a0373b7806893e841ec6d5dd",
+                    "29c62bdab8bfae9ee91432cff390140e2040bb618e9c7ced842c062f05060341",
                 ),
             ],
         },
@@ -2067,7 +2076,7 @@ async fn delete_non_existent_key() {
 
 #[tokio::test]
 async fn put_no_prev_kv() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key".to_owned();
     let value = Bytes::from(b"value".to_vec());
     assert_debug_snapshot!(
@@ -2088,7 +2097,7 @@ async fn put_no_prev_kv() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "12b38f3edf85ee6165e98fcba7404f2a12c5a0a92a31c475f89ecfa24b91775c",
+                    "fc24b8b4f2b67e60849d9f4643e17a3a59ba2f68358ad1164fadc2eb9a77b5bc",
                 ),
             ],
         },
@@ -2116,7 +2125,7 @@ async fn put_no_prev_kv() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "12b38f3edf85ee6165e98fcba7404f2a12c5a0a92a31c475f89ecfa24b91775c",
+                    "fc24b8b4f2b67e60849d9f4643e17a3a59ba2f68358ad1164fadc2eb9a77b5bc",
                 ),
             ],
         },
@@ -2130,7 +2139,7 @@ async fn put_no_prev_kv() {
 
 #[tokio::test]
 async fn delete_range_no_prev_kv() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key".to_owned();
     let value = Bytes::from(b"value".to_vec());
     assert_debug_snapshot!(
@@ -2151,7 +2160,7 @@ async fn delete_range_no_prev_kv() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "12b38f3edf85ee6165e98fcba7404f2a12c5a0a92a31c475f89ecfa24b91775c",
+                    "fc24b8b4f2b67e60849d9f4643e17a3a59ba2f68358ad1164fadc2eb9a77b5bc",
                 ),
             ],
         },
@@ -2178,7 +2187,7 @@ async fn delete_range_no_prev_kv() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "0745fb7436d90d7e7338af195034c850e21df53db401592860a1508d3de67ab0",
+                    "56eb374a476b3857f30b71f4618a0fee782d02b7456f078f1d2071e50794c445",
                 ),
             ],
         },
@@ -2193,14 +2202,14 @@ async fn delete_range_no_prev_kv() {
 
 #[tokio::test]
 async fn transaction() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
     let value = Bytes::from(b"value".to_vec());
     // success
     assert_debug_snapshot!(doc.heads(), @r###"
     [
         ChangeHash(
-            "616146d490f0c081793a453a4930da4ae20d1f74a0373b7806893e841ec6d5dd",
+            "29c62bdab8bfae9ee91432cff390140e2040bb618e9c7ced842c062f05060341",
         ),
     ]
     "###);
@@ -2252,7 +2261,7 @@ async fn transaction() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "f6ec7541af3ad386f4e73a09fe40a042cd73171796b22386f9f0c2358d54e9d6",
+                    "915e269d122483ff714951dcf0ebe91d68dea0a75e6320965fb7e6938cc114aa",
                 ),
             ],
         },
@@ -2310,7 +2319,7 @@ async fn transaction() {
     assert_debug_snapshot!(doc.heads(), @r###"
     [
         ChangeHash(
-            "f6ec7541af3ad386f4e73a09fe40a042cd73171796b22386f9f0c2358d54e9d6",
+            "915e269d122483ff714951dcf0ebe91d68dea0a75e6320965fb7e6938cc114aa",
         ),
     ]
     "###);
@@ -2327,7 +2336,7 @@ async fn transaction() {
     assert_debug_snapshot!(doc.heads(), @r###"
     [
         ChangeHash(
-            "4229f81d33b997a9b62c969038b1125f13db3691824dfd38c975d16f1138c958",
+            "4f170fff435f5a693b82d411ff693b21ec0959d123b6cf3710eb17d74992c697",
         ),
     ]
     "###);
@@ -2380,7 +2389,7 @@ async fn transaction() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "23ff69823ac7bd16cdc62e864fd763b05d97e71db3e8c44cc9c9e5b331a68a77",
+                    "22054f15847b2e6c0a2d0c672985b0eb35d445bd620984e6c658bec50f891663",
                 ),
             ],
         },
@@ -2402,10 +2411,10 @@ async fn transaction() {
                                     ],
                                 ),
                                 create_head: ChangeHash(
-                                    "4229f81d33b997a9b62c969038b1125f13db3691824dfd38c975d16f1138c958",
+                                    "4f170fff435f5a693b82d411ff693b21ec0959d123b6cf3710eb17d74992c697",
                                 ),
                                 mod_head: ChangeHash(
-                                    "4229f81d33b997a9b62c969038b1125f13db3691824dfd38c975d16f1138c958",
+                                    "4f170fff435f5a693b82d411ff693b21ec0959d123b6cf3710eb17d74992c697",
                                 ),
                                 lease: None,
                             },
@@ -2433,10 +2442,10 @@ async fn transaction() {
                                     ],
                                 ),
                                 create_head: ChangeHash(
-                                    "4229f81d33b997a9b62c969038b1125f13db3691824dfd38c975d16f1138c958",
+                                    "4f170fff435f5a693b82d411ff693b21ec0959d123b6cf3710eb17d74992c697",
                                 ),
                                 mod_head: ChangeHash(
-                                    "4229f81d33b997a9b62c969038b1125f13db3691824dfd38c975d16f1138c958",
+                                    "4f170fff435f5a693b82d411ff693b21ec0959d123b6cf3710eb17d74992c697",
                                 ),
                                 lease: None,
                             },
@@ -2458,7 +2467,7 @@ async fn transaction() {
     assert_debug_snapshot!(doc.heads(), @r###"
     [
         ChangeHash(
-            "23ff69823ac7bd16cdc62e864fd763b05d97e71db3e8c44cc9c9e5b331a68a77",
+            "22054f15847b2e6c0a2d0c672985b0eb35d445bd620984e6c658bec50f891663",
         ),
     ]
     "###);
@@ -2466,7 +2475,7 @@ async fn transaction() {
 
 #[tokio::test]
 async fn transaction_single_heads() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key2".to_owned();
     let value = Bytes::from(b"value".to_vec());
@@ -2474,7 +2483,7 @@ async fn transaction_single_heads() {
     assert_debug_snapshot!(doc.heads(), @r###"
     [
         ChangeHash(
-            "616146d490f0c081793a453a4930da4ae20d1f74a0373b7806893e841ec6d5dd",
+            "29c62bdab8bfae9ee91432cff390140e2040bb618e9c7ced842c062f05060341",
         ),
     ]
     "###);
@@ -2522,7 +2531,7 @@ async fn transaction_single_heads() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "67d4db3e943147dbb6396df8614acd40df414bdf6318f6c0469b78751201a322",
+                    "bff90352b65729d43693885b6070354b41ecb0bdd566da3ea37edfa1252910b8",
                 ),
             ],
         },
@@ -2599,7 +2608,7 @@ async fn transaction_single_heads() {
     assert_debug_snapshot!(doc.heads(), @r###"
     [
         ChangeHash(
-            "67d4db3e943147dbb6396df8614acd40df414bdf6318f6c0469b78751201a322",
+            "bff90352b65729d43693885b6070354b41ecb0bdd566da3ea37edfa1252910b8",
         ),
     ]
     "###);
@@ -2607,7 +2616,7 @@ async fn transaction_single_heads() {
 
 #[tokio::test]
 async fn transaction_no_modification() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     let key = "key1".to_owned();
     let value = Bytes::from(b"value".to_vec());
@@ -2615,7 +2624,7 @@ async fn transaction_no_modification() {
     assert_debug_snapshot!(doc.heads(), @r###"
     [
         ChangeHash(
-            "616146d490f0c081793a453a4930da4ae20d1f74a0373b7806893e841ec6d5dd",
+            "29c62bdab8bfae9ee91432cff390140e2040bb618e9c7ced842c062f05060341",
         ),
     ]
     "###);
@@ -2653,7 +2662,7 @@ async fn transaction_no_modification() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                    "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                 ),
             ],
         },
@@ -2675,10 +2684,10 @@ async fn transaction_no_modification() {
                                     ],
                                 ),
                                 create_head: ChangeHash(
-                                    "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                                    "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                                 ),
                                 mod_head: ChangeHash(
-                                    "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                                    "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                                 ),
                                 lease: None,
                             },
@@ -2694,7 +2703,7 @@ async fn transaction_no_modification() {
     assert_debug_snapshot!(doc.heads(), @r###"
     [
         ChangeHash(
-            "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+            "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
         ),
     ]
     "###);
@@ -2722,7 +2731,7 @@ async fn transaction_no_modification() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                    "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                 ),
             ],
         },
@@ -2744,10 +2753,10 @@ async fn transaction_no_modification() {
                                     ],
                                 ),
                                 create_head: ChangeHash(
-                                    "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                                    "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                                 ),
                                 mod_head: ChangeHash(
-                                    "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                                    "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                                 ),
                                 lease: None,
                             },
@@ -2763,7 +2772,7 @@ async fn transaction_no_modification() {
     assert_debug_snapshot!(doc.heads(), @r###"
     [
         ChangeHash(
-            "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+            "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
         ),
     ]
     "###);
@@ -2856,10 +2865,10 @@ async fn sync_two_documents() {
                     ],
                 ),
                 create_head: ChangeHash(
-                    "12b38f3edf85ee6165e98fcba7404f2a12c5a0a92a31c475f89ecfa24b91775c",
+                    "fc24b8b4f2b67e60849d9f4643e17a3a59ba2f68358ad1164fadc2eb9a77b5bc",
                 ),
                 mod_head: ChangeHash(
-                    "12b38f3edf85ee6165e98fcba7404f2a12c5a0a92a31c475f89ecfa24b91775c",
+                    "fc24b8b4f2b67e60849d9f4643e17a3a59ba2f68358ad1164fadc2eb9a77b5bc",
                 ),
                 lease: None,
             },
@@ -2973,10 +2982,10 @@ async fn sync_two_documents_conflicting_puts_same_heads() {
                     ],
                 ),
                 create_head: ChangeHash(
-                    "5f57c1809c0c22a0f2f1294b9249d65aed0417a68abebf662a52c8b95d51ddca",
+                    "bcb464f3edd35d37c3a4c8b40cab70dc7bfc4c019f935e0943b515f27cfd0627",
                 ),
                 mod_head: ChangeHash(
-                    "5f57c1809c0c22a0f2f1294b9249d65aed0417a68abebf662a52c8b95d51ddca",
+                    "bcb464f3edd35d37c3a4c8b40cab70dc7bfc4c019f935e0943b515f27cfd0627",
                 ),
                 lease: None,
             },
@@ -3047,7 +3056,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
     assert_debug_snapshot!(doc1.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "01642be3b037e3d3a2c07281f4e815859d49ff518035bbeae08bb0ab589ad77b",
+            "a06bd9a953c509b78930e13881b1de14f9f1e920987f29dd34e1440c9625770a",
         ),
     ]
     "###);
@@ -3067,7 +3076,7 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
     assert_debug_snapshot!(doc2.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "5f57c1809c0c22a0f2f1294b9249d65aed0417a68abebf662a52c8b95d51ddca",
+            "bcb464f3edd35d37c3a4c8b40cab70dc7bfc4c019f935e0943b515f27cfd0627",
         ),
     ]
     "###);
@@ -3095,10 +3104,10 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         member_id: 1,
         heads: [
             ChangeHash(
-                "01642be3b037e3d3a2c07281f4e815859d49ff518035bbeae08bb0ab589ad77b",
+                "a06bd9a953c509b78930e13881b1de14f9f1e920987f29dd34e1440c9625770a",
             ),
             ChangeHash(
-                "5f57c1809c0c22a0f2f1294b9249d65aed0417a68abebf662a52c8b95d51ddca",
+                "bcb464f3edd35d37c3a4c8b40cab70dc7bfc4c019f935e0943b515f27cfd0627",
             ),
         ],
     }
@@ -3126,10 +3135,10 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         member_id: 2,
         heads: [
             ChangeHash(
-                "01642be3b037e3d3a2c07281f4e815859d49ff518035bbeae08bb0ab589ad77b",
+                "a06bd9a953c509b78930e13881b1de14f9f1e920987f29dd34e1440c9625770a",
             ),
             ChangeHash(
-                "5f57c1809c0c22a0f2f1294b9249d65aed0417a68abebf662a52c8b95d51ddca",
+                "bcb464f3edd35d37c3a4c8b40cab70dc7bfc4c019f935e0943b515f27cfd0627",
             ),
         ],
     }
@@ -3141,20 +3150,20 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
     assert_debug_snapshot!(doc1.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "01642be3b037e3d3a2c07281f4e815859d49ff518035bbeae08bb0ab589ad77b",
+            "a06bd9a953c509b78930e13881b1de14f9f1e920987f29dd34e1440c9625770a",
         ),
         ChangeHash(
-            "5f57c1809c0c22a0f2f1294b9249d65aed0417a68abebf662a52c8b95d51ddca",
+            "bcb464f3edd35d37c3a4c8b40cab70dc7bfc4c019f935e0943b515f27cfd0627",
         ),
     ]
     "###);
     assert_debug_snapshot!(doc2.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "01642be3b037e3d3a2c07281f4e815859d49ff518035bbeae08bb0ab589ad77b",
+            "a06bd9a953c509b78930e13881b1de14f9f1e920987f29dd34e1440c9625770a",
         ),
         ChangeHash(
-            "5f57c1809c0c22a0f2f1294b9249d65aed0417a68abebf662a52c8b95d51ddca",
+            "bcb464f3edd35d37c3a4c8b40cab70dc7bfc4c019f935e0943b515f27cfd0627",
         ),
     ]
     "###);
@@ -3177,10 +3186,10 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
                     ],
                 ),
                 create_head: ChangeHash(
-                    "01642be3b037e3d3a2c07281f4e815859d49ff518035bbeae08bb0ab589ad77b",
+                    "a06bd9a953c509b78930e13881b1de14f9f1e920987f29dd34e1440c9625770a",
                 ),
                 mod_head: ChangeHash(
-                    "01642be3b037e3d3a2c07281f4e815859d49ff518035bbeae08bb0ab589ad77b",
+                    "a06bd9a953c509b78930e13881b1de14f9f1e920987f29dd34e1440c9625770a",
                 ),
                 lease: None,
             },
@@ -3211,10 +3220,10 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
         member_id: 2,
         heads: [
             ChangeHash(
-                "01642be3b037e3d3a2c07281f4e815859d49ff518035bbeae08bb0ab589ad77b",
+                "a06bd9a953c509b78930e13881b1de14f9f1e920987f29dd34e1440c9625770a",
             ),
             ChangeHash(
-                "5f57c1809c0c22a0f2f1294b9249d65aed0417a68abebf662a52c8b95d51ddca",
+                "bcb464f3edd35d37c3a4c8b40cab70dc7bfc4c019f935e0943b515f27cfd0627",
             ),
         ],
     }
@@ -3238,10 +3247,10 @@ async fn sync_two_documents_conflicting_puts_different_revisions() {
                     ],
                 ),
                 create_head: ChangeHash(
-                    "01642be3b037e3d3a2c07281f4e815859d49ff518035bbeae08bb0ab589ad77b",
+                    "a06bd9a953c509b78930e13881b1de14f9f1e920987f29dd34e1440c9625770a",
                 ),
                 mod_head: ChangeHash(
-                    "01642be3b037e3d3a2c07281f4e815859d49ff518035bbeae08bb0ab589ad77b",
+                    "a06bd9a953c509b78930e13881b1de14f9f1e920987f29dd34e1440c9625770a",
                 ),
                 lease: None,
             },
@@ -3259,7 +3268,7 @@ async fn watch_value_creation() {
         events: Arc::clone(&events),
     };
 
-    let mut doc = TestDocumentBuilder::default()
+    let mut doc = single_node_doc()
         .with_in_memory()
         .with_watcher(watcher)
         .build();
@@ -3289,7 +3298,7 @@ async fn watch_value_creation() {
                 member_id: 1,
                 heads: [
                     ChangeHash(
-                        "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                        "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                     ),
                 ],
             },
@@ -3307,10 +3316,10 @@ async fn watch_value_creation() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                            "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                         ),
                         mod_head: ChangeHash(
-                            "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                            "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                         ),
                         lease: None,
                     },
@@ -3342,7 +3351,7 @@ async fn watch_value_creation() {
                 member_id: 1,
                 heads: [
                     ChangeHash(
-                        "817df7343363ed225025e1ce517ad7cc17e01f3113a53a6c1a25c19a01e08d2a",
+                        "b34924248bbe12cdf64b3732801d4a6714908583f8166369b6527b492dcd904a",
                     ),
                 ],
             },
@@ -3350,7 +3359,7 @@ async fn watch_value_creation() {
                 typ: Delete(
                     "key1",
                     ChangeHash(
-                        "817df7343363ed225025e1ce517ad7cc17e01f3113a53a6c1a25c19a01e08d2a",
+                        "b34924248bbe12cdf64b3732801d4a6714908583f8166369b6527b492dcd904a",
                     ),
                 ),
                 prev_kv: Some(
@@ -3366,10 +3375,10 @@ async fn watch_value_creation() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                            "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                         ),
                         mod_head: ChangeHash(
-                            "a93af1946094a664f313479ac34d65cea8d8294e2c1cc91dc591081dc81e4373",
+                            "92c9670bb443cd82b6046cc8ba11e6ff2d11a6db80dac50a0fdf8283cb1fac55",
                         ),
                         lease: None,
                     },
@@ -3423,7 +3432,7 @@ async fn watch_value_creation() {
                 member_id: 1,
                 heads: [
                     ChangeHash(
-                        "aafaa1bf6a6cbba2a75e6229147e4e5aff8e444658133d08e89ea18c6bcea142",
+                        "d9e98cf7dacb29eb8dbf586ad69988a0dac7bbdd6ba0cd02fb2281402ec5d84d",
                     ),
                 ],
             },
@@ -3431,7 +3440,7 @@ async fn watch_value_creation() {
                 typ: Delete(
                     "key1",
                     ChangeHash(
-                        "aafaa1bf6a6cbba2a75e6229147e4e5aff8e444658133d08e89ea18c6bcea142",
+                        "d9e98cf7dacb29eb8dbf586ad69988a0dac7bbdd6ba0cd02fb2281402ec5d84d",
                     ),
                 ),
                 prev_kv: Some(
@@ -3447,10 +3456,10 @@ async fn watch_value_creation() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "1b1be3de005edbf0c844b02d414119799571b70d96edf12506d102a794456eb6",
+                            "0ba9f0c4f5fd39e0412c2a186083f90da19fe89820a704bfeafe9b03e11f84b8",
                         ),
                         mod_head: ChangeHash(
-                            "1b1be3de005edbf0c844b02d414119799571b70d96edf12506d102a794456eb6",
+                            "0ba9f0c4f5fd39e0412c2a186083f90da19fe89820a704bfeafe9b03e11f84b8",
                         ),
                         lease: None,
                     },
@@ -3463,7 +3472,7 @@ async fn watch_value_creation() {
                 member_id: 1,
                 heads: [
                     ChangeHash(
-                        "aafaa1bf6a6cbba2a75e6229147e4e5aff8e444658133d08e89ea18c6bcea142",
+                        "d9e98cf7dacb29eb8dbf586ad69988a0dac7bbdd6ba0cd02fb2281402ec5d84d",
                     ),
                 ],
             },
@@ -3471,7 +3480,7 @@ async fn watch_value_creation() {
                 typ: Delete(
                     "key2",
                     ChangeHash(
-                        "aafaa1bf6a6cbba2a75e6229147e4e5aff8e444658133d08e89ea18c6bcea142",
+                        "d9e98cf7dacb29eb8dbf586ad69988a0dac7bbdd6ba0cd02fb2281402ec5d84d",
                     ),
                 ),
                 prev_kv: Some(
@@ -3487,10 +3496,10 @@ async fn watch_value_creation() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "3d7af1ee87bdd131480b6f86038d67c1fd079b9659ba30692a2cc0006ecc9288",
+                            "4105a854cf832d4289c875b01e5099421ca07619b49fa5e11cc312b7856ea3f2",
                         ),
                         mod_head: ChangeHash(
-                            "3d7af1ee87bdd131480b6f86038d67c1fd079b9659ba30692a2cc0006ecc9288",
+                            "4105a854cf832d4289c875b01e5099421ca07619b49fa5e11cc312b7856ea3f2",
                         ),
                         lease: None,
                     },
@@ -3512,7 +3521,7 @@ async fn watch_server_value_creation() {
 
     let mut watch_server = WatchServer::default();
 
-    let mut doc = TestDocumentBuilder::default()
+    let mut doc = single_node_doc()
         .with_in_memory()
         .with_watcher(watcher)
         .build();
@@ -3943,7 +3952,7 @@ async fn sync_two_documents_trigger_watches() {
     assert_debug_snapshot!(doc1.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
         ),
     ]
     "###);
@@ -3963,7 +3972,7 @@ async fn sync_two_documents_trigger_watches() {
     assert_debug_snapshot!(doc1.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
+            "d1644e4a8b50e4d0e229c732cd923cf0898ce3044852a4a754dc94635df7170d",
         ),
     ]
     "###);
@@ -3983,7 +3992,7 @@ async fn sync_two_documents_trigger_watches() {
                 member_id: 1,
                 heads: [
                     ChangeHash(
-                        "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                        "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                     ),
                 ],
             },
@@ -4002,10 +4011,10 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         mod_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         lease: None,
                     },
@@ -4025,7 +4034,7 @@ async fn sync_two_documents_trigger_watches() {
                 member_id: 1,
                 heads: [
                     ChangeHash(
-                        "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
+                        "d1644e4a8b50e4d0e229c732cd923cf0898ce3044852a4a754dc94635df7170d",
                     ),
                 ],
             },
@@ -4044,10 +4053,10 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         mod_head: ChangeHash(
-                            "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
+                            "d1644e4a8b50e4d0e229c732cd923cf0898ce3044852a4a754dc94635df7170d",
                         ),
                         lease: None,
                     },
@@ -4066,10 +4075,10 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         mod_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         lease: None,
                     },
@@ -4089,7 +4098,7 @@ async fn sync_two_documents_trigger_watches() {
     assert_debug_snapshot!(doc2.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "a9a38aeb5be80dae60a3ce1f75524e080c550f08dd80deb79730760c9e020c6a",
+            "5fb94242d4619e894489e7861fc85a6ffca7cee57299006df978b3f6fbd3acdf",
         ),
     ]
     "###);
@@ -4123,10 +4132,10 @@ async fn sync_two_documents_trigger_watches() {
                 member_id: 2,
                 heads: [
                     ChangeHash(
-                        "a9a38aeb5be80dae60a3ce1f75524e080c550f08dd80deb79730760c9e020c6a",
+                        "5fb94242d4619e894489e7861fc85a6ffca7cee57299006df978b3f6fbd3acdf",
                     ),
                     ChangeHash(
-                        "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
+                        "d1644e4a8b50e4d0e229c732cd923cf0898ce3044852a4a754dc94635df7170d",
                     ),
                 ],
             },
@@ -4145,10 +4154,10 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         mod_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         lease: None,
                     },
@@ -4171,10 +4180,10 @@ async fn sync_two_documents_trigger_watches() {
                 member_id: 2,
                 heads: [
                     ChangeHash(
-                        "a9a38aeb5be80dae60a3ce1f75524e080c550f08dd80deb79730760c9e020c6a",
+                        "5fb94242d4619e894489e7861fc85a6ffca7cee57299006df978b3f6fbd3acdf",
                     ),
                     ChangeHash(
-                        "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
+                        "d1644e4a8b50e4d0e229c732cd923cf0898ce3044852a4a754dc94635df7170d",
                     ),
                 ],
             },
@@ -4193,10 +4202,10 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         mod_head: ChangeHash(
-                            "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
+                            "d1644e4a8b50e4d0e229c732cd923cf0898ce3044852a4a754dc94635df7170d",
                         ),
                         lease: None,
                     },
@@ -4215,10 +4224,10 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         mod_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         lease: None,
                     },
@@ -4241,20 +4250,20 @@ async fn sync_two_documents_trigger_watches() {
     assert_debug_snapshot!(doc1.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "a9a38aeb5be80dae60a3ce1f75524e080c550f08dd80deb79730760c9e020c6a",
+            "5fb94242d4619e894489e7861fc85a6ffca7cee57299006df978b3f6fbd3acdf",
         ),
         ChangeHash(
-            "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
+            "d1644e4a8b50e4d0e229c732cd923cf0898ce3044852a4a754dc94635df7170d",
         ),
     ]
     "###);
     assert_debug_snapshot!(doc2.lock().await.heads(), @r###"
     [
         ChangeHash(
-            "a9a38aeb5be80dae60a3ce1f75524e080c550f08dd80deb79730760c9e020c6a",
+            "5fb94242d4619e894489e7861fc85a6ffca7cee57299006df978b3f6fbd3acdf",
         ),
         ChangeHash(
-            "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
+            "d1644e4a8b50e4d0e229c732cd923cf0898ce3044852a4a754dc94635df7170d",
         ),
     ]
     "###);
@@ -4286,7 +4295,7 @@ async fn sync_two_documents_trigger_watches() {
                 member_id: 1,
                 heads: [
                     ChangeHash(
-                        "7918d66073a305468a6abdcc162c67d22f998e9f3ee99eec750f48675b71a4d8",
+                        "6170d3db404c3be12c8e67e2c7ba4a304f0a3ee907afa538b68bddc6bd32fd20",
                     ),
                 ],
             },
@@ -4294,7 +4303,7 @@ async fn sync_two_documents_trigger_watches() {
                 typ: Delete(
                     "key1",
                     ChangeHash(
-                        "7918d66073a305468a6abdcc162c67d22f998e9f3ee99eec750f48675b71a4d8",
+                        "6170d3db404c3be12c8e67e2c7ba4a304f0a3ee907afa538b68bddc6bd32fd20",
                     ),
                 ),
                 prev_kv: Some(
@@ -4311,10 +4320,10 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         mod_head: ChangeHash(
-                            "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
+                            "d1644e4a8b50e4d0e229c732cd923cf0898ce3044852a4a754dc94635df7170d",
                         ),
                         lease: None,
                     },
@@ -4357,7 +4366,7 @@ async fn sync_two_documents_trigger_watches() {
                 member_id: 2,
                 heads: [
                     ChangeHash(
-                        "7918d66073a305468a6abdcc162c67d22f998e9f3ee99eec750f48675b71a4d8",
+                        "6170d3db404c3be12c8e67e2c7ba4a304f0a3ee907afa538b68bddc6bd32fd20",
                     ),
                 ],
             },
@@ -4365,7 +4374,7 @@ async fn sync_two_documents_trigger_watches() {
                 typ: Delete(
                     "key1",
                     ChangeHash(
-                        "7918d66073a305468a6abdcc162c67d22f998e9f3ee99eec750f48675b71a4d8",
+                        "6170d3db404c3be12c8e67e2c7ba4a304f0a3ee907afa538b68bddc6bd32fd20",
                     ),
                 ),
                 prev_kv: Some(
@@ -4382,10 +4391,10 @@ async fn sync_two_documents_trigger_watches() {
                             ],
                         ),
                         create_head: ChangeHash(
-                            "b518818adcaabf52c038c591a0b962cc66ee784ec3ab120adbc53ef5d59939f2",
+                            "d888709616faeedc6d797a0e874404cdbe71fed6022ab78cc82aec05fb713272",
                         ),
                         mod_head: ChangeHash(
-                            "d53d889679f48aa8848d0708900675853d4118223e2db56b4b01ef607286a816",
+                            "d1644e4a8b50e4d0e229c732cd923cf0898ce3044852a4a754dc94635df7170d",
                         ),
                         lease: None,
                     },
@@ -4408,7 +4417,7 @@ async fn sync_two_documents_trigger_watches() {
 
 #[tokio::test]
 async fn start_with_ourselves_as_member() {
-    let doc = TestDocumentBuilder::default().build();
+    let doc = single_node_doc().build();
     assert_debug_snapshot!(
         doc.list_members().unwrap(),
         @r###"
@@ -4427,7 +4436,7 @@ async fn start_with_ourselves_as_member() {
 
 #[tokio::test]
 async fn add_other_member() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     assert_debug_snapshot!(
         doc.list_members().unwrap(),
         @r###"
@@ -4586,6 +4595,111 @@ async fn cluster_startup_2() {
     ]
     "###
     );
+}
+
+#[tokio::test]
+async fn cluster_startup_2_no_cluster_id() {
+    let id1 = 1;
+    let id2 = 2;
+
+    // new node is stood up
+    // give the first node a cluster id
+    let doc1 = TestDocumentBuilder::default()
+        .with_in_memory()
+        .with_member_id(id1)
+        .with_cluster_id(1)
+        .with_syncer(())
+        .with_name("node1".to_owned())
+        .with_peer_urls(vec!["1".to_owned()])
+        .build();
+    assert_eq!(
+        doc1.list_members().unwrap(),
+        vec![Member {
+            id: id1,
+            name: "node1".to_owned(),
+            peer_ur_ls: vec!["1".to_owned()],
+            client_ur_ls: vec![],
+            is_learner: false
+        }]
+    );
+
+    let doc1 = Arc::new(Mutex::new(doc1));
+
+    // then it starts with the id given from the existing cluster node
+    let doc2 = TestDocumentBuilder::default()
+        .with_in_memory()
+        .with_member_id(id2)
+        .with_syncer(())
+        .with_name("node2".to_owned())
+        .with_peer_urls(vec!["2".to_owned()])
+        .build();
+
+    assert_eq!(
+        doc2.list_members().unwrap(),
+        vec![Member {
+            id: id2,
+            name: "node2".to_owned(),
+            peer_ur_ls: vec!["2".to_owned()],
+            client_ur_ls: vec![],
+            is_learner: false
+        }]
+    );
+
+    let doc2 = Arc::new(Mutex::new(doc2));
+
+    let syncer1 = LocalSyncer {
+        local_id: id1,
+        local_document: Arc::clone(&doc1),
+        other_documents: vec![(id2, Arc::clone(&doc2))],
+    };
+
+    syncer1.sync_all().await;
+
+    assert_eq!(
+        doc1.lock().await.list_members().unwrap(),
+        vec![
+            Member {
+                id: id1,
+                name: "node1".to_owned(),
+                peer_ur_ls: vec!["1".to_owned()],
+                client_ur_ls: vec![],
+                is_learner: false
+            },
+            Member {
+                id: id2,
+                name: "node2".to_owned(),
+                peer_ur_ls: vec!["2".to_owned()],
+                client_ur_ls: vec![],
+                is_learner: false
+            }
+        ]
+    );
+
+    assert_eq!(
+        doc2.lock().await.list_members().unwrap(),
+        vec![
+            Member {
+                id: id1,
+                name: "node1".to_owned(),
+                peer_ur_ls: vec!["1".to_owned()],
+                client_ur_ls: vec![],
+                is_learner: false
+            },
+            Member {
+                id: id2,
+                name: "node2".to_owned(),
+                peer_ur_ls: vec!["2".to_owned()],
+                client_ur_ls: vec![],
+                is_learner: false
+            }
+        ]
+    );
+
+    // should have a cluster id
+    let cluster_id1 = doc1.lock().await.cluster_id().unwrap();
+    let cluster_id2 = doc2.lock().await.cluster_id().unwrap();
+    dbg!(cluster_id1, cluster_id2);
+    assert_eq!(cluster_id1, cluster_id2);
 }
 
 #[test(tokio::test)]
@@ -4973,7 +5087,7 @@ async fn cluster_startup_3() {
 
 #[tokio::test]
 async fn range_limited() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -4998,7 +5112,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                    "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                 ),
             ],
         },
@@ -5026,7 +5140,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                    "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                 ),
             ],
         },
@@ -5054,7 +5168,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                    "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                 ),
             ],
         },
@@ -5082,7 +5196,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5110,7 +5224,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5129,10 +5243,10 @@ async fn range_limited() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -5160,7 +5274,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5179,10 +5293,10 @@ async fn range_limited() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     mod_head: ChangeHash(
-                        "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                        "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                     ),
                     lease: None,
                 },
@@ -5210,7 +5324,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5229,10 +5343,10 @@ async fn range_limited() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     mod_head: ChangeHash(
-                        "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                        "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                     ),
                     lease: None,
                 },
@@ -5260,7 +5374,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5279,10 +5393,10 @@ async fn range_limited() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                        "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                     ),
                     mod_head: ChangeHash(
-                        "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                        "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                     ),
                     lease: None,
                 },
@@ -5311,7 +5425,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5340,7 +5454,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5359,10 +5473,10 @@ async fn range_limited() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -5390,7 +5504,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5409,10 +5523,10 @@ async fn range_limited() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -5440,7 +5554,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5459,10 +5573,10 @@ async fn range_limited() {
                         ],
                     ),
                     create_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     mod_head: ChangeHash(
-                        "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                        "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                     ),
                     lease: None,
                 },
@@ -5490,7 +5604,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5519,7 +5633,7 @@ async fn range_limited() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5534,7 +5648,7 @@ async fn range_limited() {
 
 #[tokio::test]
 async fn range_count_only() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key1 = "key1".to_owned();
     let key2 = "key1/key2".to_owned();
     let key3 = "key1/key3".to_owned();
@@ -5559,7 +5673,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                    "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                 ),
             ],
         },
@@ -5587,7 +5701,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "2b37e2c53f4adf2e903546c942eec33b57f3aa211723c724609ba8fc16c3adb9",
+                    "95ed333884b7c649a0b669e54427eb2ccd2ba829ecd7d963c27f56288822caf0",
                 ),
             ],
         },
@@ -5615,7 +5729,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "cd16e3653937d707078fbde846ef209ee57708090d3fed6f5d5f55b8c20aec36",
+                    "1edc9dfd5e4c555eb52771f303ccfc3ba0632e3d81c8a0b7f828d54c06b1e4a4",
                 ),
             ],
         },
@@ -5643,7 +5757,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5671,7 +5785,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5700,7 +5814,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5729,7 +5843,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5758,7 +5872,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5788,7 +5902,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5817,7 +5931,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5846,7 +5960,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5875,7 +5989,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5904,7 +6018,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5933,7 +6047,7 @@ async fn range_count_only() {
             member_id: 1,
             heads: [
                 ChangeHash(
-                    "711e95d12aaac7f5293cc24d573bfc71353c41a0c0cc8ec78f3ebd9f27145caf",
+                    "bde6e4a03cae181cd137cc8ee67ffb676f93e0465ef1677e0f733e13a8a4ae23",
                 ),
             ],
         },
@@ -5956,7 +6070,7 @@ async fn watch_server_value_creation_start_heads() {
 
     let mut watch_server = WatchServer::default();
 
-    let mut doc = TestDocumentBuilder::default()
+    let mut doc = single_node_doc()
         .with_in_memory()
         .with_watcher(watcher)
         .build();
@@ -6205,7 +6319,7 @@ async fn watch_server_value_creation_start_heads() {
 
 #[tokio::test]
 async fn txn_compare() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     let key1 = "key1".to_owned();
     let value1 = Bytes::from(b"value1".to_vec());
@@ -6305,10 +6419,10 @@ async fn txn_compare() {
                                 ],
                             ),
                             create_head: ChangeHash(
-                                "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                                "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                             ),
                             mod_head: ChangeHash(
-                                "20830074105abb57866e1a8d472d43e2e5c98dc1ad72d53ed05a010e93a6cf68",
+                                "bc6f6a75f3ca5e69dd838e5f24271b22f2880b28192933b827edc7a5fb37cd59",
                             ),
                             lease: None,
                         },
@@ -6324,7 +6438,7 @@ async fn txn_compare() {
 
 #[test]
 fn add_lease() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     // don't care, just give me a lease
     let (id, ttl) = doc.add_lease(None, None, 2023).unwrap();
@@ -6348,7 +6462,7 @@ fn add_lease() {
 
 #[tokio::test]
 async fn remove_lease() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     let (id, _ttl) = doc.add_lease(None, None, 2023).unwrap();
 
@@ -6357,7 +6471,7 @@ async fn remove_lease() {
 
 #[test]
 fn refresh_lease() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     let (id, ttl) = doc.add_lease(None, None, 2023).unwrap();
 
@@ -6373,7 +6487,7 @@ fn refresh_lease() {
 
 #[tokio::test]
 async fn kv_leases() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
 
     let (id, _ttl) = doc.add_lease(Some(20), None, 2023).unwrap();
 
@@ -6419,10 +6533,10 @@ async fn kv_leases() {
                     ],
                 ),
                 create_head: ChangeHash(
-                    "5e3cf9ee156318153dc5db58bc49315dca0088203208ff3c86abcc9db58ba624",
+                    "e0a46907198a90928317ad63418bb4d93e55baae922ba34c0a15fcc71720a17b",
                 ),
                 mod_head: ChangeHash(
-                    "5e3cf9ee156318153dc5db58bc49315dca0088203208ff3c86abcc9db58ba624",
+                    "e0a46907198a90928317ad63418bb4d93e55baae922ba34c0a15fcc71720a17b",
                 ),
                 lease: Some(
                     20,
@@ -6459,7 +6573,7 @@ async fn kv_leases() {
 
 #[tokio::test]
 async fn replication_status_single_node() {
-    let mut doc = TestDocumentBuilder::default().build();
+    let mut doc = single_node_doc().build();
     let key = "key1".to_owned();
     let value1 = Bytes::from(b"value1".to_vec());
     let put_res = doc

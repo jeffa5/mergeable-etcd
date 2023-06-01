@@ -44,7 +44,6 @@ const DEFAULT_LEASE_TTL: i64 = 30;
 #[derive(Debug)]
 pub struct Document<P, S, W> {
     pub(crate) am: PersistentAutoCommit<P>,
-    pub(crate) cluster_id: u64,
     pub(crate) member_id: u64,
     pub(crate) name: String,
     pub(crate) peer_urls: Vec<String>,
@@ -54,6 +53,7 @@ pub struct Document<P, S, W> {
     pub(crate) kvs_objid: ObjId,
     pub(crate) members_objid: ObjId,
     pub(crate) leases_objid: ObjId,
+    pub(crate) server_objid: ObjId,
     pub(crate) rng: StdRng,
     pub(crate) cache: crate::cache::Cache,
     pub(crate) flush_notifier: watch::Sender<()>,
@@ -69,7 +69,7 @@ where
     S: Syncer,
     W: Watcher,
 {
-    pub(crate) fn init(&mut self) {
+    pub(crate) fn init(&mut self, cluster_id: Option<u64>) {
         if self.am.document_mut().get_heads().is_empty() {
             self.init_document();
         }
@@ -77,6 +77,15 @@ where
         self.am
             .document_mut()
             .set_actor(ActorId::from(self.member_id.to_be_bytes()));
+
+        if let Some(cluster_id) = cluster_id {
+            self.am
+                .transact::<_, _, AutomergeError>(|tx| {
+                    tx.put(&self.server_objid, "cluster_id", cluster_id)?;
+                    Ok(())
+                })
+                .unwrap()
+        }
 
         // new cluster (assuming we are the first node so add ourselves to the members_list)
         self.add_member_local();
@@ -93,13 +102,14 @@ where
                 } else {
                     tx.put_object(ROOT, "kvs", ObjType::Map).unwrap()
                 };
-                let server = if let Some((_, server)) = tx.get(ROOT, "server").unwrap() {
+                self.server_objid = if let Some((_, server)) = tx.get(ROOT, "server").unwrap() {
                     server
                 } else {
                     tx.put_object(ROOT, "server", ObjType::Map).unwrap()
                 };
-                if tx.get(&server, "revision").unwrap().is_none() {
-                    tx.put(&server, "revision", ScalarValue::Uint(1)).unwrap();
+                if tx.get(&self.server_objid, "revision").unwrap().is_none() {
+                    tx.put(&self.server_objid, "revision", ScalarValue::Uint(1))
+                        .unwrap();
                 }
                 self.members_objid = if let Some((_, id)) = tx.get(ROOT, "members").unwrap() {
                     id
@@ -130,12 +140,18 @@ where
             .set_actor(ActorId::from(id.to_be_bytes()));
     }
 
-    pub fn cluster_id(&self) -> u64 {
-        self.cluster_id
+    /// Obtain the cluster id this node belongs to, if it knows yet.
+    /// It will obtain the id lazily after communicating with peers.
+    pub fn cluster_id(&self) -> Option<u64> {
+        self.am
+            .document()
+            .get(&self.server_objid, "cluster_id")
+            .unwrap()
+            .and_then(|(v, _)| v.to_u64())
     }
 
     pub fn is_ready(&self) -> bool {
-        true
+        self.cluster_id().is_some()
     }
 
     pub fn db_size(&self) -> u64 {
@@ -151,13 +167,16 @@ where
         self.am.document_mut().get_heads()
     }
 
-    pub fn header(&self) -> Header {
+    pub fn header(&self) -> crate::Result<Header> {
         let revision = self.revision() as i64;
-        Header {
-            cluster_id: self.cluster_id,
+        let Some(cluster_id) = self.cluster_id() else {
+            return Err(crate::Error::NotReady)
+        };
+        Ok(Header {
+            cluster_id,
             member_id: self.member_id,
             revision,
-        }
+        })
     }
 
     /// Get the current revision of this node.
@@ -201,7 +220,7 @@ where
             .unwrap();
         debug!("document changed in put");
 
-        let header = self.header();
+        let header = self.header()?;
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -239,7 +258,7 @@ where
             .unwrap();
         debug!("document changed in delete range");
 
-        let header = self.header();
+        let header = self.header()?;
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -269,7 +288,7 @@ where
                 Ok(crate::transaction::range(txn, &mut self.cache, request))
             })
             .unwrap();
-        let header = self.header();
+        let header = self.header()?;
 
         let (sender, receiver) = oneshot::channel();
         let mut flush_receiver = self.flush_notifier.subscribe();
@@ -299,7 +318,7 @@ where
                 Ok(crate::transaction::range(txn, &mut self.cache, request))
             })
             .unwrap();
-        let header = self.header();
+        let header = self.header()?;
         Ok((header, result, delete_revision))
     }
 
@@ -323,7 +342,7 @@ where
             })
             .unwrap();
 
-        let header = self.header();
+        let header = self.header()?;
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -450,9 +469,7 @@ where
                             // delete occurred
                             let revision = *delete_revisions.get(&key).unwrap();
                             // only send a response if this patch is for a most recent value
-                            if parse_revision_string(&rev)
-                                >= revision
-                            {
+                            if parse_revision_string(&rev) >= revision {
                                 let (_header, past_response, _) =
                                     self.range_or_delete_revision(RangeRequest {
                                         start: key.clone(),

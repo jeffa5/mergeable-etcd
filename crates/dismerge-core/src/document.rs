@@ -44,7 +44,6 @@ const DEFAULT_LEASE_TTL: i64 = 30;
 #[derive(Debug)]
 pub struct Document<P, S, W, V> {
     pub(crate) am: PersistentAutomerge<P>,
-    pub(crate) cluster_id: u64,
     pub(crate) member_id: u64,
     pub(crate) name: String,
     pub(crate) peer_urls: Vec<String>,
@@ -54,6 +53,7 @@ pub struct Document<P, S, W, V> {
     pub(crate) kvs_objid: ObjId,
     pub(crate) members_objid: ObjId,
     pub(crate) leases_objid: ObjId,
+    pub(crate) server_objid: ObjId,
     pub rng: StdRng,
     pub(crate) flush_notifier: watch::Sender<()>,
     // keep this around so that we don't close the channel
@@ -71,7 +71,7 @@ where
     W: Watcher<V>,
     V: Value,
 {
-    pub(crate) fn init(&mut self) {
+    pub(crate) fn init(&mut self, cluster_id: Option<u64>) {
         if self.am.document().get_heads().is_empty() {
             self.init_document();
         }
@@ -79,6 +79,15 @@ where
         self.am
             .document_mut()
             .set_actor(ActorId::from(self.member_id.to_be_bytes()));
+
+        if let Some(cluster_id) = cluster_id {
+            self.am
+                .transact::<_, _, AutomergeError>(|tx| {
+                    tx.put(&self.server_objid, "cluster_id", cluster_id)?;
+                    Ok(())
+                })
+                .unwrap();
+        }
 
         // new cluster (assuming we are the first node so add ourselves to the members_list)
         self.add_member_local();
@@ -95,7 +104,7 @@ where
                 } else {
                     tx.put_object(ROOT, "kvs", ObjType::Map).unwrap()
                 };
-                if let Some((_, server)) = tx.get(ROOT, "server").unwrap() {
+                self.server_objid = if let Some((_, server)) = tx.get(ROOT, "server").unwrap() {
                     server
                 } else {
                     tx.put_object(ROOT, "server", ObjType::Map).unwrap()
@@ -131,13 +140,18 @@ where
             .set_actor(ActorId::from(id.to_be_bytes()));
     }
 
-    pub fn cluster_id(&self) -> u64 {
-        self.cluster_id
+    /// Obtain the cluster id this node belongs to, if it knows yet.
+    /// It will obtain the id lazily after communicating with peers.
+    pub fn cluster_id(&self) -> Option<u64> {
+        self.am
+            .document()
+            .get(&self.server_objid, "cluster_id")
+            .unwrap()
+            .and_then(|(v, _)| v.to_u64())
     }
 
     pub fn is_ready(&self) -> bool {
-        // TODO: may want to ensure we have a sync before serving requests
-        true
+        self.cluster_id().is_some()
     }
 
     pub fn db_size(&self) -> u64 {
@@ -153,13 +167,16 @@ where
         self.am.document().get_heads()
     }
 
-    pub fn header(&self) -> Header {
+    pub fn header(&self) -> crate::Result<Header> {
         let heads = self.heads();
-        Header {
-            cluster_id: self.cluster_id,
+        let Some(cluster_id) = self.cluster_id() else {
+            return Err(crate::Error::NotReady)
+        };
+        Ok(Header {
+            cluster_id,
             member_id: self.member_id,
             heads,
-        }
+        })
     }
 
     pub fn flush(&mut self) -> usize {
@@ -191,7 +208,7 @@ where
             .unwrap();
         debug!("document changed in put");
 
-        let header = self.header();
+        let header = self.header()?;
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -234,7 +251,7 @@ where
             .unwrap();
         debug!("document changed in delete range");
 
-        let header = self.header();
+        let header = self.header()?;
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -261,7 +278,7 @@ where
         request: RangeRequest,
     ) -> crate::Result<oneshot::Receiver<(Header, RangeResponse<V>)>> {
         let result = crate::transaction::range(self.am.document(), request);
-        let header = self.header();
+        let header = self.header()?;
 
         let (sender, receiver) = oneshot::channel();
         let mut flush_receiver = self.flush_notifier.subscribe();
@@ -290,7 +307,7 @@ where
             })
             .unwrap();
 
-        let header = self.header();
+        let header = self.header()?;
         let header_clone = header.clone();
 
         let (sender, receiver) = oneshot::channel();
@@ -448,7 +465,7 @@ where
                             typ: crate::watcher::WatchEventType::Put(kv),
                             prev_kv,
                         };
-                        self.watcher.publish_event(self.header(), event).await;
+                        self.watcher.publish_event(self.header()?, event).await;
                     } else if obj == self.members_objid {
                         let member = self
                             .get_member(
@@ -521,7 +538,7 @@ where
                             typ: crate::watcher::WatchEventType::Delete(key, hash),
                             prev_kv,
                         };
-                        self.watcher.publish_event(self.header(), event).await;
+                        self.watcher.publish_event(self.header()?, event).await;
                     }
                 }
                 automerge::op_observer::PatchAction::DeleteSeq {

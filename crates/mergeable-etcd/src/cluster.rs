@@ -16,7 +16,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::cluster_server::Cluster for Clus
     ) -> Result<tonic::Response<etcd_proto::etcdserverpb::MemberAddResponse>, tonic::Status> {
         let request = request.into_inner();
         let mut document = self.document.lock().await;
-        let header = document.header();
+        let header = document.header()?;
         let member = document.add_member(request.peer_ur_ls.clone()).await;
         info!(peer_urls=?request.peer_ur_ls, id=?member.id, "Added member");
         let members = document.list_members()?;
@@ -38,7 +38,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::cluster_server::Cluster for Clus
         error!(?request, "Got member remove request but unimplemented");
 
         let document = self.document.lock().await;
-        let header = document.header();
+        let header = document.header()?;
         let list = document.list_members()?;
 
         Ok(tonic::Response::new(
@@ -58,7 +58,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::cluster_server::Cluster for Clus
         error!(?request, "Got member update request but unimplemented");
 
         let document = self.document.lock().await;
-        let header = document.header();
+        let header = document.header()?;
         let list = document.list_members()?;
 
         Ok(tonic::Response::new(
@@ -76,7 +76,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::cluster_server::Cluster for Clus
         let _request = request.into_inner();
         info!("member list");
         let document = self.document.lock().await;
-        let header = document.header();
+        let header = document.header()?;
         let list = document.list_members()?;
         Ok(tonic::Response::new(
             etcd_proto::etcdserverpb::MemberListResponse {
@@ -95,7 +95,7 @@ impl<P: DocPersister> etcd_proto::etcdserverpb::cluster_server::Cluster for Clus
         error!(?request, "Got member_promote request but unimplemented");
 
         let document = self.document.lock().await;
-        let header = document.header();
+        let header = document.header()?;
         let list = document.list_members()?;
 
         Ok(tonic::Response::new(

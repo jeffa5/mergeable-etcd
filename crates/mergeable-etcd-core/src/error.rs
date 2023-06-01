@@ -2,7 +2,7 @@ pub type Result<O> = std::result::Result<O, Error>;
 
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum Error {
-    #[error("node not ready (no member id assigned yet)")]
+    #[error("node not ready")]
     NotReady,
     #[error("failed to parse key as member id: {0}")]
     NotParseableAsId(String),
