@@ -138,67 +138,10 @@ pub fn range<V: Value>(
                         revs.next()
                     };
                     if let Some(rev) = rev {
-                        if let Some((value, _)) = txn.get(&revs_obj, &rev).unwrap() {
-                            if let Ok(value) = hydrate_prop(txn, &revs_obj, rev.as_str()) {
-                                let (create_revision, mod_revision, version) = if revision.is_some()
-                                {
-                                    get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap()
-                                } else if let Some(kv_cache) = cache.get(key) {
-                                    debug_assert_eq!(
-                                        get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap(),
-                                        (
-                                            kv_cache.create_revision,
-                                            parse_revision_string(&rev),
-                                            kv_cache.version
-                                        )
-                                    );
-                                    (
-                                        kv_cache.create_revision,
-                                        parse_revision_string(&rev),
-                                        kv_cache.version,
-                                    )
-                                } else {
-                                    get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap()
-                                };
-                                if !count_only {
-                                    let lease = txn
-                                        .get(&key_obj, "lease_id")
-                                        .unwrap()
-                                        .and_then(|(v, _)| v.to_i64());
-
-                                    values.push(KeyValue {
-                                        key: key.to_owned(),
-                                        value,
-                                        create_revision,
-                                        mod_revision,
-                                        version,
-                                        lease,
-                                    });
-                                }
-                                count += 1;
-                            } else {
-                                delete_revisions
-                                    .insert(key.to_owned(), parse_revision_string(&rev));
-                            }
-                        }
-                    }
-                }
-            }
-        } else if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
-            if let Some((_, revs_obj)) = txn.get(&key_obj, "revs").unwrap() {
-                let mut revs = txn.keys(&revs_obj);
-                let rev = if let Some(revision) = revision {
-                    let revision_string = make_revision_string(revision);
-                    revs.find(|x| x >= &revision_string)
-                } else {
-                    revs.next()
-                };
-                if let Some(rev) = rev {
-                    if let Some((value, _)) = txn.get(&revs_obj, &rev).unwrap() {
                         if let Ok(value) = hydrate_prop(txn, &revs_obj, rev.as_str()) {
                             let (create_revision, mod_revision, version) = if revision.is_some() {
                                 get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap()
-                            } else if let Some(kv_cache) = cache.get(&start) {
+                            } else if let Some(kv_cache) = cache.get(key) {
                                 debug_assert_eq!(
                                     get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap(),
                                     (
@@ -215,15 +158,14 @@ pub fn range<V: Value>(
                             } else {
                                 get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap()
                             };
-
-                            let lease = txn
-                                .get(&key_obj, "lease_id")
-                                .unwrap()
-                                .and_then(|(v, _)| v.to_i64());
-
                             if !count_only {
+                                let lease = txn
+                                    .get(&key_obj, "lease_id")
+                                    .unwrap()
+                                    .and_then(|(v, _)| v.to_i64());
+
                                 values.push(KeyValue {
-                                    key: start.clone(),
+                                    key: key.to_owned(),
                                     value,
                                     create_revision,
                                     mod_revision,
@@ -233,9 +175,61 @@ pub fn range<V: Value>(
                             }
                             count += 1;
                         } else {
-                            // deleted value
-                            delete_revisions.insert(start.clone(), parse_revision_string(&rev));
+                            delete_revisions.insert(key.to_owned(), parse_revision_string(&rev));
                         }
+                    }
+                }
+            }
+        } else if let Some((_, key_obj)) = txn.get(&kvs, &start).unwrap() {
+            if let Some((_, revs_obj)) = txn.get(&key_obj, "revs").unwrap() {
+                let mut revs = txn.keys(&revs_obj);
+                let rev = if let Some(revision) = revision {
+                    let revision_string = make_revision_string(revision);
+                    revs.find(|x| x >= &revision_string)
+                } else {
+                    revs.next()
+                };
+                if let Some(rev) = rev {
+                    if let Ok(value) = hydrate_prop(txn, &revs_obj, rev.as_str()) {
+                        let (create_revision, mod_revision, version) = if revision.is_some() {
+                            get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap()
+                        } else if let Some(kv_cache) = cache.get(&start) {
+                            debug_assert_eq!(
+                                get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap(),
+                                (
+                                    kv_cache.create_revision,
+                                    parse_revision_string(&rev),
+                                    kv_cache.version
+                                )
+                            );
+                            (
+                                kv_cache.create_revision,
+                                parse_revision_string(&rev),
+                                kv_cache.version,
+                            )
+                        } else {
+                            get_create_mod_version_slow(txn, &revs_obj, &rev).unwrap()
+                        };
+
+                        let lease = txn
+                            .get(&key_obj, "lease_id")
+                            .unwrap()
+                            .and_then(|(v, _)| v.to_i64());
+
+                        if !count_only {
+                            values.push(KeyValue {
+                                key: start.clone(),
+                                value,
+                                create_revision,
+                                mod_revision,
+                                version,
+                                lease,
+                            });
+                        }
+                        count += 1;
+                    } else {
+                        // deleted value
+                        delete_revisions.insert(start.clone(), parse_revision_string(&rev));
                     }
                 }
             }
