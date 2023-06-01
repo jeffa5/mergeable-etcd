@@ -38,7 +38,7 @@ const DEFAULT_LEASE_TTL: i64 = 30;
 /// {
 ///   "kvs": { "key1": { "revs": { "001": 0x00, "003": 0x01 }, "lease_id": 0 } },
 ///   "leases": { "1": (), "5": () },
-///   "server": { "cluster_id": 0x00, "revision": 4 }
+///   "cluster": { "cluster_id": 0x00, "revision": 4 }
 ///   "members": { 0: {"name": "default", "peer_urls":[], "client_urls":[]} }
 /// }
 #[derive(Debug)]
@@ -53,7 +53,7 @@ pub struct Document<P, S, W> {
     pub(crate) kvs_objid: ObjId,
     pub(crate) members_objid: ObjId,
     pub(crate) leases_objid: ObjId,
-    pub(crate) server_objid: ObjId,
+    pub(crate) cluster_objid: ObjId,
     pub(crate) rng: StdRng,
     pub(crate) cache: crate::cache::Cache,
     pub(crate) flush_notifier: watch::Sender<()>,
@@ -81,7 +81,7 @@ where
         if let Some(cluster_id) = cluster_id {
             self.am
                 .transact::<_, _, AutomergeError>(|tx| {
-                    tx.put(&self.server_objid, "cluster_id", cluster_id)?;
+                    tx.put(&self.cluster_objid, "cluster_id", cluster_id)?;
                     Ok(())
                 })
                 .unwrap()
@@ -102,13 +102,13 @@ where
                 } else {
                     tx.put_object(ROOT, "kvs", ObjType::Map).unwrap()
                 };
-                self.server_objid = if let Some((_, server)) = tx.get(ROOT, "server").unwrap() {
-                    server
+                self.cluster_objid = if let Some((_, cluster)) = tx.get(ROOT, "cluster").unwrap() {
+                    cluster
                 } else {
-                    tx.put_object(ROOT, "server", ObjType::Map).unwrap()
+                    tx.put_object(ROOT, "cluster", ObjType::Map).unwrap()
                 };
-                if tx.get(&self.server_objid, "revision").unwrap().is_none() {
-                    tx.put(&self.server_objid, "revision", ScalarValue::Uint(1))
+                if tx.get(&self.cluster_objid, "revision").unwrap().is_none() {
+                    tx.put(&self.cluster_objid, "revision", ScalarValue::Uint(1))
                         .unwrap();
                 }
                 self.members_objid = if let Some((_, id)) = tx.get(ROOT, "members").unwrap() {
@@ -145,7 +145,7 @@ where
     pub fn cluster_id(&self) -> Option<u64> {
         self.am
             .document()
-            .get(&self.server_objid, "cluster_id")
+            .get(&self.cluster_objid, "cluster_id")
             .unwrap()
             .and_then(|(v, _)| v.to_u64())
     }
@@ -621,14 +621,14 @@ where
         let revision = self
             .am
             .document()
-            .get(ROOT, "server")
+            .get(ROOT, "cluster")
             .unwrap()
-            .map_or(1, |(_, server)| {
+            .map_or(1, |(_, cluster)| {
                 self.am
                     .document()
                     // ensure that we always take the maximum revision in the case that concurrent
                     // merges won with a lower revision
-                    .get_all(&server, "revision")
+                    .get_all(&cluster, "revision")
                     .unwrap()
                     .into_iter()
                     .map(|(r, _)| r.to_u64().unwrap())

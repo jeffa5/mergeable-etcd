@@ -31,7 +31,7 @@ use automerge::ROOT;
 
 #[cfg(test)]
 pub fn revision(txn: &mut AutoCommit) -> u64 {
-    txn.get(ROOT, "server").unwrap().map_or(1, |(_, server)| {
+    txn.get(ROOT, "cluster").unwrap().map_or(1, |(_, server)| {
         txn.get(&server, "revision")
             .unwrap()
             .map_or(1, |(revision, _)| revision.to_u64().unwrap())
@@ -39,11 +39,11 @@ pub fn revision(txn: &mut AutoCommit) -> u64 {
 }
 
 pub fn increment_revision(txn: &mut AutoCommit, cache: &mut Cache) -> u64 {
-    let server = txn.get(ROOT, "server").unwrap();
+    let server = txn.get(ROOT, "cluster").unwrap();
     let server = if let Some(server) = server {
         server.1
     } else {
-        txn.put_object(ROOT, "server", ObjType::Map).unwrap()
+        txn.put_object(ROOT, "cluster", ObjType::Map).unwrap()
     };
 
     let revision = cache.revision();

@@ -204,7 +204,7 @@ where
             kvs_objid: automerge::ObjId::Root,
             members_objid: automerge::ObjId::Root,
             leases_objid: automerge::ObjId::Root,
-            server_objid: automerge::ObjId::Root,
+            cluster_objid: automerge::ObjId::Root,
             rng: StdRng::seed_from_u64(self.seed),
             flush_notifier,
             flush_notifier_receiver,

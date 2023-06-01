@@ -306,8 +306,6 @@ async fn delete_value() {
             }
         )
     );
-    doc.dump();
-    todo!()
 }
 
 #[tokio::test]

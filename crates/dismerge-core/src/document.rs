@@ -38,7 +38,7 @@ const DEFAULT_LEASE_TTL: i64 = 30;
 /// {
 ///   "kvs": { "key1": { "value": ..., "lease": 0 } },
 ///   "leases": { "1": (), "5": () },
-///   "server": { "cluster_id": 0x00 }
+///   "cluster": { "cluster_id": 0x00 }
 ///   "members": { 0: {"name": "default", "peer_urls":[], "client_urls":[]} }
 /// }
 #[derive(Debug)]
@@ -53,7 +53,7 @@ pub struct Document<P, S, W, V> {
     pub(crate) kvs_objid: ObjId,
     pub(crate) members_objid: ObjId,
     pub(crate) leases_objid: ObjId,
-    pub(crate) server_objid: ObjId,
+    pub(crate) cluster_objid: ObjId,
     pub rng: StdRng,
     pub(crate) flush_notifier: watch::Sender<()>,
     // keep this around so that we don't close the channel
@@ -83,7 +83,7 @@ where
         if let Some(cluster_id) = cluster_id {
             self.am
                 .transact::<_, _, AutomergeError>(|tx| {
-                    tx.put(&self.server_objid, "cluster_id", cluster_id)?;
+                    tx.put(&self.cluster_objid, "cluster_id", cluster_id)?;
                     Ok(())
                 })
                 .unwrap();
@@ -104,10 +104,10 @@ where
                 } else {
                     tx.put_object(ROOT, "kvs", ObjType::Map).unwrap()
                 };
-                self.server_objid = if let Some((_, server)) = tx.get(ROOT, "server").unwrap() {
-                    server
+                self.cluster_objid = if let Some((_, cluster)) = tx.get(ROOT, "cluster").unwrap() {
+                    cluster
                 } else {
-                    tx.put_object(ROOT, "server", ObjType::Map).unwrap()
+                    tx.put_object(ROOT, "cluster", ObjType::Map).unwrap()
                 };
                 self.members_objid = if let Some((_, id)) = tx.get(ROOT, "members").unwrap() {
                     id
@@ -145,7 +145,7 @@ where
     pub fn cluster_id(&self) -> Option<u64> {
         self.am
             .document()
-            .get(&self.server_objid, "cluster_id")
+            .get(&self.cluster_objid, "cluster_id")
             .unwrap()
             .and_then(|(v, _)| v.to_u64())
     }
