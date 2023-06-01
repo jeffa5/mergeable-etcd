@@ -6531,10 +6531,10 @@ async fn kv_leases() {
                     ],
                 ),
                 create_head: ChangeHash(
-                    "541eb3b403a47d12e7532902e76add245593e8798b33757c6aa2a480e29a0c79",
+                    "cd1ad38c07288c87a878d7fcebd8cbc77c9e0817a1fe1c85aa14ef6aeb38cf53",
                 ),
                 mod_head: ChangeHash(
-                    "541eb3b403a47d12e7532902e76add245593e8798b33757c6aa2a480e29a0c79",
+                    "cd1ad38c07288c87a878d7fcebd8cbc77c9e0817a1fe1c85aa14ef6aeb38cf53",
                 ),
                 lease: Some(
                     20,
