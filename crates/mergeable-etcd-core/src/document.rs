@@ -501,7 +501,6 @@ where
 
                             let modified_rev = parse_revision_string(&rev);
                             let biggest_rev = response.values.first().unwrap().mod_revision;
-                            dbg!(modified_rev, biggest_rev);
                             if modified_rev >= biggest_rev {
                                 // put occurred
                                 let (_header, past_response, _) =
