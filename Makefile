@@ -7,8 +7,8 @@ RUN_ARGS ?=
 DOT_FILES := $(shell find -name '*.dot')
 SVG_FILES := $(patsubst %.dot, %.svg, $(DOT_FILES))
 
-ETCD_IMAGE := quay.io/coreos/etcd:v3.4.13
-MERGEABLE_ETCD_ETCD_IMAGE := jeffas/etcd:latest
+ETCD_IMAGE := jeffas/etcd:v3.4.14
+DISMERGE_IMAGE := jeffas/dismerge:latest
 MERGEABLE_ETCD_IMAGE := jeffas/mergeable-etcd:latest
 BENCHER_IMAGE := jeffas/bencher:latest
 
@@ -63,9 +63,14 @@ docker-mergeable-etcd:
 	nix build .\#mergeable-etcd-docker
 	docker load -i result
 
-.PHONY: docker-mergeable-etcd-etcd
-docker-mergeable-etcd-etcd:
-	nix build .\#mergeable-etcd-docker-etcd
+.PHONY: docker-dismerge
+docker-dismerge:
+	nix build .\#dismerge-docker
+	docker load -i result
+
+.PHONY: docker-etcd
+docker-etcd:
+	nix build .\#etcd-docker
 	docker load -i result
 
 .PHONY: docker-bencher
@@ -74,12 +79,13 @@ docker-bencher:
 	docker load -i result
 
 .PHONY: docker-load
-docker-load: docker-mergeable-etcd docker-mergeable-etcd-etcd docker-bencher
+docker-load: docker-mergeable-etcd docker-dismerge docker-etcd docker-bencher
 
 .PHONY: docker-push
 docker-push: docker-load
 	docker push $(MERGEABLE_ETCD_IMAGE)
-	docker push $(MERGEABLE_ETCD_ETCD_IMAGE)
+	docker push $(DISMERGE_IMAGE)
+	docker push $(ETCD_IMAGE)
 	docker push $(BENCHER_IMAGE)
 
 .PHONY: test
