@@ -171,7 +171,7 @@ impl exp::Experiment for Experiment {
             repeat: 0,
             cluster_size: 3,
             bench_args: "ycsb --read-weight 1 --update-weight 1".to_owned(),
-            target_throughput: 1_000,
+            target_throughput: 10_000,
             target_duration_s: 1,
             image_name: ETCD_IMAGE.to_owned(),
             image_tag: ETCD_TAG.to_owned(),
@@ -179,7 +179,7 @@ impl exp::Experiment for Experiment {
             delay: 0,
             delay_variation: 0.1, // 10%
             extra_args: String::new(),
-            tmpfs: true,
+            tmpfs: false,
         };
         for cluster_size in [1, 3, 5, 7, 9, 11] {
             config.cluster_size = cluster_size;
@@ -191,7 +191,7 @@ impl exp::Experiment for Experiment {
             repeat: 0,
             cluster_size: 3,
             bench_args: "ycsb --read-weight 1 --update-weight 1".to_owned(),
-            target_throughput: 1_000,
+            target_throughput: 10_000,
             target_duration_s: 1,
             image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
             image_tag: MERGEABLE_ETCD_TAG.to_owned(),
@@ -199,7 +199,7 @@ impl exp::Experiment for Experiment {
             delay: 0,
             delay_variation: 0.1, // 10%
             extra_args: String::new(),
-            tmpfs: true,
+            tmpfs: false,
         };
         for cluster_size in [1, 3, 5, 7, 9, 11] {
             config.cluster_size = cluster_size;
@@ -211,7 +211,7 @@ impl exp::Experiment for Experiment {
             repeat: 0,
             cluster_size: 3,
             bench_args: "ycsb --read-weight 1 --update-weight 1".to_owned(),
-            target_throughput: 1_000,
+            target_throughput: 10_000,
             target_duration_s: 1,
             image_name: DISMERGE_IMAGE.to_owned(),
             image_tag: DISMERGE_TAG.to_owned(),
@@ -219,7 +219,7 @@ impl exp::Experiment for Experiment {
             delay: 0,
             delay_variation: 0.1, // 10%
             extra_args: String::new(),
-            tmpfs: true,
+            tmpfs: false,
         };
         for cluster_size in [1, 3, 5, 7, 9, 11] {
             config.cluster_size = cluster_size;
