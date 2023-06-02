@@ -57,35 +57,20 @@ impl exp::Experiment for Experiment {
 
     fn configurations(&mut self) -> Vec<Self::Configuration> {
         debug!("Building configurations");
-        let total = 100_000;
+        let duration_s = 10;
         let mut bench_types = HashMap::new();
         bench_types.insert(
             BenchType::PutSingle,
-            vec![
-                "bench".to_owned(),
-                "put-single".to_owned(),
-                "bench".to_owned(),
-            ],
+            vec!["put-single".to_owned(), "bench".to_owned()],
         );
-        bench_types.insert(
-            BenchType::PutRange,
-            vec!["bench".to_owned(), "put-range".to_owned()],
-        );
-        bench_types.insert(
-            BenchType::PutRandom,
-            vec![
-                "bench".to_owned(),
-                "put-random".to_owned(),
-                (total / 100).to_string(),
-            ],
-        );
+        bench_types.insert(BenchType::PutRange, vec!["put-range".to_owned()]);
+        // bench_types.insert(
+        //     BenchType::PutRandom,
+        //     vec!["put-random".to_owned(), (total / 100).to_string()],
+        // );
         bench_types.insert(
             BenchType::WatchSingle,
-            vec![
-                "bench".to_owned(),
-                "watch-single".to_owned(),
-                "watcher".to_owned(),
-            ],
+            vec!["watch-single".to_owned(), "watcher".to_owned()],
         );
 
         let mut confs = Vec::new();
@@ -107,15 +92,17 @@ impl exp::Experiment for Experiment {
                     let bench_args = bench_types.get(bench_type).unwrap();
                     for target_throughput in &self.target_throughputs {
                         debug!(?target_throughput, "Adding target throughputs");
-                        let interval = 1_000_000_000 / target_throughput;
+                        let total = duration_s * target_throughput;
 
                         let mut args = vec![
                             format!("--clients={}", clients),
                             format!("--total={}", total),
-                            format!("--interval={}", interval),
+                            format!("--rate={}", target_throughput),
                         ];
                         // ensure we don't use an empty bench_args
                         args.append(&mut bench_args.clone());
+
+                        args.insert(0, "etcd".to_owned());
                         confs.push(Config {
                             repeats: self.repeats,
                             cluster_size: *cluster_size,
@@ -144,6 +131,7 @@ impl exp::Experiment for Experiment {
                             extra_args: vec![],
                         });
 
+                        args[0] = "dismerge".to_owned();
                         confs.push(Config {
                             repeats: self.repeats,
                             cluster_size: *cluster_size,
