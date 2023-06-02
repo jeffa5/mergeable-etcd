@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 automerge = "0.4.1"
 automerge-persistent = "0.4.0"
-tokio = { version = "1.28.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.28.2", features = ["macros", "rt-multi-thread"] }
 mergeable-proto = { path = "../../proto/mergeable-proto" }
 tonic = "0.9.2"
 tracing = "0.1.37"
@@ -14,7 +14,7 @@ tracing-subscriber = "0.3.17"
 tokio-stream = "0.1.14"
 futures = "0.3.28"
 rand = "0.8.5"
-chrono = "0.4.24"
+chrono = "0.4.26"
 thiserror = "1.0.40"
 autosurgeon = "0.6.0"
 serde_json = "1.0.96"
