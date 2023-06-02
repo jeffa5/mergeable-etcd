@@ -1,4 +1,4 @@
-use std::{fs, path::Path, path::PathBuf, str::FromStr, time::Duration};
+use std::{fs, path::Path, path::PathBuf, time::Duration};
 use tracing::metadata::LevelFilter;
 use tracing::{debug, info};
 
@@ -15,7 +15,7 @@ use tracing_subscriber::{
 };
 
 #[derive(Debug)]
-pub struct Experiment {
+struct Experiment {
     run_iteration: u32,
     num_configurations: usize,
 }
@@ -352,31 +352,31 @@ impl exp::Experiment for Experiment {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Config {
+struct Config {
     /// Which repeat this config is.
-    pub repeat: u32,
+    repeat: u32,
     /// Number of nodes in the datastore cluster.
-    pub cluster_size: u32,
+    cluster_size: u32,
     /// Arguments to pass to the benchmarker
-    pub bench_args: String,
+    bench_args: String,
     /// Target throughput we're going for in this run.
-    pub target_throughput: u64,
+    target_throughput: u64,
     /// Target duration we want to run for.
-    pub target_duration_s: u64,
+    target_duration_s: u64,
     /// Name of the docker image for the datastore.
-    pub image_name: String,
+    image_name: String,
     /// Tag of the docker image for the datastore.
-    pub image_tag: String,
+    image_tag: String,
     /// Binary name to run.
-    pub bin_name: String,
+    bin_name: String,
     /// Delay to add between nodes.
-    pub delay: u32,
+    delay: u32,
     /// Variation in the delay between nodes.
-    pub delay_variation: f64,
+    delay_variation: f64,
     /// Extra args, for the datastore.
-    pub extra_args: String,
+    extra_args: String,
     /// Whether to mount the data dir for the datstore on a tmpfs.
-    pub tmpfs: bool,
+    tmpfs: bool,
 }
 
 impl ExperimentConfiguration for Config {}
