@@ -370,6 +370,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bencher",
  "bollard",
  "chrono",
  "clap 3.2.25",

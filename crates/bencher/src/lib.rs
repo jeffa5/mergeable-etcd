@@ -9,6 +9,7 @@ pub use address::{Address, Error, Scheme};
 use clap::{Args, Subcommand};
 use input::RequestDistribution;
 pub use options::Options;
+pub use output::Output;
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum ScenarioCommands {
