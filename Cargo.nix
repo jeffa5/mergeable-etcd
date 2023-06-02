@@ -247,6 +247,16 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "perf-literal" "std" ];
       };
+      "android-tzdata" = rec {
+        crateName = "android-tzdata";
+        version = "0.1.1";
+        edition = "2018";
+        sha256 = "1w7ynjxrfs97xg3qlcdns4kgfpwcdv824g611fq32cag4cdr96g9";
+        authors = [
+          "RumovZ"
+        ];
+
+      };
       "android_system_properties" = rec {
         crateName = "android_system_properties";
         version = "0.1.5";
@@ -629,7 +639,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             features = [ "full" "visit-mut" ];
           }
         ];
@@ -655,7 +665,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             features = [ "full" "visit-mut" ];
           }
         ];
@@ -922,7 +932,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             features = [ "full" ];
           }
           {
@@ -1333,6 +1343,10 @@ rec {
             packageId = "async-trait";
           }
           {
+            name = "bencher";
+            packageId = "bencher";
+          }
+          {
             name = "bollard";
             packageId = "bollard";
           }
@@ -1673,7 +1687,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
           }
         ];
 
@@ -1736,10 +1750,15 @@ rec {
       };
       "chrono" = rec {
         crateName = "chrono";
-        version = "0.4.24";
-        edition = "2018";
-        sha256 = "0fv7idr8c7vdb0xi32w45a7pafnyzk7m0bknfggj5pva0qcmjg2f";
+        version = "0.4.26";
+        edition = "2021";
+        sha256 = "1icvzp2v88a5cwsygcnl1cf0jqzkncvrnmmxdmazca2v6mqpm0zc";
         dependencies = [
+          {
+            name = "android-tzdata";
+            packageId = "android-tzdata";
+            target = { target, features }: ("android" == target."os");
+          }
           {
             name = "iana-time-zone";
             packageId = "iana-time-zone";
@@ -1752,11 +1771,6 @@ rec {
             packageId = "js-sys";
             optional = true;
             target = { target, features }: (("wasm32" == target."arch") && (!(("emscripten" == target."os") || ("wasi" == target."os"))));
-          }
-          {
-            name = "num-integer";
-            packageId = "num-integer";
-            usesDefaultFeatures = false;
           }
           {
             name = "num-traits";
@@ -1785,7 +1799,7 @@ rec {
             packageId = "winapi";
             optional = true;
             target = { target, features }: (target."windows" or false);
-            features = [ "std" "minwinbase" "minwindef" "timezoneapi" ];
+            features = [ "std" "minwinbase" "minwindef" "timezoneapi" "sysinfoapi" ];
           }
         ];
         features = {
@@ -2031,7 +2045,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             features = [ "full" ];
           }
         ];
@@ -2602,9 +2616,9 @@ rec {
       };
       "csv" = rec {
         crateName = "csv";
-        version = "1.2.1";
+        version = "1.2.2";
         edition = "2021";
-        sha256 = "1bb4xw15il0bglr0ldm63q2yzvd6q3k5vliaq1lrv6lv0ybm808b";
+        sha256 = "11l0iqh54jmpk31i92sk5pj4mnrrh8j25696yilddn6kji4y6sk2";
         authors = [
           "Andrew Gallant <jamslam@gmail.com>"
         ];
@@ -3433,8 +3447,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/exp";
-          rev = "9e64069adc85bae5da6ff19f5927a35d194ff5f8";
-          sha256 = "06f1kqx1dqgaz2vbm4zd659308bdj447fgkd3lj70kfrhp0l71s6";
+          rev = "810c35a03ed8abb59f532c758a80267566bf115f";
+          sha256 = "1bmlazjq8qywv9a6clkd4ba9maqpbfvk375x2nxzgaws6jh4p89g";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -4078,7 +4092,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             features = [ "full" ];
           }
         ];
@@ -5132,9 +5146,9 @@ rec {
       };
       "io-lifetimes" = rec {
         crateName = "io-lifetimes";
-        version = "1.0.10";
+        version = "1.0.11";
         edition = "2018";
-        sha256 = "08625nsz0lgbd7c9lly6b6l45viqpsnj9jbsixd9mrz7596wfrlw";
+        sha256 = "1hph5lz4wd3drnn6saakwxr497liznpfnv70via6s0v8x6pbkrza";
         authors = [
           "Dan Gohman <dev@sunfishcode.online>"
         ];
@@ -6682,9 +6696,9 @@ rec {
       };
       "once_cell" = rec {
         crateName = "once_cell";
-        version = "1.17.1";
+        version = "1.17.2";
         edition = "2021";
-        sha256 = "1lrsy9c5ikf2iwxr4iwgd3rlq9mg8alh0np1g8abnvp1k4151rdp";
+        sha256 = "0ys8s3l00k18796n0vmsj2ryny48a2mnws1yiy8017kpjizs0w4n";
         authors = [
           "Aleksey Kladov <aleksey.kladov@gmail.com>"
         ];
@@ -6764,7 +6778,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             features = [ "full" ];
           }
         ];
@@ -7185,7 +7199,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             features = [ "full" "visit-mut" ];
           }
         ];
@@ -8089,9 +8103,9 @@ rec {
       };
       "proc-macro2" = rec {
         crateName = "proc-macro2";
-        version = "1.0.58";
+        version = "1.0.59";
         edition = "2018";
-        sha256 = "1a2w01q4pfnw823sr5kvjspixgpbf6vnc6qhf6bdv0f2q0pvh7zs";
+        sha256 = "06s5yglnz3h3x53rpp7az7ka6j169sg33al1nxhcc4xlhs5s3v3a";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
           "Alex Crichton <alex@alexcrichton.com>"
@@ -8404,9 +8418,9 @@ rec {
       };
       "quote" = rec {
         crateName = "quote";
-        version = "1.0.27";
+        version = "1.0.28";
         edition = "2018";
-        sha256 = "004mdlsn61k3f9lqv4yk8ghbzq6x1r2m9in7hg2c2pi68p8jjkwg";
+        sha256 = "122lh886x0p5xh87015wbknl0dfimsjg273g00cxzn6zxb3vk6hv";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -8785,9 +8799,9 @@ rec {
       };
       "regex" = rec {
         crateName = "regex";
-        version = "1.8.2";
+        version = "1.8.3";
         edition = "2021";
-        sha256 = "0x4996f6nck9002vlbwj0b042lxqiaxca4xzjqvf7plpirfrp9fi";
+        sha256 = "14335jk5fa2slzxcly17q8wpvx41s05v3n2gnbb55g91k250kjl1";
         authors = [
           "The Rust Project Developers"
         ];
@@ -9690,7 +9704,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
           }
         ];
         features = {
@@ -10342,11 +10356,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "full" "parsing" "printing" "proc-macro" "quote" "visit-mut" ];
       };
-      "syn 2.0.16" = rec {
+      "syn 2.0.18" = rec {
         crateName = "syn";
-        version = "2.0.16";
+        version = "2.0.18";
         edition = "2021";
-        sha256 = "00fg96sqsswq7nwc8yxxhj3dyf96zrksxh0rxjnqxnzznpa73xm6";
+        sha256 = "0gpa0391m1z2ca3gjsq6s72k8hdhil6hpiz7a86c495ypividm1j";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -10621,7 +10635,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
           }
         ];
 
@@ -10722,9 +10736,9 @@ rec {
       };
       "tokio" = rec {
         crateName = "tokio";
-        version = "1.28.1";
+        version = "1.28.2";
         edition = "2021";
-        sha256 = "01aimjc6yyk4fvshqnxj1yxvi201k7mxr2ay73ijqvsfsikji8qa";
+        sha256 = "18nzfcp2f417rlnij2kb01qpmqk56v3c9hklvvr12h5asb7v3mwl";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -10744,6 +10758,7 @@ rec {
             name = "mio";
             packageId = "mio";
             optional = true;
+            usesDefaultFeatures = false;
           }
           {
             name = "num_cpus";
@@ -10873,7 +10888,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             features = [ "full" ];
           }
         ];
@@ -11448,7 +11463,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             usesDefaultFeatures = false;
             features = [ "full" "parsing" "printing" "visit-mut" "clone-impls" "extra-traits" "proc-macro" ];
           }
@@ -11703,9 +11718,9 @@ rec {
       };
       "unicode-ident" = rec {
         crateName = "unicode-ident";
-        version = "1.0.8";
+        version = "1.0.9";
         edition = "2018";
-        sha256 = "1x4v4v95fv9gn5zbpm23sa9awjvmclap1wh1lmikmw9rna3llip5";
+        sha256 = "180zwpsxxf8kw14609yy3h80j9dd9drffcw62y4vhps1yb512n5i";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -12035,7 +12050,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             features = [ "full" ];
           }
           {
@@ -12125,7 +12140,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.16";
+            packageId = "syn 2.0.18";
             features = [ "visit" "full" ];
           }
           {
