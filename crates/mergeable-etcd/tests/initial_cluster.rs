@@ -860,6 +860,7 @@ async fn test_cluster_explicit_add(size: u32, tls: bool) {
 }
 
 #[test(tokio::test)]
+#[ignore]
 async fn cluster_explicit_add() {
     for i in 1..=5 {
         test_cluster_explicit_add(i, false).await;

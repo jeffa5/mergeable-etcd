@@ -5,7 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
-    crane.url = "github:ipetkov/crane";
+    crate2nix.url = "github:jeffa5/crate2nix";
   };
 
   outputs = {
@@ -13,7 +13,7 @@
     nixpkgs,
     rust-overlay,
     flake-utils,
-    crane,
+    crate2nix,
   }: let
     system = "x86_64-linux";
     pkgs =
@@ -22,148 +22,114 @@
         overlays = [rust-overlay.overlays.default];
         system = system;
       };
+    lib = pkgs.lib;
     rust = pkgs.rust-bin.stable.latest.default;
-    craneLib = crane.lib.${system};
-    commonArgs = {
-      src = craneLib.cleanCargoSource ./.;
+    buildRustCrate = pkgs.buildRustCrate.override {rustc = rust;};
+    cargoNix = pkgs.callPackage ./Cargo.nix {
+      buildRustCrateForPkgs = pkgs: buildRustCrate;
 
-      buildInputs = with pkgs; [
-        fontconfig
-        openssl
-      ];
-
-      nativeBuildInputs = with pkgs; [
-        pkg-config
-        cmake
-      ];
-    };
-    pname = "mergeable-etcd";
-    version = "0.1.0";
-    workspaceArgs = let
-      protoFilter = path: type: null != (builtins.match "^.+\\.proto$" path);
-      protoOrCargo = path: type: (protoFilter path type) || (craneLib.filterCargoSources path type);
-    in
-      commonArgs
-      // {
-        src = pkgs.lib.cleanSourceWith {
-          src = ./.;
-          filter = protoOrCargo;
+      defaultCrateOverrides =
+        pkgs.defaultCrateOverrides
+        // {
+          mergeable-proto = attrs: {
+            buildInputs = [pkgs.protobuf];
+            PROTOC = "${pkgs.protobuf}/bin/protoc";
+          };
+          peer-proto = attrs: {
+            buildInputs = [pkgs.protobuf];
+            PROTOC = "${pkgs.protobuf}/bin/protoc";
+          };
+          etcd-proto = attrs: {
+            buildInputs = [pkgs.protobuf];
+            PROTOC = "${pkgs.protobuf}/bin/protoc";
+          };
         };
-        buildInputs = with pkgs; commonArgs.buildInputs ++ [protobuf];
-        PROTOC = "${pkgs.protobuf}/bin/protoc";
-      };
-    cargoArtifacts = craneLib.buildDepsOnly (commonArgs
-      // {
-        inherit pname version;
-      });
-    clippy = craneLib.cargoClippy (workspaceArgs
-      // {
-        inherit cargoArtifacts pname version;
-        cargoClippyExtraArgs = "--all-targets";
-      });
-    workspace = craneLib.buildPackage (workspaceArgs
-      // {
-        inherit cargoArtifacts pname version;
-      });
-    tarpaulin = craneLib.cargoTarpaulin (workspaceArgs
-      // {
-        inherit cargoArtifacts pname version;
-      });
-    nextest = craneLib.cargoNextest (workspaceArgs
-      // {
-        inherit cargoArtifacts pname version;
-      });
+    };
+    workspacePackages = lib.attrsets.mapAttrs (name: value: value.build) cargoNix.workspaceMembers;
     container-registry = "jeffas";
+    etcd-version = "3.4.14";
   in {
-    packages.${system} = {
-      bencher-docker = pkgs.dockerTools.buildLayeredImage {
-        name = "${container-registry}/bencher";
-        tag = "latest";
-        contents = [
-          pkgs.busybox
-          self.packages.${system}.workspace
-        ];
+    packages.${system} =
+      workspacePackages
+      // {
+        bencher-docker = pkgs.dockerTools.buildLayeredImage {
+          name = "${container-registry}/bencher";
+          tag = "latest";
+          contents = [
+            pkgs.busybox
+            self.packages.${system}.bencher
+          ];
 
-        config.Cmd = ["/bin/bencher"];
-      };
-
-      mergeable-etcd = pkgs.stdenv.mkDerivation {
-        name = "mergeable-etcd";
-        src = self.packages.${system}.workspace;
-        installPhase = ''
-          mkdir -p $out/bin
-          cp $src/bin/mergeable-etcd $out/bin/mergeable-etcd
-          ln -s $src/bin/mergeable-etcd $out/bin/etcd
-        '';
-      };
-
-      mergeable-etcd-docker = pkgs.dockerTools.buildLayeredImage {
-        name = "${container-registry}/mergeable-etcd";
-        tag = "latest";
-        contents = [
-          pkgs.busybox
-          self.packages.${system}.mergeable-etcd
-        ];
-        config.Cmd = ["/bin/mergeable-etcd"];
-      };
-
-      dismerge = pkgs.stdenv.mkDerivation {
-        name = "dismerge";
-        src = self.packages.${system}.workspace;
-        installPhase = ''
-          mkdir -p $out/bin
-          cp $src/bin/dismerge $out/bin/dismerge
-        '';
-      };
-
-      dismerge-docker = pkgs.dockerTools.buildLayeredImage {
-        name = "${container-registry}/dismerge";
-        tag = "latest";
-        contents = [
-          pkgs.busybox
-          self.packages.${system}.dismerge
-        ];
-        config.Cmd = ["/bin/dismerge"];
-      };
-
-      etcd = pkgs.buildGoModule rec {
-        pname = "etcd";
-        version = "3.4.14";
-
-        src = pkgs.fetchFromGitHub {
-          owner = "etcd-io";
-          repo = "etcd";
-          rev = "v${version}";
-          sha256 = "sha256-LgwJ85UkAQRwpIsILnHDssMw7gXVLO27cU1+5hHj3Wg=";
+          config.Cmd = ["/bin/bencher"];
         };
 
-        doCheck = false;
+        mergeable-etcd-docker = pkgs.dockerTools.buildLayeredImage {
+          name = "${container-registry}/mergeable-etcd";
+          tag = "latest";
+          contents = [
+            pkgs.busybox
+            self.packages.${system}.mergeable-etcd
+          ];
+          config.Cmd = ["/bin/mergeable-etcd-bytes"];
+        };
 
-        deleteVendor = true;
-        vendorSha256 = "sha256-bBlihD5i7YidtVW9Nz1ChU10RE5zjOsXbEL1hA6Blko=";
+        dismerge-docker = pkgs.dockerTools.buildLayeredImage {
+          name = "${container-registry}/dismerge";
+          tag = "latest";
+          contents = [
+            pkgs.busybox
+            self.packages.${system}.dismerge
+          ];
+          config.Cmd = ["/bin/dismerge-bytes"];
+        };
+
+        etcd = pkgs.buildGoModule rec {
+          pname = "etcd";
+          version = etcd-version;
+
+          src = pkgs.fetchFromGitHub {
+            owner = "etcd-io";
+            repo = "etcd";
+            rev = "v${version}";
+            sha256 = "sha256-LgwJ85UkAQRwpIsILnHDssMw7gXVLO27cU1+5hHj3Wg=";
+          };
+
+          doCheck = false;
+
+          deleteVendor = true;
+          vendorSha256 = "sha256-bBlihD5i7YidtVW9Nz1ChU10RE5zjOsXbEL1hA6Blko=";
+        };
+
+        etcd-docker = pkgs.dockerTools.buildLayeredImage {
+          name = "${container-registry}/etcd";
+          tag = "v${etcd-version}";
+          contents = [
+            pkgs.busybox
+            self.packages.${system}.etcd
+          ];
+          config.Cmd = ["/bin/etcd"];
+        };
       };
-
-      workspace = workspace;
-      workspace-tarpaulin = tarpaulin;
-      workspace-nextest = nextest;
-      workspace-clippy = clippy;
-
-    };
 
     apps.${system} = {
-      mergeable-etcd = flake-utils.lib.mkApp {
-        name = "mergeable-etcd";
-        drv = self.packages.${system}.workspace;
+      mergeable-etcd-bytes = flake-utils.lib.mkApp {
+        name = "mergeable-etcd-bytes";
+        drv = self.packages.${system}.mergeable-etcd-bytes;
+      };
+
+      mergeable-etcd-json = flake-utils.lib.mkApp {
+        name = "mergeable-etcd-json";
+        drv = self.packages.${system}.mergeable-etcd-json;
       };
 
       dismerge-bytes = flake-utils.lib.mkApp {
         name = "dismerge-bytes";
-        drv = self.packages.${system}.workspace;
+        drv = self.packages.${system}.dismerge-bytes;
       };
 
       dismerge-json = flake-utils.lib.mkApp {
         name = "dismerge-json";
-        drv = self.packages.${system}.workspace;
+        drv = self.packages.${system}.dismerge-json;
       };
 
       experiments = flake-utils.lib.mkApp {
@@ -229,7 +195,8 @@
 
           ansible_2_12
           python3Packages.ruamel-yaml
-        ];
+        ]
+        ++ [crate2nix.packages.${system}.crate2nix];
 
       ETCDCTL_API = 3;
       PROTOC = "${pkgs.protobuf}/bin/protoc";

@@ -6,8 +6,8 @@ use std::{
     str::FromStr,
     time::Duration,
 };
-use tracing::info;
-use tracing::warn;
+use tracing::{debug, info};
+use tracing::{metadata::LevelFilter, warn};
 
 use async_trait::async_trait;
 use clap::Parser;
@@ -17,6 +17,9 @@ use exp::{
 };
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
+use tracing_subscriber::{
+    fmt, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
+};
 
 #[derive(Debug)]
 pub struct Experiment {
@@ -33,12 +36,17 @@ pub struct Experiment {
 
 const BENCHER_RESULTS_FILE: &str = "bencher-results.csv";
 
-const ETCD_IMAGE: &str = "quay.io/coreos/etcd";
-const ETCD_TAG: &str = "v3.4.13";
+const ETCD_BIN: &str = "etcd";
+const ETCD_IMAGE: &str = "jeffas/etcd";
+const ETCD_TAG: &str = "v3.4.14";
 
-const MERGEABLE_ETCD_BIN: &str = "mergeable-etcd";
+const MERGEABLE_ETCD_BIN: &str = "mergeable-etcd-bytes";
 const MERGEABLE_ETCD_IMAGE: &str = "jeffas/mergeable-etcd";
 const MERGEABLE_ETCD_TAG: &str = "latest";
+
+const DISMERGE_BIN: &str = "dismerge-bytes";
+const DISMERGE_IMAGE: &str = "jeffas/dismerge";
+const DISMERGE_TAG: &str = "latest";
 
 const BENCHER_IMAGE: &str = "jeffas/bencher";
 const BENCHER_TAG: &str = "latest";
@@ -48,6 +56,7 @@ impl exp::Experiment for Experiment {
     type Configuration = Config;
 
     fn configurations(&mut self) -> Vec<Self::Configuration> {
+        debug!("Building configurations");
         let total = 100_000;
         let mut bench_types = HashMap::new();
         bench_types.insert(
@@ -81,19 +90,23 @@ impl exp::Experiment for Experiment {
 
         let mut confs = Vec::new();
         for cluster_size in &self.cluster_sizes {
-            let description = format!(
-                "Test etcd cluster latency and throughput at {} nodes",
-                cluster_size
-            );
+            debug!(?cluster_size, "Adding cluster sizes");
             let clients = 100;
             for delay in &self.delays {
+                debug!(?delay, "Adding delays");
                 if *cluster_size == 1 && *delay > 0 {
+                    debug!(
+                        ?delay,
+                        "Skipping delay as has no effect on single node cluster"
+                    );
                     // any non-zero delay has no difference to a single node cluster
                     continue;
                 }
                 for bench_type in &self.bench_types {
+                    debug!(?bench_type, "Adding bench types");
                     let bench_args = bench_types.get(bench_type).unwrap();
                     for target_throughput in &self.target_throughputs {
+                        debug!(?target_throughput, "Adding target throughputs");
                         let interval = 1_000_000_000 / target_throughput;
 
                         let mut args = vec![
@@ -105,14 +118,13 @@ impl exp::Experiment for Experiment {
                         args.append(&mut bench_args.clone());
                         confs.push(Config {
                             repeats: self.repeats,
-                            description: description.clone(),
                             cluster_size: *cluster_size,
                             bench_type: bench_type.clone(),
                             bench_args: args.clone(),
                             target_throughput: *target_throughput,
                             image_name: ETCD_IMAGE.to_owned(),
                             image_tag: ETCD_TAG.to_owned(),
-                            bin_name: "etcd".to_owned(),
+                            bin_name: ETCD_BIN.to_owned(),
                             delay: *delay,
                             delay_variation: 0.1, // 10%
                             extra_args: Vec::new(),
@@ -120,7 +132,6 @@ impl exp::Experiment for Experiment {
 
                         confs.push(Config {
                             repeats: self.repeats,
-                            description: description.clone(),
                             cluster_size: *cluster_size,
                             bench_type: bench_type.clone(),
                             bench_args: args.clone(),
@@ -128,6 +139,20 @@ impl exp::Experiment for Experiment {
                             image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
                             image_tag: MERGEABLE_ETCD_TAG.to_owned(),
                             bin_name: MERGEABLE_ETCD_BIN.to_owned(),
+                            delay: *delay,
+                            delay_variation: 0.1,
+                            extra_args: vec![],
+                        });
+
+                        confs.push(Config {
+                            repeats: self.repeats,
+                            cluster_size: *cluster_size,
+                            bench_type: bench_type.clone(),
+                            bench_args: args.clone(),
+                            target_throughput: *target_throughput,
+                            image_name: DISMERGE_IMAGE.to_owned(),
+                            image_tag: DISMERGE_TAG.to_owned(),
+                            bin_name: DISMERGE_BIN.to_owned(),
                             delay: *delay,
                             delay_variation: 0.1,
                             extra_args: vec![],
@@ -201,7 +226,7 @@ impl exp::Experiment for Experiment {
             let name = format!("{}{}", node_name_prefix, i);
 
             let mut cmd = vec![
-                configuration.bin_name.to_owned(),
+                format!("/bin/{}", configuration.bin_name),
                 "--name".to_owned(),
                 name.clone(),
                 "--listen-client-urls".to_owned(),
@@ -524,7 +549,6 @@ impl FromStr for BenchType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub repeats: u32,
-    pub description: String,
     pub cluster_size: u32,
     pub bench_type: BenchType,
     pub bench_args: Vec<String>,
@@ -539,7 +563,7 @@ pub struct Config {
 
 impl ExperimentConfiguration for Config {}
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 struct CliOptions {
     #[clap(long, default_value = "./results")]
     results_dir: PathBuf,
@@ -572,8 +596,8 @@ struct CliOptions {
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    tracing_subscriber::fmt::init();
-
+    let options = CliOptions::parse();
+    info!(?options, "Parsed options");
     let CliOptions {
         results_dir,
         repeats,
@@ -585,7 +609,19 @@ async fn main() -> Result<(), anyhow::Error> {
         analyse,
         tmpfs,
         cpus,
-    } = CliOptions::parse();
+    } = options;
+
+    let log_filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy();
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_ansi(true))
+        .with(log_filter)
+        .init();
+
+    if !run && !analyse {
+        anyhow::bail!("Neither run nor analyse specified");
+    }
 
     let mut experiment = Experiment {
         run_iteration: 0,
@@ -608,7 +644,7 @@ async fn main() -> Result<(), anyhow::Error> {
             (BENCHER_IMAGE, BENCHER_TAG),
         ] {
             info!(?img, ?tag, "Pulling image");
-            docker_runner::pull_image(img, tag).await.unwrap();
+            // docker_runner::pull_image(img, tag).await.unwrap();
         }
 
         exp::run(
