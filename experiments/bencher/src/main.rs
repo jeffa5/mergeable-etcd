@@ -46,66 +46,6 @@ impl exp::Experiment for Experiment {
 
         let mut confs = Vec::new();
 
-        // test raw etcd performance
-        let mut config = Config {
-            repeat: 0,
-            cluster_size: 1,
-            bench_args: "put-single bench".to_owned(),
-            target_throughput: 1_000,
-            target_duration_s: 1,
-            image_name: ETCD_IMAGE.to_owned(),
-            image_tag: ETCD_TAG.to_owned(),
-            bin_name: ETCD_BIN.to_owned(),
-            delay: 0,
-            delay_variation: 0.1, // 10%
-            extra_args: String::new(),
-            tmpfs: true,
-        };
-        for throughput in [1_000, 2_000, 4_000, 8_000, 16_000, 32_000] {
-            config.target_throughput = throughput;
-            confs.push(config.clone());
-        }
-
-        // test raw mergeable-etcd performance
-        let mut config = Config {
-            repeat: 0,
-            cluster_size: 1,
-            bench_args: "put-single bench".to_owned(),
-            target_throughput: 1_000,
-            target_duration_s: 1,
-            image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
-            image_tag: MERGEABLE_ETCD_TAG.to_owned(),
-            bin_name: MERGEABLE_ETCD_BIN.to_owned(),
-            delay: 0,
-            delay_variation: 0.1, // 10%
-            extra_args: String::new(),
-            tmpfs: true,
-        };
-        for throughput in [1_000, 2_000, 4_000, 8_000, 16_000, 32_000] {
-            config.target_throughput = throughput;
-            confs.push(config.clone());
-        }
-
-        // test raw dismerge performance
-        let mut config = Config {
-            repeat: 0,
-            cluster_size: 1,
-            bench_args: "put-single bench".to_owned(),
-            target_throughput: 1_000,
-            target_duration_s: 1,
-            image_name: DISMERGE_IMAGE.to_owned(),
-            image_tag: DISMERGE_TAG.to_owned(),
-            bin_name: DISMERGE_BIN.to_owned(),
-            delay: 0,
-            delay_variation: 0.1, // 10%
-            extra_args: String::new(),
-            tmpfs: true,
-        };
-        for throughput in [1_000, 2_000, 4_000, 8_000, 16_000, 32_000] {
-            config.target_throughput = throughput;
-            confs.push(config.clone());
-        }
-
         // test ycsb a etcd performance
         let mut config = Config {
             repeat: 0,
