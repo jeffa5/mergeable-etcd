@@ -351,28 +351,6 @@ impl exp::Experiment for Experiment {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum BenchType {
-    PutSingle,
-    PutRange,
-    PutRandom,
-    WatchSingle,
-}
-
-impl FromStr for BenchType {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "put-single" => Ok(BenchType::PutSingle),
-            "put-range" => Ok(BenchType::PutRange),
-            "put-random" => Ok(BenchType::PutRandom),
-            "watch-single" => Ok(BenchType::WatchSingle),
-            _ => Err("invalid bench type"),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     /// Which repeat this config is.
