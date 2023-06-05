@@ -11,6 +11,24 @@ message SyncMessage {
   bytes data = 4;
 }
 
+message SyncChanges {
+  // The member id of the sender.
+  uint64 from = 1;
+  // The member id of the intended receiver.
+  uint64 to = 2;
+  // The name of the sending peer.
+  string name = 3;
+  // The encoded changes.
+  repeated bytes changes = 4;
+  // The heads of the sender.
+  repeated bytes heads = 5;
+}
+
+message SyncChangesResponse {
+  // heads after applying the given changes.
+  repeated bytes heads = 1;
+}
+
 message GetMemberIDResponse {
   // The member id of the responder.
   uint64 id = 1;
@@ -56,6 +74,9 @@ service Peer {
 
   // SyncOne accepts a single sync message.
   rpc SyncOne(SyncMessage) returns (Empty) { }
+
+  // SendChanges accepts a list of changes to apply.
+  rpc SendChanges(SyncChanges) returns (SyncChangesResponse) { }
 
   // MemberList lists all the members in the cluster.
   rpc MemberList(MemberListRequest) returns (MemberListResponse) {}

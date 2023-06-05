@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::marker::PhantomData;
 
 use automerge::op_observer::HasPatches;
@@ -56,6 +56,7 @@ pub struct Document<P, S, W, V> {
     pub(crate) cluster_objid: ObjId,
     pub rng: StdRng,
     pub(crate) flush_notifier: watch::Sender<()>,
+    pub(crate) peer_heads: HashMap<u64, Vec<ChangeHash>>,
     // keep this around so that we don't close the channel
     #[allow(dead_code)]
     pub(crate) flush_notifier_receiver: watch::Receiver<()>,
@@ -378,10 +379,43 @@ where
     pub fn generate_sync_message(
         &mut self,
         peer_id: u64,
-    ) -> Result<Option<sync::Message>, automerge_persistent::Error<P::Error>> {
-        debug!(?peer_id, "generating sync message");
-        self.am
-            .generate_sync_message(peer_id.to_be_bytes().to_vec())
+    ) -> (Vec<automerge::Change>, Vec<ChangeHash>) {
+        let heads = self.peer_heads.get(&peer_id).cloned().unwrap_or_default();
+        debug!(?peer_id, ?heads, "generating sync message");
+        let changes = self
+            .am
+            .document()
+            .get_changes(&heads)
+            .unwrap_or_default()
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>();
+        info!(?peer_id, changes = changes.len(), "Generated sync message");
+        (changes, self.heads())
+    }
+
+    pub async fn receive_changes(
+        &mut self,
+        peer_id: u64,
+        changes: Vec<automerge::Change>,
+        heads: Vec<ChangeHash>,
+    ) -> crate::Result<Vec<ChangeHash>> {
+        info!(?peer_id, changes = changes.len(), "Received sync message");
+
+        self.peer_heads.insert(peer_id, heads);
+
+        let mut observer = VecOpObserver::default();
+        let heads = self.am.document_mut().get_heads();
+
+        self.flush();
+
+        let _ = self.am.apply_changes_with(changes, Some(&mut observer));
+
+        self.flush();
+
+        self.handle_patches(heads, observer).await?;
+
+        Ok(self.am.document().get_heads())
     }
 
     pub async fn receive_sync_message(
@@ -402,6 +436,15 @@ where
 
         self.flush();
 
+        self.handle_patches(heads, observer).await?;
+        Ok(res)
+    }
+
+    async fn handle_patches(
+        &mut self,
+        heads: Vec<ChangeHash>,
+        mut observer: VecOpObserver,
+    ) -> crate::Result<()> {
         for patch in observer.take_patches() {
             let obj = patch.obj;
             let path = patch.path;
@@ -566,7 +609,7 @@ where
             self.document_changed();
         }
 
-        Ok(res)
+        Ok(())
     }
 
     pub fn replication_status(&self, heads: &[ChangeHash]) -> BTreeMap<u64, bool> {
