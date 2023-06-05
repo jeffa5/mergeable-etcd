@@ -68,11 +68,11 @@ pub struct Options {
     pub persister: PersisterType,
 
     /// Number of client requests to handle in-flight at a time.
-    #[clap(long, default_value = "1000")]
+    #[clap(long, default_value = "10000")]
     pub concurrency_limit: usize,
 
     /// Duration of request before it times out, in milliseconds.
-    #[clap(long, default_value = "1000")]
+    #[clap(long, default_value = "10000")]
     pub timeout: u64,
 }
 
