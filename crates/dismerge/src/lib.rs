@@ -388,7 +388,12 @@ fn start_flush_loop<P: DocPersister, V: Value>(doc: Doc<P, V>, flush_interval: D
             // flush after a while, rather than all of the time
             {
                 let start = Instant::now();
-                let _bytes = doc.lock().await.flush();
+                let mut doc = doc.lock().await;
+                let lock_duration = start.elapsed();
+                if lock_duration > threshold {
+                    warn!(?lock_duration, ?threshold, "Flush lock took too long");
+                }
+                let _bytes = doc.flush();
                 let duration = start.elapsed();
                 if duration > threshold {
                     warn!(?duration, ?threshold, "Flush took too long");

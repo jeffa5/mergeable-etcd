@@ -425,13 +425,19 @@ where
                             path[2].0.clone()
                         };
                         let hash = self.am.document().hash_for_opid(&opid).unwrap();
-                        let key_obj = self
+                        self.am.document_mut().prepare_clock(&[hash]);
+                        let key_obj = if let Some(key_obj) = self
                             .am
                             .document()
                             .get_at(&self.kvs_objid, &key, &[hash])
                             .unwrap()
-                            .unwrap()
-                            .1;
+                            .map(|(_, id)| id)
+                        {
+                            key_obj
+                        } else {
+                            warn!(?key, ?hash, "No key present");
+                            continue;
+                        };
                         if patch_key_obj != key_obj {
                             continue;
                         }

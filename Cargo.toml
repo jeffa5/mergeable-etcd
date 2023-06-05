@@ -14,6 +14,7 @@ debug = true
 
 [patch.crates-io]
 # https://github.com/automerge/automerge/pull/550
-automerge = {git = "https://github.com/jeffa5/automerge", branch = "cmp-heads"}
+# automerge = {git = "https://github.com/jeffa5/automerge", branch = "cmp-heads"}
+automerge = { path = "../automerge/rust/automerge" }
 
 autosurgeon = {git = "https://github.com/jeffa5/autosurgeon", branch = "metcd"}

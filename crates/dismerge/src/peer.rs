@@ -97,7 +97,7 @@ impl PeerSyncer {
                 }
                 Err(err) => {
                     warn!(address=?address_clone, %err, "Failed to connect client");
-                    tokio::time::sleep(Duration::from_millis(10)).await;
+                    tokio::time::sleep(Duration::from_millis(100)).await;
                 }
             }
         };
@@ -144,7 +144,7 @@ impl PeerSyncer {
                                             }
                                             Err(err) => {
                                                 warn!(address=?address_clone, %err, "Failed to reconnect client");
-                                                tokio::time::sleep(Duration::from_millis(100))
+                                                tokio::time::sleep(Duration::from_millis(1000))
                                                     .await;
                                             }
                                         }
@@ -224,7 +224,7 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
         }
         debug!("Finished generating sync message");
         let duration = start.elapsed();
-        if duration > Duration::from_millis(100) {
+        if duration > Duration::from_millis(1000) {
             warn!(
                 ?duration,
                 "Generating sync message (document changed) took too long"
@@ -390,7 +390,7 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
             let message = doc.generate_sync_message(from).unwrap();
             debug!("Finished generating sync message");
             let duration = start.elapsed();
-            if duration > Duration::from_millis(100) {
+            if duration > Duration::from_millis(1000) {
                 warn!(
                     ?duration,
                     "Receiving sync message (application to document) took too long"
@@ -532,6 +532,11 @@ pub fn split_initial_cluster(s: &str) -> HashMap<String, String> {
     for item in items {
         if let Some((name, address)) = item.split_once('=') {
             cluster.insert(name.to_owned(), address.to_owned());
+        } else {
+            warn!(
+                ?item,
+                "Invalid format for initial cluster argument, expected a name=address form"
+            );
         }
     }
     cluster

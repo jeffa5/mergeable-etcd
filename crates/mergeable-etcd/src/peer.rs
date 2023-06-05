@@ -97,7 +97,7 @@ impl PeerSyncer {
                 }
                 Err(err) => {
                     warn!(address=?address_clone, %err, "Failed to connect client");
-                    tokio::time::sleep(Duration::from_millis(10)).await;
+                    tokio::time::sleep(Duration::from_millis(1000)).await;
                 }
             }
         };
@@ -112,7 +112,7 @@ impl PeerSyncer {
                         let message: SyncMessage = message;
 
                         // Try and send the message, retrying if it fails
-                        let mut retry_wait = Duration::from_millis(1);
+                        let mut retry_wait = Duration::from_millis(10);
                         let retry_max = Duration::from_secs(5);
 
                         loop {
@@ -532,6 +532,11 @@ pub fn split_initial_cluster(s: &str) -> HashMap<String, String> {
     for item in items {
         if let Some((name, address)) = item.split_once('=') {
             cluster.insert(name.to_owned(), address.to_owned());
+        } else {
+            warn!(
+                ?item,
+                "Invalid format for initial cluster argument, expected a name=address form"
+            );
         }
     }
     cluster
