@@ -390,7 +390,7 @@ where
             .into_iter()
             .cloned()
             .collect::<Vec<_>>();
-        info!(?peer_id, changes = changes.len(), "Generated sync message");
+        debug!(?peer_id, changes = changes.len(), "Generated sync message");
         (changes, self.heads())
     }
 
@@ -400,7 +400,7 @@ where
         changes: impl Iterator<Item = automerge::Change>,
         heads: Vec<ChangeHash>,
     ) -> crate::Result<Vec<ChangeHash>> {
-        info!(?peer_id, "Received sync message");
+        debug!(?peer_id, "Received sync message");
 
         self.peer_heads.insert(peer_id, heads);
 
