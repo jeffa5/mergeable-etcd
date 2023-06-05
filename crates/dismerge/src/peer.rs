@@ -133,7 +133,7 @@ impl PeerSyncer {
                                     // but don't let it get too high!
                                     retry_wait = std::cmp::min(retry_wait, retry_max);
 
-                                    warn!(%error, ?retry_wait, address=?address_clone, "Got error sending sync message to peer");
+                                    warn!(%error, ?retry_wait, address=?address_clone, changes = message.changes.len(), "Got error sending sync message to peer");
                                     // had an error, reconnect the client
                                     client = loop {
                                         match channel.connect().await {
@@ -183,21 +183,43 @@ impl PeerSyncer {
         let sender = self.sender.clone();
         // spawn a task so that we don't block loops with the document
         tokio::spawn(async move {
-            debug!(?from, ?to, ?name, "Sending message to peer");
-            let data = changes
-                .into_iter()
-                .map(|c| c.raw_bytes().to_vec())
-                .collect();
-            let heads = heads.into_iter().map(|h| h.0.to_vec()).collect();
-            let _: Result<_, _> = sender
-                .send(SyncChanges {
-                    from,
-                    to,
-                    name,
-                    changes: data,
-                    heads,
-                })
-                .await;
+            debug!(
+                ?from,
+                ?to,
+                ?name,
+                changes = changes.len(),
+                "Sending message to peer"
+            );
+            let mut data = changes.into_iter().map(|c| c.raw_bytes().to_vec());
+            let heads = heads.into_iter().map(|h| h.0.to_vec()).collect::<Vec<_>>();
+            let mut changes = Vec::new();
+
+            // chunk up the changes to avoid sending more than the limit in one go
+            while let Some(change) = data.next() {
+                changes.push(change);
+                if changes.len() == 1_000 {
+                    let _: Result<_, _> = sender
+                        .send(SyncChanges {
+                            from,
+                            to,
+                            name: name.clone(),
+                            changes: std::mem::take(&mut changes),
+                            heads: heads.clone(),
+                        })
+                        .await;
+                }
+            }
+            if !changes.is_empty() {
+                let _: Result<_, _> = sender
+                    .send(SyncChanges {
+                        from,
+                        to,
+                        name,
+                        changes,
+                        heads,
+                    })
+                    .await;
+            }
         });
     }
 }
@@ -540,7 +562,11 @@ where
         request: tonic::Request<SyncChanges>,
     ) -> Result<tonic::Response<peer_proto::SyncChangesResponse>, tonic::Status> {
         let request = request.into_inner();
-        debug!(?request, "SYNC_CHANGES from peer");
+        debug!(
+            ?request,
+            changes = request.changes.len(),
+            "SYNC_CHANGES from peer"
+        );
         let SyncChanges {
             from,
             to,
