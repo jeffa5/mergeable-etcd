@@ -217,8 +217,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0c490146b9b751a08d76dc9a62657a1d4a402b649be567be699853f1f5bbb8e"
+source = "git+https://github.com/jeffa5/automerge-persistent#67c8c4dd71a4d056fe46e6f28ec6aa77c1923449"
 dependencies = [
  "automerge",
  "thiserror",

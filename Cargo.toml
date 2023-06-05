@@ -17,4 +17,6 @@ debug = true
 # automerge = {git = "https://github.com/jeffa5/automerge", branch = "cmp-heads"}
 automerge = { path = "../automerge/rust/automerge" }
 
+automerge-persistent = { git = "https://github.com/jeffa5/automerge-persistent" }
+
 autosurgeon = {git = "https://github.com/jeffa5/autosurgeon", branch = "metcd"}
