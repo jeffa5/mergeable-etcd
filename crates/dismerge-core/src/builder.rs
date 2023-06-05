@@ -211,7 +211,7 @@ where
             flush_notifier_receiver,
             auto_flush: self.auto_flush,
             _value_type: PhantomData::default(),
-            peer_heads: HashMap::default()
+            peer_heads: HashMap::default(),
         };
         s.init(self.cluster_id);
         s

@@ -452,7 +452,7 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
         from: u64,
         to: u64,
         name: String,
-        changes: Vec<automerge::Change>,
+        changes: impl Iterator<Item = automerge::Change>,
         heads: Vec<automerge::ChangeHash>,
     ) -> Vec<automerge::ChangeHash> {
         let mut inner = self.inner.lock().await;
@@ -462,7 +462,7 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
         let heads = {
             let mut doc = inner.document.lock().await;
             let start = Instant::now();
-            debug!(changes = ?changes.len(), "Started receiving sync changes");
+            debug!("Started receiving sync changes");
             let heads = doc.receive_changes(from, changes, heads).await.unwrap();
             debug!("Finished receiving sync message");
             let duration = start.elapsed();
@@ -550,8 +550,7 @@ where
         } = request;
         let changes = changes
             .into_iter()
-            .filter_map(|c| automerge::Change::from_bytes(c).ok())
-            .collect();
+            .filter_map(|c| automerge::Change::from_bytes(c).ok());
         let heads = heads
             .into_iter()
             .map(|c| automerge::ChangeHash::try_from(c.as_slice()).unwrap())

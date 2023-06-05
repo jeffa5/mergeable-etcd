@@ -397,10 +397,10 @@ where
     pub async fn receive_changes(
         &mut self,
         peer_id: u64,
-        changes: Vec<automerge::Change>,
+        changes: impl Iterator<Item = automerge::Change>,
         heads: Vec<ChangeHash>,
     ) -> crate::Result<Vec<ChangeHash>> {
-        info!(?peer_id, changes = changes.len(), "Received sync message");
+        info!(?peer_id, "Received sync message");
 
         self.peer_heads.insert(peer_id, heads);
 
