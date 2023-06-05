@@ -1,5 +1,6 @@
 {
-  "automerge-persistent 0.4.0 (git+https://github.com/jeffa5/automerge-persistent#67c8c4dd71a4d056fe46e6f28ec6aa77c1923449)": "00iqqhibfbj4a7kf296490x7ly0imsn5ag9bl5ahix0ih2lwdfjh",
+  "automerge 0.4.1 (git+https://github.com/jeffa5/automerge?branch=cmp-heads#d1df9cd1fbfb931b5e1cb13e498ab204de133e51)": "19plkp3kynswrrb98n9cgflva693kpp6hpy2gjjpg00i2md0315q",
+  "automerge-persistent 0.4.0 (git+https://github.com/jeffa5/automerge-persistent?branch=main#5b4559660048ebbb21e7284a5e598166462ef8b7)": "15wg2m082gc4155zqivg573kjc3ka7dhy0rh1y8j8kgailx1jj7n",
   "autosurgeon 0.6.0 (git+https://github.com/jeffa5/autosurgeon?branch=metcd#fbbec7fd021a7cc0e8f4a42a063a9724b763a0dc)": "1fjixavjyf8c6bglvb8jx84qqvvv3hbj1rbgkmbv1f292si996c0",
   "autosurgeon-derive 0.6.0 (git+https://github.com/jeffa5/autosurgeon?branch=metcd#fbbec7fd021a7cc0e8f4a42a063a9724b763a0dc)": "1fjixavjyf8c6bglvb8jx84qqvvv3hbj1rbgkmbv1f292si996c0",
   "exp 0.1.0 (git+https://github.com/jeffa5/exp?branch=main#810c35a03ed8abb59f532c758a80267566bf115f)": "1bmlazjq8qywv9a6clkd4ba9maqpbfvk375x2nxzgaws6jh4p89g",

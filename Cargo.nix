@@ -714,11 +714,12 @@ rec {
         crateName = "automerge";
         version = "0.4.1";
         edition = "2021";
-        # We can't filter paths with references in Nix 2.4
-        # See https://github.com/NixOS/nix/issues/5410
-        src = if ((lib.versionOlder builtins.nixVersion "2.4pre20211007") || (lib.versionOlder "2.5" builtins.nixVersion ))
-          then lib.cleanSourceWith { filter = sourceFilter;  src = ../automerge/rust/automerge; }
-          else ../automerge/rust/automerge;
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/jeffa5/automerge";
+          rev = "d1df9cd1fbfb931b5e1cb13e498ab204de133e51";
+          sha256 = "19plkp3kynswrrb98n9cgflva693kpp6hpy2gjjpg00i2md0315q";
+        };
         dependencies = [
           {
             name = "flate2";
@@ -790,8 +791,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "67c8c4dd71a4d056fe46e6f28ec6aa77c1923449";
-          sha256 = "00iqqhibfbj4a7kf296490x7ly0imsn5ag9bl5ahix0ih2lwdfjh";
+          rev = "5b4559660048ebbb21e7284a5e598166462ef8b7";
+          sha256 = "15wg2m082gc4155zqivg573kjc3ka7dhy0rh1y8j8kgailx1jj7n";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"

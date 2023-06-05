@@ -199,6 +199,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 [[package]]
 name = "automerge"
 version = "0.4.1"
+source = "git+https://github.com/jeffa5/automerge?branch=cmp-heads#d1df9cd1fbfb931b5e1cb13e498ab204de133e51"
 dependencies = [
  "flate2",
  "fxhash",
@@ -217,7 +218,7 @@ dependencies = [
 [[package]]
 name = "automerge-persistent"
 version = "0.4.0"
-source = "git+https://github.com/jeffa5/automerge-persistent#67c8c4dd71a4d056fe46e6f28ec6aa77c1923449"
+source = "git+https://github.com/jeffa5/automerge-persistent?branch=main#5b4559660048ebbb21e7284a5e598166462ef8b7"
 dependencies = [
  "automerge",
  "thiserror",

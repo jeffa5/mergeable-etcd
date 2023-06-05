@@ -54,27 +54,22 @@ where
         let mut local_document = self.local_document.lock().await;
         let mut sent_message = false;
         for (id, document) in &self.other_documents {
-            if let Some(message) = local_document.generate_sync_message(*id).unwrap() {
-                let local_heads = local_document.am.document_mut().get_heads();
-                let remote_heads = document.lock().await.am.document_mut().get_heads();
-                debug!(?local_heads, ?remote_heads, "heads");
-                debug!(?message, from=?id, to=?self.local_id, "Sent message");
-                let mut other_document = document.lock().await;
-                other_document
-                    .receive_sync_message(self.local_id, message)
-                    .await
-                    .unwrap()
-                    .unwrap();
-                if let Some(message) = other_document.generate_sync_message(self.local_id).unwrap()
-                {
-                    local_document
-                        .receive_sync_message(*id, message)
-                        .await
-                        .unwrap()
-                        .unwrap();
-                }
-                sent_message = true;
-            }
+            let (changes, heads) = local_document.generate_sync_message(*id);
+            let local_heads = local_document.am.document_mut().get_heads();
+            let remote_heads = document.lock().await.am.document_mut().get_heads();
+            debug!(?local_heads, ?remote_heads, "heads");
+            debug!(changes=changes.len(), ?heads, from=?id, to=?self.local_id, "Sent message");
+            let mut other_document = document.lock().await;
+            other_document
+                .receive_changes(self.local_id, changes.into_iter(), heads)
+                .await
+                .unwrap();
+            let (changes, heads) = other_document.generate_sync_message(self.local_id);
+            local_document
+                .receive_changes(*id, changes.into_iter(), heads)
+                .await
+                .unwrap();
+            sent_message = true;
         }
         sent_message
     }
