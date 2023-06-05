@@ -191,6 +191,9 @@ where
     }
 
     pub fn flush(&mut self) -> usize {
+        let heads = self.heads();
+        // get the clock cached for the flush call
+        self.am.document_mut().prepare_clock(&heads);
         let flushed_bytes = self.am.flush().unwrap();
         if flushed_bytes > 0 {
             debug!(?flushed_bytes, "Flushed db");
