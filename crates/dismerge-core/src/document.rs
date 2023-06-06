@@ -61,6 +61,7 @@ pub struct Document<P, S, W, V> {
     #[allow(dead_code)]
     pub(crate) flush_notifier_receiver: watch::Receiver<()>,
     pub(crate) auto_flush: bool,
+    pub(crate) auto_sync: bool,
 
     pub(crate) _value_type: PhantomData<V>,
 }
@@ -181,6 +182,7 @@ where
     }
 
     pub fn flush(&mut self) -> usize {
+        debug!("flushing!");
         let flushed_bytes = self.am.flush().unwrap();
         if flushed_bytes > 0 {
             debug!(?flushed_bytes, "Flushed db");
@@ -189,11 +191,18 @@ where
         flushed_bytes
     }
 
+    pub fn sync(&mut self) {
+        debug!("syncing!");
+        self.syncer.document_changed();
+    }
+
     fn document_changed(&mut self) {
         if self.auto_flush {
             self.flush();
         }
-        self.syncer.document_changed();
+        if self.auto_sync {
+            self.sync();
+        }
     }
 
     pub async fn put(

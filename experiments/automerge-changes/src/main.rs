@@ -98,7 +98,7 @@ struct Results {
     ns_on_commit_per_commit: u128,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Config {
     pub repeat: u32,
     pub total_changes: u32,

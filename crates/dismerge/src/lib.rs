@@ -80,6 +80,7 @@ where
         listen_peer_urls,
         listen_metrics_urls,
         flush_interval_ms,
+        sync_interval_ms,
         log_filter: _,
         no_colour: _,
         persister,
@@ -107,6 +108,7 @@ where
         })
         .with_persister(persister)
         .with_auto_flush(false)
+        .with_auto_sync(false)
         .with_name(name.clone())
         .with_peer_urls(initial_advertise_peer_urls.clone())
         .with_client_urls(advertise_client_urls.clone());
@@ -124,6 +126,7 @@ where
     info!(member_id=?document.member_id(), "Built document");
     let document = Arc::new(Mutex::new(document));
     start_flush_loop(document.clone(), Duration::from_millis(flush_interval_ms));
+    start_sync_loop(document.clone(), Duration::from_millis(sync_interval_ms));
     let server = KvServer {
         document: Arc::clone(&document),
     };
@@ -382,7 +385,7 @@ fn start_metrics_server<P: DocPersister, V: Value>(
 
 fn start_flush_loop<P: DocPersister, V: Value>(doc: Doc<P, V>, flush_interval: Duration) {
     tokio::spawn(async move {
-        info!("Started flush loop");
+        info!(?flush_interval, "Started flush loop");
         let threshold = Duration::from_millis(100);
         loop {
             // flush after a while, rather than all of the time
@@ -400,6 +403,30 @@ fn start_flush_loop<P: DocPersister, V: Value>(doc: Doc<P, V>, flush_interval: D
                 }
             }
             tokio::time::sleep(flush_interval).await;
+        }
+    });
+}
+
+fn start_sync_loop<P: DocPersister, V: Value>(doc: Doc<P, V>, sync_interval: Duration) {
+    tokio::spawn(async move {
+        info!(?sync_interval, "Started sync loop");
+        let threshold = Duration::from_millis(100);
+        loop {
+            // sync after a while, rather than all of the time
+            {
+                let start = Instant::now();
+                let mut doc = doc.lock().await;
+                let lock_duration = start.elapsed();
+                if lock_duration > threshold {
+                    warn!(?lock_duration, ?threshold, "Sync lock took too long");
+                }
+                let _bytes = doc.sync();
+                let duration = start.elapsed();
+                if duration > threshold {
+                    warn!(?duration, ?threshold, "Sync took too long");
+                }
+            }
+            tokio::time::sleep(sync_interval).await;
         }
     });
 }

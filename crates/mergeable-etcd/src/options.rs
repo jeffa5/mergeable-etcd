@@ -55,6 +55,10 @@ pub struct Options {
     #[clap(long, default_value = "10")]
     pub flush_interval_ms: u64,
 
+    /// How frequently to trigger syncing with peers.
+    #[clap(long, default_value = "10")]
+    pub sync_interval_ms: u64,
+
     /// Filter logs using this string, rather than the `RUST_LOG` environment variable.
     #[clap(long)]
     pub log_filter: Option<String>,
@@ -98,6 +102,7 @@ impl Default for Options {
             peer_client_cert_auth: Default::default(),
             snapshot_count: Default::default(),
             flush_interval_ms: 10,
+            sync_interval_ms: 10,
             log_filter: None,
             no_colour: false,
             persister: Default::default(),

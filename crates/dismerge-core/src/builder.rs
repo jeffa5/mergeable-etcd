@@ -20,6 +20,7 @@ pub struct DocumentBuilder<P, S, W, V> {
     client_urls: Vec<String>,
     seed: u64,
     auto_flush: bool,
+    auto_sync: bool,
     _value_type: PhantomData<V>,
 }
 
@@ -36,6 +37,7 @@ impl<V> Default for DocumentBuilder<MemoryPersister, (), (), V> {
             client_urls: vec![],
             seed: rand::thread_rng().gen(),
             auto_flush: true,
+            auto_sync: true,
             _value_type: PhantomData::default(),
         }
     }
@@ -55,6 +57,7 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
             client_urls: self.client_urls,
             seed: self.seed,
             auto_flush: self.auto_flush,
+            auto_sync: self.auto_sync,
             _value_type: PhantomData::default(),
         }
     }
@@ -72,6 +75,7 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
             client_urls: self.client_urls,
             seed: self.seed,
             auto_flush: self.auto_flush,
+            auto_sync: self.auto_sync,
             _value_type: PhantomData::default(),
         }
     }
@@ -89,6 +93,7 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
             client_urls: self.client_urls,
             seed: self.seed,
             auto_flush: self.auto_flush,
+            auto_sync: self.auto_sync,
             _value_type: PhantomData::default(),
         }
     }
@@ -169,6 +174,17 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
         self.auto_flush = auto_flush;
         self
     }
+
+    #[must_use]
+    pub fn with_auto_sync(mut self, auto_sync: bool) -> Self {
+        self.auto_sync = auto_sync;
+        self
+    }
+
+    pub fn set_auto_sync(&mut self, auto_sync: bool) -> &mut Self {
+        self.auto_sync = auto_sync;
+        self
+    }
 }
 
 impl<S, W, V> DocumentBuilder<MemoryPersister, S, W, V> {
@@ -210,6 +226,7 @@ where
             flush_notifier,
             flush_notifier_receiver,
             auto_flush: self.auto_flush,
+            auto_sync: self.auto_sync,
             _value_type: PhantomData::default(),
             peer_heads: HashMap::default(),
         };
