@@ -426,6 +426,14 @@ where
     pub fn generate_sync_message(
         &mut self,
         peer_id: u64,
+    ) -> Option<automerge::sync::Message> {
+        debug!(?peer_id, "generating sync message");
+        self.am.generate_sync_message(peer_id.to_be_bytes().to_vec()).unwrap()
+    }
+
+    pub fn generate_sync_changes(
+        &mut self,
+        peer_id: u64,
     ) -> (Vec<automerge::Change>, Vec<ChangeHash>) {
         let heads = self.peer_heads.get(&peer_id).cloned().unwrap_or_default();
         debug!(?peer_id, ?heads, "generating sync message");
@@ -442,7 +450,8 @@ where
         (changes, self.heads())
     }
 
-    pub async fn receive_changes(
+
+    pub async fn receive_sync_changes(
         &mut self,
         peer_id: u64,
         changes: impl Iterator<Item = automerge::Change>,

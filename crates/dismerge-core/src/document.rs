@@ -394,7 +394,14 @@ where
         }
     }
 
-    pub fn generate_sync_message(
+    pub fn generate_sync_message(&mut self, peer_id: u64) -> Option<automerge::sync::Message> {
+        debug!(?peer_id, "generating sync message");
+        self.am
+            .generate_sync_message(peer_id.to_be_bytes().to_vec())
+            .unwrap()
+    }
+
+    pub fn generate_sync_changes(
         &mut self,
         peer_id: u64,
     ) -> (Vec<automerge::Change>, Vec<ChangeHash>) {
@@ -413,7 +420,7 @@ where
         (changes, self.heads())
     }
 
-    pub async fn receive_changes(
+    pub async fn receive_sync_changes(
         &mut self,
         peer_id: u64,
         changes: impl Iterator<Item = automerge::Change>,

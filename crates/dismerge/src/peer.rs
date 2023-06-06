@@ -36,7 +36,7 @@ impl Syncer for DocumentChangedSyncer {
 
 pub struct PeerSyncer {
     address: String,
-    sender: mpsc::Sender<SyncChanges>,
+    sender: mpsc::Sender<SyncMessage>,
 }
 
 impl Debug for PeerSyncer {
@@ -109,14 +109,14 @@ impl PeerSyncer {
                 match msg_receiver.recv().await {
                     Some(message) => {
                         debug!(address=?address_clone, "Sending message on client");
-                        let message: SyncChanges = message;
+                        let message: SyncMessage = message;
 
                         // Try and send the message, retrying if it fails
                         let mut retry_wait = Duration::from_millis(1);
                         let retry_max = Duration::from_secs(5);
 
                         loop {
-                            let res = client.send_changes(message.clone()).await;
+                            let res = client.sync_one(message.clone()).await;
                             debug!(address=?address_clone, "Sent sync message to client");
                             match res {
                                 Ok(response) => {
@@ -133,7 +133,7 @@ impl PeerSyncer {
                                     // but don't let it get too high!
                                     retry_wait = std::cmp::min(retry_wait, retry_max);
 
-                                    warn!(%error, ?retry_wait, address=?address_clone, changes = message.changes.len(), "Got error sending sync message to peer");
+                                    warn!(%error, ?retry_wait, address=?address_clone, "Got error sending sync message to peer");
                                     // had an error, reconnect the client
                                     client = loop {
                                         match channel.connect().await {
@@ -172,54 +172,20 @@ impl PeerSyncer {
         )
     }
 
-    pub fn send(
-        &mut self,
-        from: u64,
-        to: u64,
-        name: String,
-        changes: Vec<automerge::Change>,
-        heads: Vec<automerge::ChangeHash>,
-    ) {
+    pub fn send(&mut self, from: u64, to: u64, name: String, msg: sync::Message) {
         let sender = self.sender.clone();
         // spawn a task so that we don't block loops with the document
         tokio::spawn(async move {
-            debug!(
-                ?from,
-                ?to,
-                ?name,
-                changes = changes.len(),
-                "Sending message to peer"
-            );
-            let mut data = changes.into_iter().map(|c| c.raw_bytes().to_vec());
-            let heads = heads.into_iter().map(|h| h.0.to_vec()).collect::<Vec<_>>();
-            let mut changes = Vec::new();
+            debug!(?from, ?to, ?name, "Sending message to peer");
 
-            // chunk up the changes to avoid sending more than the limit in one go
-            while let Some(change) = data.next() {
-                changes.push(change);
-                if changes.len() == 1_000 {
-                    let _: Result<_, _> = sender
-                        .send(SyncChanges {
-                            from,
-                            to,
-                            name: name.clone(),
-                            changes: std::mem::take(&mut changes),
-                            heads: heads.clone(),
-                        })
-                        .await;
-                }
-            }
-            if !changes.is_empty() {
-                let _: Result<_, _> = sender
-                    .send(SyncChanges {
-                        from,
-                        to,
-                        name,
-                        changes,
-                        heads,
-                    })
-                    .await;
-            }
+            let _: Result<_, _> = sender
+                .send(SyncMessage {
+                    from,
+                    to,
+                    name,
+                    data: msg.encode(),
+                })
+                .await;
         });
     }
 }
@@ -250,10 +216,9 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
         let start = Instant::now();
         debug!("Started generating sync message");
         let syncer = self.connections.get_mut(&to_id).unwrap();
-        let (changes, heads) = self.document.lock().await.generate_sync_message(to_id);
-        if !changes.is_empty() {
-            debug!(changes = ?changes.len(), "Sending changes");
-            syncer.send(from_id, to_id, from_name.to_owned(), changes, heads);
+        let message = self.document.lock().await.generate_sync_message(to_id);
+        if let Some(msg) = message {
+            syncer.send(from_id, to_id, from_name.to_owned(), msg);
         }
         debug!("Finished generating sync message");
         let duration = start.elapsed();
@@ -410,7 +375,7 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
         let member_id = inner.document.lock().await.member_id();
         debug!(?from, ?to, ?name, ?member_id, "received message");
 
-        let (changes, heads) = {
+        {
             let mut doc = inner.document.lock().await;
             let start = Instant::now();
             debug!(changes = ?message.changes.len(), "Started receiving sync message");
@@ -419,9 +384,6 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
                 .unwrap()
                 .unwrap();
             debug!("Finished receiving sync message");
-            debug!("Started generating sync message");
-            let changes = doc.generate_sync_message(from);
-            debug!("Finished generating sync message");
             let duration = start.elapsed();
             if duration > Duration::from_millis(1000) {
                 warn!(
@@ -429,9 +391,8 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
                     "Receiving sync message (application to document) took too long"
                 )
             }
-            changes
-        };
-        debug!("finished message bits");
+            debug!("finished message bits");
+        }
 
         // try to connect back if we don't have a connection
         if !inner.connections.contains_key(&from) {
@@ -453,18 +414,6 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
                 debug!("no member");
             }
         }
-
-        if !changes.is_empty() {
-            debug!(changes = ?changes.len(), "Sending changes");
-            let name = inner.name.clone();
-            if let Some(connection) = inner.connections.get_mut(&from) {
-                connection.send(member_id, from, name, changes, heads);
-            } else {
-                debug!("no connection to send to");
-            }
-        } else {
-            debug!("No message to send");
-        }
     }
 
     /// Receive a message from a peer, set up a reverse connection if there isn't one for them.
@@ -485,7 +434,10 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
             let mut doc = inner.document.lock().await;
             let start = Instant::now();
             debug!("Started receiving sync changes");
-            let heads = doc.receive_changes(from, changes, heads).await.unwrap();
+            let heads = doc
+                .receive_sync_changes(from, changes, heads)
+                .await
+                .unwrap();
             debug!("Finished receiving sync message");
             let duration = start.elapsed();
             if duration > Duration::from_millis(1000) {
