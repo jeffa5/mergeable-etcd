@@ -15,10 +15,7 @@ use tracing_subscriber::{
 };
 
 #[derive(Debug)]
-struct Experiment {
-    run_iteration: u32,
-    num_configurations: usize,
-}
+struct Experiment {}
 
 const BENCHER_RESULTS_FILE: &str = "bencher-results.csv";
 
@@ -46,22 +43,56 @@ impl exp::Experiment for Experiment {
 
         let mut confs = Vec::new();
 
+        let ycsb_a = "ycsb --read-weight 1 --update-weight 1".to_owned();
+        let ycsb_b = "ycsb --read-weight 95 --update-weight 5".to_owned();
+        let ycsb_c = "ycsb --read-weight 1".to_owned();
+        let ycsb_d =
+            "ycsb --read-weight 95 --insert-weight 5 --request-distribution latest".to_owned();
+        let ycsb_e = "ycsb --scan-weight 95 --insert-weight 5".to_owned();
+
+        let target_duration_s = 1;
+
+        // test ycsb a etcd performance at different scales
+        let mut config = Config {
+            repeat: 0,
+            cluster_size: 1,
+            bench_args: ycsb_a.clone(),
+            bench_target: BenchTarget::FirstNode,
+            target_throughput: 10_000,
+            target_duration_s,
+            image_name: ETCD_IMAGE.to_owned(),
+            image_tag: ETCD_TAG.to_owned(),
+            bin_name: ETCD_BIN.to_owned(),
+            delay_ms: 0,
+            delay_variation: 0.1.into(), // 10%
+            extra_args: String::new(),
+            tmpfs: true,
+        };
+        for cluster_size in (1..=15).step_by(2) {
+            config.cluster_size = cluster_size;
+            for target_throughput in (8_000..=10_000).step_by(1_000) {
+                config.target_throughput = target_throughput;
+                confs.push(config.clone());
+            }
+        }
+
         // test ycsb a etcd performance
         let mut config = Config {
             repeat: 0,
             cluster_size: 1,
-            bench_args: "ycsb --read-weight 1 --update-weight 1".to_owned(),
+            bench_args: ycsb_a.clone(),
+            bench_target: BenchTarget::FirstNode,
             target_throughput: 1_000,
-            target_duration_s: 1,
+            target_duration_s,
             image_name: ETCD_IMAGE.to_owned(),
             image_tag: ETCD_TAG.to_owned(),
             bin_name: ETCD_BIN.to_owned(),
-            delay: 0,
-            delay_variation: 0.1, // 10%
+            delay_ms: 0,
+            delay_variation: 0.1.into(), // 10%
             extra_args: String::new(),
             tmpfs: true,
         };
-        for throughput in [1_000, 2_000, 4_000, 8_000, 16_000, 32_000] {
+        for throughput in (1_000..=10_000).step_by(1_000) {
             config.target_throughput = throughput;
             confs.push(config.clone());
         }
@@ -70,18 +101,19 @@ impl exp::Experiment for Experiment {
         let mut config = Config {
             repeat: 0,
             cluster_size: 1,
-            bench_args: "ycsb --read-weight 1 --update-weight 1".to_owned(),
+            bench_args: ycsb_a.clone(),
+            bench_target: BenchTarget::FirstNode,
             target_throughput: 1_000,
-            target_duration_s: 1,
+            target_duration_s,
             image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
             image_tag: MERGEABLE_ETCD_TAG.to_owned(),
             bin_name: MERGEABLE_ETCD_BIN.to_owned(),
-            delay: 0,
-            delay_variation: 0.1, // 10%
+            delay_ms: 0,
+            delay_variation: 0.1.into(), // 10%
             extra_args: String::new(),
             tmpfs: true,
         };
-        for throughput in [1_000, 2_000, 4_000, 8_000, 16_000, 32_000] {
+        for throughput in (1_000..=10_000).step_by(1_000) {
             config.target_throughput = throughput;
             confs.push(config.clone());
         }
@@ -90,18 +122,19 @@ impl exp::Experiment for Experiment {
         let mut config = Config {
             repeat: 0,
             cluster_size: 1,
-            bench_args: "ycsb --read-weight 1 --update-weight 1".to_owned(),
+            bench_args: ycsb_a.clone(),
+            bench_target: BenchTarget::FirstNode,
             target_throughput: 1_000,
-            target_duration_s: 1,
+            target_duration_s,
             image_name: DISMERGE_IMAGE.to_owned(),
             image_tag: DISMERGE_TAG.to_owned(),
             bin_name: DISMERGE_BIN.to_owned(),
-            delay: 0,
-            delay_variation: 0.1, // 10%
+            delay_ms: 0,
+            delay_variation: 0.1.into(), // 10%
             extra_args: String::new(),
             tmpfs: true,
         };
-        for throughput in [1_000, 2_000, 4_000, 8_000, 16_000, 32_000] {
+        for throughput in (1_000..=10_000).step_by(1_000) {
             config.target_throughput = throughput;
             confs.push(config.clone());
         }
@@ -109,19 +142,20 @@ impl exp::Experiment for Experiment {
         // test cluster sizes etcd
         let mut config = Config {
             repeat: 0,
-            cluster_size: 3,
-            bench_args: "ycsb --read-weight 1 --update-weight 1".to_owned(),
+            cluster_size: 1,
+            bench_args: ycsb_a.clone(),
+            bench_target: BenchTarget::FirstNode,
             target_throughput: 10_000,
-            target_duration_s: 1,
+            target_duration_s,
             image_name: ETCD_IMAGE.to_owned(),
             image_tag: ETCD_TAG.to_owned(),
             bin_name: ETCD_BIN.to_owned(),
-            delay: 0,
-            delay_variation: 0.1, // 10%
+            delay_ms: 0,
+            delay_variation: 0.1.into(), // 10%
             extra_args: String::new(),
-            tmpfs: false,
+            tmpfs: true,
         };
-        for cluster_size in [1, 3, 5, 7, 9, 11] {
+        for cluster_size in (1..=15).step_by(2) {
             config.cluster_size = cluster_size;
             confs.push(config.clone());
         }
@@ -129,19 +163,20 @@ impl exp::Experiment for Experiment {
         // test cluster sizes mergeable-etcd
         let mut config = Config {
             repeat: 0,
-            cluster_size: 3,
-            bench_args: "ycsb --read-weight 1 --update-weight 1".to_owned(),
+            cluster_size: 1,
+            bench_args: ycsb_a.clone(),
+            bench_target: BenchTarget::FirstNode,
             target_throughput: 10_000,
-            target_duration_s: 1,
+            target_duration_s,
             image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
             image_tag: MERGEABLE_ETCD_TAG.to_owned(),
             bin_name: MERGEABLE_ETCD_BIN.to_owned(),
-            delay: 0,
-            delay_variation: 0.1, // 10%
+            delay_ms: 0,
+            delay_variation: 0.1.into(), // 10%
             extra_args: String::new(),
-            tmpfs: false,
+            tmpfs: true,
         };
-        for cluster_size in [1, 3, 5, 7, 9, 11] {
+        for cluster_size in (1..=15).step_by(2) {
             config.cluster_size = cluster_size;
             confs.push(config.clone());
         }
@@ -149,25 +184,25 @@ impl exp::Experiment for Experiment {
         // test cluster sizes dismerge
         let mut config = Config {
             repeat: 0,
-            cluster_size: 3,
-            bench_args: "ycsb --read-weight 1 --update-weight 1".to_owned(),
+            cluster_size: 1,
+            bench_args: ycsb_a.clone(),
+            bench_target: BenchTarget::FirstNode,
             target_throughput: 10_000,
-            target_duration_s: 1,
+            target_duration_s,
             image_name: DISMERGE_IMAGE.to_owned(),
             image_tag: DISMERGE_TAG.to_owned(),
             bin_name: DISMERGE_BIN.to_owned(),
-            delay: 0,
-            delay_variation: 0.1, // 10%
+            delay_ms: 0,
+            delay_variation: 0.1.into(), // 10%
             extra_args: String::new(),
-            tmpfs: false,
+            tmpfs: true,
         };
-        for cluster_size in [1, 3, 5, 7, 9, 11] {
+        for cluster_size in (1..=15).step_by(2) {
             config.cluster_size = cluster_size;
             confs.push(config.clone());
         }
 
         info!(num_configurations = confs.len(), "Created configurations");
-        self.num_configurations = confs.len();
         confs
     }
 
@@ -180,11 +215,9 @@ impl exp::Experiment for Experiment {
     async fn run(
         &mut self,
         configuration: &Self::Configuration,
-        repeat_dir: &Path,
+        config_dir: &Path,
     ) -> ExpResult<()> {
-        self.run_iteration += 1;
-
-        info!(?configuration, iteration=?self.run_iteration, total=?self.num_configurations, "Running");
+        info!(?configuration, "Running");
 
         let experiment_prefix = "apj39-bencher-exp";
         let node_name_prefix = format!("{}-node", experiment_prefix);
@@ -194,7 +227,7 @@ impl exp::Experiment for Experiment {
         let network_quad = "172.19.0.0";
         let network_subnet = format!("{}/16", network_quad);
 
-        let mut runner = Runner::new(repeat_dir.to_owned()).await;
+        let mut runner = Runner::new(config_dir.to_owned()).await;
         let mut initial_cluster =
             format!("{}1=http://{}.2:2380", node_name_prefix, network_triplet);
         let mut client_urls = format!("http://{}.2:2379", network_triplet);
@@ -276,7 +309,7 @@ impl exp::Experiment for Experiment {
                         (peer_port.to_string(), peer_port.to_string()),
                     ]),
                     capabilities: Some(vec!["NET_ADMIN".to_owned()]),
-                    // cpus: self.cpus,
+                    // TODO: add limits?
                     cpus: None,
                     memory: None,
                     tmpfs: if configuration.tmpfs {
@@ -288,7 +321,7 @@ impl exp::Experiment for Experiment {
                 })
                 .await;
             tokio::time::sleep(Duration::from_millis(10)).await;
-            if configuration.delay > 0 {
+            if configuration.delay_ms > 0 {
                 let exec = runner
                     .docker_client()
                     .create_exec(
@@ -303,10 +336,11 @@ impl exp::Experiment for Experiment {
                                 "root",
                                 "netem",
                                 "delay",
-                                &format!("{}ms", configuration.delay),
+                                &format!("{}ms", configuration.delay_ms),
                                 &format!(
                                     "{}ms",
-                                    (configuration.delay as f64 * configuration.delay_variation)
+                                    (configuration.delay_ms as f64
+                                        * f64::from(configuration.delay_variation))
                                         as u32
                                 ),
                                 "25%", // correlation with previous delay
@@ -330,14 +364,19 @@ impl exp::Experiment for Experiment {
         }
 
         let bench_name = format!("{}-bench", experiment_prefix);
-        let out_file = repeat_dir.join(BENCHER_RESULTS_FILE);
+        let out_file = config_dir.join(BENCHER_RESULTS_FILE);
         fs::File::create(&out_file).unwrap();
         let out_file = fs::canonicalize(out_file).unwrap();
+
+        let bench_target_urls = match configuration.bench_target {
+            BenchTarget::AllNodes => client_urls,
+            BenchTarget::FirstNode => client_urls.split(",").next().map(|s| s.to_owned()).unwrap(),
+        };
 
         let mut bench_cmd = vec![
             "bencher".to_owned(),
             "--endpoints".to_owned(),
-            client_urls,
+            bench_target_urls,
             "--metrics-endpoints".to_owned(),
             metrics_urls,
             "--out-file".to_owned(),
@@ -379,16 +418,20 @@ impl exp::Experiment for Experiment {
             })
             .await;
 
+        debug!("Waiting for bencher to finish");
         runner
             .docker_client()
             .wait_container::<String>(&bench_name, None)
             .next()
             .await;
+        debug!("Bencher finished");
 
         // wait for logs to be written out
         tokio::time::sleep(Duration::from_secs(2)).await;
 
+        debug!("Finishing configuration run");
         runner.finish().await;
+        debug!("Finished configuration run");
 
         Ok(())
     }
@@ -408,17 +451,63 @@ impl exp::Experiment for Experiment {
         let mut all_csv = csv::Writer::from_path(all_file).unwrap();
         for (config, config_dir) in &configurations {
             let timings_file = config_dir.join(BENCHER_RESULTS_FILE);
-            let mut csv_reader = csv::Reader::from_path(timings_file).unwrap();
+            if timings_file.is_file() {
+                let mut csv_reader = csv::Reader::from_path(timings_file).unwrap();
 
-            for row in csv_reader.deserialize::<bencher::Output>() {
-                let row = row.unwrap();
-                all_csv.serialize((config, row)).unwrap();
+                for row in csv_reader.deserialize::<bencher::Output>() {
+                    let row = row.unwrap();
+                    all_csv.serialize((config, row)).unwrap();
+                }
+            }
+        }
+
+        let filename = "docker-apj39-bencher-exp-node1-stat.csv";
+        let all_file = exp_dir.join(filename);
+        println!("Merging results to {:?}", all_file);
+        let mut all_csv = csv::Writer::from_path(all_file).unwrap();
+        for (config, config_dir) in &configurations {
+            let stats_file = config_dir.join("metrics").join(filename);
+            if stats_file.is_file() {
+                let mut csv_reader = csv::Reader::from_path(stats_file).unwrap();
+
+                for row in csv_reader.deserialize::<exp::docker_runner::Stats>() {
+                    let row = row.unwrap();
+                    all_csv.serialize((config, row)).unwrap();
+                }
             }
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(transparent)]
+struct F64(f64);
+
+impl PartialEq for F64 {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+impl Eq for F64 {}
+
+impl std::hash::Hash for F64 {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.to_ne_bytes().hash(state);
+    }
+}
+
+impl From<f64> for F64 {
+    fn from(value: f64) -> Self {
+        Self(value)
+    }
+}
+impl From<F64> for f64 {
+    fn from(value: F64) -> Self {
+        value.0
+    }
+}
+
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 struct Config {
     /// Which repeat this config is.
     repeat: u32,
@@ -426,6 +515,8 @@ struct Config {
     cluster_size: u32,
     /// Arguments to pass to the benchmarker
     bench_args: String,
+    /// Tell the bencher who to issue requests to.
+    bench_target: BenchTarget,
     /// Target throughput we're going for in this run.
     target_throughput: u64,
     /// Target duration we want to run for.
@@ -436,10 +527,10 @@ struct Config {
     image_tag: String,
     /// Binary name to run.
     bin_name: String,
-    /// Delay to add between nodes.
-    delay: u32,
+    /// Delay to add between nodes, in milliseconds.
+    delay_ms: u32,
     /// Variation in the delay between nodes.
-    delay_variation: f64,
+    delay_variation: F64,
     /// Extra args, for the datastore.
     extra_args: String,
     /// Whether to mount the data dir for the datstore on a tmpfs.
@@ -447,6 +538,12 @@ struct Config {
 }
 
 impl ExperimentConfiguration for Config {}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+enum BenchTarget {
+    FirstNode,
+    AllNodes,
+}
 
 #[derive(Parser, Debug)]
 struct CliOptions {
@@ -482,10 +579,7 @@ async fn main() -> Result<(), anyhow::Error> {
         anyhow::bail!("Neither run nor analyse specified");
     }
 
-    let mut experiment = Experiment {
-        run_iteration: 0,
-        num_configurations: 0,
-    };
+    let mut experiment = Experiment {};
 
     info!(?experiment, "Built experiment config");
 
@@ -493,6 +587,7 @@ async fn main() -> Result<(), anyhow::Error> {
         for (img, tag) in [
             (ETCD_IMAGE, ETCD_TAG),
             (MERGEABLE_ETCD_IMAGE, MERGEABLE_ETCD_TAG),
+            (DISMERGE_IMAGE, DISMERGE_TAG),
             (BENCHER_IMAGE, BENCHER_TAG),
         ] {
             info!(?img, ?tag, "Pulling image");
