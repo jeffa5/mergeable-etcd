@@ -52,11 +52,11 @@ pub struct Options {
     /// How frequently to trigger a db flush.
     ///
     /// A flush will unblock all waiting requests.
-    #[clap(long, default_value = "10")]
+    #[clap(long, default_value = "1")]
     pub flush_interval_ms: u64,
 
     /// How frequently to trigger syncing with peers.
-    #[clap(long, default_value = "10")]
+    #[clap(long, default_value = "1")]
     pub sync_interval_ms: u64,
 
     /// Filter logs using this string, rather than the `RUST_LOG` environment variable.
