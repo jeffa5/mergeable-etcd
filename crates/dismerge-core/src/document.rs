@@ -201,6 +201,7 @@ where
     fn document_changed(&mut self) {
         self.outstanding += 1;
         if self.outstanding >= self.max_outstanding {
+            self.outstanding = 0;
             self.flush();
             self.sync();
         } else {

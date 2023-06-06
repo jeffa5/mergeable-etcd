@@ -60,7 +60,7 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
             seed: self.seed,
             auto_flush: self.auto_flush,
             auto_sync: self.auto_sync,
-            max_outstanding:self.max_outstanding,
+            max_outstanding: self.max_outstanding,
             _value_type: PhantomData::default(),
         }
     }
@@ -79,7 +79,7 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
             seed: self.seed,
             auto_flush: self.auto_flush,
             auto_sync: self.auto_sync,
-            max_outstanding:self.max_outstanding,
+            max_outstanding: self.max_outstanding,
             _value_type: PhantomData::default(),
         }
     }
@@ -98,7 +98,7 @@ impl<P, S, W, V> DocumentBuilder<P, S, W, V> {
             seed: self.seed,
             auto_flush: self.auto_flush,
             auto_sync: self.auto_sync,
-            max_outstanding:self.max_outstanding,
+            max_outstanding: self.max_outstanding,
             _value_type: PhantomData::default(),
         }
     }
@@ -244,7 +244,7 @@ where
             flush_notifier_receiver,
             auto_flush: self.auto_flush,
             auto_sync: self.auto_sync,
-            outstanding:0,
+            outstanding: 0,
             max_outstanding: self.max_outstanding,
             _value_type: PhantomData::default(),
             peer_heads: HashMap::default(),
