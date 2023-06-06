@@ -39,7 +39,7 @@ impl<V> Default for DocumentBuilder<MemoryPersister, (), (), V> {
             seed: rand::thread_rng().gen(),
             auto_flush: true,
             auto_sync: true,
-            max_outstanding: 1_000,
+            max_outstanding: 100,
             _value_type: PhantomData::default(),
         }
     }
