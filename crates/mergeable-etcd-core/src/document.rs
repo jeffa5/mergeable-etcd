@@ -429,6 +429,7 @@ where
     ) -> (Vec<automerge::Change>, Vec<ChangeHash>) {
         let heads = self.peer_heads.get(&peer_id).cloned().unwrap_or_default();
         debug!(?peer_id, ?heads, "generating sync message");
+        self.am.document_mut().prepare_clock(&heads);
         let changes = self
             .am
             .document_mut()
