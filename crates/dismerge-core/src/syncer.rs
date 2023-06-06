@@ -19,12 +19,15 @@ pub trait Syncer {
     /// registered peers.
     fn document_changed(&mut self);
 
+    fn send_local_changes(&self, local_changes: Vec<automerge::Change>);
+
     async fn member_change(&mut self, member: &Member);
 }
 
 #[tonic::async_trait]
 impl Syncer for () {
     fn document_changed(&mut self) {}
+    fn send_local_changes(&self, _local_changes: Vec<automerge::Change>){}
     async fn member_change(&mut self, _member: &Member) {
         ready(()).await
     }

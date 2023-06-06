@@ -20,13 +20,9 @@ message SyncChanges {
   string name = 3;
   // The encoded changes.
   repeated bytes changes = 4;
-  // The heads of the sender.
-  repeated bytes heads = 5;
 }
 
 message SyncChangesResponse {
-  // heads after applying the given changes.
-  repeated bytes heads = 1;
 }
 
 message GetMemberIDResponse {

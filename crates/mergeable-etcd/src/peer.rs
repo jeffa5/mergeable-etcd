@@ -19,6 +19,7 @@ const SYNC_SLEEP_DURATION: Duration = Duration::from_millis(10);
 
 pub struct DocumentChangedSyncer {
     pub notify: Arc<tokio::sync::Notify>,
+    pub local_change_sender: broadcast::Sender<Vec<Vec<u8>>>,
     pub member_changed: broadcast::Sender<Member>,
 }
 
@@ -29,6 +30,15 @@ impl Syncer for DocumentChangedSyncer {
         self.notify.notify_waiters()
     }
 
+    fn send_local_changes(&self, local_changes: Vec<automerge::Change>) {
+        debug!(changes = local_changes.len(), "Sending local changes");
+        let local_changes_bytes = local_changes
+            .into_iter()
+            .map(|c| c.raw_bytes().to_vec())
+            .collect::<Vec<_>>();
+        self.local_change_sender.send(local_changes_bytes).unwrap();
+    }
+
     async fn member_change(&mut self, member: &Member) {
         self.member_changed.send(member.clone()).unwrap();
     }
@@ -36,7 +46,7 @@ impl Syncer for DocumentChangedSyncer {
 
 pub struct PeerSyncer {
     address: String,
-    sender: mpsc::Sender<SyncMessage>,
+    sender: mpsc::Sender<Message>,
 }
 
 impl Debug for PeerSyncer {
@@ -109,19 +119,20 @@ impl PeerSyncer {
                 match msg_receiver.recv().await {
                     Some(message) => {
                         debug!(address=?address_clone, "Sending message on client");
-                        let message: SyncMessage = message;
+                        let message: Message = message;
 
                         // Try and send the message, retrying if it fails
                         let mut retry_wait = Duration::from_millis(1);
                         let retry_max = Duration::from_secs(5);
 
                         loop {
-                            let res = client.sync_one(message.clone()).await;
+                            let res = match message.clone() {
+                                Message::SyncMessage(m) => client.sync_one(m).await.map(|_| ()),
+                                Message::SyncChanges(m) => client.send_changes(m).await.map(|_| ()),
+                            };
                             debug!(address=?address_clone, "Sent sync message to client");
                             match res {
                                 Ok(response) => {
-                                    let _response = response.into_inner();
-                                    // TODO: handle heads returned
                                     break;
                                 }
                                 Err(error) => {
@@ -179,12 +190,29 @@ impl PeerSyncer {
             debug!(?from, ?to, ?name, "Sending message to peer");
 
             let _: Result<_, _> = sender
-                .send(SyncMessage {
+                .send(Message::SyncMessage(SyncMessage {
                     from,
                     to,
                     name,
                     data: msg.encode(),
-                })
+                }))
+                .await;
+        });
+    }
+
+    pub fn send_local_changes(&mut self, from: u64, to: u64, name: String, changes: Vec<Vec<u8>>) {
+        let sender = self.sender.clone();
+        // spawn a task so that we don't block loops with the document
+        tokio::spawn(async move {
+            debug!(?from, ?to, ?name, "Sending message to peer");
+
+            let _: Result<_, _> = sender
+                .send(Message::SyncChanges(SyncChanges {
+                    from,
+                    to,
+                    name,
+                    changes,
+                }))
                 .await;
         });
     }
@@ -208,6 +236,19 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
             ca_certificate,
         };
         s
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn send_local_changes_to_peer(
+        &mut self,
+        from_name: &str,
+        from_id: u64,
+        to_id: u64,
+        changes: Vec<Vec<u8>>,
+    ) {
+        debug!(?to_id, "attempting to send changes");
+        let syncer = self.connections.get_mut(&to_id).unwrap();
+        syncer.send_local_changes(from_id, to_id, from_name.to_owned(), changes);
     }
 
     #[tracing::instrument(skip(self))]
@@ -253,6 +294,7 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
         name: &str,
         mut initial_cluster: HashMap<String, String>,
         notify: Arc<tokio::sync::Notify>,
+        mut local_changes: broadcast::Receiver<Vec<Vec<u8>>>,
         mut member_changed: broadcast::Receiver<Member>,
         ca_certificate: Option<Vec<u8>>,
     ) -> Self {
@@ -284,6 +326,14 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
 
         let s_clone = s.clone();
         tokio::spawn(async move {
+            // handle local changes
+            while let Ok(changes) = local_changes.recv().await {
+                s_clone.send_local_changes(changes).await;
+            }
+        });
+
+        let s_clone = s.clone();
+        tokio::spawn(async move {
             // trigger a sync whenever we get a change on the document
             loop {
                 notify.notified().await;
@@ -292,6 +342,36 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
             }
         });
         s
+    }
+
+    pub async fn send_local_changes(&self, changes: Vec<Vec<u8>>) {
+        debug!("sending local changes");
+        let member = self.inner.lock().await.member().await;
+        let member_id = member.id;
+        let name = member.name;
+        let peer_ids = self
+            .inner
+            .lock()
+            .await
+            .connections
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
+        for id in peer_ids {
+            if id == member_id {
+                continue;
+            }
+            let name = name.clone();
+            let s = self.clone();
+            let changes = changes.clone();
+            tokio::spawn(async move {
+                s.inner
+                    .lock()
+                    .await
+                    .send_local_changes_to_peer(&name, member_id, id, changes)
+                    .await
+            });
+        }
     }
 
     pub async fn member_changed(&self, member: Member) {
@@ -339,6 +419,9 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
             .cloned()
             .collect::<Vec<_>>();
         for id in peer_ids {
+            if id == member_id {
+                continue;
+            }
             let name = name.clone();
             let s = self.clone();
             tokio::spawn(async move {
@@ -424,20 +507,16 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
         to: u64,
         name: String,
         changes: impl Iterator<Item = automerge::Change>,
-        heads: Vec<automerge::ChangeHash>,
-    ) -> Vec<automerge::ChangeHash> {
+    ) {
         let mut inner = self.inner.lock().await;
         let member_id = inner.document.lock().await.member_id();
         debug!(?from, ?to, ?name, ?member_id, "received changes");
 
-        let heads = {
+        {
             let mut doc = inner.document.lock().await;
             let start = Instant::now();
             debug!("Started receiving sync changes");
-            let heads = doc
-                .receive_sync_changes(from, changes, heads)
-                .await
-                .unwrap();
+            doc.receive_sync_changes(from, changes).await.unwrap();
             debug!("Finished receiving sync message");
             let duration = start.elapsed();
             if duration > Duration::from_millis(1000) {
@@ -446,7 +525,6 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
                     "Receiving sync changes (application to document) took too long"
                 )
             }
-            heads
         };
         debug!("finished message bits");
 
@@ -470,7 +548,6 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
                 debug!("no member");
             }
         }
-        heads
     }
 }
 
@@ -524,20 +601,13 @@ where
             to,
             name,
             changes,
-            heads,
         } = request;
         let changes = changes
             .into_iter()
             .filter_map(|c| automerge::Change::from_bytes(c).ok());
-        let heads = heads
-            .into_iter()
-            .map(|c| automerge::ChangeHash::try_from(c.as_slice()).unwrap())
-            .collect();
-        let new_heads = self.receive_changes(from, to, name, changes, heads).await;
+        self.receive_changes(from, to, name, changes).await;
 
-        Ok(tonic::Response::new(peer_proto::SyncChangesResponse {
-            heads: new_heads.into_iter().map(|h| h.0.to_vec()).collect(),
-        }))
+        Ok(tonic::Response::new(peer_proto::SyncChangesResponse {}))
     }
 
     #[tracing::instrument(skip(self, request))]
@@ -611,4 +681,10 @@ pub fn split_initial_cluster(s: &str) -> HashMap<String, String> {
         }
     }
     cluster
+}
+
+#[derive(Clone)]
+enum Message {
+    SyncMessage(SyncMessage),
+    SyncChanges(SyncChanges),
 }

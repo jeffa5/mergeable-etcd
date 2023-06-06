@@ -67,6 +67,7 @@ pub struct Document<P, S, W, V> {
     pub(crate) auto_sync: bool,
     pub(crate) outstanding: u64,
     pub(crate) max_outstanding: u64,
+    pub(crate) local_changes: Vec<automerge::Change>,
 
     pub(crate) _value_type: PhantomData<V>,
 }
@@ -211,11 +212,25 @@ where
         self.syncer.document_changed();
     }
 
+    fn sync_local_changes(&self, local_changes: Vec<automerge::Change>) {
+        self.syncer.send_local_changes(local_changes);
+    }
+
     fn document_changed(&mut self) {
         self.outstanding += 1;
         if self.outstanding >= self.max_outstanding {
             self.outstanding = 0;
             self.flush();
+            // TODO: might we miss some changes with this?
+            self.local_changes.push(
+                self.am
+                    .document_mut()
+                    .get_last_local_change()
+                    .unwrap()
+                    .clone(),
+            );
+            let local_changes = std::mem::take(&mut self.local_changes);
+            self.sync_local_changes(local_changes);
             // self.sync();
         } else {
             if self.auto_flush {
@@ -423,12 +438,11 @@ where
         }
     }
 
-    pub fn generate_sync_message(
-        &mut self,
-        peer_id: u64,
-    ) -> Option<automerge::sync::Message> {
+    pub fn generate_sync_message(&mut self, peer_id: u64) -> Option<automerge::sync::Message> {
         debug!(?peer_id, "generating sync message");
-        self.am.generate_sync_message(peer_id.to_be_bytes().to_vec()).unwrap()
+        self.am
+            .generate_sync_message(peer_id.to_be_bytes().to_vec())
+            .unwrap()
     }
 
     pub fn generate_sync_changes(
@@ -450,16 +464,12 @@ where
         (changes, self.heads())
     }
 
-
     pub async fn receive_sync_changes(
         &mut self,
         peer_id: u64,
         changes: impl Iterator<Item = automerge::Change>,
-        heads: Vec<ChangeHash>,
-    ) -> crate::Result<Vec<ChangeHash>> {
+    ) -> crate::Result<()> {
         debug!(?peer_id, "Received sync message");
-
-        self.peer_heads.insert(peer_id, heads);
 
         let mut observer = VecOpObserver::default();
         let heads = self.am.document_mut().get_heads();
@@ -472,7 +482,7 @@ where
 
         self.handle_patches(heads, observer).await?;
 
-        Ok(self.am.document_mut().get_heads())
+        Ok(())
     }
 
     pub async fn receive_sync_message(

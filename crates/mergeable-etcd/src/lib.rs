@@ -88,6 +88,7 @@ where
     } = options;
 
     let (watch_sender, watch_receiver) = mpsc::channel(10);
+    let (local_change_sender, _local_change_receiver) = broadcast::channel(10);
     let (member_changed_sender, _member_changed_receiver) = broadcast::channel(10);
 
     let notify = Arc::new(tokio::sync::Notify::new());
@@ -103,6 +104,8 @@ where
         })
         .with_syncer(DocumentChangedSyncer {
             notify: Arc::clone(&notify),
+            local_change_sender: local_change_sender
+                .clone(),
             member_changed: member_changed_sender.clone(),
         })
         .with_persister(persister)
@@ -159,6 +162,7 @@ where
                 name.clone(),
                 initial_cluster.clone(),
                 notify.clone(),
+                local_change_sender.subscribe(),
                 member_changed_sender.subscribe(),
             )
             .await,
@@ -288,6 +292,7 @@ async fn start_peer_server<P: DocPersister, V: Value>(
     name: String,
     initial_cluster: HashMap<String, String>,
     notify: Arc<tokio::sync::Notify>,
+    local_change_receiver: broadcast::Receiver<Vec<Vec<u8>>>,
     member_changed_receiver: broadcast::Receiver<etcd_proto::etcdserverpb::Member>,
 ) -> tokio::task::JoinHandle<()> {
     let peer_url = url::Url::parse(&address).unwrap();
@@ -333,6 +338,7 @@ async fn start_peer_server<P: DocPersister, V: Value>(
         &name,
         initial_cluster,
         notify,
+        local_change_receiver,
         member_changed_receiver,
         ca_cert,
     )
