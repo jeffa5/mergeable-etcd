@@ -216,7 +216,7 @@ where
         if self.outstanding >= self.max_outstanding {
             self.outstanding = 0;
             self.flush();
-            self.sync();
+            // self.sync();
         } else {
             if self.auto_flush {
                 self.flush();
