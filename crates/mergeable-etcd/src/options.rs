@@ -52,7 +52,7 @@ pub struct Options {
     /// How frequently to trigger a db flush.
     ///
     /// A flush will unblock all waiting requests.
-    #[clap(long, default_value = "1")]
+    #[clap(long, default_value = "10")]
     pub flush_interval_ms: u64,
 
     /// How frequently to trigger syncing with peers.

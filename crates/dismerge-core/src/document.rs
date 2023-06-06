@@ -62,6 +62,8 @@ pub struct Document<P, S, W, V> {
     pub(crate) flush_notifier_receiver: watch::Receiver<()>,
     pub(crate) auto_flush: bool,
     pub(crate) auto_sync: bool,
+    pub(crate) outstanding: u64,
+    pub(crate) max_outstanding: u64,
 
     pub(crate) _value_type: PhantomData<V>,
 }
@@ -197,11 +199,17 @@ where
     }
 
     fn document_changed(&mut self) {
-        if self.auto_flush {
+        self.outstanding += 1;
+        if self.outstanding >= self.max_outstanding {
             self.flush();
-        }
-        if self.auto_sync {
             self.sync();
+        } else {
+            if self.auto_flush {
+                self.flush();
+            }
+            if self.auto_sync {
+                self.sync();
+            }
         }
     }
 
