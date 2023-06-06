@@ -488,7 +488,7 @@ where
     pub async fn receive_sync_message(
         &mut self,
         peer_id: u64,
-        message: sync::Message,
+        message: sync::Message<'_>,
     ) -> crate::Result<Result<(), automerge_persistent::Error<P::Error>>> {
         let mut observer = VecOpObserver::default();
         let heads = self.am.document_mut().get_heads();

@@ -248,7 +248,7 @@ where
             max_outstanding: self.max_outstanding,
             _value_type: PhantomData::default(),
             peer_heads: HashMap::default(),
-            local_changes:Vec::new()
+            local_changes: Vec::new(),
         };
         s.init(self.cluster_id);
         s

@@ -401,7 +401,7 @@ where
         }
     }
 
-    pub fn generate_sync_message(&mut self, peer_id: u64) -> Option<automerge::sync::Message> {
+    pub fn generate_sync_message(&mut self, peer_id: u64) -> Option<automerge::sync::Message<'_>> {
         debug!(?peer_id, "generating sync message");
         self.am
             .generate_sync_message(peer_id.to_be_bytes().to_vec())
@@ -451,7 +451,7 @@ where
     pub async fn receive_sync_message(
         &mut self,
         peer_id: u64,
-        message: sync::Message,
+        message: sync::Message<'_>,
     ) -> crate::Result<Result<(), automerge_persistent::Error<P::Error>>> {
         let mut observer = VecOpObserver::default();
         let heads = self.am.document_mut().get_heads();

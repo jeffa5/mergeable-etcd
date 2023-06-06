@@ -523,8 +523,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge";
-          rev = "15e9c3c463919af31cf24dbcc13eb0a88802c21e";
-          sha256 = "12j1jjijkgyhg4py03sw2cai0spk6hwshcd2j7jjbm4fkbcgs3rg";
+          rev = "0b0048960c298cd5f2611f5bb54578b62d2886fb";
+          sha256 = "186cimq8zc0d595da04yx134s50i31i69q7mj4idp5izd5xpp035";
         };
         dependencies = [
           {
@@ -597,8 +597,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge-persistent";
-          rev = "5b4559660048ebbb21e7284a5e598166462ef8b7";
-          sha256 = "15wg2m082gc4155zqivg573kjc3ka7dhy0rh1y8j8kgailx1jj7n";
+          rev = "02a6018ff23d9181bee137e63003bc547bf8086f";
+          sha256 = "13hm3gr3f70vpyg51r4fwn2dpahn3icrjzacfz9wkssyycckxj36";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"

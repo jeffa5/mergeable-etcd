@@ -132,7 +132,7 @@ impl PeerSyncer {
                             };
                             debug!(address=?address_clone, "Sent sync message to client");
                             match res {
-                                Ok(response) => {
+                                Ok(_response) => {
                                     break;
                                 }
                                 Err(error) => {
@@ -183,7 +183,7 @@ impl PeerSyncer {
         )
     }
 
-    pub fn send(&mut self, from: u64, to: u64, name: String, msg: sync::Message) {
+    pub fn send(&mut self, from: u64, to: u64, name: String, msg: Vec<u8>) {
         let sender = self.sender.clone();
         // spawn a task so that we don't block loops with the document
         tokio::spawn(async move {
@@ -194,7 +194,7 @@ impl PeerSyncer {
                     from,
                     to,
                     name,
-                    data: msg.encode(),
+                    data: msg,
                 }))
                 .await;
         });
@@ -257,7 +257,12 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
         let start = Instant::now();
         debug!("Started generating sync message");
         let syncer = self.connections.get_mut(&to_id).unwrap();
-        let message = self.document.lock().await.generate_sync_message(to_id);
+        let message = self
+            .document
+            .lock()
+            .await
+            .generate_sync_message(to_id)
+            .map(|m| m.encode());
         if let Some(msg) = message {
             syncer.send(from_id, to_id, from_name.to_owned(), msg);
         }
@@ -453,7 +458,13 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
 
     /// Receive a message from a peer, set up a reverse connection if there isn't one for them.
     #[tracing::instrument(skip(self, message))]
-    pub async fn receive_message(&self, from: u64, to: u64, name: String, message: sync::Message) {
+    pub async fn receive_message(
+        &self,
+        from: u64,
+        to: u64,
+        name: String,
+        message: sync::Message<'_>,
+    ) {
         let mut inner = self.inner.lock().await;
         let member_id = inner.document.lock().await.member_id();
         debug!(?from, ?to, ?name, ?member_id, "received message");

@@ -104,8 +104,7 @@ where
         })
         .with_syncer(DocumentChangedSyncer {
             notify: Arc::clone(&notify),
-            local_change_sender: local_change_sender
-                .clone(),
+            local_change_sender: local_change_sender.clone(),
             member_changed: member_changed_sender.clone(),
         })
         .with_persister(persister)
