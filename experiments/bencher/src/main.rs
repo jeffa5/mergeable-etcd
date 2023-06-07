@@ -51,6 +51,7 @@ impl exp::Experiment for Experiment {
         let ycsb_e = "ycsb --scan-weight 95 --insert-weight 5".to_owned();
 
         let target_duration_s = 1;
+        let delay_variation = F64::from(0.1);
 
         // test ycsb a etcd performance at different scales
         let mut config = Config {
@@ -64,16 +65,13 @@ impl exp::Experiment for Experiment {
             image_tag: ETCD_TAG.to_owned(),
             bin_name: ETCD_BIN.to_owned(),
             delay_ms: 0,
-            delay_variation: 0.1.into(), // 10%
+            delay_variation,
             extra_args: String::new(),
             tmpfs: true,
         };
         for cluster_size in (1..=15).step_by(2) {
             config.cluster_size = cluster_size;
-            for target_throughput in (8_000..=10_000).step_by(1_000) {
-                config.target_throughput = target_throughput;
-                confs.push(config.clone());
-            }
+            confs.push(config.clone());
         }
 
         // test ycsb a etcd performance
@@ -88,7 +86,7 @@ impl exp::Experiment for Experiment {
             image_tag: ETCD_TAG.to_owned(),
             bin_name: ETCD_BIN.to_owned(),
             delay_ms: 0,
-            delay_variation: 0.1.into(), // 10%
+            delay_variation,
             extra_args: String::new(),
             tmpfs: true,
         };
@@ -109,7 +107,7 @@ impl exp::Experiment for Experiment {
             image_tag: MERGEABLE_ETCD_TAG.to_owned(),
             bin_name: MERGEABLE_ETCD_BIN.to_owned(),
             delay_ms: 0,
-            delay_variation: 0.1.into(), // 10%
+            delay_variation,
             extra_args: String::new(),
             tmpfs: true,
         };
@@ -130,7 +128,7 @@ impl exp::Experiment for Experiment {
             image_tag: DISMERGE_TAG.to_owned(),
             bin_name: DISMERGE_BIN.to_owned(),
             delay_ms: 0,
-            delay_variation: 0.1.into(), // 10%
+            delay_variation,
             extra_args: String::new(),
             tmpfs: true,
         };
@@ -151,7 +149,7 @@ impl exp::Experiment for Experiment {
             image_tag: ETCD_TAG.to_owned(),
             bin_name: ETCD_BIN.to_owned(),
             delay_ms: 0,
-            delay_variation: 0.1.into(), // 10%
+            delay_variation,
             extra_args: String::new(),
             tmpfs: true,
         };
@@ -172,7 +170,7 @@ impl exp::Experiment for Experiment {
             image_tag: MERGEABLE_ETCD_TAG.to_owned(),
             bin_name: MERGEABLE_ETCD_BIN.to_owned(),
             delay_ms: 0,
-            delay_variation: 0.1.into(), // 10%
+            delay_variation,
             extra_args: String::new(),
             tmpfs: true,
         };
@@ -193,7 +191,7 @@ impl exp::Experiment for Experiment {
             image_tag: DISMERGE_TAG.to_owned(),
             bin_name: DISMERGE_BIN.to_owned(),
             delay_ms: 0,
-            delay_variation: 0.1.into(), // 10%
+            delay_variation,
             extra_args: String::new(),
             tmpfs: true,
         };
