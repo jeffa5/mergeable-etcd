@@ -220,18 +220,16 @@ impl PeerSyncer {
 
 pub struct PeerServerInner<P, V> {
     pub document: Doc<P, V>,
-    name: String,
     // map from peer id to the syncer running for them
     connections: HashMap<u64, PeerSyncer>,
     ca_certificate: Option<Vec<u8>>,
 }
 
 impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
-    async fn new(document: Doc<P, V>, name: &str, ca_certificate: Option<Vec<u8>>) -> Self {
+    async fn new(document: Doc<P, V>, ca_certificate: Option<Vec<u8>>) -> Self {
         let connections = HashMap::new();
         let s = Self {
             document,
-            name: name.to_owned(),
             connections,
             ca_certificate,
         };
@@ -304,7 +302,7 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
         ca_certificate: Option<Vec<u8>>,
     ) -> Self {
         let inner = Arc::new(Mutex::new(
-            PeerServerInner::new(document, name, ca_certificate.clone()).await,
+            PeerServerInner::new(document, ca_certificate.clone()).await,
         ));
         let s = Self { inner };
 

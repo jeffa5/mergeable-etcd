@@ -57,7 +57,10 @@ where
         let mut local_document = self.local_document.lock().await;
         let mut sent_message = false;
         for (id, document) in &self.other_documents {
-            if let Some(msg) = local_document.generate_sync_message(*id) {
+            if let Some(msg) = local_document
+                .generate_sync_message(*id)
+                .map(|m| m.into_owned())
+            {
                 let local_heads = local_document.am.document_mut().get_heads();
                 let remote_heads = document.lock().await.am.document_mut().get_heads();
                 debug!(?local_heads, ?remote_heads, "heads");
