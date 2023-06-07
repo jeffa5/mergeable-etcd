@@ -182,6 +182,7 @@
 
       ETCDCTL_API = 3;
       PROTOC = "${pkgs.protobuf}/bin/protoc";
+      TK_LIBRARY = "${pkgs.tk}/lib/${pkgs.tk.libPrefix}";
     };
   };
 }
