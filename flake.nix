@@ -47,7 +47,6 @@
     };
     workspacePackages = lib.attrsets.mapAttrs (name: value: value.build) cargoNix.workspaceMembers;
     container-registry = "jeffas";
-    etcd-version = "3.4.14";
   in {
     packages.${system} =
       workspacePackages
@@ -83,29 +82,12 @@
           config.Cmd = ["/bin/dismerge-bytes"];
         };
 
-        etcd = pkgs.buildGoModule rec {
-          pname = "etcd";
-          version = etcd-version;
-
-          src = pkgs.fetchFromGitHub {
-            owner = "etcd-io";
-            repo = "etcd";
-            rev = "v${version}";
-            sha256 = "sha256-LgwJ85UkAQRwpIsILnHDssMw7gXVLO27cU1+5hHj3Wg=";
-          };
-
-          doCheck = false;
-
-          deleteVendor = true;
-          vendorSha256 = "sha256-bBlihD5i7YidtVW9Nz1ChU10RE5zjOsXbEL1hA6Blko=";
-        };
-
         etcd-docker = pkgs.dockerTools.buildLayeredImage {
           name = "${container-registry}/etcd";
-          tag = "v${etcd-version}";
+          tag = "v${pkgs.etcd_3_5.version}";
           contents = [
             pkgs.busybox
-            self.packages.${system}.etcd
+            pkgs.etcd_3_5
           ];
           config.Cmd = ["/bin/etcd"];
         };
@@ -193,7 +175,7 @@
 
           graphviz
 
-          ansible_2_12
+          ansible_2_13
           python3Packages.ruamel-yaml
         ]
         ++ [crate2nix.packages.${system}.crate2nix];

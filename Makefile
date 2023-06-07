@@ -7,7 +7,7 @@ RUN_ARGS ?=
 DOT_FILES := $(shell find -name '*.dot')
 SVG_FILES := $(patsubst %.dot, %.svg, $(DOT_FILES))
 
-ETCD_IMAGE := jeffas/etcd:v3.4.14
+ETCD_IMAGE := jeffas/etcd:v3.5.9
 DISMERGE_IMAGE := jeffas/dismerge:latest
 MERGEABLE_ETCD_IMAGE := jeffas/mergeable-etcd:latest
 BENCHER_IMAGE := jeffas/bencher:latest

@@ -21,7 +21,7 @@ const BENCHER_RESULTS_FILE: &str = "bencher-results.csv";
 
 const ETCD_BIN: &str = "etcd";
 const ETCD_IMAGE: &str = "jeffas/etcd";
-const ETCD_TAG: &str = "v3.4.14";
+const ETCD_TAG: &str = "v3.5.9";
 
 const MERGEABLE_ETCD_BIN: &str = "mergeable-etcd-bytes";
 const MERGEABLE_ETCD_IMAGE: &str = "jeffas/mergeable-etcd";
