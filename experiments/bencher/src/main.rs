@@ -90,7 +90,7 @@ impl exp::Experiment for Experiment {
             extra_args: String::new(),
             tmpfs: true,
         };
-        for throughput in (1_000..=10_000).step_by(1_000) {
+        for throughput in (1_000..=30_000).step_by(1_000) {
             config.target_throughput = throughput;
             confs.push(config.clone());
         }
@@ -111,7 +111,7 @@ impl exp::Experiment for Experiment {
             extra_args: String::new(),
             tmpfs: true,
         };
-        for throughput in (1_000..=10_000).step_by(1_000) {
+        for throughput in (1_000..=30_000).step_by(1_000) {
             config.target_throughput = throughput;
             confs.push(config.clone());
         }
@@ -132,7 +132,7 @@ impl exp::Experiment for Experiment {
             extra_args: String::new(),
             tmpfs: true,
         };
-        for throughput in (1_000..=10_000).step_by(1_000) {
+        for throughput in (1_000..=30_000).step_by(1_000) {
             config.target_throughput = throughput;
             confs.push(config.clone());
         }
