@@ -52,7 +52,7 @@ pub struct Options {
     /// How frequently to trigger a db flush.
     ///
     /// A flush will unblock all waiting requests.
-    #[clap(long, default_value = "10")]
+    #[clap(long, default_value = "1")]
     pub flush_interval_ms: u64,
 
     /// How frequently to trigger syncing with peers.
@@ -101,7 +101,7 @@ impl Default for Options {
             peer_trusted_ca_file: Default::default(),
             peer_client_cert_auth: Default::default(),
             snapshot_count: Default::default(),
-            flush_interval_ms: 10,
+            flush_interval_ms: 1,
             sync_interval_ms: 10,
             log_filter: None,
             no_colour: false,
