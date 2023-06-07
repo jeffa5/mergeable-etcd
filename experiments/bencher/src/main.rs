@@ -293,6 +293,7 @@ impl exp::Experiment for Experiment {
                 })
                 .collect::<Vec<_>>();
             cmd.extend_from_slice(&extra_args);
+            let cpus = 2;
             runner
                 .add_container(&ContainerConfig {
                     name: name.clone(),
@@ -300,7 +301,7 @@ impl exp::Experiment for Experiment {
                     image_tag: configuration.image_tag.clone(),
                     pull: false,
                     command: Some(cmd),
-                    env: Some(vec![format!("GOMAXPROCS={}", 1)]),
+                    env: Some(vec![format!("GOMAXPROCS={}", cpus)]),
                     network: Some(network_name.clone()),
                     network_subnet: Some(network_subnet.clone()),
                     ports: Some(vec![
@@ -308,7 +309,7 @@ impl exp::Experiment for Experiment {
                         (peer_port.to_string(), peer_port.to_string()),
                     ]),
                     capabilities: Some(vec!["NET_ADMIN".to_owned()]),
-                    cpus: Some(1.0),
+                    cpus: Some(cpus as f64),
                     memory: None,
                     tmpfs: if configuration.tmpfs {
                         vec!["/data".to_owned()]
