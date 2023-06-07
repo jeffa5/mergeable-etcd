@@ -6,6 +6,8 @@ import seaborn as sns
 
 pd.set_option("display.max_rows", 500)
 
+pdf_output = False
+
 
 def print_header(name: str):
     width = 32
@@ -24,7 +26,8 @@ def plot_etcd_scalability(data: pd.DataFrame, group_cols: List[str]):
     plot = sns.lineplot(data=data, x="cluster_size", y="latency_ms")
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plot.get_figure().savefig("plots/etcd_scalability.png")
-    plot.get_figure().savefig("plots/etcd_scalability.pdf")
+    if pdf_output:
+        plot.get_figure().savefig("plots/etcd_scalability.pdf")
 
 
 def plot_comparison_scalability(data: pd.DataFrame, group_cols: List[str]):
@@ -38,7 +41,8 @@ def plot_comparison_scalability(data: pd.DataFrame, group_cols: List[str]):
     print(data.groupby(group_cols).count())
     plot = sns.lineplot(data=data, x="cluster_size", y="latency_ms", hue="bin_name")
     plot.get_figure().savefig("plots/comparison_scalability.png")
-    plot.get_figure().savefig("plots/comparison_scalability.pdf")
+    if pdf_output:
+        plot.get_figure().savefig("plots/comparison_scalability.pdf")
 
 
 def plot_latency_scatter(data: pd.DataFrame, group_cols: List[str]):
@@ -57,7 +61,8 @@ def plot_latency_scatter(data: pd.DataFrame, group_cols: List[str]):
         row="target_throughput",
     )
     plot.savefig("plots/scatter.png")
-    plot.savefig("plots/scatter.pdf")
+    if pdf_output:
+        plot.savefig("plots/scatter.pdf")
 
 
 def plot_latency_cdf(data: pd.DataFrame, group_cols: List[str]):
@@ -75,7 +80,8 @@ def plot_latency_cdf(data: pd.DataFrame, group_cols: List[str]):
         row="target_throughput",
     )
     plot.savefig("plots/latency-cdf.png")
-    plot.savefig("plots/latency-cdf.pdf")
+    if pdf_output:
+        plot.savefig("plots/latency-cdf.pdf")
 
 
 def plot_goodput_latency(data: pd.DataFrame, group_cols: List[str]):
@@ -107,7 +113,8 @@ def plot_goodput_latency(data: pd.DataFrame, group_cols: List[str]):
         col="cluster_size",
     )
     plot.savefig("plots/goodput_latency.png")
-    plot.savefig("plots/goodput_latency.pdf")
+    if pdf_output:
+        plot.savefig("plots/goodput_latency.pdf")
 
 
 def plot_throughput_goodput(data: pd.DataFrame, group_cols: List[str]):
@@ -136,7 +143,8 @@ def plot_throughput_goodput(data: pd.DataFrame, group_cols: List[str]):
         col="cluster_size",
     )
     plot.savefig("plots/throughput_goodput.png")
-    plot.savefig("plots/throughput_goodput.pdf")
+    if pdf_output:
+        plot.savefig("plots/throughput_goodput.pdf")
 
 
 def plot_throughput_errorcount_single_node(data: pd.DataFrame, group_cols: List[str]):
@@ -159,7 +167,8 @@ def plot_throughput_errorcount_single_node(data: pd.DataFrame, group_cols: List[
         hue="bin_name",
     )
     plot.savefig("plots/throughput_errorcount.png")
-    plot.savefig("plots/throughput_errorcount.pdf")
+    if pdf_output:
+        plot.savefig("plots/throughput_errorcount.pdf")
 
 
 def main():
@@ -230,7 +239,8 @@ def plot_throughput_memory_single_node(data: pd.DataFrame, group_cols: List[str]
         kind="line", data=mem, x="target_throughput", y="mean_mem", hue="bin_name"
     )
     plot.savefig("plots/throughput_memory_line.png")
-    plot.savefig("plots/throughput_memory_line.pdf")
+    if pdf_output:
+        plot.savefig("plots/throughput_memory_line.pdf")
 
 
 def plot_throughput_cpu_single_node(data: pd.DataFrame, group_cols: List[str]):
@@ -245,7 +255,8 @@ def plot_throughput_cpu_single_node(data: pd.DataFrame, group_cols: List[str]):
         kind="line", data=cpu_diff, x="target_throughput", y="cpu_time", hue="bin_name"
     )
     plot.savefig("plots/throughput_cpu_line.png")
-    plot.savefig("plots/throughput_cpu_line.pdf")
+    if pdf_output:
+        plot.savefig("plots/throughput_cpu_line.pdf")
 
 
 def main_stats():
