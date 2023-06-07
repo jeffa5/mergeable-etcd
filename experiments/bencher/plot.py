@@ -14,8 +14,8 @@ def print_header(name: str):
     print("=" * width, name, "=" * width)
 
 
-def plot_etcd_scalability(data: pd.DataFrame, group_cols: List[str]):
-    print_header("plot_etcd_scalability")
+def plot_etcd_clustered(data: pd.DataFrame, group_cols: List[str]):
+    print_header("plot_etcd_clustered")
     data = data[data["bin_name"] == "etcd"]
     data = data[data["tmpfs"] == True]
     data = data[data["success"] == True]
@@ -25,13 +25,13 @@ def plot_etcd_scalability(data: pd.DataFrame, group_cols: List[str]):
     print(data.groupby(group_cols).count())
     plot = sns.lineplot(data=data, x="cluster_size", y="latency_ms")
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
-    plot.get_figure().savefig("plots/etcd_scalability.png")
+    plot.get_figure().savefig("plots/etcd_clustered.png")
     if pdf_output:
-        plot.get_figure().savefig("plots/etcd_scalability.pdf")
+        plot.get_figure().savefig("plots/etcd_clustered.pdf")
 
 
-def plot_comparison_scalability(data: pd.DataFrame, group_cols: List[str]):
-    print_header("plot_comparison_scalability")
+def plot_comparison_clustered(data: pd.DataFrame, group_cols: List[str]):
+    print_header("plot_comparison_clustered")
     data = data[data["tmpfs"] == True]
     data = data[data["success"] == True]
     data = data[data["target_throughput"] == 10_000]
@@ -40,16 +40,35 @@ def plot_comparison_scalability(data: pd.DataFrame, group_cols: List[str]):
 
     print(data.groupby(group_cols).count())
     plot = sns.lineplot(data=data, x="cluster_size", y="latency_ms", hue="bin_name")
-    plot.get_figure().savefig("plots/comparison_scalability.png")
+    plot.get_figure().savefig("plots/comparison_clustered.png")
     if pdf_output:
-        plot.get_figure().savefig("plots/comparison_scalability.pdf")
+        plot.get_figure().savefig("plots/comparison_clustered.pdf")
 
 
-def plot_latency_scatter(data: pd.DataFrame, group_cols: List[str]):
+def plot_latency_scatter_single_node(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot latency scatter")
+    data = data[data["cluster_size"] == 1]
     data = data[data["tmpfs"] == True]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    print(data.groupby(group_cols).count())
+    plot = sns.relplot(
+        kind="scatter",
+        data=data,
+        x="start_ns",
+        y="latency_ms",
+        hue="bin_name",
+        col="target_throughput",
+    )
+    plot.savefig("plots/scatter-single.png")
+    if pdf_output:
+        plot.savefig("plots/scatter-single.pdf")
 
+
+def plot_latency_scatter_clustered(data: pd.DataFrame, group_cols: List[str]):
+    print_header("plot latency scatter")
+    data = data[data["target_throughput"] == 10_000]
+    data = data[data["tmpfs"] == True]
+    data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols).count())
     plot = sns.relplot(
         kind="scatter",
@@ -58,18 +77,35 @@ def plot_latency_scatter(data: pd.DataFrame, group_cols: List[str]):
         y="latency_ms",
         hue="bin_name",
         col="cluster_size",
-        row="target_throughput",
     )
-    plot.savefig("plots/scatter.png")
+    plot.savefig("plots/scatter-clustered.png")
     if pdf_output:
-        plot.savefig("plots/scatter.pdf")
+        plot.savefig("plots/scatter-clustered.pdf")
 
 
-def plot_latency_cdf(data: pd.DataFrame, group_cols: List[str]):
+def plot_latency_cdf_single_node(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot latency cdf")
+    data = data[data["cluster_size"] == 1]
     data = data[data["tmpfs"] == True]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    print(data.groupby(group_cols).count())
+    plot = sns.displot(
+        kind="ecdf",
+        data=data,
+        x="latency_ms",
+        hue="bin_name",
+        col="target_throughput",
+    )
+    plot.savefig("plots/latency-cdf-single.png")
+    if pdf_output:
+        plot.savefig("plots/latency-cdf-single.pdf")
 
+
+def plot_latency_cdf_clustered(data: pd.DataFrame, group_cols: List[str]):
+    print_header("plot latency cdf")
+    data = data[data["target_throughput"] == 10_000]
+    data = data[data["tmpfs"] == True]
+    data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols).count())
     plot = sns.displot(
         kind="ecdf",
@@ -77,15 +113,15 @@ def plot_latency_cdf(data: pd.DataFrame, group_cols: List[str]):
         x="latency_ms",
         hue="bin_name",
         col="cluster_size",
-        row="target_throughput",
     )
-    plot.savefig("plots/latency-cdf.png")
+    plot.savefig("plots/latency-cdf-clustered.png")
     if pdf_output:
-        plot.savefig("plots/latency-cdf.pdf")
+        plot.savefig("plots/latency-cdf-clustered.pdf")
 
 
-def plot_goodput_latency(data: pd.DataFrame, group_cols: List[str]):
+def plot_goodput_latency_single_node(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot goodput latency")
+    data = data[data["cluster_size"] == 1]
     data = data[data["tmpfs"] == True]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
 
@@ -109,16 +145,15 @@ def plot_goodput_latency(data: pd.DataFrame, group_cols: List[str]):
         x="goodput",
         y="latency_ms_p99",
         hue="bin_name",
-        row="success",
-        col="cluster_size",
     )
     plot.savefig("plots/goodput_latency.png")
     if pdf_output:
         plot.savefig("plots/goodput_latency.pdf")
 
 
-def plot_throughput_goodput(data: pd.DataFrame, group_cols: List[str]):
+def plot_throughput_goodput_single_node(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot throughput goodput")
+    data = data[data["cluster_size"] == 1]
     data = data[data["tmpfs"] == True]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
 
@@ -139,8 +174,6 @@ def plot_throughput_goodput(data: pd.DataFrame, group_cols: List[str]):
         x="target_throughput",
         y="goodput",
         hue="bin_name",
-        row="success",
-        col="cluster_size",
     )
     plot.savefig("plots/throughput_goodput.png")
     if pdf_output:
@@ -220,17 +253,20 @@ def main():
     print_header("latencies")
     print(grouped["latency_ms"].quantile([0.9, 0.99]))
 
-    plot_etcd_scalability(data, group_cols)
-    plot_comparison_scalability(data, group_cols)
-    plot_latency_scatter(data, group_cols)
+    plot_etcd_clustered(data, group_cols)
+    plot_comparison_clustered(data, group_cols)
+    plot_latency_scatter_clustered(data, group_cols)
+    plot_latency_cdf_clustered(data, group_cols)
 
-    plot_latency_cdf(data, group_cols)
-    plot_goodput_latency(data, group_cols)
-    plot_throughput_goodput(data, group_cols)
+    plot_goodput_latency_single_node(data, group_cols)
+    plot_throughput_goodput_single_node(data, group_cols)
+    plot_latency_cdf_single_node(data, group_cols)
     plot_throughput_errorcount_single_node(data, group_cols)
+    plot_latency_scatter_single_node(data, group_cols)
 
 
 def plot_throughput_memory_single_node(data: pd.DataFrame, group_cols: List[str]):
+    data = data[data["cluster_size"] == 1]
     grouped = data.groupby(group_cols)
     mem = grouped["memory_stats_stats_v1_rss"].mean()
     print(mem)
@@ -243,7 +279,22 @@ def plot_throughput_memory_single_node(data: pd.DataFrame, group_cols: List[str]
         plot.savefig("plots/throughput_memory_line.pdf")
 
 
+def plot_throughput_memory_clustered(data: pd.DataFrame, group_cols: List[str]):
+    data = data[data["target_throughput"] == 10_000]
+    grouped = data.groupby(group_cols)
+    mem = grouped["memory_stats_stats_v1_rss"].mean()
+    print(mem)
+    mem = mem.reset_index(name="mean_mem")
+    plot = sns.relplot(
+        kind="line", data=mem, x="cluster_size", y="mean_mem", hue="bin_name"
+    )
+    plot.savefig("plots/throughput_memory_line_clustered.png")
+    if pdf_output:
+        plot.savefig("plots/throughput_memory_line_clustered.pdf")
+
+
 def plot_throughput_cpu_single_node(data: pd.DataFrame, group_cols: List[str]):
+    data = data[data["cluster_size"] == 1]
     grouped = data.groupby(group_cols)
     min_cpu = grouped["cpu_stats_cpu_usage_total_usage"].min()
     max_cpu = grouped["cpu_stats_cpu_usage_total_usage"].max()
@@ -257,6 +308,22 @@ def plot_throughput_cpu_single_node(data: pd.DataFrame, group_cols: List[str]):
     plot.savefig("plots/throughput_cpu_line.png")
     if pdf_output:
         plot.savefig("plots/throughput_cpu_line.pdf")
+
+
+def plot_throughput_cpu_clustered(data: pd.DataFrame, group_cols: List[str]):
+    data = data[data["target_throughput"] == 10_000]
+    grouped = data.groupby(group_cols)
+    min_cpu = grouped["cpu_stats_cpu_usage_total_usage"].min()
+    max_cpu = grouped["cpu_stats_cpu_usage_total_usage"].max()
+    cpu_diff = max_cpu - min_cpu
+    print(cpu_diff)
+    cpu_diff = cpu_diff.reset_index(name="cpu_time")
+    plot = sns.relplot(
+        kind="line", data=cpu_diff, x="cluster_size", y="cpu_time", hue="bin_name"
+    )
+    plot.savefig("plots/throughput_cpu_line_clustered.png")
+    if pdf_output:
+        plot.savefig("plots/throughput_cpu_line_clustered.pdf")
 
 
 def main_stats():
@@ -278,6 +345,7 @@ def main_stats():
     print(mem)
 
     plot_throughput_memory_single_node(data, group_cols)
+    plot_throughput_memory_clustered(data, group_cols)
 
     min_cpu = grouped["cpu_stats_cpu_usage_total_usage"].min()
     max_cpu = grouped["cpu_stats_cpu_usage_total_usage"].max()
@@ -285,8 +353,9 @@ def main_stats():
     print(cpu_diff)
 
     plot_throughput_cpu_single_node(data, group_cols)
+    plot_throughput_cpu_clustered(data, group_cols)
 
 
 os.makedirs("plots", exist_ok=True)
 main()
-# main_stats()
+main_stats()
