@@ -300,6 +300,7 @@ impl exp::Experiment for Experiment {
                     image_tag: configuration.image_tag.clone(),
                     pull: false,
                     command: Some(cmd),
+                    env: Some(vec![format!("GOMAXPROCS={}", 1)]),
                     network: Some(network_name.clone()),
                     network_subnet: Some(network_subnet.clone()),
                     ports: Some(vec![
@@ -401,6 +402,7 @@ impl exp::Experiment for Experiment {
                 image_tag: BENCHER_TAG.to_owned(),
                 pull: false,
                 command: Some(bench_cmd),
+                env: None,
                 network: Some(network_name.clone()),
                 network_subnet: Some(network_subnet.clone()),
                 ports: None,
