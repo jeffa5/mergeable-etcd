@@ -50,154 +50,221 @@ impl exp::Experiment for Experiment {
             "ycsb --read-weight 95 --insert-weight 5 --request-distribution latest".to_owned();
         let ycsb_e = "ycsb --scan-weight 95 --insert-weight 5".to_owned();
 
-        let target_duration_s = 1;
+        let target_duration_s = 5;
         let delay_variation = F64::from(0.1);
 
-        // test ycsb a etcd performance at different scales
-        let mut config = Config {
-            repeat: 0,
-            cluster_size: 1,
-            bench_args: ycsb_a.clone(),
-            bench_target: BenchTarget::FirstNode,
-            target_throughput: 10_000,
-            target_duration_s,
-            image_name: ETCD_IMAGE.to_owned(),
-            image_tag: ETCD_TAG.to_owned(),
-            bin_name: ETCD_BIN.to_owned(),
-            delay_ms: 0,
-            delay_variation,
-            extra_args: String::new(),
-            tmpfs: true,
-        };
-        for cluster_size in (1..=15).step_by(2) {
-            config.cluster_size = cluster_size;
-            confs.push(config.clone());
-        }
+        let repeats = 3;
 
-        // test ycsb a etcd performance
-        let mut config = Config {
-            repeat: 0,
-            cluster_size: 1,
-            bench_args: ycsb_a.clone(),
-            bench_target: BenchTarget::FirstNode,
-            target_throughput: 1_000,
-            target_duration_s,
-            image_name: ETCD_IMAGE.to_owned(),
-            image_tag: ETCD_TAG.to_owned(),
-            bin_name: ETCD_BIN.to_owned(),
-            delay_ms: 0,
-            delay_variation,
-            extra_args: String::new(),
-            tmpfs: true,
-        };
-        for throughput in (1_000..=10_000).step_by(1_000) {
-            config.target_throughput = throughput;
-            confs.push(config.clone());
-        }
+        for repeat in 0..repeats {
+            // test ycsb a etcd performance at different scales
+            let mut config = Config {
+                repeat,
+                cluster_size: 1,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::FirstNode,
+                target_throughput: 10_000,
+                target_duration_s,
+                image_name: ETCD_IMAGE.to_owned(),
+                image_tag: ETCD_TAG.to_owned(),
+                bin_name: ETCD_BIN.to_owned(),
+                delay_ms: 0,
+                delay_variation,
+                extra_args: String::new(),
+                tmpfs: true,
+            };
+            for cluster_size in (1..=15).step_by(2) {
+                config.cluster_size = cluster_size;
+                confs.push(config.clone());
+            }
 
-        // test raw mergeable-etcd performance
-        let mut config = Config {
-            repeat: 0,
-            cluster_size: 1,
-            bench_args: ycsb_a.clone(),
-            bench_target: BenchTarget::FirstNode,
-            target_throughput: 1_000,
-            target_duration_s,
-            image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
-            image_tag: MERGEABLE_ETCD_TAG.to_owned(),
-            bin_name: MERGEABLE_ETCD_BIN.to_owned(),
-            delay_ms: 0,
-            delay_variation,
-            extra_args: String::new(),
-            tmpfs: true,
-        };
-        for throughput in (1_000..=10_000).step_by(1_000) {
-            config.target_throughput = throughput;
-            confs.push(config.clone());
-        }
+            // test ycsb a etcd performance
+            let mut config = Config {
+                repeat,
+                cluster_size: 1,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::FirstNode,
+                target_throughput: 1_000,
+                target_duration_s,
+                image_name: ETCD_IMAGE.to_owned(),
+                image_tag: ETCD_TAG.to_owned(),
+                bin_name: ETCD_BIN.to_owned(),
+                delay_ms: 0,
+                delay_variation,
+                extra_args: String::new(),
+                tmpfs: true,
+            };
+            for throughput in (1_000..=10_000).step_by(1_000) {
+                config.target_throughput = throughput;
+                confs.push(config.clone());
+            }
 
-        // test raw dismerge performance
-        let mut config = Config {
-            repeat: 0,
-            cluster_size: 1,
-            bench_args: ycsb_a.clone(),
-            bench_target: BenchTarget::FirstNode,
-            target_throughput: 1_000,
-            target_duration_s,
-            image_name: DISMERGE_IMAGE.to_owned(),
-            image_tag: DISMERGE_TAG.to_owned(),
-            bin_name: DISMERGE_BIN.to_owned(),
-            delay_ms: 0,
-            delay_variation,
-            extra_args: String::new(),
-            tmpfs: true,
-        };
-        for throughput in (1_000..=10_000).step_by(1_000) {
-            config.target_throughput = throughput;
-            confs.push(config.clone());
-        }
+            // test raw mergeable-etcd performance
+            let mut config = Config {
+                repeat,
+                cluster_size: 1,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::FirstNode,
+                target_throughput: 1_000,
+                target_duration_s,
+                image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
+                image_tag: MERGEABLE_ETCD_TAG.to_owned(),
+                bin_name: MERGEABLE_ETCD_BIN.to_owned(),
+                delay_ms: 0,
+                delay_variation,
+                extra_args: String::new(),
+                tmpfs: true,
+            };
+            for throughput in (1_000..=10_000).step_by(1_000) {
+                config.target_throughput = throughput;
+                confs.push(config.clone());
+            }
 
-        // test cluster sizes etcd
-        let mut config = Config {
-            repeat: 0,
-            cluster_size: 1,
-            bench_args: ycsb_a.clone(),
-            bench_target: BenchTarget::FirstNode,
-            target_throughput: 10_000,
-            target_duration_s,
-            image_name: ETCD_IMAGE.to_owned(),
-            image_tag: ETCD_TAG.to_owned(),
-            bin_name: ETCD_BIN.to_owned(),
-            delay_ms: 0,
-            delay_variation,
-            extra_args: String::new(),
-            tmpfs: true,
-        };
-        for cluster_size in (1..=15).step_by(2) {
-            config.cluster_size = cluster_size;
-            confs.push(config.clone());
-        }
+            // test raw dismerge performance
+            let mut config = Config {
+                repeat,
+                cluster_size: 1,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::FirstNode,
+                target_throughput: 1_000,
+                target_duration_s,
+                image_name: DISMERGE_IMAGE.to_owned(),
+                image_tag: DISMERGE_TAG.to_owned(),
+                bin_name: DISMERGE_BIN.to_owned(),
+                delay_ms: 0,
+                delay_variation,
+                extra_args: String::new(),
+                tmpfs: true,
+            };
+            for throughput in (1_000..=10_000).step_by(1_000) {
+                config.target_throughput = throughput;
+                confs.push(config.clone());
+            }
 
-        // test cluster sizes mergeable-etcd
-        let mut config = Config {
-            repeat: 0,
-            cluster_size: 1,
-            bench_args: ycsb_a.clone(),
-            bench_target: BenchTarget::FirstNode,
-            target_throughput: 10_000,
-            target_duration_s,
-            image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
-            image_tag: MERGEABLE_ETCD_TAG.to_owned(),
-            bin_name: MERGEABLE_ETCD_BIN.to_owned(),
-            delay_ms: 0,
-            delay_variation,
-            extra_args: String::new(),
-            tmpfs: true,
-        };
-        for cluster_size in (1..=15).step_by(2) {
-            config.cluster_size = cluster_size;
-            confs.push(config.clone());
-        }
+            // test cluster sizes etcd
+            let mut config = Config {
+                repeat,
+                cluster_size: 1,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::FirstNode,
+                target_throughput: 10_000,
+                target_duration_s,
+                image_name: ETCD_IMAGE.to_owned(),
+                image_tag: ETCD_TAG.to_owned(),
+                bin_name: ETCD_BIN.to_owned(),
+                delay_ms: 0,
+                delay_variation,
+                extra_args: String::new(),
+                tmpfs: true,
+            };
+            for cluster_size in (1..=15).step_by(2) {
+                config.cluster_size = cluster_size;
+                confs.push(config.clone());
+            }
 
-        // test cluster sizes dismerge
-        let mut config = Config {
-            repeat: 0,
-            cluster_size: 1,
-            bench_args: ycsb_a.clone(),
-            bench_target: BenchTarget::FirstNode,
-            target_throughput: 10_000,
-            target_duration_s,
-            image_name: DISMERGE_IMAGE.to_owned(),
-            image_tag: DISMERGE_TAG.to_owned(),
-            bin_name: DISMERGE_BIN.to_owned(),
-            delay_ms: 0,
-            delay_variation,
-            extra_args: String::new(),
-            tmpfs: true,
-        };
-        for cluster_size in (1..=15).step_by(2) {
-            config.cluster_size = cluster_size;
-            confs.push(config.clone());
+            // test cluster sizes mergeable-etcd
+            let mut config = Config {
+                repeat,
+                cluster_size: 1,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::FirstNode,
+                target_throughput: 10_000,
+                target_duration_s,
+                image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
+                image_tag: MERGEABLE_ETCD_TAG.to_owned(),
+                bin_name: MERGEABLE_ETCD_BIN.to_owned(),
+                delay_ms: 0,
+                delay_variation,
+                extra_args: String::new(),
+                tmpfs: true,
+            };
+            for cluster_size in (1..=15).step_by(2) {
+                config.cluster_size = cluster_size;
+                confs.push(config.clone());
+            }
+
+            // test cluster sizes dismerge
+            let mut config = Config {
+                repeat,
+                cluster_size: 1,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::FirstNode,
+                target_throughput: 10_000,
+                target_duration_s,
+                image_name: DISMERGE_IMAGE.to_owned(),
+                image_tag: DISMERGE_TAG.to_owned(),
+                bin_name: DISMERGE_BIN.to_owned(),
+                delay_ms: 0,
+                delay_variation,
+                extra_args: String::new(),
+                tmpfs: true,
+            };
+            for cluster_size in (1..=15).step_by(2) {
+                config.cluster_size = cluster_size;
+                confs.push(config.clone());
+            }
+
+            // test cluster sizes etcd
+            let mut config = Config {
+                repeat,
+                cluster_size: 1,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::FirstNode,
+                target_throughput: 10_000,
+                target_duration_s,
+                image_name: ETCD_IMAGE.to_owned(),
+                image_tag: ETCD_TAG.to_owned(),
+                bin_name: ETCD_BIN.to_owned(),
+                delay_ms: 10,
+                delay_variation: F64(0.1),
+                extra_args: String::new(),
+                tmpfs: true,
+            };
+            for cluster_size in (1..=15).step_by(2) {
+                config.cluster_size = cluster_size;
+                confs.push(config.clone());
+            }
+
+            // test cluster sizes mergeable-etcd
+            let mut config = Config {
+                repeat,
+                cluster_size: 1,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::FirstNode,
+                target_throughput: 10_000,
+                target_duration_s,
+                image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
+                image_tag: MERGEABLE_ETCD_TAG.to_owned(),
+                bin_name: MERGEABLE_ETCD_BIN.to_owned(),
+                delay_ms: 10,
+                delay_variation: F64(0.1),
+                extra_args: String::new(),
+                tmpfs: true,
+            };
+            for cluster_size in (1..=15).step_by(2) {
+                config.cluster_size = cluster_size;
+                confs.push(config.clone());
+            }
+
+            // test cluster sizes dismerge
+            let mut config = Config {
+                repeat,
+                cluster_size: 1,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::FirstNode,
+                target_throughput: 10_000,
+                target_duration_s,
+                image_name: DISMERGE_IMAGE.to_owned(),
+                image_tag: DISMERGE_TAG.to_owned(),
+                bin_name: DISMERGE_BIN.to_owned(),
+                delay_ms: 10,
+                delay_variation: F64(0.1),
+                extra_args: String::new(),
+                tmpfs: true,
+            };
+            for cluster_size in (1..=15).step_by(2) {
+                config.cluster_size = cluster_size;
+                confs.push(config.clone());
+            }
         }
 
         info!(num_configurations = confs.len(), "Created configurations");
