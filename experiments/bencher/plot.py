@@ -49,6 +49,7 @@ def plot_latency_scatter_single_node(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot latency scatter")
     data = data[data["cluster_size"] == 1]
     data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 0]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols).count())
     plot = sns.relplot(
@@ -68,6 +69,7 @@ def plot_latency_scatter_clustered(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot latency scatter")
     data = data[data["target_throughput"] == 10_000]
     data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 0]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols).count())
     plot = sns.relplot(
@@ -87,6 +89,7 @@ def plot_latency_cdf_single_node(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot latency cdf")
     data = data[data["cluster_size"] == 1]
     data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 0]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols).count())
     plot = sns.displot(
@@ -105,6 +108,7 @@ def plot_latency_cdf_clustered(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot latency cdf")
     data = data[data["target_throughput"] == 10_000]
     data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 0]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols).count())
     plot = sns.displot(
@@ -119,42 +123,37 @@ def plot_latency_cdf_clustered(data: pd.DataFrame, group_cols: List[str]):
         plot.savefig("plots/latency-cdf-clustered.pdf")
 
 
-def plot_goodput_latency_single_node(data: pd.DataFrame, group_cols: List[str]):
-    print_header("plot goodput latency")
+def plot_throughput_latency_single_node(data: pd.DataFrame, group_cols: List[str]):
+    print_header("plot throughput latency")
     data = data[data["cluster_size"] == 1]
     data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 0]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
 
     grouped = data.groupby(group_cols)
 
-    mins = grouped["start_ns"].min()
-    maxs = grouped["end_ns"].max()
-    counts = grouped["start_ns"].count()
-    durations_ns = maxs - mins
-    durations_s = durations_ns / 1_000_000_000
-    throughputs = counts / durations_s
-    throughputs = throughputs.reset_index(name="goodput")
     latencies = grouped["latency_ms"].quantile(0.99)
-    latencies = latencies.reset_index(name="latency_ms_p99")["latency_ms_p99"]
-    throughputs["latency_ms_p99"] = latencies
+    latencies = latencies.reset_index(name="latency_ms_p99")
+    # data["latency_ms_p99"] = latencies
 
     print(data.groupby(group_cols).count())
     plot = sns.relplot(
         kind="line",
-        data=throughputs,
-        x="goodput",
+        data=latencies,
+        x="target_throughput",
         y="latency_ms_p99",
         hue="bin_name",
     )
-    plot.savefig("plots/goodput_latency.png")
+    plot.savefig("plots/throughput_latency.png")
     if pdf_output:
-        plot.savefig("plots/goodput_latency.pdf")
+        plot.savefig("plots/throughput_latency.pdf")
 
 
 def plot_throughput_goodput_single_node(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot throughput goodput")
     data = data[data["cluster_size"] == 1]
     data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 0]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
 
     grouped = data.groupby(group_cols)
@@ -184,6 +183,7 @@ def plot_throughput_errorcount_single_node(data: pd.DataFrame, group_cols: List[
     print_header("plot throughput errorcount")
     data = data[data["cluster_size"] == 1]
     data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 0]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["error"].notna()]
 
@@ -258,7 +258,7 @@ def main():
     plot_latency_scatter_clustered(data, group_cols)
     plot_latency_cdf_clustered(data, group_cols)
 
-    plot_goodput_latency_single_node(data, group_cols)
+    plot_throughput_latency_single_node(data, group_cols)
     plot_throughput_goodput_single_node(data, group_cols)
     plot_latency_cdf_single_node(data, group_cols)
     plot_throughput_errorcount_single_node(data, group_cols)
