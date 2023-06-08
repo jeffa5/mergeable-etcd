@@ -62,7 +62,7 @@ impl exp::Experiment for Experiment {
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
                 bench_target: BenchTarget::FirstNode,
-                target_throughput: 10_000,
+                target_throughput: 30_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
                 image_tag: ETCD_TAG.to_owned(),
@@ -93,7 +93,7 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs: true,
             };
-            for throughput in (1_000..=10_000).step_by(1_000) {
+            for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
                 confs.push(config.clone());
             }
@@ -114,7 +114,7 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs: true,
             };
-            for throughput in (1_000..=10_000).step_by(1_000) {
+            for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
                 confs.push(config.clone());
             }
@@ -135,7 +135,7 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs: true,
             };
-            for throughput in (1_000..=10_000).step_by(1_000) {
+            for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
                 confs.push(config.clone());
             }
@@ -159,6 +159,8 @@ impl exp::Experiment for Experiment {
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
+                config.bench_target = BenchTarget::AllNodes;
+                confs.push(config.clone());
             }
 
             // test cluster sizes mergeable-etcd
@@ -180,6 +182,8 @@ impl exp::Experiment for Experiment {
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
+                config.bench_target = BenchTarget::AllNodes;
+                confs.push(config.clone());
             }
 
             // test cluster sizes dismerge
@@ -200,6 +204,8 @@ impl exp::Experiment for Experiment {
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
+                confs.push(config.clone());
+                config.bench_target = BenchTarget::AllNodes;
                 confs.push(config.clone());
             }
 
@@ -375,6 +381,7 @@ impl exp::Experiment for Experiment {
                         (client_port.to_string(), client_port.to_string()),
                         (peer_port.to_string(), peer_port.to_string()),
                     ]),
+                    // allow us to run tc commands
                     capabilities: Some(vec!["NET_ADMIN".to_owned()]),
                     cpus: Some(cpus as f64),
                     memory: None,
