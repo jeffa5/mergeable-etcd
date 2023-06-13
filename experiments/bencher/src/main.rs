@@ -82,6 +82,23 @@ async fn clear_tc_rules(runner: &Runner, container_name: &str) {
     runner.execute_command(container_name, command).await;
 }
 
+async fn find_leader_node<'n>(bin_name: &str, nodes: &'n [Node]) -> &'n Node {
+    match bin_name {
+        ETCD_BIN | MERGEABLE_ETCD_BIN => find_leader_node_etcd(&nodes).await,
+        DISMERGE_BIN => find_leader_node_dismerge(&nodes).await,
+        _ => unreachable!(),
+    }
+}
+
+async fn find_non_leader_node<'n>(bin_name: &str, nodes: &'n [Node]) -> &'n Node {
+    let leader = find_leader_node(bin_name, nodes).await;
+    nodes
+        .iter()
+        .filter(|n| n.name != leader.name)
+        .next()
+        .unwrap()
+}
+
 /// Find which client url is for a leader node, returning the first one.
 ///
 /// Panics if none are leaders.
@@ -160,7 +177,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
+                bench_target: BenchTarget::Leader,
                 target_throughput: 30_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -173,7 +190,7 @@ impl exp::Experiment for Experiment {
                 cpus,
                 partition_after_s: 0,
                 unpartition_after_s: 0,
-                partition_type: PartitionTarget::LeaderNode,
+                partition_type: PartitionTarget::Connected,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -185,7 +202,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
+                bench_target: BenchTarget::Leader,
                 target_throughput: 1_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -198,7 +215,7 @@ impl exp::Experiment for Experiment {
                 cpus,
                 partition_after_s: 0,
                 unpartition_after_s: 0,
-                partition_type: PartitionTarget::LeaderNode,
+                partition_type: PartitionTarget::Connected,
             };
             for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
@@ -210,7 +227,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
+                bench_target: BenchTarget::Leader,
                 target_throughput: 1_000,
                 target_duration_s,
                 image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
@@ -223,7 +240,7 @@ impl exp::Experiment for Experiment {
                 cpus,
                 partition_after_s: 0,
                 unpartition_after_s: 0,
-                partition_type: PartitionTarget::LeaderNode,
+                partition_type: PartitionTarget::Connected,
             };
             for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
@@ -235,7 +252,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
+                bench_target: BenchTarget::Leader,
                 target_throughput: 1_000,
                 target_duration_s,
                 image_name: DISMERGE_IMAGE.to_owned(),
@@ -248,7 +265,7 @@ impl exp::Experiment for Experiment {
                 cpus,
                 partition_after_s: 0,
                 unpartition_after_s: 0,
-                partition_type: PartitionTarget::LeaderNode,
+                partition_type: PartitionTarget::Connected,
             };
             for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
@@ -260,7 +277,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
+                bench_target: BenchTarget::Leader,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -273,12 +290,12 @@ impl exp::Experiment for Experiment {
                 cpus,
                 partition_after_s: 0,
                 unpartition_after_s: 0,
-                partition_type: PartitionTarget::LeaderNode,
+                partition_type: PartitionTarget::Connected,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
-                config.bench_target = BenchTarget::LeaderNode;
+                config.bench_target = BenchTarget::Leader;
                 confs.push(config.clone());
             }
 
@@ -287,7 +304,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
+                bench_target: BenchTarget::Leader,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
@@ -300,12 +317,12 @@ impl exp::Experiment for Experiment {
                 cpus,
                 partition_after_s: 0,
                 unpartition_after_s: 0,
-                partition_type: PartitionTarget::LeaderNode,
+                partition_type: PartitionTarget::Connected,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
-                config.bench_target = BenchTarget::LeaderNode;
+                config.bench_target = BenchTarget::Leader;
                 confs.push(config.clone());
             }
 
@@ -314,7 +331,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
+                bench_target: BenchTarget::Leader,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: DISMERGE_IMAGE.to_owned(),
@@ -327,12 +344,12 @@ impl exp::Experiment for Experiment {
                 cpus,
                 partition_after_s: 0,
                 unpartition_after_s: 0,
-                partition_type: PartitionTarget::LeaderNode,
+                partition_type: PartitionTarget::Connected,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
-                config.bench_target = BenchTarget::LeaderNode;
+                config.bench_target = BenchTarget::Leader;
                 confs.push(config.clone());
             }
 
@@ -341,7 +358,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
+                bench_target: BenchTarget::Leader,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -354,7 +371,7 @@ impl exp::Experiment for Experiment {
                 cpus,
                 partition_after_s: 0,
                 unpartition_after_s: 0,
-                partition_type: PartitionTarget::LeaderNode,
+                partition_type: PartitionTarget::Connected,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -366,7 +383,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
+                bench_target: BenchTarget::Leader,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
@@ -379,7 +396,7 @@ impl exp::Experiment for Experiment {
                 cpus,
                 partition_after_s: 0,
                 unpartition_after_s: 0,
-                partition_type: PartitionTarget::LeaderNode,
+                partition_type: PartitionTarget::Connected,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -391,7 +408,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
+                bench_target: BenchTarget::Leader,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: DISMERGE_IMAGE.to_owned(),
@@ -404,7 +421,7 @@ impl exp::Experiment for Experiment {
                 cpus,
                 partition_after_s: 0,
                 unpartition_after_s: 0,
-                partition_type: PartitionTarget::LeaderNode,
+                partition_type: PartitionTarget::Connected,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -563,21 +580,15 @@ impl exp::Experiment for Experiment {
         fs::File::create(&out_file).unwrap();
         let out_file = fs::canonicalize(out_file).unwrap();
 
-        let bench_target_urls = match configuration.bench_target {
-            BenchTarget::AllNodes => client_urls,
-            BenchTarget::LeaderNode => match configuration.bin_name.as_str() {
-                ETCD_BIN | MERGEABLE_ETCD_BIN => {
-                    find_leader_node_etcd(&nodes).await.client_url.clone()
-                }
-                DISMERGE_BIN => find_leader_node_dismerge(&nodes).await.client_url.clone(),
-                _ => unreachable!(),
-            },
+        let bench_target = match configuration.bench_target {
+            BenchTarget::NonLeader => find_non_leader_node(&configuration.bin_name, &nodes).await,
+            BenchTarget::Leader => find_leader_node(&configuration.bin_name, &nodes).await,
         };
 
         let mut bench_cmd = vec![
             "bencher".to_owned(),
             "--endpoints".to_owned(),
-            bench_target_urls,
+            bench_target.client_url.clone(),
             "--metrics-endpoints".to_owned(),
             metrics_urls,
             "--out-file".to_owned(),
@@ -625,25 +636,19 @@ impl exp::Experiment for Experiment {
             let partition_after_s = configuration.partition_after_s;
             let unpartition_after_s = configuration.unpartition_after_s;
             let partition_type = configuration.partition_type;
-            let leader_node = match configuration.bin_name.as_str() {
-                ETCD_BIN | MERGEABLE_ETCD_BIN => find_leader_node_etcd(&nodes).await.name.clone(),
-                DISMERGE_BIN => find_leader_node_dismerge(&nodes).await.name.clone(),
-                _ => unreachable!(),
-            };
-            let name = match partition_type {
-                PartitionTarget::LeaderNode => leader_node,
-                PartitionTarget::NonLeaderNode => nodes
+            let partitioned_node = match partition_type {
+                PartitionTarget::Connected => bench_target,
+                PartitionTarget::Other => nodes
                     .iter()
-                    .filter(|n| n.name != leader_node)
+                    .filter(|n| n.name != bench_target.name)
                     .next()
-                    .unwrap()
-                    .name
-                    .clone(),
+                    .unwrap(),
             };
             debug!(
                 partition_after_s,
                 unpartition_after_s,
                 ?partition_type,
+                name=?partitioned_node.name,
                 "Waiting to partitioning node"
             );
             tokio::time::sleep(Duration::from_secs(partition_after_s)).await;
@@ -651,16 +656,28 @@ impl exp::Experiment for Experiment {
                 partition_after_s,
                 unpartition_after_s,
                 ?partition_type,
+                name=?partitioned_node.name,
                 "Partitioning node"
             );
-            partition_node(&runner, &name).await;
+            partition_node(&runner, &partitioned_node.name).await;
             debug!(
                 partition_after_s,
                 unpartition_after_s,
                 ?partition_type,
+                name=?partitioned_node.name,
                 "UnPartitioning node"
             );
-            clear_tc_rules(&runner, &name).await;
+            if configuration.delay_ms > 0 {
+                inject_latency(
+                    &runner,
+                    &partitioned_node.name,
+                    configuration.delay_ms,
+                    configuration.delay_variation,
+                )
+                .await
+            } else {
+                clear_tc_rules(&runner, &partitioned_node.name).await;
+            }
         }
 
         debug!("Waiting for bencher to finish");
@@ -796,14 +813,14 @@ impl ExperimentConfiguration for Config {}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 enum BenchTarget {
-    LeaderNode,
-    AllNodes,
+    Leader,
+    NonLeader,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 enum PartitionTarget {
-    LeaderNode,
-    NonLeaderNode,
+    Connected,
+    Other,
 }
 
 #[derive(Parser, Debug)]
