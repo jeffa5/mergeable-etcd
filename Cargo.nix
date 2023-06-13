@@ -1187,6 +1187,10 @@ rec {
             packageId = "futures";
           }
           {
+            name = "mergeable-proto";
+            packageId = "mergeable-proto";
+          }
+          {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];

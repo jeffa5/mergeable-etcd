@@ -338,6 +338,7 @@ dependencies = [
  "etcd-proto",
  "exp",
  "futures",
+ "mergeable-proto",
  "serde",
  "serde_json",
  "tokio",

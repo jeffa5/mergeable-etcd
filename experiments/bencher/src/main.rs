@@ -1,5 +1,3 @@
-use etcd_proto::etcdserverpb::StatusRequest;
-use etcd_proto::etcdserverpb::maintenance_client::MaintenanceClient;
 use std::{fs, path::Path, path::PathBuf, time::Duration};
 use tracing::metadata::LevelFilter;
 use tracing::{debug, info};
@@ -79,14 +77,43 @@ async fn clear_tc_rules(runner: &Runner, container_name: &str) {
 /// Find which client url is for a leader node, returning the first one.
 ///
 /// Panics if none are leaders.
-async fn find_leader_node(client_urls: Vec<String>) -> String {
+async fn find_leader_node_etcd(client_urls: Vec<String>) -> String {
     for client_url in &client_urls {
-        let mut client = MaintenanceClient::connect(
+        let mut client = etcd_proto::etcdserverpb::maintenance_client::MaintenanceClient::connect(
             client_url.clone(),
         )
         .await
         .unwrap();
-        let status_response = client.status(StatusRequest {}).await.unwrap().into_inner();
+        let status_response = client
+            .status(etcd_proto::etcdserverpb::StatusRequest {})
+            .await
+            .unwrap()
+            .into_inner();
+        let member_id = status_response.header.unwrap().member_id;
+        let leader_id = status_response.leader;
+        if member_id == leader_id {
+            return client_url.to_owned();
+        }
+    }
+    panic!("Failed to find a leader from {:?}", client_urls);
+}
+
+/// Find which client url is for a leader node, returning the first one.
+///
+/// Panics if none are leaders.
+async fn find_leader_node_dismerge(client_urls: Vec<String>) -> String {
+    for client_url in &client_urls {
+        let mut client =
+            mergeable_proto::etcdserverpb::maintenance_client::MaintenanceClient::connect(
+                client_url.clone(),
+            )
+            .await
+            .unwrap();
+        let status_response = client
+            .status(mergeable_proto::etcdserverpb::StatusRequest {})
+            .await
+            .unwrap()
+            .into_inner();
         let member_id = status_response.header.unwrap().member_id;
         let leader_id = status_response.leader;
         if member_id == leader_id {
@@ -117,96 +144,96 @@ impl exp::Experiment for Experiment {
         let tmpfs = true;
         let cpus = 2;
 
-        let repeats = 3;
+        let repeats = 1;
 
         for repeat in 0..repeats {
             // test ycsb a etcd performance at different scales
-            let mut config = Config {
-                repeat,
-                cluster_size: 1,
-                bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
-                target_throughput: 30_000,
-                target_duration_s,
-                image_name: ETCD_IMAGE.to_owned(),
-                image_tag: ETCD_TAG.to_owned(),
-                bin_name: ETCD_BIN.to_owned(),
-                delay_ms: 0,
-                delay_variation,
-                extra_args: String::new(),
-                tmpfs,
-                cpus,
-            };
-            for cluster_size in (1..=15).step_by(2) {
-                config.cluster_size = cluster_size;
-                confs.push(config.clone());
-            }
-
-            // test ycsb a etcd performance
-            let mut config = Config {
-                repeat,
-                cluster_size: 1,
-                bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
-                target_throughput: 1_000,
-                target_duration_s,
-                image_name: ETCD_IMAGE.to_owned(),
-                image_tag: ETCD_TAG.to_owned(),
-                bin_name: ETCD_BIN.to_owned(),
-                delay_ms: 0,
-                delay_variation,
-                extra_args: String::new(),
-                tmpfs,
-                cpus,
-            };
-            for throughput in (5_000..=40_000).step_by(5_000) {
-                config.target_throughput = throughput;
-                confs.push(config.clone());
-            }
-
-            // test raw mergeable-etcd performance
-            let mut config = Config {
-                repeat,
-                cluster_size: 1,
-                bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
-                target_throughput: 1_000,
-                target_duration_s,
-                image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
-                image_tag: MERGEABLE_ETCD_TAG.to_owned(),
-                bin_name: MERGEABLE_ETCD_BIN.to_owned(),
-                delay_ms: 0,
-                delay_variation,
-                extra_args: String::new(),
-                tmpfs,
-                cpus,
-            };
-            for throughput in (5_000..=40_000).step_by(5_000) {
-                config.target_throughput = throughput;
-                confs.push(config.clone());
-            }
-
-            // test raw dismerge performance
-            let mut config = Config {
-                repeat,
-                cluster_size: 1,
-                bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::LeaderNode,
-                target_throughput: 1_000,
-                target_duration_s,
-                image_name: DISMERGE_IMAGE.to_owned(),
-                image_tag: DISMERGE_TAG.to_owned(),
-                bin_name: DISMERGE_BIN.to_owned(),
-                delay_ms: 0,
-                delay_variation,
-                extra_args: String::new(),
-                tmpfs,
-                cpus,
-            };
-            for throughput in (5_000..=40_000).step_by(5_000) {
-                config.target_throughput = throughput;
-                confs.push(config.clone());
-            }
+            // let mut config = Config {
+            //     repeat,
+            //     cluster_size: 1,
+            //     bench_args: ycsb_a.clone(),
+            //     bench_target: BenchTarget::LeaderNode,
+            //     target_throughput: 30_000,
+            //     target_duration_s,
+            //     image_name: ETCD_IMAGE.to_owned(),
+            //     image_tag: ETCD_TAG.to_owned(),
+            //     bin_name: ETCD_BIN.to_owned(),
+            //     delay_ms: 0,
+            //     delay_variation,
+            //     extra_args: String::new(),
+            //     tmpfs,
+            //     cpus,
+            // };
+            // for cluster_size in (1..=15).step_by(2) {
+            //     config.cluster_size = cluster_size;
+            //     confs.push(config.clone());
+            // }
+            //
+            // // test ycsb a etcd performance
+            // let mut config = Config {
+            //     repeat,
+            //     cluster_size: 1,
+            //     bench_args: ycsb_a.clone(),
+            //     bench_target: BenchTarget::LeaderNode,
+            //     target_throughput: 1_000,
+            //     target_duration_s,
+            //     image_name: ETCD_IMAGE.to_owned(),
+            //     image_tag: ETCD_TAG.to_owned(),
+            //     bin_name: ETCD_BIN.to_owned(),
+            //     delay_ms: 0,
+            //     delay_variation,
+            //     extra_args: String::new(),
+            //     tmpfs,
+            //     cpus,
+            // };
+            // for throughput in (5_000..=40_000).step_by(5_000) {
+            //     config.target_throughput = throughput;
+            //     confs.push(config.clone());
+            // }
+            //
+            // // test raw mergeable-etcd performance
+            // let mut config = Config {
+            //     repeat,
+            //     cluster_size: 1,
+            //     bench_args: ycsb_a.clone(),
+            //     bench_target: BenchTarget::LeaderNode,
+            //     target_throughput: 1_000,
+            //     target_duration_s,
+            //     image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
+            //     image_tag: MERGEABLE_ETCD_TAG.to_owned(),
+            //     bin_name: MERGEABLE_ETCD_BIN.to_owned(),
+            //     delay_ms: 0,
+            //     delay_variation,
+            //     extra_args: String::new(),
+            //     tmpfs,
+            //     cpus,
+            // };
+            // for throughput in (5_000..=40_000).step_by(5_000) {
+            //     config.target_throughput = throughput;
+            //     confs.push(config.clone());
+            // }
+            //
+            // // test raw dismerge performance
+            // let mut config = Config {
+            //     repeat,
+            //     cluster_size: 1,
+            //     bench_args: ycsb_a.clone(),
+            //     bench_target: BenchTarget::LeaderNode,
+            //     target_throughput: 1_000,
+            //     target_duration_s,
+            //     image_name: DISMERGE_IMAGE.to_owned(),
+            //     image_tag: DISMERGE_TAG.to_owned(),
+            //     bin_name: DISMERGE_BIN.to_owned(),
+            //     delay_ms: 0,
+            //     delay_variation,
+            //     extra_args: String::new(),
+            //     tmpfs,
+            //     cpus,
+            // };
+            // for throughput in (5_000..=40_000).step_by(5_000) {
+            //     config.target_throughput = throughput;
+            //     confs.push(config.clone());
+            // }
 
             // test cluster sizes etcd
             let mut config = Config {
@@ -487,9 +514,19 @@ impl exp::Experiment for Experiment {
 
         let bench_target_urls = match configuration.bench_target {
             BenchTarget::AllNodes => client_urls,
-            BenchTarget::LeaderNode => {
-                find_leader_node(client_urls.split(",").map(|s| s.to_owned()).collect()).await
-            }
+            BenchTarget::LeaderNode => match configuration.bin_name.as_str() {
+                ETCD_BIN | MERGEABLE_ETCD_BIN => {
+                    find_leader_node_etcd(client_urls.split(",").map(|s| s.to_owned()).collect())
+                        .await
+                }
+                DISMERGE_BIN => {
+                    find_leader_node_dismerge(
+                        client_urls.split(",").map(|s| s.to_owned()).collect(),
+                    )
+                    .await
+                }
+                _ => unreachable!(),
+            },
         };
 
         let mut bench_cmd = vec![
