@@ -422,6 +422,74 @@ impl exp::Experiment for Experiment {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
             }
+
+            // test partition tolerance etcd
+            let config = Config {
+                repeat,
+                cluster_size: 3,
+                bench_args: ycsb_a.clone(),
+                bench_target,
+                target_throughput: 10_000,
+                target_duration_s: 20,
+                image_name: ETCD_IMAGE.to_owned(),
+                image_tag: ETCD_TAG.to_owned(),
+                bin_name: ETCD_BIN.to_owned(),
+                delay_ms: 10,
+                delay_variation: F64(0.1),
+                extra_args: String::new(),
+                tmpfs,
+                cpus,
+                partition_after_s: 5,
+                unpartition_after_s: 5,
+                partition_type: PartitionTarget::Connected,
+            };
+            confs.push(config);
+
+            // test partition tolerance mergeable etcd
+            let config = Config {
+                repeat,
+                cluster_size: 3,
+                bench_args: ycsb_a.clone(),
+                bench_target,
+                target_throughput: 10_000,
+                target_duration_s: 20,
+                image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
+                image_tag: MERGEABLE_ETCD_TAG.to_owned(),
+                bin_name: MERGEABLE_ETCD_BIN.to_owned(),
+                delay_ms: 10,
+                delay_variation: F64(0.1),
+                extra_args: String::new(),
+                tmpfs,
+                cpus,
+                partition_after_s: 5,
+                unpartition_after_s: 5,
+                partition_type: PartitionTarget::Connected,
+            };
+            confs.push(config);
+
+            // test partition tolerance dismerge
+            let config = Config {
+                repeat,
+                cluster_size: 3,
+                bench_args: ycsb_a.clone(),
+                bench_target,
+                target_throughput: 10_000,
+                target_duration_s: 20,
+                image_name: DISMERGE_IMAGE.to_owned(),
+                image_tag: DISMERGE_TAG.to_owned(),
+                bin_name: DISMERGE_BIN.to_owned(),
+                delay_ms: 10,
+                delay_variation: F64(0.1),
+                extra_args: String::new(),
+                tmpfs,
+                cpus,
+                partition_after_s: 5,
+                unpartition_after_s: 5,
+                partition_type: PartitionTarget::Connected,
+            };
+            confs.push(config);
+
+            // TODO: add some configs for connecting to the non-leader
         }
 
         info!(num_configurations = confs.len(), "Created configurations");
