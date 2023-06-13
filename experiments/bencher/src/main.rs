@@ -1,3 +1,5 @@
+use etcd_proto::etcdserverpb::StatusRequest;
+use etcd_proto::etcdserverpb::maintenance_client::MaintenanceClient;
 use std::{fs, path::Path, path::PathBuf, time::Duration};
 use tracing::metadata::LevelFilter;
 use tracing::{debug, info};
@@ -74,6 +76,26 @@ async fn clear_tc_rules(runner: &Runner, container_name: &str) {
     runner.execute_command(container_name, command).await;
 }
 
+/// Find which client url is for a leader node, returning the first one.
+///
+/// Panics if none are leaders.
+async fn find_leader_node(client_urls: Vec<String>) -> String {
+    for client_url in &client_urls {
+        let mut client = MaintenanceClient::connect(
+            client_url.clone(),
+        )
+        .await
+        .unwrap();
+        let status_response = client.status(StatusRequest {}).await.unwrap().into_inner();
+        let member_id = status_response.header.unwrap().member_id;
+        let leader_id = status_response.leader;
+        if member_id == leader_id {
+            return client_url.to_owned();
+        }
+    }
+    panic!("Failed to find a leader from {:?}", client_urls);
+}
+
 #[async_trait]
 impl exp::Experiment for Experiment {
     type Configuration = Config;
@@ -103,7 +125,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::FirstNode,
+                bench_target: BenchTarget::LeaderNode,
                 target_throughput: 30_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -125,7 +147,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::FirstNode,
+                bench_target: BenchTarget::LeaderNode,
                 target_throughput: 1_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -147,7 +169,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::FirstNode,
+                bench_target: BenchTarget::LeaderNode,
                 target_throughput: 1_000,
                 target_duration_s,
                 image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
@@ -169,7 +191,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::FirstNode,
+                bench_target: BenchTarget::LeaderNode,
                 target_throughput: 1_000,
                 target_duration_s,
                 image_name: DISMERGE_IMAGE.to_owned(),
@@ -191,7 +213,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::FirstNode,
+                bench_target: BenchTarget::LeaderNode,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -215,7 +237,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::FirstNode,
+                bench_target: BenchTarget::LeaderNode,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
@@ -239,7 +261,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::FirstNode,
+                bench_target: BenchTarget::LeaderNode,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: DISMERGE_IMAGE.to_owned(),
@@ -263,7 +285,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::FirstNode,
+                bench_target: BenchTarget::LeaderNode,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -285,7 +307,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::FirstNode,
+                bench_target: BenchTarget::LeaderNode,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
@@ -307,7 +329,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::FirstNode,
+                bench_target: BenchTarget::LeaderNode,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: DISMERGE_IMAGE.to_owned(),
@@ -465,7 +487,9 @@ impl exp::Experiment for Experiment {
 
         let bench_target_urls = match configuration.bench_target {
             BenchTarget::AllNodes => client_urls,
-            BenchTarget::FirstNode => client_urls.split(",").next().map(|s| s.to_owned()).unwrap(),
+            BenchTarget::LeaderNode => {
+                find_leader_node(client_urls.split(",").map(|s| s.to_owned()).collect()).await
+            }
         };
 
         let mut bench_cmd = vec![
@@ -639,7 +663,7 @@ impl ExperimentConfiguration for Config {}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 enum BenchTarget {
-    FirstNode,
+    LeaderNode,
     AllNodes,
 }
 

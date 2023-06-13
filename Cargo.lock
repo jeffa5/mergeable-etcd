@@ -335,6 +335,7 @@ dependencies = [
  "chrono",
  "clap 3.2.25",
  "csv",
+ "etcd-proto",
  "exp",
  "futures",
  "serde",

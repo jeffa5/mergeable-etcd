@@ -1175,6 +1175,10 @@ rec {
             packageId = "csv";
           }
           {
+            name = "etcd-proto";
+            packageId = "etcd-proto";
+          }
+          {
             name = "exp";
             packageId = "exp";
           }

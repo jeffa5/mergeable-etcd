@@ -18,3 +18,4 @@ tracing-subscriber = "0.3.17"
 tracing = "0.1.37"
 csv = "1.2.2"
 bencher = { path = "../../crates/bencher" }
+etcd-proto = { path = "../../proto/etcd-proto" }
