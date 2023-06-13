@@ -34,6 +34,14 @@ const DISMERGE_TAG: &str = "latest";
 const BENCHER_IMAGE: &str = "jeffas/bencher";
 const BENCHER_TAG: &str = "latest";
 
+#[derive(Debug, Clone)]
+struct Node {
+    client_url: String,
+    peer_url: String,
+    metrics_url: String,
+    name: String,
+}
+
 async fn inject_latency(
     runner: &Runner,
     container_name: &str,
@@ -77,10 +85,10 @@ async fn clear_tc_rules(runner: &Runner, container_name: &str) {
 /// Find which client url is for a leader node, returning the first one.
 ///
 /// Panics if none are leaders.
-async fn find_leader_node_etcd(client_urls: Vec<String>) -> String {
-    for client_url in &client_urls {
+async fn find_leader_node_etcd(nodes: &[Node]) -> &Node {
+    for node in nodes {
         let mut client = etcd_proto::etcdserverpb::maintenance_client::MaintenanceClient::connect(
-            client_url.clone(),
+            node.client_url.clone(),
         )
         .await
         .unwrap();
@@ -92,20 +100,20 @@ async fn find_leader_node_etcd(client_urls: Vec<String>) -> String {
         let member_id = status_response.header.unwrap().member_id;
         let leader_id = status_response.leader;
         if member_id == leader_id {
-            return client_url.to_owned();
+            return node;
         }
     }
-    panic!("Failed to find a leader from {:?}", client_urls);
+    panic!("Failed to find a leader from {:?}", nodes);
 }
 
 /// Find which client url is for a leader node, returning the first one.
 ///
 /// Panics if none are leaders.
-async fn find_leader_node_dismerge(client_urls: Vec<String>) -> String {
-    for client_url in &client_urls {
+async fn find_leader_node_dismerge(nodes: &[Node]) -> &Node {
+    for node in nodes {
         let mut client =
             mergeable_proto::etcdserverpb::maintenance_client::MaintenanceClient::connect(
-                client_url.clone(),
+                node.client_url.clone(),
             )
             .await
             .unwrap();
@@ -117,10 +125,10 @@ async fn find_leader_node_dismerge(client_urls: Vec<String>) -> String {
         let member_id = status_response.header.unwrap().member_id;
         let leader_id = status_response.leader;
         if member_id == leader_id {
-            return client_url.to_owned();
+            return node;
         }
     }
-    panic!("Failed to find a leader from {:?}", client_urls);
+    panic!("Failed to find a leader from {:?}", nodes);
 }
 
 #[async_trait]
@@ -163,6 +171,9 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs,
                 cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::LeaderNode,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -185,6 +196,9 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs,
                 cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::LeaderNode,
             };
             for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
@@ -207,6 +221,9 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs,
                 cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::LeaderNode,
             };
             for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
@@ -229,6 +246,9 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs,
                 cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::LeaderNode,
             };
             for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
@@ -251,6 +271,9 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs,
                 cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::LeaderNode,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -275,6 +298,9 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs,
                 cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::LeaderNode,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -299,6 +325,9 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs,
                 cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::LeaderNode,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -323,6 +352,9 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs,
                 cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::LeaderNode,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -345,6 +377,9 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs,
                 cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::LeaderNode,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -367,6 +402,9 @@ impl exp::Experiment for Experiment {
                 extra_args: String::new(),
                 tmpfs,
                 cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::LeaderNode,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -405,6 +443,8 @@ impl exp::Experiment for Experiment {
         let mut client_urls = format!("http://{}.2:2379", network_triplet);
         let mut metrics_urls = format!("http://{}.2:2381", network_triplet);
 
+        let mut nodes = Vec::new();
+
         for i in 2..=configuration.cluster_size {
             initial_cluster.push_str(&format!(
                 ",{}{}=http://{}.{}:{}",
@@ -435,24 +475,31 @@ impl exp::Experiment for Experiment {
             let metrics_port = 2381 + ((i - 1) * 10);
             let name = format!("{}{}", node_name_prefix, i);
 
+            let node = Node {
+                client_url: format!("http://{}:{}", ip, client_port),
+                peer_url: format!("http://{}:{}", ip, peer_port),
+                metrics_url: format!("http://{}:{}", ip, metrics_port),
+                name,
+            };
+
             let mut cmd = vec![
                 format!("/bin/{}", configuration.bin_name),
                 "--name".to_owned(),
-                name.clone(),
+                node.name.clone(),
                 "--listen-client-urls".to_owned(),
                 format!("http://0.0.0.0:{}", client_port),
                 "--advertise-client-urls".to_owned(),
-                format!("http://{}:{}", ip, client_port),
+                node.client_url.clone(),
                 "--initial-cluster".to_owned(),
                 initial_cluster.clone(),
                 "--initial-advertise-peer-urls".to_owned(),
-                format!("http://{}:{}", ip, peer_port),
+                node.peer_url.clone(),
                 "--listen-peer-urls".to_owned(),
-                format!("http://{}:{}", ip, peer_port),
+                node.peer_url.clone(),
                 "--listen-metrics-urls".to_owned(),
-                format!("http://{}:{}", ip, metrics_port),
+                node.metrics_url.clone(),
                 "--data-dir".to_owned(),
-                format!("/data/{}.etcd", name),
+                format!("/data/{}.etcd", node.name),
             ];
 
             let extra_args = configuration
@@ -467,10 +514,11 @@ impl exp::Experiment for Experiment {
                 })
                 .collect::<Vec<_>>();
             cmd.extend_from_slice(&extra_args);
+
             let cpus = configuration.cpus;
             runner
                 .add_container(&ContainerConfig {
-                    name: name.clone(),
+                    name: node.name.clone(),
                     image_name: configuration.image_name.clone(),
                     image_tag: configuration.image_tag.clone(),
                     pull: false,
@@ -494,17 +542,20 @@ impl exp::Experiment for Experiment {
                     volumes: Vec::new(),
                 })
                 .await;
+
             tokio::time::sleep(Duration::from_millis(10)).await;
             if configuration.delay_ms > 0 {
                 inject_latency(
                     &runner,
-                    &name,
+                    &node.name,
                     configuration.delay_ms,
                     configuration.delay_variation,
                 )
                 .await
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
+
+            nodes.push(node);
         }
 
         let bench_name = format!("{}-bench", experiment_prefix);
@@ -516,15 +567,9 @@ impl exp::Experiment for Experiment {
             BenchTarget::AllNodes => client_urls,
             BenchTarget::LeaderNode => match configuration.bin_name.as_str() {
                 ETCD_BIN | MERGEABLE_ETCD_BIN => {
-                    find_leader_node_etcd(client_urls.split(",").map(|s| s.to_owned()).collect())
-                        .await
+                    find_leader_node_etcd(&nodes).await.client_url.clone()
                 }
-                DISMERGE_BIN => {
-                    find_leader_node_dismerge(
-                        client_urls.split(",").map(|s| s.to_owned()).collect(),
-                    )
-                    .await
-                }
+                DISMERGE_BIN => find_leader_node_dismerge(&nodes).await.client_url.clone(),
                 _ => unreachable!(),
             },
         };
@@ -574,6 +619,49 @@ impl exp::Experiment for Experiment {
                 )],
             })
             .await;
+        debug!("Launched bencher");
+
+        if configuration.partition_after_s > 0 {
+            let partition_after_s = configuration.partition_after_s;
+            let unpartition_after_s = configuration.unpartition_after_s;
+            let partition_type = configuration.partition_type;
+            let leader_node = match configuration.bin_name.as_str() {
+                ETCD_BIN | MERGEABLE_ETCD_BIN => find_leader_node_etcd(&nodes).await.name.clone(),
+                DISMERGE_BIN => find_leader_node_dismerge(&nodes).await.name.clone(),
+                _ => unreachable!(),
+            };
+            let name = match partition_type {
+                PartitionTarget::LeaderNode => leader_node,
+                PartitionTarget::NonLeaderNode => nodes
+                    .iter()
+                    .filter(|n| n.name != leader_node)
+                    .next()
+                    .unwrap()
+                    .name
+                    .clone(),
+            };
+            debug!(
+                partition_after_s,
+                unpartition_after_s,
+                ?partition_type,
+                "Waiting to partitioning node"
+            );
+            tokio::time::sleep(Duration::from_secs(partition_after_s)).await;
+            debug!(
+                partition_after_s,
+                unpartition_after_s,
+                ?partition_type,
+                "Partitioning node"
+            );
+            partition_node(&runner, &name).await;
+            debug!(
+                partition_after_s,
+                unpartition_after_s,
+                ?partition_type,
+                "UnPartitioning node"
+            );
+            clear_tc_rules(&runner, &name).await;
+        }
 
         debug!("Waiting for bencher to finish");
         runner
@@ -694,6 +782,14 @@ struct Config {
     tmpfs: bool,
     /// How many cpu cores to allocate to the datastore node.
     cpus: u32,
+    /// How many seconds to run the configuration before partitioning a node.
+    ///
+    /// 0 implies no partition.
+    partition_after_s: u64,
+    /// How many seconds to have the partition last before clearing it.
+    unpartition_after_s: u64,
+    /// Which node to partition, either a leader node (the one we're connected to) or another one.
+    partition_type: PartitionTarget,
 }
 
 impl ExperimentConfiguration for Config {}
@@ -702,6 +798,12 @@ impl ExperimentConfiguration for Config {}
 enum BenchTarget {
     LeaderNode,
     AllNodes,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+enum PartitionTarget {
+    LeaderNode,
+    NonLeaderNode,
 }
 
 #[derive(Parser, Debug)]
