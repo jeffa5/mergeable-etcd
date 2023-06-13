@@ -255,7 +255,7 @@ impl exp::Experiment for Experiment {
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
-                config.bench_target = BenchTarget::AllNodes;
+                config.bench_target = BenchTarget::LeaderNode;
                 confs.push(config.clone());
             }
 
@@ -279,7 +279,7 @@ impl exp::Experiment for Experiment {
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
-                config.bench_target = BenchTarget::AllNodes;
+                config.bench_target = BenchTarget::LeaderNode;
                 confs.push(config.clone());
             }
 
@@ -303,7 +303,7 @@ impl exp::Experiment for Experiment {
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
-                config.bench_target = BenchTarget::AllNodes;
+                config.bench_target = BenchTarget::LeaderNode;
                 confs.push(config.clone());
             }
 
