@@ -723,6 +723,7 @@ impl exp::Experiment for Experiment {
                 "Partitioning node"
             );
             partition_node(&runner, &partitioned_node.name).await;
+            tokio::time::sleep(Duration::from_secs(unpartition_after_s)).await;
             debug!(
                 partition_after_s,
                 unpartition_after_s,
