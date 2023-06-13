@@ -92,6 +92,8 @@ impl exp::Experiment for Experiment {
 
         let target_duration_s = 5;
         let delay_variation = F64::from(0.1);
+        let tmpfs = true;
+        let cpus = 2;
 
         let repeats = 3;
 
@@ -110,7 +112,8 @@ impl exp::Experiment for Experiment {
                 delay_ms: 0,
                 delay_variation,
                 extra_args: String::new(),
-                tmpfs: true,
+                tmpfs,
+                cpus,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -131,7 +134,8 @@ impl exp::Experiment for Experiment {
                 delay_ms: 0,
                 delay_variation,
                 extra_args: String::new(),
-                tmpfs: true,
+                tmpfs,
+                cpus,
             };
             for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
@@ -152,7 +156,8 @@ impl exp::Experiment for Experiment {
                 delay_ms: 0,
                 delay_variation,
                 extra_args: String::new(),
-                tmpfs: true,
+                tmpfs,
+                cpus,
             };
             for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
@@ -173,7 +178,8 @@ impl exp::Experiment for Experiment {
                 delay_ms: 0,
                 delay_variation,
                 extra_args: String::new(),
-                tmpfs: true,
+                tmpfs,
+                cpus,
             };
             for throughput in (5_000..=40_000).step_by(5_000) {
                 config.target_throughput = throughput;
@@ -194,7 +200,8 @@ impl exp::Experiment for Experiment {
                 delay_ms: 0,
                 delay_variation,
                 extra_args: String::new(),
-                tmpfs: true,
+                tmpfs,
+                cpus,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -217,7 +224,8 @@ impl exp::Experiment for Experiment {
                 delay_ms: 0,
                 delay_variation,
                 extra_args: String::new(),
-                tmpfs: true,
+                tmpfs,
+                cpus,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -240,7 +248,8 @@ impl exp::Experiment for Experiment {
                 delay_ms: 0,
                 delay_variation,
                 extra_args: String::new(),
-                tmpfs: true,
+                tmpfs,
+                cpus,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -263,7 +272,8 @@ impl exp::Experiment for Experiment {
                 delay_ms: 10,
                 delay_variation: F64(0.1),
                 extra_args: String::new(),
-                tmpfs: true,
+                tmpfs,
+                cpus,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -284,7 +294,8 @@ impl exp::Experiment for Experiment {
                 delay_ms: 10,
                 delay_variation: F64(0.1),
                 extra_args: String::new(),
-                tmpfs: true,
+                tmpfs,
+                cpus,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -305,7 +316,8 @@ impl exp::Experiment for Experiment {
                 delay_ms: 10,
                 delay_variation: F64(0.1),
                 extra_args: String::new(),
-                tmpfs: true,
+                tmpfs,
+                cpus,
             };
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
@@ -406,7 +418,7 @@ impl exp::Experiment for Experiment {
                 })
                 .collect::<Vec<_>>();
             cmd.extend_from_slice(&extra_args);
-            let cpus = 2;
+            let cpus = configuration.cpus;
             runner
                 .add_container(&ContainerConfig {
                     name: name.clone(),
@@ -619,6 +631,8 @@ struct Config {
     extra_args: String,
     /// Whether to mount the data dir for the datstore on a tmpfs.
     tmpfs: bool,
+    /// How many cpu cores to allocate to the datastore node.
+    cpus: u32,
 }
 
 impl ExperimentConfiguration for Config {}
