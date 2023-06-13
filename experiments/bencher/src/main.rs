@@ -168,6 +168,7 @@ impl exp::Experiment for Experiment {
         let delay_variation = F64::from(0.1);
         let tmpfs = true;
         let cpus = 2;
+        let bench_target = BenchTarget::Leader;
 
         let repeats = 3;
 
@@ -177,7 +178,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::Leader,
+                bench_target,
                 target_throughput: 30_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -202,7 +203,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::Leader,
+                bench_target,
                 target_throughput: 1_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -227,7 +228,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::Leader,
+                bench_target,
                 target_throughput: 1_000,
                 target_duration_s,
                 image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
@@ -252,7 +253,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::Leader,
+                bench_target,
                 target_throughput: 1_000,
                 target_duration_s,
                 image_name: DISMERGE_IMAGE.to_owned(),
@@ -277,7 +278,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::Leader,
+                bench_target,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -295,8 +296,6 @@ impl exp::Experiment for Experiment {
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
-                config.bench_target = BenchTarget::Leader;
-                confs.push(config.clone());
             }
 
             // test cluster sizes mergeable-etcd
@@ -304,7 +303,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::Leader,
+                bench_target,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
@@ -322,8 +321,6 @@ impl exp::Experiment for Experiment {
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
-                config.bench_target = BenchTarget::Leader;
-                confs.push(config.clone());
             }
 
             // test cluster sizes dismerge
@@ -331,7 +328,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::Leader,
+                bench_target,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: DISMERGE_IMAGE.to_owned(),
@@ -349,8 +346,6 @@ impl exp::Experiment for Experiment {
             for cluster_size in (1..=15).step_by(2) {
                 config.cluster_size = cluster_size;
                 confs.push(config.clone());
-                config.bench_target = BenchTarget::Leader;
-                confs.push(config.clone());
             }
 
             // test cluster sizes etcd
@@ -358,7 +353,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::Leader,
+                bench_target,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: ETCD_IMAGE.to_owned(),
@@ -383,7 +378,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::Leader,
+                bench_target,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
@@ -408,7 +403,7 @@ impl exp::Experiment for Experiment {
                 repeat,
                 cluster_size: 1,
                 bench_args: ycsb_a.clone(),
-                bench_target: BenchTarget::Leader,
+                bench_target,
                 target_throughput: 10_000,
                 target_duration_s,
                 image_name: DISMERGE_IMAGE.to_owned(),
