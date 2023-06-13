@@ -34,6 +34,46 @@ const DISMERGE_TAG: &str = "latest";
 const BENCHER_IMAGE: &str = "jeffas/bencher";
 const BENCHER_TAG: &str = "latest";
 
+async fn inject_latency(
+    runner: &Runner,
+    container_name: &str,
+    delay_ms: u32,
+    delay_variation: F64,
+) {
+    let delay_ms_str = format!("{}ms", delay_ms);
+    let delay_variation_str = format!(
+        "{}ms",
+        (delay_ms as f64 * f64::from(delay_variation)) as u32
+    );
+    let command = vec![
+        "tc",
+        "qdisc",
+        "replace", // creates if no device there
+        "dev",
+        "eth0",
+        "root",
+        "netem",
+        "delay",
+        &delay_ms_str,
+        &delay_variation_str,
+        "25%", // correlation with previous delay
+    ];
+    runner.execute_command(container_name, command).await;
+}
+
+async fn partition_node(runner: &Runner, container_name: &str) {
+    let command = vec![
+        "tc", "qdisc", "replace", // creates if no device there
+        "dev", "eth0", "root", "netem", "loss", "100%",
+    ];
+    runner.execute_command(container_name, command).await;
+}
+
+async fn clear_tc_rules(runner: &Runner, container_name: &str) {
+    let command = vec!["tc", "qdisc", "del", "dev", "eth0", "root"];
+    runner.execute_command(container_name, command).await;
+}
+
 #[async_trait]
 impl exp::Experiment for Experiment {
     type Configuration = Config;
@@ -395,43 +435,13 @@ impl exp::Experiment for Experiment {
                 .await;
             tokio::time::sleep(Duration::from_millis(10)).await;
             if configuration.delay_ms > 0 {
-                let exec = runner
-                    .docker_client()
-                    .create_exec(
-                        &name,
-                        bollard::exec::CreateExecOptions {
-                            cmd: Some(vec![
-                                "tc",
-                                "qdisc",
-                                "add",
-                                "dev",
-                                "eth0",
-                                "root",
-                                "netem",
-                                "delay",
-                                &format!("{}ms", configuration.delay_ms),
-                                &format!(
-                                    "{}ms",
-                                    (configuration.delay_ms as f64
-                                        * f64::from(configuration.delay_variation))
-                                        as u32
-                                ),
-                                "25%", // correlation with previous delay
-                            ]),
-                            ..Default::default()
-                        },
-                    )
-                    .await
-                    .unwrap();
-                runner
-                    .docker_client()
-                    .start_exec(&exec.id, None)
-                    // .for_each(|l| {
-                    //     l.unwrap();
-                    //     ready(())
-                    // })
-                    .await
-                    .unwrap();
+                inject_latency(
+                    &runner,
+                    &name,
+                    configuration.delay_ms,
+                    configuration.delay_variation,
+                )
+                .await
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
         }

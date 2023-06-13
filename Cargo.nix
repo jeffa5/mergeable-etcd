@@ -2818,8 +2818,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/exp";
-          rev = "37e39d27f8ba782a5560f189a1fc860139ab1cef";
-          sha256 = "07wqkn1r1109xb3cbb2svzkyvvd1pa72n1aiww4bwss250i6sqk1";
+          rev = "79fc09456dc158d987bc0f6126b0fba43dcf5714";
+          sha256 = "1knrk6lyzzl855p1s0a504glk5mf3d1knvp22s68h234n6h4mj7p";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"

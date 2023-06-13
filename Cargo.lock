@@ -880,7 +880,7 @@ checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 [[package]]
 name = "exp"
 version = "0.1.0"
-source = "git+https://github.com/jeffa5/exp?branch=main#37e39d27f8ba782a5560f189a1fc860139ab1cef"
+source = "git+https://github.com/jeffa5/exp?branch=main#79fc09456dc158d987bc0f6126b0fba43dcf5714"
 dependencies = [
  "async-trait",
  "blake3",
