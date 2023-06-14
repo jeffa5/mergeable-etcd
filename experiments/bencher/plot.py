@@ -32,7 +32,7 @@ def plot_etcd_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "FirstNode"]
 
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plt.figure()
     plot = sns.lineplot(data=data, x="cluster_size", y="latency_ms")
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
@@ -49,7 +49,7 @@ def plot_comparison_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["delay_variation"] == 0.1]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plt.figure()
     plot = sns.lineplot(data=data, x="cluster_size", y="latency_ms", hue="bin_name")
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
@@ -66,7 +66,7 @@ def plot_latency_comparison_clustered_final(data: pd.DataFrame, group_cols: List
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["delay_variation"] == 0.1]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.lineplot(
@@ -91,7 +91,7 @@ def plot_comparison_clustered_delayed(data: pd.DataFrame, group_cols: List[str])
     data = data[data["delay_ms"] == 10]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["delay_variation"] == 0.1]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plt.figure()
     plot = sns.lineplot(data=data, x="cluster_size", y="latency_ms", hue="bin_name")
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
@@ -110,7 +110,7 @@ def plot_latency_comparison_clustered_delayed_final(
     data = data[data["delay_ms"] == 10]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["delay_variation"] == 0.1]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.lineplot(
@@ -135,7 +135,7 @@ def plot_latency_scatter_single_node(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
         kind="scatter",
         data=data,
@@ -157,7 +157,7 @@ def plot_latency_scatter_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
         kind="scatter",
         data=data,
@@ -179,7 +179,7 @@ def plot_latency_scatter_clustered_delayed(data: pd.DataFrame, group_cols: List[
     data = data[data["delay_ms"] == 10]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
         kind="scatter",
         data=data,
@@ -201,7 +201,7 @@ def plot_latency_cdf_single_node(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plot = sns.displot(
         kind="ecdf",
         data=data,
@@ -223,7 +223,7 @@ def plot_latency_cdf_single_node_final(data: pd.DataFrame, group_cols: List[str]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["target_throughput"] == 10_000]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.ecdfplot(
@@ -250,11 +250,11 @@ def plot_throughput_errors_box_single_final(data: pd.DataFrame, group_cols: List
         )
     ]
     data = data[data["error"].notna()]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     grouped = grouped["tmpfs"].count()
     counts = grouped.reset_index(name="error_count")
     counts = counts.rename(columns={"bin_name": "datastore"})
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     if len(counts.index) == 0 :
         print("Skipping plot")
         rm_file("plots/throughput-errors-box-clustered-final.png")
@@ -285,11 +285,11 @@ def plot_throughput_errors_box_clustered_final(
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["error"].notna()]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     grouped = grouped["tmpfs"].count()
     counts = grouped.reset_index(name="error_count")
     counts = counts.rename(columns={"bin_name": "datastore"})
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     if len(counts.index) == 0 :
         print("Skipping plot")
         rm_file("plots/throughput-errors-box-clustered-final.png")
@@ -320,11 +320,11 @@ def plot_throughput_errors_box_clustered_delay_final(
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["error"].notna()]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     grouped = grouped["tmpfs"].count()
     counts = grouped.reset_index(name="error_count")
     counts = counts.rename(columns={"bin_name": "datastore"})
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     if len(counts.index) == 0 :
         print("Skipping plot")
         rm_file("plots/throughput-errors-box-clustered-final.png")
@@ -360,7 +360,7 @@ def plot_throughput_latency_box_single_final(data: pd.DataFrame, group_cols: Lis
             [5_000, 10_000, 15_000, 20_000, 25_000, 30_000, 35_000, 40_000]
         )
     ]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.boxplot(
@@ -387,7 +387,7 @@ def plot_throughput_latency_box_clustered_final(
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.boxplot(
@@ -414,7 +414,7 @@ def plot_throughput_latency_box_clustered_all_nodes_final(
     data = data[data["bench_target"] == "AllNodes"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.boxplot(
@@ -441,7 +441,7 @@ def plot_throughput_latency_box_clustered_delay_final(
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.boxplot(
@@ -468,7 +468,7 @@ def plot_latency_cdf_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plot = sns.displot(
         kind="ecdf",
         data=data,
@@ -489,7 +489,7 @@ def plot_latency_cdf_clustered_delayed(data: pd.DataFrame, group_cols: List[str]
     data = data[data["delay_ms"] == 10]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plot = sns.displot(
         kind="ecdf",
         data=data,
@@ -511,13 +511,13 @@ def plot_throughput_latency_single_node(data: pd.DataFrame, group_cols: List[str
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
 
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
 
     latencies = grouped["latency_ms"].quantile(0.99)
     latencies = latencies.reset_index(name="latency_ms_p99")
     # data["latency_ms_p99"] = latencies
 
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
         kind="line",
         data=latencies,
@@ -538,7 +538,7 @@ def plot_throughput_goodput_single_node(data: pd.DataFrame, group_cols: List[str
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     mins = grouped["start_ns"].min()
     maxs = grouped["end_ns"].max()
     counts = grouped["start_ns"].count()
@@ -546,7 +546,7 @@ def plot_throughput_goodput_single_node(data: pd.DataFrame, group_cols: List[str
     durations_s = durations_ns / 1_000_000_000
     throughputs = counts / durations_s
     throughputs = throughputs.reset_index(name="goodput")
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
         kind="line",
         data=throughputs,
@@ -574,7 +574,7 @@ def plot_throughput_goodput_single_node_final(
             [5_000, 10_000, 15_000, 20_000, 25_000, 30_000, 35_000, 40_000]
         )
     ]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     mins = grouped["start_ns"].min()
     maxs = grouped["end_ns"].max()
     counts = grouped["start_ns"].count()
@@ -582,7 +582,7 @@ def plot_throughput_goodput_single_node_final(
     durations_s = durations_ns / 1_000_000_000
     throughputs = counts / durations_s
     throughputs = throughputs.reset_index(name="goodput")
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     throughputs = throughputs.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.lineplot(
@@ -611,7 +611,7 @@ def plot_throughput_goodput_clustered_node_final(
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     mins = grouped["start_ns"].min()
     maxs = grouped["end_ns"].max()
     counts = grouped["start_ns"].count()
@@ -619,7 +619,7 @@ def plot_throughput_goodput_clustered_node_final(
     durations_s = durations_ns / 1_000_000_000
     throughputs = counts / durations_s
     throughputs = throughputs.reset_index(name="goodput")
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     throughputs = throughputs.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.lineplot(
@@ -648,7 +648,7 @@ def plot_throughput_goodput_clustered_node_delay_final(
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     mins = grouped["start_ns"].min()
     maxs = grouped["end_ns"].max()
     counts = grouped["start_ns"].count()
@@ -656,7 +656,7 @@ def plot_throughput_goodput_clustered_node_delay_final(
     durations_s = durations_ns / 1_000_000_000
     throughputs = counts / durations_s
     throughputs = throughputs.reset_index(name="goodput")
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     throughputs = throughputs.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.lineplot(
@@ -684,10 +684,10 @@ def plot_throughput_errorcount_single_node(data: pd.DataFrame, group_cols: List[
     data = data[data["bench_target"] == "FirstNode"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["error"].notna()]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     grouped = grouped["tmpfs"].count()
     counts = grouped.reset_index(name="error_count")
-    print(data.groupby(group_cols).count())
+    print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
         kind="line",
         data=counts,
@@ -716,18 +716,9 @@ def main():
     print(columns.index("start_ns"))
     config_cols = columns[: columns.index("start_ns")]
     print(config_cols)
-    group_cols = [
-        "bin_name",
-        "target_throughput",
-        "bench_args",
-        "cluster_size",
-        "tmpfs",
-        "repeat",
-        "success",
-    ]
-    # group_cols = config_cols
-    print(group_cols)
-    grouped = data.groupby(group_cols)
+    group_cols = config_cols
+    print("group_cols", group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
 
     min_start = grouped["start_ns"].transform("min")
     data["start_ns"] -= min_start
@@ -783,7 +774,7 @@ def main():
 
 def plot_throughput_memory_single_node(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["cluster_size"] == 1]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     mem = grouped["memory_stats_stats_v1_rss"].mean()
     print(mem)
     mem = mem.reset_index(name="mean_mem")
@@ -797,7 +788,7 @@ def plot_throughput_memory_single_node(data: pd.DataFrame, group_cols: List[str]
 
 def plot_throughput_memory_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["target_throughput"] == clustered_throughput]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     mem = grouped["memory_stats_stats_v1_rss"].mean()
     print(mem)
     mem = mem.reset_index(name="mean_mem")
@@ -811,7 +802,7 @@ def plot_throughput_memory_clustered(data: pd.DataFrame, group_cols: List[str]):
 
 def plot_throughput_cpu_single_node(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["cluster_size"] == 1]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     min_cpu = grouped["cpu_stats_cpu_usage_total_usage"].min()
     max_cpu = grouped["cpu_stats_cpu_usage_total_usage"].max()
     cpu_diff = max_cpu - min_cpu
@@ -828,7 +819,7 @@ def plot_throughput_cpu_single_node(data: pd.DataFrame, group_cols: List[str]):
 
 def plot_throughput_cpu_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["target_throughput"] == clustered_throughput]
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     min_cpu = grouped["cpu_stats_cpu_usage_total_usage"].min()
     max_cpu = grouped["cpu_stats_cpu_usage_total_usage"].max()
     cpu_diff = max_cpu - min_cpu
@@ -856,7 +847,7 @@ def main_stats():
         "repeat",
     ]
 
-    grouped = data.groupby(group_cols)
+    grouped = data.groupby(group_cols, dropna=False)
     mem = grouped["memory_stats_stats_v1_rss"].mean()
     print(mem)
 
