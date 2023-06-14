@@ -595,6 +595,7 @@ def plot_throughput_latency_box_clustered_delay_final(
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
+    data = data[data["partition_after_s"] == 0]
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
