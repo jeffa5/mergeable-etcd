@@ -907,6 +907,7 @@ impl From<F64> for f64 {
     }
 }
 
+/// Configuration for an experiment.
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 struct Config {
     /// Which repeat this config is.
@@ -949,26 +950,39 @@ struct Config {
 
 impl ExperimentConfiguration for Config {}
 
+/// Which node to target benchmark traffic to.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 enum BenchTarget {
+    /// The leader node, pretending we are at a site where the leader is.
     Leader,
+    /// Another, non-leader, node, pretending we are at a site without the leader.
     NonLeader,
 }
 
+/// Which node to partition off.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 enum PartitionTarget {
+    /// The node that the benchmark traffic is directed at.
+    ///
+    /// This leads etcd to not process requests.
     Connected,
+    /// A node that the benchmark traffic is not directed at, essentially a remote site.
+    ///
+    /// This should not directly impact processing of requests, it might improve etcd latency!
     Other,
 }
 
 #[derive(Parser, Debug)]
 struct CliOptions {
+    /// Directory to store results in.
     #[clap(long, default_value = "./results")]
     results_dir: PathBuf,
 
+    /// Whether to run the benchmarks.
     #[clap(long)]
     run: bool,
 
+    /// Whether to analyse the benchmark results, at least a little bit.
     #[clap(long)]
     analyse: bool,
 }
