@@ -701,6 +701,46 @@ impl exp::Experiment for Experiment {
         for a in configuration.bench_args.split(" ") {
             bench_cmd.push(a.to_owned())
         }
+
+        let mut load_bench_cmd = bench_cmd.clone();
+        load_bench_cmd.push("--load".to_owned());
+        runner
+            .add_container(&ContainerConfig {
+                name: bench_name.clone(),
+                image_name: BENCHER_IMAGE.to_owned(),
+                image_tag: BENCHER_TAG.to_owned(),
+                pull: false,
+                command: Some(load_bench_cmd),
+                env: None,
+                network: Some(network_name.clone()),
+                network_subnet: Some(network_subnet.clone()),
+                ports: None,
+                capabilities: None,
+                cpus: None,
+                memory: None,
+                tmpfs: Vec::new(),
+                volumes: vec![],
+            })
+            .await;
+        debug!("Launched bencher load");
+        debug!("Waiting for bencher load to finish");
+        runner
+            .docker_client()
+            .wait_container::<String>(&bench_name, None)
+            .next()
+            .await;
+        let _ = runner
+            .docker_client()
+            .remove_container(
+                &bench_name,
+                Some(bollard::container::RemoveContainerOptions {
+                    force: true,
+                    ..Default::default()
+                }),
+            )
+            .await;
+        debug!("Bencher load finished");
+
         runner
             .add_container(&ContainerConfig {
                 name: bench_name.clone(),
@@ -751,7 +791,14 @@ impl exp::Experiment for Experiment {
                 name=?partitioned_node.name,
                 "Partitioning node"
             );
-            partition_node(&runner, &partitioned_node.name).await;
+            partition_node(&runner, &partitioned_node.name, &nodes).await;
+            debug!(
+                partition_after_s,
+                unpartition_after_s,
+                ?partition_type,
+                name=?partitioned_node.name,
+                "Partitioned node"
+            );
             tokio::time::sleep(Duration::from_secs(unpartition_after_s)).await;
             debug!(
                 partition_after_s,
@@ -760,17 +807,14 @@ impl exp::Experiment for Experiment {
                 name=?partitioned_node.name,
                 "UnPartitioning node"
             );
-            if configuration.delay_ms > 0 {
-                inject_latency(
-                    &runner,
-                    &partitioned_node.name,
-                    configuration.delay_ms,
-                    configuration.delay_variation,
-                )
-                .await
-            } else {
-                clear_tc_rules(&runner, &partitioned_node.name).await;
-            }
+            unpartition_node(&runner, &partitioned_node.name).await;
+            debug!(
+                partition_after_s,
+                unpartition_after_s,
+                ?partition_type,
+                name=?partitioned_node.name,
+                "UnPartitioned node"
+            );
         }
 
         debug!("Waiting for bencher to finish");
