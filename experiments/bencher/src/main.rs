@@ -36,6 +36,7 @@ const BENCHER_TAG: &str = "latest";
 
 #[derive(Debug, Clone)]
 struct Node {
+    ip: String,
     client_url: String,
     peer_url: String,
     metrics_url: String,
@@ -48,6 +49,12 @@ async fn inject_latency(
     delay_ms: u32,
     delay_variation: F64,
 ) {
+    debug!(
+        ?container_name,
+        delay_ms,
+        ?delay_variation,
+        "Injecting latency"
+    );
     let delay_ms_str = format!("{}ms", delay_ms);
     let delay_variation_str = format!(
         "{}ms",
@@ -69,15 +76,37 @@ async fn inject_latency(
     runner.execute_command(container_name, command).await;
 }
 
-async fn partition_node(runner: &Runner, container_name: &str) {
-    let command = vec![
-        "tc", "qdisc", "replace", // creates if no device there
-        "dev", "eth0", "root", "netem", "loss", "100%",
-    ];
+async fn partition_node(runner: &Runner, container_name: &str, nodes: &[Node]) {
+    debug!(?container_name, "Partitioning node");
+    for node in nodes {
+        if node.name == container_name {
+            continue;
+        }
+        debug!(?container_name, node.name, "Blocking traffic");
+        // block outgoing traffic
+        let command = vec!["iptables", "-A", "OUTPUT", "-d", &node.ip, "-j", "DROP"];
+        runner.execute_command(container_name, command).await;
+        // block incoming traffic
+        let command = vec!["iptables", "-A", "INPUT", "-s", &node.ip, "-j", "DROP"];
+        runner.execute_command(container_name, command).await;
+    }
+    runner
+        .execute_command(container_name, vec!["iptables", "-L"])
+        .await;
+}
+
+async fn unpartition_node(runner: &Runner, container_name: &str) {
+    debug!(?container_name, "Flushing rules");
+    // flush outgoing rules
+    let command = vec!["iptables", "-F", "OUTPUT"];
+    runner.execute_command(container_name, command).await;
+    // flush incoming rules
+    let command = vec!["iptables", "-F", "INPUT"];
     runner.execute_command(container_name, command).await;
 }
 
 async fn clear_tc_rules(runner: &Runner, container_name: &str) {
+    debug!(?container_name, "Clearing tc rules");
     let command = vec!["tc", "qdisc", "del", "dev", "eth0", "root"];
     runner.execute_command(container_name, command).await;
 }

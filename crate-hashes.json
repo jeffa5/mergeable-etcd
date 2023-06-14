@@ -3,6 +3,6 @@
   "automerge-persistent 0.4.0 (git+https://github.com/jeffa5/automerge-persistent?branch=main#02a6018ff23d9181bee137e63003bc547bf8086f)": "13hm3gr3f70vpyg51r4fwn2dpahn3icrjzacfz9wkssyycckxj36",
   "autosurgeon 0.6.0 (git+https://github.com/jeffa5/autosurgeon?branch=metcd#fbbec7fd021a7cc0e8f4a42a063a9724b763a0dc)": "1fjixavjyf8c6bglvb8jx84qqvvv3hbj1rbgkmbv1f292si996c0",
   "autosurgeon-derive 0.6.0 (git+https://github.com/jeffa5/autosurgeon?branch=metcd#fbbec7fd021a7cc0e8f4a42a063a9724b763a0dc)": "1fjixavjyf8c6bglvb8jx84qqvvv3hbj1rbgkmbv1f292si996c0",
-  "exp 0.1.0 (git+https://github.com/jeffa5/exp?branch=main#79fc09456dc158d987bc0f6126b0fba43dcf5714)": "1knrk6lyzzl855p1s0a504glk5mf3d1knvp22s68h234n6h4mj7p",
+  "exp 0.1.0 (git+https://github.com/jeffa5/exp?branch=main#89f92a6c8691d445403492b1ca37dcab0c66ce29)": "1gyj6kra4v452mrc16z72jfgxj24fg01kbh4530j21ld24l80d5x",
   "procfs 0.10.0 (git+https://github.com/jeffa5/procfs?branch=serde#3f2e5730fa5e157ac21109cdd7898cc0af3f8d2f)": "15wzpp76y2swhy2yifsv8pwns8rkv611kkpjmd0gdyn9rq7b3fqb"
 }
