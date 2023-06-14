@@ -210,7 +210,6 @@ def plot_latency_scatter_clustered_delayed_partition_etcd(
     data = data[data["target_throughput"] == clustered_throughput]
     data = data[data["bin_name"] == "etcd"]
     data = data[data["cluster_size"] == 3]
-    data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 10]
     data = data[data["bench_target"] == "Leader"]
@@ -225,6 +224,7 @@ def plot_latency_scatter_clustered_delayed_partition_etcd(
         data=data,
         x="start_s",
         y="latency_ms",
+        hue="success",
     )
     plt.yscale("log")
     plot.set(xlabel="Time (s)", ylabel="Latency (ms)", alpha=0.5)
