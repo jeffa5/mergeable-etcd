@@ -30,7 +30,7 @@ def plot_etcd_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["success"] == True]
     data = data[data["target_throughput"] == 30_000]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
 
     print(data.groupby(group_cols, dropna=False).count())
     plt.figure()
@@ -47,7 +47,7 @@ def plot_comparison_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["success"] == True]
     data = data[data["target_throughput"] == clustered_throughput]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["delay_variation"] == 0.1]
     print(data.groupby(group_cols, dropna=False).count())
     plt.figure()
@@ -64,7 +64,7 @@ def plot_latency_comparison_clustered_final(data: pd.DataFrame, group_cols: List
     data = data[data["success"] == True]
     data = data[data["target_throughput"] == clustered_throughput]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["delay_variation"] == 0.1]
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
@@ -89,7 +89,7 @@ def plot_comparison_clustered_delayed(data: pd.DataFrame, group_cols: List[str])
     data = data[data["success"] == True]
     data = data[data["target_throughput"] == clustered_throughput]
     data = data[data["delay_ms"] == 10]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["delay_variation"] == 0.1]
     print(data.groupby(group_cols, dropna=False).count())
     plt.figure()
@@ -108,7 +108,7 @@ def plot_latency_comparison_clustered_delayed_final(
     data = data[data["success"] == True]
     data = data[data["target_throughput"] == clustered_throughput]
     data = data[data["delay_ms"] == 10]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["delay_variation"] == 0.1]
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
@@ -133,7 +133,7 @@ def plot_latency_scatter_single_node(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
@@ -155,7 +155,7 @@ def plot_latency_scatter_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
@@ -177,7 +177,7 @@ def plot_latency_scatter_clustered_delayed(data: pd.DataFrame, group_cols: List[
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 10]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
@@ -199,7 +199,7 @@ def plot_latency_cdf_single_node(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols, dropna=False).count())
     plot = sns.displot(
@@ -220,7 +220,7 @@ def plot_latency_cdf_single_node_final(data: pd.DataFrame, group_cols: List[str]
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["target_throughput"] == 10_000]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols, dropna=False).count())
@@ -242,7 +242,7 @@ def plot_throughput_errors_box_single_final(data: pd.DataFrame, group_cols: List
     data = data[data["cluster_size"] == 1]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[
         data["target_throughput"].isin(
@@ -282,7 +282,7 @@ def plot_throughput_errors_box_clustered_final(
     data = data[data["target_throughput"] == clustered_throughput]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["error"].notna()]
     grouped = data.groupby(group_cols, dropna=False)
@@ -317,7 +317,7 @@ def plot_throughput_errors_box_clustered_delay_final(
     data = data[data["target_throughput"] == clustered_throughput]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 10]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["error"].notna()]
     grouped = data.groupby(group_cols, dropna=False)
@@ -353,7 +353,7 @@ def plot_throughput_latency_box_single_final(data: pd.DataFrame, group_cols: Lis
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[
         data["target_throughput"].isin(
@@ -384,7 +384,7 @@ def plot_throughput_latency_box_clustered_final(
     data = data[data["tmpfs"] == True]
     data = data[data["success"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
     print(data.groupby(group_cols, dropna=False).count())
@@ -438,7 +438,7 @@ def plot_throughput_latency_box_clustered_delay_final(
     data = data[data["tmpfs"] == True]
     data = data[data["success"] == True]
     data = data[data["delay_ms"] == 10]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
     print(data.groupby(group_cols, dropna=False).count())
@@ -466,7 +466,7 @@ def plot_latency_cdf_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols, dropna=False).count())
     plot = sns.displot(
@@ -487,7 +487,7 @@ def plot_latency_cdf_clustered_delayed(data: pd.DataFrame, group_cols: List[str]
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 10]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols, dropna=False).count())
     plot = sns.displot(
@@ -508,7 +508,7 @@ def plot_throughput_latency_single_node(data: pd.DataFrame, group_cols: List[str
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
 
     grouped = data.groupby(group_cols, dropna=False)
@@ -536,7 +536,7 @@ def plot_throughput_goodput_single_node(data: pd.DataFrame, group_cols: List[str
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     grouped = data.groupby(group_cols, dropna=False)
     mins = grouped["start_ns"].min()
@@ -567,7 +567,7 @@ def plot_throughput_goodput_single_node_final(
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[
         data["target_throughput"].isin(
@@ -608,7 +608,7 @@ def plot_throughput_goodput_clustered_node_final(
     data = data[data["tmpfs"] == True]
     data = data[data["success"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
     grouped = data.groupby(group_cols, dropna=False)
@@ -645,7 +645,7 @@ def plot_throughput_goodput_clustered_node_delay_final(
     data = data[data["tmpfs"] == True]
     data = data[data["success"] == True]
     data = data[data["delay_ms"] == 10]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
     grouped = data.groupby(group_cols, dropna=False)
@@ -681,7 +681,7 @@ def plot_throughput_errorcount_single_node(data: pd.DataFrame, group_cols: List[
     data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 0]
-    data = data[data["bench_target"] == "FirstNode"]
+    data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["error"].notna()]
     grouped = data.groupby(group_cols, dropna=False)
