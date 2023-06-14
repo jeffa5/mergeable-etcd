@@ -363,55 +363,64 @@ async fn main() -> anyhow::Result<()> {
                     fields_per_record,
                     field_value_length,
                     request_distribution,
+                    load,
+                    run,
                 }) => {
-                    info!(entries = options.total, "Setting up the database");
-                    // setup the db
-                    loadgen::generate_load(
-                        &options,
-                        YcsbInputGenerator {
-                            read_weight: 0,
-                            scan_weight: 0,
-                            insert_weight: 1,
-                            update_weight: 0,
-                            read_all_fields: *read_all_fields,
-                            fields_per_record: *fields_per_record,
-                            field_value_length: *field_value_length,
-                            operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
-                            max_record_index: 0,
-                            request_distribution: *request_distribution,
-                        },
-                        EtcdYcsbDispatcherGenerator {
-                            kv_clients: kv_clients.clone(),
-                            kv_index: 0,
-                        },
-                        // FIXME: could probably tag outputs or write to different output
-                        None::<csv::Writer<File>>,
-                    )
-                    .await;
-                    info!(max_record = options.total, "Running the main benchmark");
-                    // now run the benchmark
+                    if *load {
+                        info!(entries = options.total, "Setting up the database");
+                        // setup the db
+                        loadgen::generate_load(
+                            &options,
+                            YcsbInputGenerator {
+                                read_weight: 0,
+                                scan_weight: 0,
+                                insert_weight: 1,
+                                update_weight: 0,
+                                read_all_fields: *read_all_fields,
+                                fields_per_record: *fields_per_record,
+                                field_value_length: *field_value_length,
+                                operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+                                max_record_index: 0,
+                                request_distribution: *request_distribution,
+                            },
+                            EtcdYcsbDispatcherGenerator {
+                                kv_clients: kv_clients.clone(),
+                                kv_index: 0,
+                            },
+                            // FIXME: could probably tag outputs or write to different output
+                            None::<csv::Writer<File>>,
+                        )
+                        .await;
+                    }
+
                     start = Instant::now();
-                    loadgen::generate_load(
-                        &options,
-                        YcsbInputGenerator {
-                            read_weight: *read_weight,
-                            scan_weight: *scan_weight,
-                            insert_weight: *insert_weight,
-                            update_weight: *update_weight,
-                            read_all_fields: *read_all_fields,
-                            fields_per_record: *fields_per_record,
-                            field_value_length: *field_value_length,
-                            operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
-                            max_record_index: options.total as u32,
-                            request_distribution: *request_distribution,
-                        },
-                        EtcdYcsbDispatcherGenerator {
-                            kv_clients,
-                            kv_index: 0,
-                        },
-                        writer,
-                    )
-                    .await
+                    if *run {
+                        info!(max_record = options.total, "Running the main benchmark");
+                        // now run the benchmark
+                        loadgen::generate_load(
+                            &options,
+                            YcsbInputGenerator {
+                                read_weight: *read_weight,
+                                scan_weight: *scan_weight,
+                                insert_weight: *insert_weight,
+                                update_weight: *update_weight,
+                                read_all_fields: *read_all_fields,
+                                fields_per_record: *fields_per_record,
+                                field_value_length: *field_value_length,
+                                operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+                                max_record_index: options.total as u32,
+                                request_distribution: *request_distribution,
+                            },
+                            EtcdYcsbDispatcherGenerator {
+                                kv_clients,
+                                kv_index: 0,
+                            },
+                            writer,
+                        )
+                        .await
+                    } else {
+                        0
+                    }
                 }
             }
         }
@@ -568,55 +577,64 @@ async fn main() -> anyhow::Result<()> {
                     fields_per_record,
                     field_value_length,
                     request_distribution,
+                    load,
+                    run,
                 }) => {
-                    info!(entries = options.total, "Setting up the database");
-                    // setup the db
-                    loadgen::generate_load(
-                        &options,
-                        YcsbInputGenerator {
-                            read_weight: 0,
-                            scan_weight: 0,
-                            insert_weight: 1,
-                            update_weight: 0,
-                            read_all_fields: *read_all_fields,
-                            fields_per_record: *fields_per_record,
-                            field_value_length: *field_value_length,
-                            operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
-                            max_record_index: 0,
-                            request_distribution: *request_distribution,
-                        },
-                        DismergeYcsbDispatcherGenerator {
-                            kv_clients: kv_clients.clone(),
-                            kv_index: 0,
-                        },
-                        // FIXME: could probably tag outputs or write to different output
-                        None::<csv::Writer<File>>,
-                    )
-                    .await;
-                    info!(max_record = options.total, "Running the main benchmark");
-                    // now run the benchmark
+                    if *load {
+                        info!(entries = options.total, "Setting up the database");
+                        // setup the db
+                        loadgen::generate_load(
+                            &options,
+                            YcsbInputGenerator {
+                                read_weight: 0,
+                                scan_weight: 0,
+                                insert_weight: 1,
+                                update_weight: 0,
+                                read_all_fields: *read_all_fields,
+                                fields_per_record: *fields_per_record,
+                                field_value_length: *field_value_length,
+                                operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+                                max_record_index: 0,
+                                request_distribution: *request_distribution,
+                            },
+                            DismergeYcsbDispatcherGenerator {
+                                kv_clients: kv_clients.clone(),
+                                kv_index: 0,
+                            },
+                            // FIXME: could probably tag outputs or write to different output
+                            None::<csv::Writer<File>>,
+                        )
+                        .await;
+                    }
+
                     start = Instant::now();
-                    loadgen::generate_load(
-                        &options,
-                        YcsbInputGenerator {
-                            read_weight: *read_weight,
-                            scan_weight: *scan_weight,
-                            insert_weight: *insert_weight,
-                            update_weight: *update_weight,
-                            read_all_fields: *read_all_fields,
-                            fields_per_record: *fields_per_record,
-                            field_value_length: *field_value_length,
-                            operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
-                            max_record_index: options.total as u32,
-                            request_distribution: *request_distribution,
-                        },
-                        DismergeYcsbDispatcherGenerator {
-                            kv_clients,
-                            kv_index: 0,
-                        },
-                        writer,
-                    )
-                    .await
+                    if *run {
+                        info!(max_record = options.total, "Running the main benchmark");
+                        // now run the benchmark
+                        loadgen::generate_load(
+                            &options,
+                            YcsbInputGenerator {
+                                read_weight: *read_weight,
+                                scan_weight: *scan_weight,
+                                insert_weight: *insert_weight,
+                                update_weight: *update_weight,
+                                read_all_fields: *read_all_fields,
+                                fields_per_record: *fields_per_record,
+                                field_value_length: *field_value_length,
+                                operation_rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+                                max_record_index: options.total as u32,
+                                request_distribution: *request_distribution,
+                            },
+                            DismergeYcsbDispatcherGenerator {
+                                kv_clients,
+                                kv_index: 0,
+                            },
+                            writer,
+                        )
+                        .await
+                    } else {
+                        0
+                    }
                 }
             }
         }

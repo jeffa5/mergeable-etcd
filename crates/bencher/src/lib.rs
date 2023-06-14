@@ -98,4 +98,10 @@ pub struct YcsbArgs {
     /// Distribution shape for the user keys.
     #[clap(long, default_value = "uniform")]
     pub request_distribution: RequestDistribution,
+    /// Whether to load data into the datastore.
+    #[clap(long)]
+    pub load: bool,
+    /// Whether to perform the main run.
+    #[clap(long, default_value_t = true)]
+    pub run: bool,
 }
