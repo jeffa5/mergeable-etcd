@@ -585,6 +585,7 @@ impl exp::Experiment for Experiment {
             let name = format!("{}{}", node_name_prefix, i);
 
             let node = Node {
+                ip: ip.clone(),
                 client_url: format!("http://{}:{}", ip, client_port),
                 peer_url: format!("http://{}:{}", ip, peer_port),
                 metrics_url: format!("http://{}:{}", ip, metrics_port),
