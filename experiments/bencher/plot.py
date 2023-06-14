@@ -218,7 +218,6 @@ def plot_latency_scatter_clustered_delayed_partition_etcd(
     data = data[data["unpartition_after_s"] == 5]
     data["start_s"] = data["start_ns"] / 1_000_000_000
     print(data.groupby(group_cols, dropna=False).count())
-    data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
     plot = sns.scatterplot(
         data=data,
@@ -233,6 +232,41 @@ def plot_latency_scatter_clustered_delayed_partition_etcd(
     plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-etcd.png")
     if pdf_output:
         plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-etcd.pdf")
+
+
+def plot_latency_scatter_clustered_delayed_partition_etcd_reqtype(
+    data: pd.DataFrame, group_cols: List[str]
+):
+    print_header("plot latency scatter")
+    data = data[data["target_throughput"] == clustered_throughput]
+    data = data[data["bin_name"] == "etcd"]
+    data = data[data["cluster_size"] == 3]
+    data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 10]
+    data = data[data["bench_target"] == "Leader"]
+    data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 5]
+    data = data[data["unpartition_after_s"] == 5]
+    data["start_s"] = data["start_ns"] / 1_000_000_000
+    print(data.groupby(group_cols, dropna=False).count())
+    plt.figure()
+    plot = sns.scatterplot(
+        data=data,
+        x="start_s",
+        y="latency_ms",
+        hue="endpoint",
+    )
+    plt.yscale("log")
+    plot.set(xlabel="Time (s)", ylabel="Latency (ms)", alpha=0.5)
+    plot.axvline(x=5, linestyle="--", color="black", zorder=0)
+    plot.axvline(x=10, linestyle="--", color="black", zorder=0)
+    plot.get_figure().savefig(
+        "plots/scatter-clustered-delayed-partition-etcd-reqtype.png"
+    )
+    if pdf_output:
+        plot.get_figure().savefig(
+            "plots/scatter-clustered-delayed-partition-etcd-reqtype.pdf"
+        )
 
 
 def plot_latency_scatter_clustered_delayed_partition(
@@ -912,6 +946,7 @@ def main():
     plot_etcd_clustered(data, group_cols)
     plot_throughput_latency_box_clustered_delay_etcd(data, group_cols)
     plot_latency_scatter_clustered_delayed_partition_etcd(data, group_cols)
+    plot_latency_scatter_clustered_delayed_partition_etcd_reqtype(data, group_cols)
     # plot_comparison_clustered(data, group_cols)
     # plot_latency_scatter_clustered(data, group_cols)
     # plot_latency_cdf_clustered(data, group_cols)
