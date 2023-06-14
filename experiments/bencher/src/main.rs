@@ -1,3 +1,4 @@
+use polars::prelude::*;
 use std::{fs, path::Path, path::PathBuf, time::Duration};
 use tracing::metadata::LevelFilter;
 use tracing::{debug, info};
@@ -848,16 +849,35 @@ impl exp::Experiment for Experiment {
     ) {
         let all_file = exp_dir.join(BENCHER_RESULTS_FILE);
         println!("Merging results to {:?}", all_file);
-        let mut all_csv = csv::Writer::from_path(all_file).unwrap();
+        let mut all_data = LazyFrame::default();
         for (config, config_dir) in &configurations {
-            let timings_file = config_dir.join(BENCHER_RESULTS_FILE);
-            if timings_file.is_file() {
-                let mut csv_reader = csv::Reader::from_path(timings_file).unwrap();
+            let mut dummy_writer = Vec::new();
+            {
+                let mut config_header = csv::Writer::from_writer(&mut dummy_writer);
+                config_header.serialize(config).unwrap();
+            }
+            let config_data = CsvReader::new(std::io::Cursor::new(dummy_writer))
+                .has_header(true)
+                .finish()
+                .unwrap();
 
-                for row in csv_reader.deserialize::<bencher::Output>() {
-                    let row = row.unwrap();
-                    all_csv.serialize((config, row)).unwrap();
-                }
+            let timings_file = config_dir.join(BENCHER_RESULTS_FILE);
+
+            if timings_file.is_file() {
+                let mut schema = Schema::new();
+                schema.with_column("member_id".into(), DataType::UInt64);
+                let timings_data = CsvReader::from_path(timings_file)
+                    .unwrap()
+                    .has_header(true)
+                    .with_dtypes(Some(Arc::new(schema)))
+                    .finish()
+                    .unwrap();
+
+                let config_and_timings_data =
+                    config_data.cross_join(&timings_data, None, None).unwrap();
+
+                all_data =
+                    diag_concat_lf([all_data, config_and_timings_data.lazy()], true, true).unwrap();
             }
         }
 
