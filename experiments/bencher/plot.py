@@ -180,6 +180,7 @@ def plot_latency_scatter_clustered_delayed(data: pd.DataFrame, group_cols: List[
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     print(data.groupby(group_cols, dropna=False).count())
+    plt.figure()
     plot = sns.relplot(
         kind="scatter",
         data=data,
@@ -192,6 +193,67 @@ def plot_latency_scatter_clustered_delayed(data: pd.DataFrame, group_cols: List[
     if pdf_output:
         plot.savefig("plots/scatter-clustered-delayed.pdf")
 
+def plot_latency_scatter_clustered_delayed_partition(data: pd.DataFrame, group_cols: List[str]):
+    print_header("plot latency scatter")
+    data = data[data["target_throughput"] == clustered_throughput]
+    data = data[data["cluster_size"] == 3]
+    data = data[data["success"] == True]
+    data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 10]
+    data = data[data["bench_target"] == "Leader"]
+    data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 5]
+    data = data[data["unpartition_after_s"] == 5]
+    data["start_s"] = data["start_ns"] / 1_000_000_000
+    print(data.groupby(group_cols, dropna=False).count())
+    data = data.rename(columns={"bin_name": "datastore"})
+    plt.figure()
+    plot = sns.scatterplot(
+        data=data,
+        x="start_s",
+        y="latency_ms",
+        hue="datastore",
+    )
+    plt.yscale("log")
+    plot.set(xlabel="Time (s)", ylabel="Latency (ms)", alpha=0.5)
+    plot.axvline(x=5, linestyle="--", color="black", zorder=0)
+    plot.axvline(x=10, linestyle="--", color="black", zorder=0)
+    plot.get_figure().savefig("plots/scatter-clustered-delayed-partition.png")
+    if pdf_output:
+        plot.get_figure().savefig("plots/scatter-clustered-delayed-partition.pdf")
+
+def plot_latency_scatter_clustered_delayed_partition_error(data: pd.DataFrame, group_cols: List[str]):
+    print_header("plot latency scatter error")
+    data = data[data["target_throughput"] == clustered_throughput]
+    data = data[data["cluster_size"] == 3]
+    data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 10]
+    data = data[data["bench_target"] == "Leader"]
+    data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 5]
+    data = data[data["unpartition_after_s"] == 5]
+    data["start_s"] = data["start_ns"] / 1_000_000_000
+    start = data["start_s"].min()
+    end = data["start_s"].max()
+    high = data["latency_ms"].max()
+    data = data[data["success"] == False]
+    print(data.groupby(group_cols, dropna=False).count())
+    data = data.rename(columns={"bin_name": "datastore"})
+    plt.figure()
+    plot = sns.scatterplot(
+        data=data,
+        x="start_s",
+        y="latency_ms",
+        hue="error",
+    )
+    plt.yscale("log")
+    plot.set_xlim(-1, end + 1)
+    plot.set(xlabel="Time (s)", ylabel="Latency (ms)", alpha=0.5)
+    plot.axvline(x=5, linestyle="--", color="black", zorder=0)
+    plot.axvline(x=10, linestyle="--", color="black", zorder=0)
+    plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-error.png")
+    if pdf_output:
+        plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-error.pdf")
 
 def plot_latency_cdf_single_node(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot latency cdf")
@@ -754,6 +816,9 @@ def main():
     # plot_latency_cdf_single_node(data, group_cols)
     # plot_throughput_errorcount_single_node(data, group_cols)
     # plot_latency_scatter_single_node(data, group_cols)
+
+    plot_latency_scatter_clustered_delayed_partition(data, group_cols)
+    plot_latency_scatter_clustered_delayed_partition_error(data, group_cols)
 
     plot_latency_cdf_single_node_final(data, group_cols)
     plot_throughput_latency_box_single_final(data, group_cols)
