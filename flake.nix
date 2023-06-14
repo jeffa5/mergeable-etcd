@@ -55,6 +55,7 @@
           name = "${container-registry}/bencher";
           tag = "latest";
           contents = [
+            pkgs.iptables
             pkgs.iproute2 # for tc
             pkgs.busybox
             self.packages.${system}.bencher
@@ -67,6 +68,7 @@
           name = "${container-registry}/mergeable-etcd";
           tag = "latest";
           contents = [
+            pkgs.iptables
             pkgs.iproute2 # for tc
             pkgs.busybox
             self.packages.${system}.mergeable-etcd
@@ -78,6 +80,7 @@
           name = "${container-registry}/dismerge";
           tag = "latest";
           contents = [
+            pkgs.iptables
             pkgs.iproute2 # for tc
             pkgs.busybox
             self.packages.${system}.dismerge
@@ -89,6 +92,7 @@
           name = "${container-registry}/etcd";
           tag = "v${pkgs.etcd_3_5.version}";
           contents = [
+            pkgs.iptables
             pkgs.iproute2 # for tc
             pkgs.busybox
             pkgs.etcd_3_5
