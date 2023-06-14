@@ -15,6 +15,7 @@ def rm_file(path: str):
     if os.path.exists(path):
         os.remove(path)
 
+
 def print_header(name: str):
     width = 32
     print("=" * width, name, "=" * width)
@@ -31,6 +32,7 @@ def plot_etcd_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["target_throughput"] == 30_000]
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "Leader"]
+    data = data[data["partition_after_s"] == 0]
 
     print(data.groupby(group_cols, dropna=False).count())
     plt.figure()
@@ -49,6 +51,7 @@ def plot_comparison_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["delay_variation"] == 0.1]
+    data = data[data["partition_after_s"] == 0]
     print(data.groupby(group_cols, dropna=False).count())
     plt.figure()
     plot = sns.lineplot(data=data, x="cluster_size", y="latency_ms", hue="bin_name")
@@ -66,6 +69,7 @@ def plot_latency_comparison_clustered_final(data: pd.DataFrame, group_cols: List
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["delay_variation"] == 0.1]
+    data = data[data["partition_after_s"] == 0]
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
@@ -91,6 +95,7 @@ def plot_comparison_clustered_delayed(data: pd.DataFrame, group_cols: List[str])
     data = data[data["delay_ms"] == 10]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["delay_variation"] == 0.1]
+    data = data[data["partition_after_s"] == 0]
     print(data.groupby(group_cols, dropna=False).count())
     plt.figure()
     plot = sns.lineplot(data=data, x="cluster_size", y="latency_ms", hue="bin_name")
@@ -110,6 +115,7 @@ def plot_latency_comparison_clustered_delayed_final(
     data = data[data["delay_ms"] == 10]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["delay_variation"] == 0.1]
+    data = data[data["partition_after_s"] == 0]
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
@@ -135,6 +141,7 @@ def plot_latency_scatter_single_node(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 0]
     print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
         kind="scatter",
@@ -157,6 +164,7 @@ def plot_latency_scatter_clustered(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 0]
     print(data.groupby(group_cols, dropna=False).count())
     plot = sns.relplot(
         kind="scatter",
@@ -179,6 +187,7 @@ def plot_latency_scatter_clustered_delayed(data: pd.DataFrame, group_cols: List[
     data = data[data["delay_ms"] == 10]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 0]
     print(data.groupby(group_cols, dropna=False).count())
     plt.figure()
     plot = sns.relplot(
@@ -193,7 +202,42 @@ def plot_latency_scatter_clustered_delayed(data: pd.DataFrame, group_cols: List[
     if pdf_output:
         plot.savefig("plots/scatter-clustered-delayed.pdf")
 
-def plot_latency_scatter_clustered_delayed_partition(data: pd.DataFrame, group_cols: List[str]):
+
+def plot_latency_scatter_clustered_delayed_partition_etcd(
+    data: pd.DataFrame, group_cols: List[str]
+):
+    print_header("plot latency scatter")
+    data = data[data["target_throughput"] == clustered_throughput]
+    data = data[data["bin_name"] == "etcd"]
+    data = data[data["cluster_size"] == 3]
+    data = data[data["success"] == True]
+    data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 10]
+    data = data[data["bench_target"] == "Leader"]
+    data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 5]
+    data = data[data["unpartition_after_s"] == 5]
+    data["start_s"] = data["start_ns"] / 1_000_000_000
+    print(data.groupby(group_cols, dropna=False).count())
+    data = data.rename(columns={"bin_name": "datastore"})
+    plt.figure()
+    plot = sns.scatterplot(
+        data=data,
+        x="start_s",
+        y="latency_ms",
+    )
+    plt.yscale("log")
+    plot.set(xlabel="Time (s)", ylabel="Latency (ms)", alpha=0.5)
+    plot.axvline(x=5, linestyle="--", color="black", zorder=0)
+    plot.axvline(x=10, linestyle="--", color="black", zorder=0)
+    plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-etcd.png")
+    if pdf_output:
+        plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-etcd.pdf")
+
+
+def plot_latency_scatter_clustered_delayed_partition(
+    data: pd.DataFrame, group_cols: List[str]
+):
     print_header("plot latency scatter")
     data = data[data["target_throughput"] == clustered_throughput]
     data = data[data["cluster_size"] == 3]
@@ -222,7 +266,10 @@ def plot_latency_scatter_clustered_delayed_partition(data: pd.DataFrame, group_c
     if pdf_output:
         plot.get_figure().savefig("plots/scatter-clustered-delayed-partition.pdf")
 
-def plot_latency_scatter_clustered_delayed_partition_error(data: pd.DataFrame, group_cols: List[str]):
+
+def plot_latency_scatter_clustered_delayed_partition_error(
+    data: pd.DataFrame, group_cols: List[str]
+):
     print_header("plot latency scatter error")
     data = data[data["target_throughput"] == clustered_throughput]
     data = data[data["cluster_size"] == 3]
@@ -233,9 +280,7 @@ def plot_latency_scatter_clustered_delayed_partition_error(data: pd.DataFrame, g
     data = data[data["partition_after_s"] == 5]
     data = data[data["unpartition_after_s"] == 5]
     data["start_s"] = data["start_ns"] / 1_000_000_000
-    start = data["start_s"].min()
     end = data["start_s"].max()
-    high = data["latency_ms"].max()
     data = data[data["success"] == False]
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
@@ -255,6 +300,7 @@ def plot_latency_scatter_clustered_delayed_partition_error(data: pd.DataFrame, g
     if pdf_output:
         plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-error.pdf")
 
+
 def plot_latency_cdf_single_node(data: pd.DataFrame, group_cols: List[str]):
     print_header("plot latency cdf")
     data = data[data["cluster_size"] == 1]
@@ -263,6 +309,7 @@ def plot_latency_cdf_single_node(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 0]
     print(data.groupby(group_cols, dropna=False).count())
     plot = sns.displot(
         kind="ecdf",
@@ -285,6 +332,7 @@ def plot_latency_cdf_single_node_final(data: pd.DataFrame, group_cols: List[str]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["target_throughput"] == 10_000]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 0]
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
@@ -312,12 +360,13 @@ def plot_throughput_errors_box_single_final(data: pd.DataFrame, group_cols: List
         )
     ]
     data = data[data["error"].notna()]
+    data = data[data["partition_after_s"] == 0]
     grouped = data.groupby(group_cols, dropna=False)
     grouped = grouped["tmpfs"].count()
     counts = grouped.reset_index(name="error_count")
     counts = counts.rename(columns={"bin_name": "datastore"})
     print(data.groupby(group_cols, dropna=False).count())
-    if len(counts.index) == 0 :
+    if len(counts.index) == 0:
         print("Skipping plot")
         rm_file("plots/throughput-errors-box-clustered-final.png")
         rm_file("plots/throughput-errors-box-clustered-final.pdf")
@@ -347,12 +396,13 @@ def plot_throughput_errors_box_clustered_final(
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["error"].notna()]
+    data = data[data["partition_after_s"] == 0]
     grouped = data.groupby(group_cols, dropna=False)
     grouped = grouped["tmpfs"].count()
     counts = grouped.reset_index(name="error_count")
     counts = counts.rename(columns={"bin_name": "datastore"})
     print(data.groupby(group_cols, dropna=False).count())
-    if len(counts.index) == 0 :
+    if len(counts.index) == 0:
         print("Skipping plot")
         rm_file("plots/throughput-errors-box-clustered-final.png")
         rm_file("plots/throughput-errors-box-clustered-final.pdf")
@@ -382,12 +432,13 @@ def plot_throughput_errors_box_clustered_delay_final(
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["error"].notna()]
+    data = data[data["partition_after_s"] == 0]
     grouped = data.groupby(group_cols, dropna=False)
     grouped = grouped["tmpfs"].count()
     counts = grouped.reset_index(name="error_count")
     counts = counts.rename(columns={"bin_name": "datastore"})
     print(data.groupby(group_cols, dropna=False).count())
-    if len(counts.index) == 0 :
+    if len(counts.index) == 0:
         print("Skipping plot")
         rm_file("plots/throughput-errors-box-clustered-final.png")
         rm_file("plots/throughput-errors-box-clustered-final.pdf")
@@ -425,6 +476,8 @@ def plot_throughput_latency_box_single_final(data: pd.DataFrame, group_cols: Lis
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
+    if len(data.index) == 0:
+        return
     plot = sns.boxplot(
         data=data,
         x="target_throughput",
@@ -437,6 +490,37 @@ def plot_throughput_latency_box_single_final(data: pd.DataFrame, group_cols: Lis
     plot.get_figure().savefig("plots/throughput-latency-box-single-final.png")
     if pdf_output:
         plot.get_figure().savefig("plots/throughput-latency-box-single-final.pdf")
+
+
+def plot_throughput_latency_box_clustered_delay_etcd(
+    data: pd.DataFrame, group_cols: List[str]
+):
+    print_header("plot throughput latency box")
+    data = data[data["tmpfs"] == True]
+    data = data[data["bin_name"] == "etcd"]
+    data = data[data["success"] == True]
+    data = data[data["delay_ms"] == 10]
+    data = data[data["bench_target"] == "Leader"]
+    data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["target_throughput"] == clustered_throughput]
+    data = data[data["partition_after_s"] == 0]
+    print(data.groupby(group_cols, dropna=False).count())
+    plt.figure()
+    if len(data.index) == 0:
+        return
+    plot = sns.boxplot(
+        data=data,
+        x="cluster_size",
+        y="latency_ms",
+        showfliers=False,
+        whis=(1, 99),  # cover most data
+    )
+    plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
+    plot.get_figure().savefig("plots/throughput-latency-box-clustered-delayed-etcd.png")
+    if pdf_output:
+        plot.get_figure().savefig(
+            "plots/throughput-latency-box-clustered-delayed-etcd.pdf"
+        )
 
 
 def plot_throughput_latency_box_clustered_final(
@@ -452,6 +536,8 @@ def plot_throughput_latency_box_clustered_final(
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
+    if len(data.index) == 0:
+        return
     plot = sns.boxplot(
         data=data,
         x="cluster_size",
@@ -479,6 +565,8 @@ def plot_throughput_latency_box_clustered_all_nodes_final(
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
+    if len(data.index) == 0:
+        return
     plot = sns.boxplot(
         data=data,
         x="cluster_size",
@@ -488,9 +576,13 @@ def plot_throughput_latency_box_clustered_all_nodes_final(
         whis=(1, 99),  # cover most data
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
-    plot.get_figure().savefig("plots/throughput-latency-box-clustered-allnodes-final.png")
+    plot.get_figure().savefig(
+        "plots/throughput-latency-box-clustered-allnodes-final.png"
+    )
     if pdf_output:
-        plot.get_figure().savefig("plots/throughput-latency-box-clustered-allnodes-final.pdf")
+        plot.get_figure().savefig(
+            "plots/throughput-latency-box-clustered-allnodes-final.pdf"
+        )
 
 
 def plot_throughput_latency_box_clustered_delay_final(
@@ -506,6 +598,8 @@ def plot_throughput_latency_box_clustered_delay_final(
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
     plt.figure()
+    if len(data.index) == 0:
+        return
     plot = sns.boxplot(
         data=data,
         x="cluster_size",
@@ -573,6 +667,7 @@ def plot_throughput_latency_single_node(data: pd.DataFrame, group_cols: List[str
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
 
+    data = data[data["partition_after_s"] == 0]
     grouped = data.groupby(group_cols, dropna=False)
 
     latencies = grouped["latency_ms"].quantile(0.99)
@@ -600,6 +695,7 @@ def plot_throughput_goodput_single_node(data: pd.DataFrame, group_cols: List[str
     data = data[data["delay_ms"] == 0]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 0]
     grouped = data.groupby(group_cols, dropna=False)
     mins = grouped["start_ns"].min()
     maxs = grouped["end_ns"].max()
@@ -636,6 +732,7 @@ def plot_throughput_goodput_single_node_final(
             [5_000, 10_000, 15_000, 20_000, 25_000, 30_000, 35_000, 40_000]
         )
     ]
+    data = data[data["partition_after_s"] == 0]
     grouped = data.groupby(group_cols, dropna=False)
     mins = grouped["start_ns"].min()
     maxs = grouped["end_ns"].max()
@@ -647,6 +744,8 @@ def plot_throughput_goodput_single_node_final(
     print(data.groupby(group_cols, dropna=False).count())
     throughputs = throughputs.rename(columns={"bin_name": "datastore"})
     plt.figure()
+    if len(data.index) == 0:
+        return
     plot = sns.lineplot(
         data=throughputs,
         x="target_throughput",
@@ -673,6 +772,7 @@ def plot_throughput_goodput_clustered_node_final(
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
+    data = data[data["partition_after_s"] == 0]
     grouped = data.groupby(group_cols, dropna=False)
     mins = grouped["start_ns"].min()
     maxs = grouped["end_ns"].max()
@@ -684,6 +784,8 @@ def plot_throughput_goodput_clustered_node_final(
     print(data.groupby(group_cols, dropna=False).count())
     throughputs = throughputs.rename(columns={"bin_name": "datastore"})
     plt.figure()
+    if len(data.index) == 0:
+        return
     plot = sns.lineplot(
         data=throughputs,
         x="cluster_size",
@@ -710,6 +812,7 @@ def plot_throughput_goodput_clustered_node_delay_final(
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["target_throughput"] == clustered_throughput]
+    data = data[data["partition_after_s"] == 0]
     grouped = data.groupby(group_cols, dropna=False)
     mins = grouped["start_ns"].min()
     maxs = grouped["end_ns"].max()
@@ -721,6 +824,8 @@ def plot_throughput_goodput_clustered_node_delay_final(
     print(data.groupby(group_cols, dropna=False).count())
     throughputs = throughputs.rename(columns={"bin_name": "datastore"})
     plt.figure()
+    if len(data.index) == 0:
+        return
     plot = sns.lineplot(
         data=throughputs,
         x="cluster_size",
@@ -746,6 +851,7 @@ def plot_throughput_errorcount_single_node(data: pd.DataFrame, group_cols: List[
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["error"].notna()]
+    data = data[data["partition_after_s"] == 0]
     grouped = data.groupby(group_cols, dropna=False)
     grouped = grouped["tmpfs"].count()
     counts = grouped.reset_index(name="error_count")
@@ -803,6 +909,8 @@ def main():
     print(grouped["latency_ms"].quantile([0.9, 0.99]))
 
     plot_etcd_clustered(data, group_cols)
+    plot_throughput_latency_box_clustered_delay_etcd(data, group_cols)
+    plot_latency_scatter_clustered_delayed_partition_etcd(data, group_cols)
     # plot_comparison_clustered(data, group_cols)
     # plot_latency_scatter_clustered(data, group_cols)
     # plot_latency_cdf_clustered(data, group_cols)
