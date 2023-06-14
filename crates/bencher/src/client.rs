@@ -353,6 +353,13 @@ impl Dispatcher for EtcdYcsbDispatcher {
                         }
                         Err(error) => {
                             warn!(%error);
+                            let data = EtcdOutput {
+                                member_id: 0,
+                                raft_term: 0,
+                                key,
+                                endpoint: "put".to_owned(),
+                            };
+                            *output.data_mut() = data;
                             output.error(error.message().to_string());
                         }
                     };
@@ -389,6 +396,13 @@ impl Dispatcher for EtcdYcsbDispatcher {
                     }
                     Err(error) => {
                         warn!(%error);
+                        let data = EtcdOutput {
+                            member_id: 0,
+                            raft_term: 0,
+                            key,
+                            endpoint: "put".to_owned(),
+                        };
+                        *outputs[0].data_mut() = data;
                         outputs[0].error(error.message().to_string());
                     }
                 };
@@ -421,6 +435,13 @@ impl Dispatcher for EtcdYcsbDispatcher {
                     }
                     Err(error) => {
                         warn!(%error);
+                        let data = EtcdOutput {
+                            member_id: 0,
+                            raft_term: 0,
+                            key,
+                            endpoint: "read".to_owned(),
+                        };
+                        *outputs[0].data_mut() = data;
                         outputs[0].error(error.message().to_string());
                     }
                 };
@@ -453,6 +474,13 @@ impl Dispatcher for EtcdYcsbDispatcher {
                     }
                     Err(error) => {
                         warn!(%error);
+                        let data = EtcdOutput {
+                            member_id: 0,
+                            raft_term: 0,
+                            key,
+                            endpoint: "read".to_owned(),
+                        };
+                        *outputs[0].data_mut() = data;
                         outputs[0].error(error.message().to_string());
                     }
                 };
@@ -487,6 +515,13 @@ impl Dispatcher for EtcdYcsbDispatcher {
                     }
                     Err(error) => {
                         warn!(%error);
+                        let data = EtcdOutput {
+                            member_id: 0,
+                            raft_term: 0,
+                            key,
+                            endpoint: "range".to_owned(),
+                        };
+                        *outputs[0].data_mut() = data;
                         outputs[0].error(error.message().to_string());
                     }
                 };
@@ -538,6 +573,12 @@ impl Dispatcher for DismergeYcsbDispatcher {
                         }
                         Err(error) => {
                             warn!(%error);
+                            let data = DismergeOutput {
+                                member_id: 0,
+                                key,
+                                endpoint: "put".to_owned(),
+                            };
+                            *output.data_mut() = data;
                             output.error(error.message().to_string());
                         }
                     };
@@ -572,6 +613,12 @@ impl Dispatcher for DismergeYcsbDispatcher {
                     }
                     Err(error) => {
                         warn!(%error);
+                        let data = DismergeOutput {
+                            member_id: 0,
+                            key,
+                            endpoint: "put".to_owned(),
+                        };
+                        *outputs[0].data_mut() = data;
                         outputs[0].error(error.message().to_string());
                     }
                 };
@@ -602,6 +649,12 @@ impl Dispatcher for DismergeYcsbDispatcher {
                     }
                     Err(error) => {
                         warn!(%error);
+                        let data = DismergeOutput {
+                            member_id: 0,
+                            key,
+                            endpoint: "read".to_owned(),
+                        };
+                        *outputs[0].data_mut() = data;
                         outputs[0].error(error.message().to_string());
                     }
                 };
@@ -632,6 +685,12 @@ impl Dispatcher for DismergeYcsbDispatcher {
                     }
                     Err(error) => {
                         warn!(%error);
+                        let data = DismergeOutput {
+                            member_id: 0,
+                            key,
+                            endpoint: "read".to_owned(),
+                        };
+                        *outputs[0].data_mut() = data;
                         outputs[0].error(error.message().to_string());
                     }
                 };
@@ -664,6 +723,12 @@ impl Dispatcher for DismergeYcsbDispatcher {
                     }
                     Err(error) => {
                         warn!(%error);
+                        let data = DismergeOutput {
+                            member_id: 0,
+                            key,
+                            endpoint: "range".to_owned(),
+                        };
+                        *outputs[0].data_mut() = data;
                         outputs[0].error(error.message().to_string());
                     }
                 };
