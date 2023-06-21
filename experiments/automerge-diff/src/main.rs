@@ -47,10 +47,22 @@ impl exp::Experiment for Experiment {
         let mut csv_file = csv::Writer::from_path(config_dir.join("timings.csv")).unwrap();
 
         let mut doc = Automerge::new();
+
+        let mut txn = doc.transaction();
+        for key in 0..configuration.num_keys {
+            txn.put(
+                ROOT,
+                key.to_string(),
+                "0".repeat(configuration.value_length),
+            )
+            .unwrap();
+        }
+        txn.commit();
+
         let mut rng = rand::rngs::StdRng::seed_from_u64(configuration.seed);
         for _ in 0..configuration.num_changes {
             let num_keys_to_change: f64 =
-                rng.sample(Zipf::new(configuration.num_keys, 1.5).unwrap());
+                rng.sample(Zipf::new(configuration.num_keys, 1.0).unwrap());
             let num_keys_to_change = num_keys_to_change.round() as usize;
             let keys_to_change =
                 (0..configuration.num_keys).choose_multiple(&mut rng, num_keys_to_change);
