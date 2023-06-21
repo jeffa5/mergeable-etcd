@@ -6,6 +6,8 @@ use clap::Parser;
 use exp::{Environment, ExpResult, ExperimentConfiguration};
 use serde::{Deserialize, Serialize};
 use tokio::time::Instant;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::{filter::LevelFilter, fmt, util::SubscriberInitExt, EnvFilter};
 
 pub struct Experiment;
 
@@ -119,6 +121,14 @@ struct CliOptions {
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    let log_filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy();
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_ansi(true))
+        .with(log_filter)
+        .init();
+
     let opts = CliOptions::parse();
     if !opts.run && !opts.analyse {
         anyhow::bail!("Neither run nor analyse specified");
