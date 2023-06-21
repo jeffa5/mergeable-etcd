@@ -3,6 +3,7 @@ members = [
   "crates/*",
   "experiments/automerge-changes",
   "experiments/automerge-diff",
+  "experiments/automerge-sync",
   "experiments/bencher",
   # "experiments/clusterloader",
   # "experiments/etcd-bencher",

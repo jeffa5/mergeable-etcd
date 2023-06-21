@@ -244,7 +244,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 [[package]]
 name = "automerge"
 version = "0.4.1"
-source = "git+https://github.com/jeffa5/automerge?branch=cmp-heads#0b0048960c298cd5f2611f5bb54578b62d2886fb"
+source = "git+https://github.com/jeffa5/automerge?branch=cmp-heads#2ffe7932821a74276537e42f449c602c886aac47"
 dependencies = [
  "flate2",
  "fxhash",
@@ -1101,6 +1101,22 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "exp-automerge-sync"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "automerge",
+ "chrono",
+ "clap 4.3.4",
+ "csv",
+ "exp",
+ "serde",
+ "tokio",
+ "tracing-subscriber",
 ]
 
 [[package]]
