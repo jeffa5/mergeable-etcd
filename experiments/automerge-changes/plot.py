@@ -1,17 +1,44 @@
+import os
+from typing import List, Tuple
+
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
+plot_dir = "plots"
+
+default_fig_size = plt.rcParams["figure.figsize"]
+half_height_fig_size = [default_fig_size[0], default_fig_size[1] / 2.0]
+
+
+def min_max(data: List[int]) -> Tuple[int, int]:
+    minimum = np.min(data)
+    maximum = np.max(data)
+    return (minimum, maximum)
+
 
 def plot_latency(data: pd.DataFrame):
-    plot = sns.barplot(data=data, x="ops_per_change", y="time_ms", hue="time_for")
+    plt.figure(figsize=half_height_fig_size)
+    plot = sns.barplot(
+        data=data,
+        x="ops_per_change",
+        y="time_ms",
+        hue="time_for",
+        estimator=np.median,
+        errorbar=min_max,
+    )
     plot.set(xlabel="Operations per commit", ylabel="Duration (ms)")
     plt.legend(title="Processing time")
-    plot.get_figure().savefig("change_latency.png")
-    plot.get_figure().savefig("change_latency.pdf")
+    plt.tight_layout()
+    name = "change_latency"
+    figure = plot.get_figure()
+    figure.savefig(f"{plot_dir}/{name}.png")
+    figure.savefig(f"{plot_dir}/{name}.pdf")
 
 
 def main():
+    os.makedirs(plot_dir, exist_ok=True)
     data = pd.read_csv("results/timings.csv")
     # on_op = data["ns_on_ops_per_commit"]
     # on_commit = data["ns_on_commit_per_commit"]
