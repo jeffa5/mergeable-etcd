@@ -20,8 +20,9 @@ def min_max(data: List[int]) -> Tuple[int, int]:
 def plot_sizes_by_value(data: pd.DataFrame):
     plt.figure(figsize=half_height_fig_size)
     plot = sns.barplot(data=data, x="value_length", y="size_bytes", hue="size_type")
-    plot.set(xlabel="Size of values", ylabel="Size (bytes)")
-    plt.legend(title="Type of change")
+    plot.set(xlabel="Size of values (bytes)", ylabel="Size of diff (bytes)")
+    plt.legend(title="Type of diff")
+    plt.tight_layout()
     name = "change_size_by_value_size"
     figure = plot.get_figure()
     figure.savefig(f"{plot_dir}/{name}.png")
@@ -40,7 +41,8 @@ def plot_by_num_keys(data: pd.DataFrame):
         errorbar=min_max,
     )
     plot.set(xlabel="Number of keys changed", ylabel="Size (bytes)")
-    plt.legend(title="Type of change")
+    plt.legend(title="Type of diff")
+    plt.tight_layout()
     name = "change_size_by_num_keys"
     figure = plot.get_figure()
     figure.savefig(f"{plot_dir}/{name}.png")
