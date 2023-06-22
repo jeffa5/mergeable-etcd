@@ -105,6 +105,26 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
+    "exp-automerge-diff" = rec {
+      packageId = "exp-automerge-diff";
+      build = internal.buildRustCrateWithFeatures {
+        packageId = "exp-automerge-diff";
+      };
+
+      # Debug support which might change between releases.
+      # File a bug if you depend on any for non-debug work!
+      debug = internal.debugCrate { inherit packageId; };
+    };
+    "exp-automerge-sync" = rec {
+      packageId = "exp-automerge-sync";
+      build = internal.buildRustCrateWithFeatures {
+        packageId = "exp-automerge-sync";
+      };
+
+      # Debug support which might change between releases.
+      # File a bug if you depend on any for non-debug work!
+      debug = internal.debugCrate { inherit packageId; };
+    };
     "mergeable-etcd" = rec {
       packageId = "mergeable-etcd";
       build = internal.buildRustCrateWithFeatures {
@@ -185,6 +205,74 @@ rec {
           "default" = [ "std" ];
           "rustc-dep-of-std" = [ "core" "compiler_builtins" ];
         };
+      };
+      "ahash" = rec {
+        crateName = "ahash";
+        version = "0.8.3";
+        edition = "2018";
+        sha256 = "0bzcsxdl2wd6j2p4214qh9sqkqn69gi7f9lk1xi8yj063r6zd69c";
+        authors = [
+          "Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "cfg-if";
+            packageId = "cfg-if";
+          }
+          {
+            name = "getrandom";
+            packageId = "getrandom";
+            optional = true;
+          }
+          {
+            name = "once_cell";
+            packageId = "once_cell";
+            usesDefaultFeatures = false;
+            target = { target, features }: (!(("arm" == target."arch") && ("none" == target."os")));
+            features = [ "unstable" "alloc" ];
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "version_check";
+            packageId = "version_check";
+          }
+        ];
+        features = {
+          "atomic-polyfill" = [ "dep:atomic-polyfill" "once_cell/atomic-polyfill" ];
+          "compile-time-rng" = [ "const-random" ];
+          "const-random" = [ "dep:const-random" ];
+          "default" = [ "std" "runtime-rng" ];
+          "getrandom" = [ "dep:getrandom" ];
+          "runtime-rng" = [ "getrandom" ];
+          "serde" = [ "dep:serde" ];
+        };
+        resolvedDefaultFeatures = [ "default" "getrandom" "runtime-rng" "std" ];
+      };
+      "aho-corasick" = rec {
+        crateName = "aho-corasick";
+        version = "1.0.2";
+        edition = "2021";
+        sha256 = "0has59a3571irggpk5z8c0lpnx8kdx12qf4g2x0560i2y8dwpxj3";
+        libName = "aho_corasick";
+        authors = [
+          "Andrew Gallant <jamslam@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "memchr";
+            packageId = "memchr";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "default" = [ "std" "perf-literal" ];
+          "logging" = [ "dep:log" ];
+          "perf-literal" = [ "dep:memchr" ];
+          "std" = [ "memchr?/std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "perf-literal" "std" ];
       };
       "android-tzdata" = rec {
         crateName = "android-tzdata";
@@ -354,6 +442,37 @@ rec {
           "derive_arbitrary" = [ "dep:derive_arbitrary" ];
         };
       };
+      "argminmax" = rec {
+        crateName = "argminmax";
+        version = "0.6.1";
+        edition = "2021";
+        sha256 = "1lnvpkvdsvdbsinhik6srx5c2j3gqkaj92iz93pnbdr9cjs0h890";
+        authors = [
+          "Jeroen Van Der Donckt"
+        ];
+        dependencies = [
+          {
+            name = "num-traits";
+            packageId = "num-traits";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "arrow" = [ "dep:arrow" ];
+          "arrow2" = [ "dep:arrow2" ];
+          "default" = [ "nightly_simd" "float" ];
+          "half" = [ "dep:half" ];
+          "ndarray" = [ "dep:ndarray" ];
+        };
+        resolvedDefaultFeatures = [ "float" ];
+      };
+      "array-init-cursor" = rec {
+        crateName = "array-init-cursor";
+        version = "0.2.0";
+        edition = "2021";
+        sha256 = "0xpbqf7qkvzplpjd7f0wbcf2n1v9vygdccwxkd1amxp4il0hlzdz";
+
+      };
       "arrayref" = rec {
         crateName = "arrayref";
         version = "0.3.7";
@@ -366,9 +485,9 @@ rec {
       };
       "arrayvec" = rec {
         crateName = "arrayvec";
-        version = "0.7.2";
+        version = "0.7.3";
         edition = "2018";
-        sha256 = "1mjl8jjqxpl0x7sm9cij61cppi7yi38cdrd1l8zjw7h7qxk2v9cd";
+        sha256 = "17684msnzvh4nx064x4cqqijmimqv5lyajm7kl3qpa6fz2gz0s48";
         authors = [
           "bluss"
         ];
@@ -376,6 +495,238 @@ rec {
           "default" = [ "std" ];
           "serde" = [ "dep:serde" ];
         };
+      };
+      "arrow-format" = rec {
+        crateName = "arrow-format";
+        version = "0.8.1";
+        edition = "2018";
+        sha256 = "1irj67p6c224dzw86jr7j3z9r5zfid52gy6ml8rdqk4r2si4x207";
+        authors = [
+          "Jorge C. Leitao <jorgecarleitao@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "planus";
+            packageId = "planus";
+            optional = true;
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "derive" "std" ];
+          }
+        ];
+        features = {
+          "flight-data" = [ "prost" "prost-derive" ];
+          "flight-service" = [ "flight-data" "tonic" ];
+          "full" = [ "ipc" "flight-data" "flight-service" ];
+          "ipc" = [ "planus" "serde" ];
+          "planus" = [ "dep:planus" ];
+          "prost" = [ "dep:prost" ];
+          "prost-derive" = [ "dep:prost-derive" ];
+          "serde" = [ "dep:serde" ];
+          "tonic" = [ "dep:tonic" ];
+        };
+        resolvedDefaultFeatures = [ "default" "ipc" "planus" "serde" ];
+      };
+      "arrow2" = rec {
+        crateName = "arrow2";
+        version = "0.17.2";
+        edition = "2021";
+        sha256 = "14vhifq5qkxd1hnjdlh1x7rgw4bg5msjmlns59xivcwssql09bhm";
+        authors = [
+          "Jorge C. Leitao <jorgecarleitao@gmail.com>"
+          "Apache Arrow <dev@arrow.apache.org>"
+        ];
+        dependencies = [
+          {
+            name = "ahash";
+            packageId = "ahash";
+          }
+          {
+            name = "arrow-format";
+            packageId = "arrow-format";
+            optional = true;
+            features = [ "ipc" ];
+          }
+          {
+            name = "bytemuck";
+            packageId = "bytemuck";
+            features = [ "derive" ];
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "dyn-clone";
+            packageId = "dyn-clone";
+          }
+          {
+            name = "either";
+            packageId = "either";
+          }
+          {
+            name = "ethnum";
+            packageId = "ethnum";
+          }
+          {
+            name = "foreign_vec";
+            packageId = "foreign_vec";
+          }
+          {
+            name = "futures";
+            packageId = "futures";
+            optional = true;
+          }
+          {
+            name = "getrandom";
+            packageId = "getrandom";
+            target = { target, features }: (pkgs.rust.lib.toRustTarget stdenv.hostPlatform == "wasm32-unknown-unknown");
+            features = [ "js" ];
+          }
+          {
+            name = "hash_hasher";
+            packageId = "hash_hasher";
+          }
+          {
+            name = "lexical-core";
+            packageId = "lexical-core";
+            optional = true;
+          }
+          {
+            name = "lz4";
+            packageId = "lz4";
+            optional = true;
+          }
+          {
+            name = "multiversion";
+            packageId = "multiversion";
+            optional = true;
+          }
+          {
+            name = "num-traits";
+            packageId = "num-traits";
+          }
+          {
+            name = "regex";
+            packageId = "regex";
+            optional = true;
+          }
+          {
+            name = "regex-syntax";
+            packageId = "regex-syntax 0.6.29";
+            optional = true;
+          }
+          {
+            name = "simdutf8";
+            packageId = "simdutf8";
+          }
+          {
+            name = "strength_reduce";
+            packageId = "strength_reduce";
+            optional = true;
+          }
+          {
+            name = "zstd";
+            packageId = "zstd";
+            optional = true;
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "rustc_version";
+            packageId = "rustc_version";
+          }
+        ];
+        features = {
+          "arrow" = [ "arrow-buffer" "arrow-schema" "arrow-data" "arrow-array" ];
+          "arrow-array" = [ "dep:arrow-array" ];
+          "arrow-buffer" = [ "dep:arrow-buffer" ];
+          "arrow-data" = [ "dep:arrow-data" ];
+          "arrow-format" = [ "dep:arrow-format" ];
+          "arrow-schema" = [ "dep:arrow-schema" ];
+          "async-stream" = [ "dep:async-stream" ];
+          "avro-schema" = [ "dep:avro-schema" ];
+          "base64" = [ "dep:base64" ];
+          "benchmarks" = [ "rand" ];
+          "chrono-tz" = [ "dep:chrono-tz" ];
+          "comfy-table" = [ "dep:comfy-table" ];
+          "compute" = [ "compute_aggregate" "compute_arithmetics" "compute_bitwise" "compute_boolean" "compute_boolean_kleene" "compute_cast" "compute_comparison" "compute_concatenate" "compute_contains" "compute_filter" "compute_hash" "compute_if_then_else" "compute_length" "compute_like" "compute_limit" "compute_merge_sort" "compute_nullif" "compute_partition" "compute_regex_match" "compute_sort" "compute_substring" "compute_take" "compute_temporal" "compute_utf8" "compute_window" ];
+          "compute_aggregate" = [ "multiversion" ];
+          "compute_arithmetics" = [ "strength_reduce" ];
+          "compute_cast" = [ "lexical-core" "compute_take" ];
+          "compute_comparison" = [ "compute_take" "compute_boolean" ];
+          "compute_hash" = [ "multiversion" ];
+          "compute_like" = [ "regex" "regex-syntax" ];
+          "compute_merge_sort" = [ "itertools" "compute_sort" ];
+          "compute_nullif" = [ "compute_comparison" ];
+          "compute_partition" = [ "compute_sort" ];
+          "compute_regex_match" = [ "regex" ];
+          "compute_sort" = [ "compute_take" "hashbrown" ];
+          "compute_window" = [ "compute_concatenate" ];
+          "csv" = [ "dep:csv" ];
+          "csv-async" = [ "dep:csv-async" ];
+          "csv-core" = [ "dep:csv-core" ];
+          "fallible-streaming-iterator" = [ "dep:fallible-streaming-iterator" ];
+          "full" = [ "arrow" "io_odbc" "io_csv" "io_csv_async" "io_json" "io_ipc" "io_flight" "io_ipc_write_async" "io_ipc_read_async" "io_ipc_compression" "io_json_integration" "io_print" "io_parquet" "io_parquet_compression" "io_avro" "io_orc" "io_avro_compression" "io_avro_async" "regex" "regex-syntax" "compute" "chrono-tz" ];
+          "futures" = [ "dep:futures" ];
+          "hashbrown" = [ "dep:hashbrown" ];
+          "hex" = [ "dep:hex" ];
+          "indexmap" = [ "dep:indexmap" ];
+          "io_avro" = [ "avro-schema" "streaming-iterator" ];
+          "io_avro_async" = [ "avro-schema/async" ];
+          "io_avro_compression" = [ "avro-schema/compression" ];
+          "io_csv" = [ "io_csv_read" "io_csv_write" ];
+          "io_csv_async" = [ "io_csv_read_async" ];
+          "io_csv_read" = [ "csv" "lexical-core" ];
+          "io_csv_read_async" = [ "csv-async" "lexical-core" "futures" ];
+          "io_csv_write" = [ "csv-core" "streaming-iterator" "lexical-core" ];
+          "io_flight" = [ "io_ipc" "arrow-format/flight-data" ];
+          "io_ipc" = [ "arrow-format" ];
+          "io_ipc_compression" = [ "lz4" "zstd" ];
+          "io_ipc_read_async" = [ "io_ipc" "futures" "async-stream" ];
+          "io_ipc_write_async" = [ "io_ipc" "futures" ];
+          "io_json" = [ "io_json_read" "io_json_write" ];
+          "io_json_integration" = [ "hex" "serde" "serde_derive" "serde_json" "io_ipc" ];
+          "io_json_read" = [ "json-deserializer" "indexmap" "lexical-core" ];
+          "io_json_write" = [ "streaming-iterator" "fallible-streaming-iterator" "lexical-core" ];
+          "io_odbc" = [ "odbc-api" ];
+          "io_orc" = [ "orc-format" ];
+          "io_parquet" = [ "parquet2" "io_ipc" "base64" "futures" "streaming-iterator" "fallible-streaming-iterator" ];
+          "io_parquet_bloom_filter" = [ "parquet2/bloom_filter" ];
+          "io_parquet_brotli" = [ "parquet2/brotli" ];
+          "io_parquet_compression" = [ "io_parquet_zstd" "io_parquet_gzip" "io_parquet_snappy" "io_parquet_lz4" "io_parquet_brotli" ];
+          "io_parquet_gzip" = [ "parquet2/gzip" ];
+          "io_parquet_lz4" = [ "parquet2/lz4" ];
+          "io_parquet_lz4_flex" = [ "parquet2/lz4_flex" ];
+          "io_parquet_snappy" = [ "parquet2/snappy" ];
+          "io_parquet_zstd" = [ "parquet2/zstd" ];
+          "io_print" = [ "comfy-table" ];
+          "itertools" = [ "dep:itertools" ];
+          "json-deserializer" = [ "dep:json-deserializer" ];
+          "lexical-core" = [ "dep:lexical-core" ];
+          "lz4" = [ "dep:lz4" ];
+          "multiversion" = [ "dep:multiversion" ];
+          "odbc-api" = [ "dep:odbc-api" ];
+          "orc-format" = [ "dep:orc-format" ];
+          "parquet2" = [ "dep:parquet2" ];
+          "rand" = [ "dep:rand" ];
+          "regex" = [ "dep:regex" ];
+          "regex-syntax" = [ "dep:regex-syntax" ];
+          "serde" = [ "dep:serde" ];
+          "serde_derive" = [ "dep:serde_derive" ];
+          "serde_json" = [ "dep:serde_json" ];
+          "serde_types" = [ "serde" "serde_derive" ];
+          "streaming-iterator" = [ "dep:streaming-iterator" ];
+          "strength_reduce" = [ "dep:strength_reduce" ];
+          "zstd" = [ "dep:zstd" ];
+        };
+        resolvedDefaultFeatures = [ "arrow-format" "compute_aggregate" "compute_arithmetics" "compute_boolean" "compute_boolean_kleene" "compute_cast" "compute_comparison" "compute_concatenate" "compute_filter" "compute_if_then_else" "compute_like" "compute_substring" "compute_take" "compute_temporal" "futures" "io_ipc" "io_ipc_compression" "io_ipc_write_async" "lexical-core" "lz4" "multiversion" "regex" "regex-syntax" "strength_reduce" "zstd" ];
       };
       "async-channel" = rec {
         crateName = "async-channel";
@@ -477,6 +828,27 @@ rec {
         ];
 
       };
+      "atoi" = rec {
+        crateName = "atoi";
+        version = "2.0.0";
+        edition = "2021";
+        sha256 = "0a05h42fggmy7h0ajjv6m7z72l924i7igbx13hk9d8pyign9k3gj";
+        authors = [
+          "Markus Klein"
+        ];
+        dependencies = [
+          {
+            name = "num-traits";
+            packageId = "num-traits";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "std" = [ "num-traits/std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
       "atty" = rec {
         crateName = "atty";
         version = "0.2.14";
@@ -523,8 +895,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge";
-          rev = "0b0048960c298cd5f2611f5bb54578b62d2886fb";
-          sha256 = "186cimq8zc0d595da04yx134s50i31i69q7mj4idp5izd5xpp035";
+          rev = "2ffe7932821a74276537e42f449c602c886aac47";
+          sha256 = "1ciy2f6kqv5m1dd8liawkxpkn7dx2rx8w8fwii6vm4yq74pbsnmw";
         };
         dependencies = [
           {
@@ -1042,7 +1414,7 @@ rec {
           }
           {
             name = "clap";
-            packageId = "clap 4.3.2";
+            packageId = "clap 4.3.4";
             features = [ "derive" ];
           }
           {
@@ -1191,6 +1563,11 @@ rec {
             packageId = "mergeable-proto";
           }
           {
+            name = "polars";
+            packageId = "polars";
+            features = [ "lazy" "diagonal_concat" ];
+          }
+          {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
@@ -1232,9 +1609,9 @@ rec {
       };
       "blake3" = rec {
         crateName = "blake3";
-        version = "1.3.3";
-        edition = "2018";
-        sha256 = "1vyckzpfq46dkxyvy12gkx4nddr5g93alh38i1ka8i4mm1l29bj2";
+        version = "1.4.0";
+        edition = "2021";
+        sha256 = "125qcm12vxk5pgx3r9gp2kzag7h6p7434pdqhr61mynkbgrp36vj";
         authors = [
           "Jack O'Connor <oconnor663@gmail.com>"
           "Samuel Neves"
@@ -1455,6 +1832,53 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
+      "bytemuck" = rec {
+        crateName = "bytemuck";
+        version = "1.13.1";
+        edition = "2018";
+        sha256 = "1sifp93886b552fwbywmp5f4gysar7z62mhh4y8dh5gxhkkbrzhp";
+        authors = [
+          "Lokathor <zefria@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "bytemuck_derive";
+            packageId = "bytemuck_derive";
+            optional = true;
+          }
+        ];
+        features = {
+          "bytemuck_derive" = [ "dep:bytemuck_derive" ];
+          "derive" = [ "bytemuck_derive" ];
+          "extern_crate_std" = [ "extern_crate_alloc" ];
+        };
+        resolvedDefaultFeatures = [ "bytemuck_derive" "derive" ];
+      };
+      "bytemuck_derive" = rec {
+        crateName = "bytemuck_derive";
+        version = "1.4.1";
+        edition = "2018";
+        sha256 = "14m18wy2rd6k7bjs56695x00wm9k1a900mmkw5n71gcysaf5rppx";
+        procMacro = true;
+        authors = [
+          "Lokathor <zefria@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 2.0.18";
+          }
+        ];
+
+      };
       "byteorder" = rec {
         crateName = "byteorder";
         version = "1.4.3";
@@ -1492,10 +1916,18 @@ rec {
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
+        dependencies = [
+          {
+            name = "jobserver";
+            packageId = "jobserver";
+            optional = true;
+          }
+        ];
         features = {
           "jobserver" = [ "dep:jobserver" ];
           "parallel" = [ "jobserver" ];
         };
+        resolvedDefaultFeatures = [ "jobserver" "parallel" ];
       };
       "cfg-if" = rec {
         crateName = "cfg-if";
@@ -1663,12 +2095,12 @@ rec {
         };
         resolvedDefaultFeatures = [ "atty" "clap_derive" "color" "default" "derive" "once_cell" "std" "strsim" "suggestions" "termcolor" ];
       };
-      "clap 4.3.2" = rec {
+      "clap 4.3.4" = rec {
         crateName = "clap";
-        version = "4.3.2";
+        version = "4.3.4";
         edition = "2021";
         crateBin = [];
-        sha256 = "1hp96vc7bcb5333zdkgx8nb0hhj8ikj4vnb7d1xm74mzsaa4c6j0";
+        sha256 = "1v89msygp7aw2k3g86w4r4g0kda3xm3lxpczrwakl9r0vf8j0rw0";
         dependencies = [
           {
             name = "clap_builder";
@@ -1710,9 +2142,9 @@ rec {
       };
       "clap_builder" = rec {
         crateName = "clap_builder";
-        version = "4.3.1";
+        version = "4.3.4";
         edition = "2021";
-        sha256 = "1039fs47i33k0c7ds1n6vijkj3s1fjrvrm2p3qhsyvd774rlyfbj";
+        sha256 = "0dknq88v3q4791gsl1b22hqz9a0zbkjhrdkspgz2l7hfyhfqlif1";
         dependencies = [
           {
             name = "anstream";
@@ -1847,6 +2279,43 @@ rec {
         sha256 = "1ix7w85kwvyybwi2jdkl3yva2r2bvdcc3ka2grjfzfgrapqimgxc";
 
       };
+      "comfy-table" = rec {
+        crateName = "comfy-table";
+        version = "6.2.0";
+        edition = "2021";
+        sha256 = "1fmqjhry6xa6a9kr0769wiw06694n60kxs5c6nfvzqv8h9w9v5by";
+        authors = [
+          "Arne Beer <contact@arne.beer>"
+        ];
+        dependencies = [
+          {
+            name = "crossterm";
+            packageId = "crossterm";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "strum";
+            packageId = "strum";
+          }
+          {
+            name = "strum_macros";
+            packageId = "strum_macros";
+          }
+          {
+            name = "unicode-width";
+            packageId = "unicode-width";
+          }
+        ];
+        features = {
+          "console" = [ "dep:console" ];
+          "crossterm" = [ "dep:crossterm" ];
+          "custom_styling" = [ "console" ];
+          "default" = [ "tty" ];
+          "tty" = [ "crossterm" ];
+        };
+        resolvedDefaultFeatures = [ "crossterm" "tty" ];
+      };
       "concurrent-queue" = rec {
         crateName = "concurrent-queue";
         version = "2.2.0";
@@ -1908,13 +2377,14 @@ rec {
       };
       "constant_time_eq" = rec {
         crateName = "constant_time_eq";
-        version = "0.2.5";
+        version = "0.2.6";
         edition = "2021";
-        sha256 = "0sy7bs12dfa2d5hw7759b0mvjqcs85giajg4qyg39xq8a1s8wh8k";
+        sha256 = "1mhshq5qzdbqq5d8sp695kf5rnh47kydqlsv87kpg0r89l53r991";
         authors = [
           "Cesar Eduardo Barros <cesarb@cesarb.eti.br>"
         ];
-
+        features = {
+        };
       };
       "core-foundation" = rec {
         crateName = "core-foundation";
@@ -2058,9 +2528,9 @@ rec {
       };
       "crossbeam-epoch" = rec {
         crateName = "crossbeam-epoch";
-        version = "0.9.14";
+        version = "0.9.15";
         edition = "2018";
-        sha256 = "15anryfq33mhxnlw95ajixnzznxays3gpvaas6lraci7hlzmzga6";
+        sha256 = "1ixwc3cq816wb8rlh3ix4jnybqbyyq4l61nwlx0mfm3ck0s148df";
         dependencies = [
           {
             name = "cfg-if";
@@ -2073,7 +2543,7 @@ rec {
           }
           {
             name = "memoffset";
-            packageId = "memoffset 0.8.0";
+            packageId = "memoffset 0.9.0";
           }
           {
             name = "scopeguard";
@@ -2098,9 +2568,9 @@ rec {
       };
       "crossbeam-utils" = rec {
         crateName = "crossbeam-utils";
-        version = "0.8.15";
+        version = "0.8.16";
         edition = "2018";
-        sha256 = "0jwq8srmjcwvq9q883k9zyb26qqznaj4jjqdxmvw7xcmrkc3q1iw";
+        sha256 = "153j0gikblz7n7qdvdi8pslhi008s1yp9cmny6vw07ad7pbb48js";
         dependencies = [
           {
             name = "cfg-if";
@@ -2112,6 +2582,84 @@ rec {
           "loom" = [ "dep:loom" ];
         };
         resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "crossterm" = rec {
+        crateName = "crossterm";
+        version = "0.26.1";
+        edition = "2021";
+        sha256 = "04rxvmbf3scywy0m7rhg586lf833vpb33czijxi80fakadkxlk58";
+        authors = [
+          "T. Post"
+        ];
+        dependencies = [
+          {
+            name = "bitflags";
+            packageId = "bitflags";
+          }
+          {
+            name = "crossterm_winapi";
+            packageId = "crossterm_winapi";
+            target = { target, features }: (target."windows" or false);
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+            target = { target, features }: (target."unix" or false);
+          }
+          {
+            name = "mio";
+            packageId = "mio";
+            target = { target, features }: (target."unix" or false);
+            features = [ "os-poll" ];
+          }
+          {
+            name = "parking_lot";
+            packageId = "parking_lot 0.12.1";
+          }
+          {
+            name = "signal-hook";
+            packageId = "signal-hook";
+            target = { target, features }: (target."unix" or false);
+          }
+          {
+            name = "signal-hook-mio";
+            packageId = "signal-hook-mio";
+            target = { target, features }: (target."unix" or false);
+            features = [ "support-v0_8" ];
+          }
+          {
+            name = "winapi";
+            packageId = "winapi";
+            target = { target, features }: (target."windows" or false);
+            features = [ "winuser" "winerror" ];
+          }
+        ];
+        features = {
+          "default" = [ "bracketed-paste" ];
+          "event-stream" = [ "futures-core" ];
+          "filedescriptor" = [ "dep:filedescriptor" ];
+          "futures-core" = [ "dep:futures-core" ];
+          "serde" = [ "dep:serde" ];
+          "use-dev-tty" = [ "filedescriptor" ];
+        };
+      };
+      "crossterm_winapi" = rec {
+        crateName = "crossterm_winapi";
+        version = "0.9.1";
+        edition = "2018";
+        sha256 = "0axbfb2ykbwbpf1hmxwpawwfs8wvmkcka5m561l7yp36ldi7rpdc";
+        authors = [
+          "T. Post"
+        ];
+        dependencies = [
+          {
+            name = "winapi";
+            packageId = "winapi";
+            target = { target, features }: (target."windows" or false);
+            features = [ "winbase" "consoleapi" "processenv" "handleapi" "synchapi" "impl-default" ];
+          }
+        ];
+
       };
       "crypto-common" = rec {
         crateName = "crypto-common";
@@ -2410,7 +2958,7 @@ rec {
           }
           {
             name = "clap";
-            packageId = "clap 4.3.2";
+            packageId = "clap 4.3.4";
             features = [ "derive" ];
           }
           {
@@ -2537,7 +3085,7 @@ rec {
           }
           {
             name = "clap";
-            packageId = "clap 4.3.2";
+            packageId = "clap 4.3.4";
             features = [ "derive" ];
           }
           {
@@ -2659,6 +3207,16 @@ rec {
           "no-panic" = [ "dep:no-panic" ];
         };
       };
+      "dyn-clone" = rec {
+        crateName = "dyn-clone";
+        version = "1.0.11";
+        edition = "2018";
+        sha256 = "0c7wjwkcsk1sxx98pl4azbn0g1xmdff75fqfs0yf8c0j5w0wzc38";
+        authors = [
+          "David Tolnay <dtolnay@gmail.com>"
+        ];
+
+      };
       "either" = rec {
         crateName = "either";
         version = "1.8.1";
@@ -2710,6 +3268,36 @@ rec {
           "simd-accel" = [ "packed_simd" "packed_simd/into_bits" ];
         };
         resolvedDefaultFeatures = [ "alloc" "default" ];
+      };
+      "enum_dispatch" = rec {
+        crateName = "enum_dispatch";
+        version = "0.3.11";
+        edition = "2018";
+        sha256 = "1qlxlxjvy92s0fwcwlnd2cdkkyml1755xap2lq8v4812hsanxwqi";
+        procMacro = true;
+        authors = [
+          "Anton Lazarev <https://antonok.com>"
+        ];
+        dependencies = [
+          {
+            name = "once_cell";
+            packageId = "once_cell";
+          }
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 1.0.109";
+            features = [ "full" ];
+          }
+        ];
+
       };
       "errno" = rec {
         crateName = "errno";
@@ -2809,6 +3397,22 @@ rec {
         ];
 
       };
+      "ethnum" = rec {
+        crateName = "ethnum";
+        version = "1.3.2";
+        edition = "2021";
+        sha256 = "010w5k5ri2k5500igvp3zb48z0sfjwfb5jvsvkg303wf0z8bk601";
+        authors = [
+          "Nicholas Rodrigues Lordello <nlordell@gmail.com>"
+        ];
+        features = {
+          "ethnum-intrinsics" = [ "dep:ethnum-intrinsics" ];
+          "ethnum-macros" = [ "dep:ethnum-macros" ];
+          "llvm-intrinsics" = [ "ethnum-intrinsics" ];
+          "macros" = [ "ethnum-macros" ];
+          "serde" = [ "dep:serde" ];
+        };
+      };
       "event-listener" = rec {
         crateName = "event-listener";
         version = "2.5.3";
@@ -2826,8 +3430,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/exp";
-          rev = "89f92a6c8691d445403492b1ca37dcab0c66ce29";
-          sha256 = "1gyj6kra4v452mrc16z72jfgxj24fg01kbh4530j21ld24l80d5x";
+          rev = "230d5d852e6bddab01de490bb688cd03a0561cae";
+          sha256 = "1pzny2mjwc1ggk7591183yfizzacc8jkcz1s8f98mhbcqayxpps4";
         };
         authors = [
           "Andrew Jeffery <dev@jeffas.io>"
@@ -2877,7 +3481,7 @@ rec {
           }
           {
             name = "sysinfo";
-            packageId = "sysinfo";
+            packageId = "sysinfo 0.28.4";
           }
           {
             name = "thiserror";
@@ -2930,7 +3534,7 @@ rec {
           }
           {
             name = "clap";
-            packageId = "clap 4.3.2";
+            packageId = "clap 4.3.4";
             features = [ "derive" ];
           }
           {
@@ -2951,8 +3555,161 @@ rec {
             packageId = "tokio";
             features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
           }
+          {
+            name = "tracing-subscriber";
+            packageId = "tracing-subscriber";
+            features = [ "env-filter" ];
+          }
         ];
 
+      };
+      "exp-automerge-diff" = rec {
+        crateName = "exp-automerge-diff";
+        version = "0.1.0";
+        edition = "2021";
+        crateBin = [
+          {
+            name = "exp-automerge-diff";
+            path = "src/main.rs";
+            requiredFeatures = [ ];
+          }
+        ];
+        # We can't filter paths with references in Nix 2.4
+        # See https://github.com/NixOS/nix/issues/5410
+        src = if ((lib.versionOlder builtins.nixVersion "2.4pre20211007") || (lib.versionOlder "2.5" builtins.nixVersion ))
+          then lib.cleanSourceWith { filter = sourceFilter;  src = ./experiments/automerge-diff; }
+          else ./experiments/automerge-diff;
+        dependencies = [
+          {
+            name = "anyhow";
+            packageId = "anyhow";
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "automerge";
+            packageId = "automerge";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+          }
+          {
+            name = "clap";
+            packageId = "clap 4.3.4";
+            features = [ "derive" ];
+          }
+          {
+            name = "csv";
+            packageId = "csv";
+          }
+          {
+            name = "exp";
+            packageId = "exp";
+          }
+          {
+            name = "rand";
+            packageId = "rand 0.8.5";
+          }
+          {
+            name = "rand_distr";
+            packageId = "rand_distr";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
+          }
+        ];
+
+      };
+      "exp-automerge-sync" = rec {
+        crateName = "exp-automerge-sync";
+        version = "0.1.0";
+        edition = "2021";
+        crateBin = [
+          {
+            name = "exp-automerge-sync";
+            path = "src/main.rs";
+            requiredFeatures = [ ];
+          }
+        ];
+        # We can't filter paths with references in Nix 2.4
+        # See https://github.com/NixOS/nix/issues/5410
+        src = if ((lib.versionOlder builtins.nixVersion "2.4pre20211007") || (lib.versionOlder "2.5" builtins.nixVersion ))
+          then lib.cleanSourceWith { filter = sourceFilter;  src = ./experiments/automerge-sync; }
+          else ./experiments/automerge-sync;
+        dependencies = [
+          {
+            name = "anyhow";
+            packageId = "anyhow";
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "automerge";
+            packageId = "automerge";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+          }
+          {
+            name = "clap";
+            packageId = "clap 4.3.4";
+            features = [ "derive" ];
+          }
+          {
+            name = "csv";
+            packageId = "csv";
+          }
+          {
+            name = "exp";
+            packageId = "exp";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
+          }
+          {
+            name = "tracing-subscriber";
+            packageId = "tracing-subscriber";
+            features = [ "env-filter" ];
+          }
+        ];
+
+      };
+      "fast-float" = rec {
+        crateName = "fast-float";
+        version = "0.2.0";
+        edition = "2018";
+        sha256 = "0g7kfll3xyh99kc7r352lhljnwvgayxxa6saifb6725inikmyxlm";
+        authors = [
+          "Ivan Smirnov <i.s.smirnov@gmail.com>"
+        ];
+        features = {
+          "default" = [ "std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "fastrand" = rec {
         crateName = "fastrand";
@@ -3074,6 +3831,16 @@ rec {
         sha256 = "0jxgzd04ra4imjv8jgkmdq59kj8fsz6w4zxsbmlai34h26225c00";
         authors = [
           "Steven Fackler <sfackler@gmail.com>"
+        ];
+
+      };
+      "foreign_vec" = rec {
+        crateName = "foreign_vec";
+        version = "0.1.0";
+        edition = "2021";
+        sha256 = "0wv6p8yfahcqbdg2wg7wxgj4dm32g2b6spa5sg5sxg34v35ha6zf";
+        authors = [
+          "Jorge C. Leitao <jorgecarleitao@gmail.com>"
         ];
 
       };
@@ -3449,9 +4216,9 @@ rec {
       };
       "getrandom" = rec {
         crateName = "getrandom";
-        version = "0.2.9";
+        version = "0.2.10";
         edition = "2018";
-        sha256 = "1r6p47dd9f9cgiwlxmksammbfwnhsv5hjkhd0kjsgnzanad1spn8";
+        sha256 = "09zlimhhskzf7cmgcszix05wyz2i6fcpvh711cv1klsxl6r3chdy";
         authors = [
           "The Rand Project Developers"
         ];
@@ -3459,6 +4226,12 @@ rec {
           {
             name = "cfg-if";
             packageId = "cfg-if";
+          }
+          {
+            name = "js-sys";
+            packageId = "js-sys";
+            optional = true;
+            target = { target, features }: ((("wasm32" == target."arch") || ("wasm64" == target."arch")) && ("unknown" == target."os"));
           }
           {
             name = "libc";
@@ -3472,6 +4245,13 @@ rec {
             usesDefaultFeatures = false;
             target = { target, features }: ("wasi" == target."os");
           }
+          {
+            name = "wasm-bindgen";
+            packageId = "wasm-bindgen";
+            optional = true;
+            usesDefaultFeatures = false;
+            target = { target, features }: ((("wasm32" == target."arch") || ("wasm64" == target."arch")) && ("unknown" == target."os"));
+          }
         ];
         features = {
           "compiler_builtins" = [ "dep:compiler_builtins" ];
@@ -3481,7 +4261,17 @@ rec {
           "rustc-dep-of-std" = [ "compiler_builtins" "core" "libc/rustc-dep-of-std" "wasi/rustc-dep-of-std" ];
           "wasm-bindgen" = [ "dep:wasm-bindgen" ];
         };
-        resolvedDefaultFeatures = [ "std" ];
+        resolvedDefaultFeatures = [ "js" "js-sys" "std" "wasm-bindgen" ];
+      };
+      "glob" = rec {
+        crateName = "glob";
+        version = "0.3.1";
+        edition = "2015";
+        sha256 = "16zca52nglanv23q5qrwd5jinw3d3as5ylya6y1pbx47vkxvrynj";
+        authors = [
+          "The Rust Project Developers"
+        ];
+
       };
       "h2" = rec {
         crateName = "h2";
@@ -3556,7 +4346,17 @@ rec {
         features = {
         };
       };
-      "hashbrown" = rec {
+      "hash_hasher" = rec {
+        crateName = "hash_hasher";
+        version = "2.0.3";
+        edition = "2018";
+        sha256 = "034cd4m3znwff3cd1i54c40944y999jz086d70rwpl0jfl01swkl";
+        authors = [
+          "Fraser Hutchison <fraser.hutchison@maidsafe.net>"
+        ];
+
+      };
+      "hashbrown 0.12.3" = rec {
         crateName = "hashbrown";
         version = "0.12.3";
         edition = "2021";
@@ -3577,6 +4377,46 @@ rec {
           "serde" = [ "dep:serde" ];
         };
         resolvedDefaultFeatures = [ "raw" ];
+      };
+      "hashbrown 0.13.2" = rec {
+        crateName = "hashbrown";
+        version = "0.13.2";
+        edition = "2021";
+        sha256 = "03ji3n19j4b6mf2wlla81vsixcmlivglp6hgk79d1pcxfcrw38s3";
+        authors = [
+          "Amanieu d'Antras <amanieu@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "ahash";
+            packageId = "ahash";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "rayon";
+            packageId = "rayon";
+            optional = true;
+          }
+        ];
+        devDependencies = [
+          {
+            name = "rayon";
+            packageId = "rayon";
+          }
+        ];
+        features = {
+          "ahash" = [ "dep:ahash" ];
+          "alloc" = [ "dep:alloc" ];
+          "bumpalo" = [ "dep:bumpalo" ];
+          "compiler_builtins" = [ "dep:compiler_builtins" ];
+          "core" = [ "dep:core" ];
+          "default" = [ "ahash" "inline-more" ];
+          "rayon" = [ "dep:rayon" ];
+          "rustc-dep-of-std" = [ "nightly" "core" "compiler_builtins" "alloc" "rustc-internal-api" ];
+          "serde" = [ "dep:serde" ];
+        };
+        resolvedDefaultFeatures = [ "ahash" "default" "inline-more" "rayon" ];
       };
       "heck" = rec {
         crateName = "heck";
@@ -3667,6 +4507,24 @@ rec {
           "std" = [ "alloc" ];
         };
         resolvedDefaultFeatures = [ "alloc" "default" "std" ];
+      };
+      "home" = rec {
+        crateName = "home";
+        version = "0.5.5";
+        edition = "2018";
+        sha256 = "1nqx1krijvpd03d96avsdyknd12h8hs3xhxwgqghf8v9xxzc4i2l";
+        authors = [
+          "Brian Anderson <andersrb@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "windows-sys";
+            packageId = "windows-sys 0.48.0";
+            target = { target, features }: (target."windows" or false);
+            features = [ "Win32_Foundation" "Win32_UI_Shell" ];
+          }
+        ];
+
       };
       "http" = rec {
         crateName = "http";
@@ -3986,9 +4844,9 @@ rec {
       };
       "iana-time-zone" = rec {
         crateName = "iana-time-zone";
-        version = "0.1.56";
+        version = "0.1.57";
         edition = "2018";
-        sha256 = "0z7ky37i5f5djwv7mlkgnjny885v1dm4b9bydqqh9pmp2iqws8h7";
+        sha256 = "04yn5npa008fqd2y6qd3y3bmyqjpd4fyiwq6sa5v7lj2b215pb9g";
         authors = [
           "Andrew Straw <strawman@astraw.com>"
           "René Kijewski <rene.kijewski@fu-berlin.de>"
@@ -4092,7 +4950,7 @@ rec {
         dependencies = [
           {
             name = "hashbrown";
-            packageId = "hashbrown";
+            packageId = "hashbrown 0.12.3";
             usesDefaultFeatures = false;
             features = [ "raw" ];
           }
@@ -4318,11 +5176,28 @@ rec {
           "no-panic" = [ "dep:no-panic" ];
         };
       };
+      "jobserver" = rec {
+        crateName = "jobserver";
+        version = "0.1.26";
+        edition = "2018";
+        sha256 = "1hkprvh1zp5s3qwjjwwhw7rcpivczcbf6q60rcxr0m8158hzsv4k";
+        authors = [
+          "Alex Crichton <alex@alexcrichton.com>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+            target = { target, features }: (target."unix" or false);
+          }
+        ];
+
+      };
       "js-sys" = rec {
         crateName = "js-sys";
-        version = "0.3.63";
+        version = "0.3.64";
         edition = "2018";
-        sha256 = "145ps5ajv0xx4xa8w35kxp83f41sc73v6s7f3m8aq4c3jajs8drg";
+        sha256 = "0nlkiwpm8dyqcf1xyc6qmrankcgdd3fpzc0qyfq2sw3z97z9bwf5";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -4360,11 +5235,274 @@ rec {
         features = {
         };
       };
+      "lexical" = rec {
+        crateName = "lexical";
+        version = "6.1.1";
+        edition = "2018";
+        sha256 = "1xk8g6k17ml0sjyx388qck9zqhxjfyzjqx1l6c0ggzj3zlvgpbn7";
+        authors = [
+          "Alex Huszagh <ahuszagh@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "lexical-core";
+            packageId = "lexical-core";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "compact" = [ "lexical-core/compact" ];
+          "default" = [ "std" "write-integers" "write-floats" "parse-integers" "parse-floats" ];
+          "f128" = [ "lexical-core/f128" ];
+          "f16" = [ "lexical-core/f16" ];
+          "format" = [ "lexical-core/format" ];
+          "lint" = [ "lexical-core/lint" ];
+          "nightly" = [ "lexical-core/nightly" ];
+          "parse-floats" = [ "lexical-core/parse-floats" "parse" "floats" ];
+          "parse-integers" = [ "lexical-core/parse-integers" "parse" "integers" ];
+          "power-of-two" = [ "lexical-core/power-of-two" ];
+          "radix" = [ "lexical-core/radix" ];
+          "std" = [ "lexical-core/std" ];
+          "write-floats" = [ "lexical-core/write-floats" "write" "floats" ];
+          "write-integers" = [ "lexical-core/write-integers" "write" "integers" ];
+        };
+        resolvedDefaultFeatures = [ "integers" "parse" "parse-integers" "std" ];
+      };
+      "lexical-core" = rec {
+        crateName = "lexical-core";
+        version = "0.8.5";
+        edition = "2018";
+        sha256 = "0ihf0x3vrk25fq3bv9q35m0xax0wmvwkh0j0pjm2yk4ddvh5vpic";
+        authors = [
+          "Alex Huszagh <ahuszagh@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "lexical-parse-float";
+            packageId = "lexical-parse-float";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "lexical-parse-integer";
+            packageId = "lexical-parse-integer";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "lexical-util";
+            packageId = "lexical-util";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "lexical-write-float";
+            packageId = "lexical-write-float";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "lexical-write-integer";
+            packageId = "lexical-write-integer";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "compact" = [ "lexical-write-integer/compact" "lexical-write-float/compact" "lexical-parse-integer/compact" "lexical-parse-float/compact" ];
+          "default" = [ "std" "write-integers" "write-floats" "parse-integers" "parse-floats" ];
+          "f128" = [ "lexical-util/f128" "lexical-parse-float/f128" "lexical-write-float/f128" ];
+          "f16" = [ "lexical-util/f16" "lexical-parse-float/f16" "lexical-write-float/f16" ];
+          "format" = [ "lexical-util/format" "lexical-parse-integer/format" "lexical-parse-float/format" "lexical-write-integer/format" "lexical-write-float/format" ];
+          "lexical-parse-float" = [ "dep:lexical-parse-float" ];
+          "lexical-parse-integer" = [ "dep:lexical-parse-integer" ];
+          "lexical-write-float" = [ "dep:lexical-write-float" ];
+          "lexical-write-integer" = [ "dep:lexical-write-integer" ];
+          "lint" = [ "lexical-util/lint" "lexical-write-integer/lint" "lexical-write-float/lint" "lexical-parse-integer/lint" "lexical-parse-float/lint" ];
+          "nightly" = [ "lexical-write-integer/nightly" "lexical-write-float/nightly" "lexical-parse-integer/nightly" "lexical-parse-float/nightly" ];
+          "parse-floats" = [ "lexical-parse-float" "parse" "floats" ];
+          "parse-integers" = [ "lexical-parse-integer" "parse" "integers" ];
+          "power-of-two" = [ "lexical-util/power-of-two" "lexical-write-integer/power-of-two" "lexical-write-float/power-of-two" "lexical-parse-integer/power-of-two" "lexical-parse-float/power-of-two" ];
+          "radix" = [ "lexical-util/radix" "lexical-write-integer/radix" "lexical-write-float/radix" "lexical-parse-integer/radix" "lexical-parse-float/radix" ];
+          "safe" = [ "lexical-write-integer/safe" "lexical-write-float/safe" "lexical-parse-integer/safe" "lexical-parse-float/safe" ];
+          "std" = [ "lexical-util/std" "lexical-write-integer/std" "lexical-write-float/std" "lexical-parse-integer/std" "lexical-parse-float/std" ];
+          "write-floats" = [ "lexical-write-float" "write" "floats" ];
+          "write-integers" = [ "lexical-write-integer" "write" "integers" ];
+        };
+        resolvedDefaultFeatures = [ "default" "floats" "integers" "lexical-parse-float" "lexical-parse-integer" "lexical-write-float" "lexical-write-integer" "parse" "parse-floats" "parse-integers" "std" "write" "write-floats" "write-integers" ];
+      };
+      "lexical-parse-float" = rec {
+        crateName = "lexical-parse-float";
+        version = "0.8.5";
+        edition = "2018";
+        sha256 = "0py0gp8hlzcrlvjqmqlpl2v1as65iiqxq2xsabxvhc01pmg3lfv8";
+        authors = [
+          "Alex Huszagh <ahuszagh@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "lexical-parse-integer";
+            packageId = "lexical-parse-integer";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "lexical-util";
+            packageId = "lexical-util";
+            usesDefaultFeatures = false;
+            features = [ "parse-floats" ];
+          }
+          {
+            name = "static_assertions";
+            packageId = "static_assertions";
+          }
+        ];
+        features = {
+          "compact" = [ "lexical-util/compact" "lexical-parse-integer/compact" ];
+          "default" = [ "std" ];
+          "f128" = [ "lexical-util/f128" ];
+          "f16" = [ "lexical-util/f16" ];
+          "format" = [ "lexical-util/format" "lexical-parse-integer/format" ];
+          "lint" = [ "lexical-util/lint" "lexical-parse-integer/lint" ];
+          "nightly" = [ "lexical-parse-integer/nightly" ];
+          "power-of-two" = [ "lexical-util/power-of-two" "lexical-parse-integer/power-of-two" ];
+          "radix" = [ "lexical-util/radix" "lexical-parse-integer/radix" "power-of-two" ];
+          "safe" = [ "lexical-parse-integer/safe" ];
+          "std" = [ "lexical-util/std" "lexical-parse-integer/std" ];
+        };
+        resolvedDefaultFeatures = [ "std" ];
+      };
+      "lexical-parse-integer" = rec {
+        crateName = "lexical-parse-integer";
+        version = "0.8.6";
+        edition = "2018";
+        sha256 = "1sayji3mpvb2xsjq56qcq3whfz8px9a6fxk5v7v15hyhbr4982bd";
+        authors = [
+          "Alex Huszagh <ahuszagh@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "lexical-util";
+            packageId = "lexical-util";
+            usesDefaultFeatures = false;
+            features = [ "parse-integers" ];
+          }
+          {
+            name = "static_assertions";
+            packageId = "static_assertions";
+          }
+        ];
+        features = {
+          "compact" = [ "lexical-util/compact" ];
+          "default" = [ "std" ];
+          "format" = [ "lexical-util/format" ];
+          "lint" = [ "lexical-util/lint" ];
+          "power-of-two" = [ "lexical-util/power-of-two" ];
+          "radix" = [ "lexical-util/radix" "power-of-two" ];
+          "std" = [ "lexical-util/std" ];
+        };
+        resolvedDefaultFeatures = [ "std" ];
+      };
+      "lexical-util" = rec {
+        crateName = "lexical-util";
+        version = "0.8.5";
+        edition = "2018";
+        sha256 = "1z73qkv7yxhsbc4aiginn1dqmsj8jarkrdlyxc88g2gz2vzvjmaj";
+        authors = [
+          "Alex Huszagh <ahuszagh@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "static_assertions";
+            packageId = "static_assertions";
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "f128" = [ "floats" ];
+          "f16" = [ "floats" ];
+          "parse-floats" = [ "parse" "floats" ];
+          "parse-integers" = [ "parse" "integers" ];
+          "radix" = [ "power-of-two" ];
+          "write-floats" = [ "write" "floats" ];
+          "write-integers" = [ "write" "integers" ];
+        };
+        resolvedDefaultFeatures = [ "floats" "integers" "parse" "parse-floats" "parse-integers" "std" "write" "write-floats" "write-integers" ];
+      };
+      "lexical-write-float" = rec {
+        crateName = "lexical-write-float";
+        version = "0.8.5";
+        edition = "2018";
+        sha256 = "0qk825l0csvnksh9sywb51996cjc2bylq6rxjaiha7sqqjhvmjmc";
+        authors = [
+          "Alex Huszagh <ahuszagh@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "lexical-util";
+            packageId = "lexical-util";
+            usesDefaultFeatures = false;
+            features = [ "write-floats" ];
+          }
+          {
+            name = "lexical-write-integer";
+            packageId = "lexical-write-integer";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "static_assertions";
+            packageId = "static_assertions";
+          }
+        ];
+        features = {
+          "compact" = [ "lexical-util/compact" "lexical-write-integer/compact" ];
+          "default" = [ "std" ];
+          "f128" = [ "lexical-util/f128" ];
+          "f16" = [ "lexical-util/f16" ];
+          "format" = [ "lexical-util/format" ];
+          "lint" = [ "lexical-util/lint" "lexical-write-integer/lint" ];
+          "nightly" = [ "lexical-write-integer/nightly" ];
+          "power-of-two" = [ "lexical-util/power-of-two" "lexical-write-integer/power-of-two" ];
+          "radix" = [ "lexical-util/radix" "lexical-write-integer/radix" "power-of-two" ];
+          "safe" = [ "lexical-write-integer/safe" ];
+          "std" = [ "lexical-util/std" "lexical-write-integer/std" ];
+        };
+        resolvedDefaultFeatures = [ "std" ];
+      };
+      "lexical-write-integer" = rec {
+        crateName = "lexical-write-integer";
+        version = "0.8.5";
+        edition = "2018";
+        sha256 = "0ii4hmvqrg6pd4j9y1pkhkp0nw2wpivjzmljh6v6ca22yk8z7dp1";
+        authors = [
+          "Alex Huszagh <ahuszagh@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "lexical-util";
+            packageId = "lexical-util";
+            usesDefaultFeatures = false;
+            features = [ "write-integers" ];
+          }
+          {
+            name = "static_assertions";
+            packageId = "static_assertions";
+          }
+        ];
+        features = {
+          "compact" = [ "lexical-util/compact" ];
+          "default" = [ "std" ];
+          "format" = [ "lexical-util/format" ];
+          "lint" = [ "lexical-util/lint" ];
+          "power-of-two" = [ "lexical-util/power-of-two" ];
+          "radix" = [ "lexical-util/radix" "power-of-two" ];
+          "std" = [ "lexical-util/std" ];
+        };
+        resolvedDefaultFeatures = [ "std" ];
+      };
       "libc" = rec {
         crateName = "libc";
-        version = "0.2.145";
+        version = "0.2.146";
         edition = "2015";
-        sha256 = "10bazars21ky514f16njnd754372l07bav7gyjw64ml4zziwv1pw";
+        sha256 = "16zjlz5admbg62bxncyf770dka7qalq2mq59ca44kz8k7j9y8azr";
         authors = [
           "The Rust Project Developers"
         ];
@@ -4452,9 +5590,9 @@ rec {
       };
       "log" = rec {
         crateName = "log";
-        version = "0.4.18";
+        version = "0.4.19";
         edition = "2015";
-        sha256 = "1pni3kp7hxqa45890sf5kc1qbzgyv0b4r122n4b5jdl75xpzg3ji";
+        sha256 = "1d0442jg89rc56lyrj6vaz74i5bqvvwfzqw2cx21l9qg9kg4qsmh";
         authors = [
           "The Rust Project Developers"
         ];
@@ -4469,6 +5607,53 @@ rec {
           "value-bag" = [ "dep:value-bag" ];
         };
         resolvedDefaultFeatures = [ "std" ];
+      };
+      "lz4" = rec {
+        crateName = "lz4";
+        version = "1.24.0";
+        edition = "2018";
+        crateBin = [];
+        sha256 = "1wad97k0asgvaj16ydd09gqs2yvgaanzcvqglrhffv7kdpc2v7ky";
+        authors = [
+          "Jens Heyens <jens.heyens@ewetel.net>"
+          "Artem V. Navrotskiy <bozaro@buzzsoft.ru>"
+          "Patrick Marks <pmarks@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+          {
+            name = "lz4-sys";
+            packageId = "lz4-sys";
+          }
+        ];
+
+      };
+      "lz4-sys" = rec {
+        crateName = "lz4-sys";
+        version = "1.9.4";
+        edition = "2015";
+        sha256 = "0059ik4xlvnss5qfh6l691psk4g3350ljxaykzv10yr0gqqppljp";
+        authors = [
+          "Jens Heyens <jens.heyens@ewetel.net>"
+          "Artem V. Navrotskiy <bozaro@buzzsoft.ru>"
+          "Patrick Marks <pmarks@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "cc";
+            packageId = "cc";
+          }
+        ];
+
       };
       "matchers" = rec {
         crateName = "matchers";
@@ -4517,6 +5702,26 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
+      "memmap2" = rec {
+        crateName = "memmap2";
+        version = "0.5.10";
+        edition = "2018";
+        sha256 = "09xk415fxyl4a9pgby4im1v2gqlb5lixpm99dczkk30718na9yl3";
+        authors = [
+          "Dan Burkert <dan@danburkert.com>"
+          "Yevhenii Reizner <razrfalcon@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+            target = { target, features }: (target."unix" or false);
+          }
+        ];
+        features = {
+          "stable_deref_trait" = [ "dep:stable_deref_trait" ];
+        };
+      };
       "memoffset 0.6.5" = rec {
         crateName = "memoffset";
         version = "0.6.5";
@@ -4535,11 +5740,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "memoffset 0.8.0" = rec {
+      "memoffset 0.9.0" = rec {
         crateName = "memoffset";
-        version = "0.8.0";
+        version = "0.9.0";
         edition = "2015";
-        sha256 = "1qcdic88dhgw76pafgndpz04pig8il4advq978mxdxdwrydp276n";
+        sha256 = "0v20ihhdzkfw1jx00a7zjpk2dcp5qjq6lz302nyqamd9c4f4nqss";
         authors = [
           "Gilad Naaman <gilad.naaman@gmail.com>"
         ];
@@ -4605,7 +5810,7 @@ rec {
           }
           {
             name = "clap";
-            packageId = "clap 4.3.2";
+            packageId = "clap 4.3.4";
             features = [ "derive" ];
           }
           {
@@ -4890,6 +6095,11 @@ rec {
             target = { target, features }: (target."unix" or false);
           }
           {
+            name = "log";
+            packageId = "log";
+            optional = true;
+          }
+          {
             name = "wasi";
             packageId = "wasi 0.11.0+wasi-snapshot-preview1";
             target = { target, features }: ("wasi" == target."os");
@@ -4906,7 +6116,7 @@ rec {
           "log" = [ "dep:log" ];
           "os-ext" = [ "os-poll" "windows-sys/Win32_System_Pipes" "windows-sys/Win32_Security" ];
         };
-        resolvedDefaultFeatures = [ "net" "os-ext" "os-poll" ];
+        resolvedDefaultFeatures = [ "default" "log" "net" "os-ext" "os-poll" ];
       };
       "multimap" = rec {
         crateName = "multimap";
@@ -4921,6 +6131,64 @@ rec {
           "serde" = [ "dep:serde" ];
           "serde_impl" = [ "serde" ];
         };
+      };
+      "multiversion" = rec {
+        crateName = "multiversion";
+        version = "0.7.2";
+        edition = "2021";
+        sha256 = "1l9b8swj5mw7xi4z138rx62agfzb9g1dcbmz574w4i2ivvd4bnlc";
+        authors = [
+          "Caleb Zulawski <caleb.zulawski@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "multiversion-macros";
+            packageId = "multiversion-macros";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "target-features";
+            packageId = "target-features";
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "std" = [ "multiversion-macros/std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "multiversion-macros" = rec {
+        crateName = "multiversion-macros";
+        version = "0.7.2";
+        edition = "2021";
+        sha256 = "1q86qg8w343f98lay6jljmprfs3aqvl7rj88rqfvd627pp6gvgq4";
+        procMacro = true;
+        authors = [
+          "Caleb Zulawski <caleb.zulawski@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 1.0.109";
+            features = [ "full" "extra-traits" "visit-mut" ];
+          }
+          {
+            name = "target-features";
+            packageId = "target-features";
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+        };
+        resolvedDefaultFeatures = [ "std" ];
       };
       "native-tls" = rec {
         crateName = "native-tls";
@@ -5039,6 +6307,24 @@ rec {
         };
         resolvedDefaultFeatures = [ "acct" "aio" "default" "dir" "env" "event" "feature" "fs" "hostname" "inotify" "ioctl" "kmod" "memoffset" "mman" "mount" "mqueue" "net" "personality" "poll" "process" "pthread" "ptrace" "quota" "reboot" "resource" "sched" "signal" "socket" "term" "time" "ucontext" "uio" "user" "zerocopy" ];
       };
+      "now" = rec {
+        crateName = "now";
+        version = "0.1.3";
+        edition = "2018";
+        sha256 = "1l135786rb43rjfhwfdj7hi3b5zxxyl9gwf15yjz18cp8f3yk2bd";
+        authors = [
+          "Kilerd <blove694@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "chrono";
+            packageId = "chrono";
+            usesDefaultFeatures = false;
+            features = [ "clock" "std" ];
+          }
+        ];
+
+      };
       "ntapi" = rec {
         crateName = "ntapi";
         version = "0.4.1";
@@ -5113,7 +6399,7 @@ rec {
           "default" = [ "std" ];
           "libm" = [ "dep:libm" ];
         };
-        resolvedDefaultFeatures = [ "libm" ];
+        resolvedDefaultFeatures = [ "default" "libm" "std" ];
       };
       "num_cpus" = rec {
         crateName = "num_cpus";
@@ -5153,7 +6439,7 @@ rec {
           "parking_lot" = [ "dep:parking_lot_core" ];
           "std" = [ "alloc" ];
         };
-        resolvedDefaultFeatures = [ "alloc" "default" "race" "std" ];
+        resolvedDefaultFeatures = [ "alloc" "default" "race" "std" "unstable" ];
       };
       "openssl" = rec {
         crateName = "openssl";
@@ -5275,9 +6561,9 @@ rec {
       };
       "os_str_bytes" = rec {
         crateName = "os_str_bytes";
-        version = "6.5.0";
+        version = "6.5.1";
         edition = "2021";
-        sha256 = "0rz2711gl575ng6vm9a97q42wqnf4wk1165wn221jb8gn17z9vff";
+        sha256 = "1b1yrz32030z2xz3r1ybwyvd98ip8sww4vgr5smfjkhp9fqrwpad";
         authors = [
           "dylni"
         ];
@@ -5604,6 +6890,1283 @@ rec {
         ];
 
       };
+      "planus" = rec {
+        crateName = "planus";
+        version = "0.3.1";
+        edition = "2021";
+        sha256 = "17x8mr175b9clg998xpi5z45f9fsspb0ncfnx2644bz817fr25pw";
+        dependencies = [
+          {
+            name = "array-init-cursor";
+            packageId = "array-init-cursor";
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "polars" = rec {
+        crateName = "polars";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "043x76dcnz3a8y4zg69a257m3qv1g7v86md54y2im2zcyisvwr64";
+        authors = [
+          "ritchie46 <ritchie46@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "getrandom";
+            packageId = "getrandom";
+            target = { target, features }: (builtins.elem "wasm" target."family");
+            features = [ "js" ];
+          }
+          {
+            name = "polars-core";
+            packageId = "polars-core";
+            usesDefaultFeatures = false;
+            features = [ "docs" "private" ];
+          }
+          {
+            name = "polars-io";
+            packageId = "polars-io";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "private" ];
+          }
+          {
+            name = "polars-lazy";
+            packageId = "polars-lazy";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "private" ];
+          }
+          {
+            name = "polars-ops";
+            packageId = "polars-ops";
+          }
+          {
+            name = "polars-sql";
+            packageId = "polars-sql";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "polars-time";
+            packageId = "polars-time";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "version_check";
+            packageId = "version_check";
+          }
+        ];
+        features = {
+          "abs" = [ "polars-core/abs" "polars-lazy/abs" ];
+          "algo" = [ "polars-algo" ];
+          "approx_unique" = [ "polars-lazy/approx_unique" "polars-ops/approx_unique" ];
+          "arange" = [ "polars-lazy/arange" ];
+          "arg_where" = [ "polars-lazy/arg_where" ];
+          "asof_join" = [ "polars-core/asof_join" "polars-lazy/asof_join" "polars-ops/asof_join" ];
+          "async" = [ "polars-lazy/async" ];
+          "avro" = [ "polars-io" "polars-io/avro" ];
+          "avx512" = [ "polars-core/avx512" ];
+          "aws" = [ "async" "polars-io/aws" ];
+          "azure" = [ "async" "polars-io/azure" ];
+          "bench" = [ "lazy" ];
+          "bigidx" = [ "polars-core/bigidx" "polars-lazy/bigidx" "polars-ops/big_idx" ];
+          "binary_encoding" = [ "polars-ops/binary_encoding" ];
+          "checked_arithmetic" = [ "polars-core/checked_arithmetic" ];
+          "chunked_ids" = [ "polars-core/chunked_ids" "polars-lazy/chunked_ids" "polars-core/chunked_ids" ];
+          "coalesce" = [ "polars-lazy/coalesce" ];
+          "concat_str" = [ "polars-core/concat_str" "polars-lazy/concat_str" ];
+          "cross_join" = [ "polars-core/cross_join" "polars-lazy/cross_join" "polars-ops/cross_join" ];
+          "cse" = [ "polars-lazy/cse" ];
+          "csv" = [ "polars-io" "polars-io/csv" "polars-lazy/csv" "polars-sql/csv" ];
+          "cum_agg" = [ "polars-core/cum_agg" "polars-core/cum_agg" ];
+          "cumulative_eval" = [ "polars-lazy/cumulative_eval" ];
+          "dataframe_arithmetic" = [ "polars-core/dataframe_arithmetic" ];
+          "date_offset" = [ "polars-lazy/date_offset" ];
+          "decompress" = [ "polars-io/decompress" ];
+          "decompress-fast" = [ "polars-io/decompress-fast" ];
+          "default" = [ "docs" "zip_with" "csv" "temporal" "fmt" "dtype-slim" ];
+          "describe" = [ "polars-core/describe" ];
+          "diagonal_concat" = [ "polars-core/diagonal_concat" "polars-lazy/diagonal_concat" ];
+          "diff" = [ "polars-core/diff" "polars-lazy/diff" "polars-ops/diff" ];
+          "docs" = [ "polars-core/docs" ];
+          "docs-selection" = [ "csv" "json" "parquet" "ipc" "ipc_streaming" "dtype-full" "is_in" "rows" "docs" "strings" "object" "lazy" "temporal" "random" "zip_with" "round_series" "checked_arithmetic" "ndarray" "repeat_by" "is_first" "is_last" "asof_join" "cross_join" "concat_str" "string_from_radix" "decompress" "mode" "take_opt_iter" "cum_agg" "rolling_window" "interpolate" "diff" "rank" "arange" "diagonal_concat" "horizontal_concat" "abs" "dot_diagram" "string_encoding" "product" "to_dummies" "describe" "list_eval" "cumulative_eval" "timezones" "arg_where" "propagate_nans" "coalesce" "dynamic_groupby" ];
+          "dot_diagram" = [ "polars-lazy/dot_diagram" ];
+          "dot_product" = [ "polars-core/dot_product" ];
+          "dtype-array" = [ "polars-core/dtype-array" "polars-lazy/dtype-array" "polars-ops/dtype-array" ];
+          "dtype-categorical" = [ "polars-core/dtype-categorical" "polars-io/dtype-categorical" "polars-lazy/dtype-categorical" "polars-ops/dtype-categorical" ];
+          "dtype-date" = [ "polars-core/dtype-date" "polars-lazy/dtype-date" "polars-io/dtype-date" "polars-time/dtype-date" "polars-core/dtype-date" "polars-ops/dtype-date" ];
+          "dtype-datetime" = [ "polars-core/dtype-datetime" "polars-lazy/dtype-datetime" "polars-io/dtype-datetime" "polars-time/dtype-datetime" "polars-ops/dtype-datetime" ];
+          "dtype-decimal" = [ "polars-core/dtype-decimal" "polars-lazy/dtype-decimal" "polars-ops/dtype-decimal" ];
+          "dtype-duration" = [ "polars-core/dtype-duration" "polars-lazy/dtype-duration" "polars-time/dtype-duration" "polars-core/dtype-duration" "polars-ops/dtype-duration" ];
+          "dtype-full" = [ "dtype-date" "dtype-datetime" "dtype-duration" "dtype-time" "dtype-array" "dtype-i8" "dtype-i16" "dtype-decimal" "dtype-u8" "dtype-u16" "dtype-categorical" "dtype-struct" ];
+          "dtype-i16" = [ "polars-core/dtype-i16" "polars-lazy/dtype-i16" "polars-ops/dtype-i16" ];
+          "dtype-i8" = [ "polars-core/dtype-i8" "polars-lazy/dtype-i8" "polars-ops/dtype-i8" ];
+          "dtype-slim" = [ "dtype-date" "dtype-datetime" "dtype-duration" ];
+          "dtype-struct" = [ "polars-core/dtype-struct" "polars-lazy/dtype-struct" "polars-ops/dtype-struct" "polars-io/dtype-struct" ];
+          "dtype-time" = [ "polars-core/dtype-time" "polars-io/dtype-time" "polars-time/dtype-time" "polars-ops/dtype-time" ];
+          "dtype-u16" = [ "polars-core/dtype-u16" "polars-lazy/dtype-u16" "polars-ops/dtype-u16" ];
+          "dtype-u8" = [ "polars-core/dtype-u8" "polars-lazy/dtype-u8" "polars-ops/dtype-u8" ];
+          "dynamic_groupby" = [ "polars-core/dynamic_groupby" "polars-lazy/dynamic_groupby" ];
+          "ewma" = [ "polars-core/ewma" "polars-lazy/ewma" ];
+          "extract_jsonpath" = [ "polars-core/strings" "polars-ops/extract_jsonpath" "polars-ops/strings" ];
+          "fmt" = [ "polars-core/fmt" ];
+          "fmt_no_tty" = [ "polars-core/fmt_no_tty" ];
+          "fused" = [ "polars-ops/fused" "polars-lazy/fused" ];
+          "gcp" = [ "async" "polars-io/gcp" ];
+          "groupby_list" = [ "polars-core/groupby_list" ];
+          "horizontal_concat" = [ "polars-core/horizontal_concat" ];
+          "interpolate" = [ "polars-ops/interpolate" "polars-lazy/interpolate" ];
+          "ipc" = [ "polars-io" "polars-io/ipc" "polars-lazy/ipc" "polars-sql/ipc" ];
+          "ipc_streaming" = [ "polars-io" "polars-io/ipc_streaming" "polars-lazy/ipc" ];
+          "is_first" = [ "polars-lazy/is_first" "polars-ops/is_first" ];
+          "is_in" = [ "polars-core/is_in" "polars-lazy/is_in" ];
+          "is_last" = [ "polars-core/is_last" ];
+          "is_unique" = [ "polars-lazy/is_unique" "polars-ops/is_unique" ];
+          "json" = [ "polars-io" "polars-io/json" "polars-lazy/json" "polars-sql/json" ];
+          "lazy" = [ "polars-core/lazy" "polars-lazy" "polars-lazy/compile" ];
+          "lazy_regex" = [ "polars-lazy/regex" ];
+          "list_count" = [ "polars-ops/list_count" "polars-lazy/list_count" ];
+          "list_eval" = [ "polars-lazy/list_eval" ];
+          "list_take" = [ "polars-ops/list_take" "polars-lazy/list_take" ];
+          "list_to_struct" = [ "polars-ops/list_to_struct" "polars-lazy/list_to_struct" ];
+          "log" = [ "polars-ops/log" "polars-lazy/log" ];
+          "merge_sorted" = [ "polars-lazy/merge_sorted" ];
+          "meta" = [ "polars-lazy/meta" ];
+          "mode" = [ "polars-core/mode" "polars-lazy/mode" ];
+          "moment" = [ "polars-core/moment" "polars-lazy/moment" "polars-ops/moment" ];
+          "ndarray" = [ "polars-core/ndarray" ];
+          "nightly" = [ "polars-core/nightly" "polars-ops/nightly" "simd" ];
+          "object" = [ "polars-core/object" "polars-lazy/object" "polars-io/object" ];
+          "parquet" = [ "polars-io" "polars-core/parquet" "polars-lazy/parquet" "polars-io/parquet" "polars-sql/parquet" ];
+          "partition_by" = [ "polars-core/partition_by" ];
+          "pct_change" = [ "polars-core/pct_change" "polars-lazy/pct_change" ];
+          "performant" = [ "polars-core/performant" "chunked_ids" "dtype-u8" "dtype-u16" "dtype-struct" "cse" "polars-ops/performant" "streaming" "fused" ];
+          "pivot" = [ "polars-lazy/pivot" ];
+          "polars-algo" = [ "dep:polars-algo" ];
+          "polars-io" = [ "dep:polars-io" ];
+          "polars-lazy" = [ "dep:polars-lazy" ];
+          "polars-sql" = [ "dep:polars-sql" ];
+          "polars-time" = [ "dep:polars-time" ];
+          "private" = [ "polars-lazy/private" "polars-core/private" "polars-time/private" "polars-sql/private" ];
+          "product" = [ "polars-core/product" ];
+          "propagate_nans" = [ "polars-lazy/propagate_nans" ];
+          "random" = [ "polars-core/random" "polars-lazy/random" ];
+          "rank" = [ "polars-core/rank" "polars-lazy/rank" ];
+          "reinterpret" = [ "polars-core/reinterpret" ];
+          "repeat_by" = [ "polars-core/repeat_by" "polars-lazy/repeat_by" ];
+          "rolling_window" = [ "polars-core/rolling_window" "polars-lazy/rolling_window" "polars-time/rolling_window" ];
+          "round_series" = [ "polars-core/round_series" "polars-lazy/round_series" "polars-ops/round_series" ];
+          "row_hash" = [ "polars-core/row_hash" "polars-lazy/row_hash" ];
+          "rows" = [ "polars-core/rows" ];
+          "search_sorted" = [ "polars-lazy/search_sorted" ];
+          "semi_anti_join" = [ "polars-core/semi_anti_join" "polars-lazy/semi_anti_join" "polars-ops/semi_anti_join" ];
+          "serde" = [ "polars-core/serde" ];
+          "serde-lazy" = [ "polars-core/serde-lazy" "polars-lazy/serde" "polars-time/serde" "polars-io/serde" "polars-ops/serde" ];
+          "sign" = [ "polars-lazy/sign" ];
+          "simd" = [ "polars-core/simd" "polars-io/simd" "polars-ops/simd" ];
+          "sort_multiple" = [ "polars-core/sort_multiple" ];
+          "sql" = [ "polars-sql" ];
+          "streaming" = [ "polars-lazy/streaming" ];
+          "string_encoding" = [ "polars-ops/string_encoding" "polars-core/strings" ];
+          "string_from_radix" = [ "polars-lazy/string_from_radix" "polars-ops/string_from_radix" ];
+          "string_justify" = [ "polars-lazy/string_justify" "polars-ops/string_justify" ];
+          "strings" = [ "polars-core/strings" "polars-lazy/strings" "polars-ops/strings" ];
+          "take_opt_iter" = [ "polars-core/take_opt_iter" ];
+          "temporal" = [ "polars-core/temporal" "polars-lazy/temporal" "polars-io/temporal" "polars-time" ];
+          "test" = [ "lazy" "private" "rolling_window" "rank" "round_series" "csv" "dtype-categorical" "cum_agg" "fmt" "diff" "abs" "parquet" "ipc" "ipc_streaming" "json" ];
+          "timezones" = [ "polars-core/timezones" "polars-lazy/timezones" "polars-io/timezones" ];
+          "to_dummies" = [ "polars-ops/to_dummies" ];
+          "top_k" = [ "polars-lazy/top_k" ];
+          "trigonometry" = [ "polars-lazy/trigonometry" ];
+          "true_div" = [ "polars-lazy/true_div" ];
+          "unique_counts" = [ "polars-core/unique_counts" "polars-lazy/unique_counts" ];
+          "zip_with" = [ "polars-core/zip_with" ];
+        };
+        resolvedDefaultFeatures = [ "csv" "default" "diagonal_concat" "docs" "dtype-date" "dtype-datetime" "dtype-duration" "dtype-slim" "fmt" "lazy" "polars-io" "polars-lazy" "polars-sql" "polars-time" "temporal" "zip_with" ];
+      };
+      "polars-arrow" = rec {
+        crateName = "polars-arrow";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "158gy1dk5m5a1i70bv1r8ky89xdsh70x9gqhm3b09vzvv1zpl62g";
+        authors = [
+          "ritchie46 <ritchie46@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "arrow2";
+            packageId = "arrow2";
+            rename = "arrow";
+            usesDefaultFeatures = false;
+            features = [ "compute_aggregate" "compute_arithmetics" "compute_boolean" "compute_boolean_kleene" "compute_cast" "compute_comparison" "compute_concatenate" "compute_filter" "compute_if_then_else" ];
+          }
+          {
+            name = "hashbrown";
+            packageId = "hashbrown 0.13.2";
+            features = [ "rayon" "ahash" ];
+          }
+          {
+            name = "multiversion";
+            packageId = "multiversion";
+          }
+          {
+            name = "num-traits";
+            packageId = "num-traits";
+          }
+          {
+            name = "polars-error";
+            packageId = "polars-error";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+        ];
+        features = {
+          "chrono" = [ "dep:chrono" ];
+          "chrono-tz" = [ "dep:chrono-tz" ];
+          "compute" = [ "arrow/compute_cast" ];
+          "like" = [ "arrow/compute_like" ];
+          "nightly" = [ "hashbrown/nightly" ];
+          "serde" = [ "dep:serde" ];
+          "temporal" = [ "arrow/compute_temporal" ];
+          "timezones" = [ "chrono-tz" "chrono" ];
+        };
+        resolvedDefaultFeatures = [ "compute" "like" "strings" "temporal" ];
+      };
+      "polars-core" = rec {
+        crateName = "polars-core";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "1q3hnr9rpxdbs4q2js6d50mnhw1pixs6dypbnnkx4vrkldm23dvq";
+        authors = [
+          "ritchie46 <ritchie46@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "ahash";
+            packageId = "ahash";
+          }
+          {
+            name = "arrow2";
+            packageId = "arrow2";
+            rename = "arrow";
+            usesDefaultFeatures = false;
+            features = [ "compute_aggregate" "compute_arithmetics" "compute_boolean" "compute_boolean_kleene" "compute_cast" "compute_comparison" "compute_concatenate" "compute_filter" "compute_if_then_else" ];
+          }
+          {
+            name = "bitflags";
+            packageId = "bitflags";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "comfy-table";
+            packageId = "comfy-table";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "either";
+            packageId = "either";
+          }
+          {
+            name = "hashbrown";
+            packageId = "hashbrown 0.13.2";
+            features = [ "rayon" "ahash" ];
+          }
+          {
+            name = "indexmap";
+            packageId = "indexmap";
+            features = [ "std" ];
+          }
+          {
+            name = "num-traits";
+            packageId = "num-traits";
+          }
+          {
+            name = "once_cell";
+            packageId = "once_cell";
+          }
+          {
+            name = "polars-arrow";
+            packageId = "polars-arrow";
+            features = [ "compute" ];
+          }
+          {
+            name = "polars-error";
+            packageId = "polars-error";
+          }
+          {
+            name = "polars-row";
+            packageId = "polars-row";
+          }
+          {
+            name = "polars-utils";
+            packageId = "polars-utils";
+          }
+          {
+            name = "rand";
+            packageId = "rand 0.8.5";
+            optional = true;
+            features = [ "small_rng" "std" ];
+          }
+          {
+            name = "rand_distr";
+            packageId = "rand_distr";
+            optional = true;
+          }
+          {
+            name = "rayon";
+            packageId = "rayon";
+          }
+          {
+            name = "regex";
+            packageId = "regex";
+            optional = true;
+          }
+          {
+            name = "smartstring";
+            packageId = "smartstring";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+          {
+            name = "wasm-timer";
+            packageId = "wasm-timer";
+            target = { target, features }: (builtins.elem "wasm" target."family");
+          }
+          {
+            name = "xxhash-rust";
+            packageId = "xxhash-rust";
+            features = [ "xxh3" ];
+          }
+        ];
+        features = {
+          "async" = [ "url" ];
+          "aws" = [ "async" "object_store/aws" ];
+          "azure" = [ "async" "object_store/azure" ];
+          "bigidx" = [ "polars-arrow/bigidx" ];
+          "chrono" = [ "dep:chrono" ];
+          "chrono-tz" = [ "dep:chrono-tz" ];
+          "comfy-table" = [ "dep:comfy-table" ];
+          "default" = [ "docs" "temporal" "private" ];
+          "docs-selection" = [ "ndarray" "is_in" "rows" "docs" "strings" "object" "lazy" "temporal" "random" "zip_with" "round_series" "checked_arithmetic" "repeat_by" "is_first" "is_last" "asof_join" "cross_join" "dot_product" "concat_str" "row_hash" "mode" "cum_agg" "rolling_window" "diff" "moment" "dtype-categorical" "rank" "diagonal_concat" "horizontal_concat" "abs" "dataframe_arithmetic" "product" "unique_counts" "describe" "chunked_ids" "semi_anti_join" "partition_by" ];
+          "dtype-array" = [ "polars-arrow/dtype-array" ];
+          "dtype-date" = [ "temporal" ];
+          "dtype-datetime" = [ "temporal" ];
+          "dtype-decimal" = [ "dep:itoap" ];
+          "dtype-duration" = [ "temporal" ];
+          "dtype-time" = [ "temporal" ];
+          "dynamic_groupby" = [ "dtype-datetime" "dtype-date" ];
+          "fmt" = [ "comfy-table/tty" ];
+          "fmt_no_tty" = [ "comfy-table" ];
+          "gcp" = [ "async" "object_store/gcp" ];
+          "ndarray" = [ "dep:ndarray" ];
+          "nightly" = [ "simd" "hashbrown/nightly" "polars-utils/nightly" "polars-arrow/nightly" ];
+          "object" = [ "serde_json" ];
+          "object_store" = [ "dep:object_store" ];
+          "parquet" = [ "arrow/io_parquet" ];
+          "pct_change" = [ "diff" ];
+          "performant" = [ "polars-arrow/performant" ];
+          "rand" = [ "dep:rand" ];
+          "rand_distr" = [ "dep:rand_distr" ];
+          "random" = [ "rand" "rand_distr" ];
+          "regex" = [ "dep:regex" ];
+          "serde" = [ "dep:serde" "smartstring/serde" ];
+          "serde-lazy" = [ "serde" "polars-arrow/serde" "indexmap/serde" "smartstring/serde" "chrono/serde" ];
+          "serde_json" = [ "dep:serde_json" ];
+          "simd" = [ "arrow/simd" "polars-arrow/simd" ];
+          "strings" = [ "regex" "polars-arrow/strings" "arrow/compute_substring" "polars-error/regex" ];
+          "temporal" = [ "regex" "chrono" "polars-error/regex" ];
+          "timezones" = [ "chrono-tz" "arrow/chrono-tz" "polars-arrow/timezones" ];
+          "url" = [ "dep:url" ];
+        };
+        resolvedDefaultFeatures = [ "abs" "chrono" "comfy-table" "cross_join" "cum_agg" "default" "diagonal_concat" "docs" "dtype-date" "dtype-datetime" "dtype-duration" "dtype-time" "fmt" "is_in" "lazy" "private" "rand" "rand_distr" "random" "regex" "round_series" "rows" "strings" "temporal" "zip_with" ];
+      };
+      "polars-error" = rec {
+        crateName = "polars-error";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "0bdw6gg1mrj1hk4a9fydx6xzizi8v7dq3c56rh429ldnn8hg1d6z";
+        dependencies = [
+          {
+            name = "arrow2";
+            packageId = "arrow2";
+            rename = "arrow";
+            usesDefaultFeatures = false;
+            features = [ "compute_aggregate" "compute_arithmetics" "compute_boolean" "compute_boolean_kleene" "compute_cast" "compute_comparison" "compute_concatenate" "compute_filter" "compute_if_then_else" ];
+          }
+          {
+            name = "regex";
+            packageId = "regex";
+            optional = true;
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror";
+          }
+        ];
+        features = {
+          "regex" = [ "dep:regex" ];
+        };
+        resolvedDefaultFeatures = [ "regex" ];
+      };
+      "polars-io" = rec {
+        crateName = "polars-io";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "1g1fmlcpq020gz2s6vjk2g8d5njbdjrh8sbs49yz7gh89rq501i7";
+        authors = [
+          "ritchie46 <ritchie46@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "ahash";
+            packageId = "ahash";
+          }
+          {
+            name = "arrow2";
+            packageId = "arrow2";
+            rename = "arrow";
+            usesDefaultFeatures = false;
+            features = [ "compute_aggregate" "compute_arithmetics" "compute_boolean" "compute_boolean_kleene" "compute_cast" "compute_comparison" "compute_concatenate" "compute_filter" "compute_if_then_else" ];
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+            optional = true;
+          }
+          {
+            name = "bytes";
+            packageId = "bytes";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "fast-float";
+            packageId = "fast-float";
+            optional = true;
+          }
+          {
+            name = "futures";
+            packageId = "futures";
+            optional = true;
+          }
+          {
+            name = "home";
+            packageId = "home";
+          }
+          {
+            name = "lexical";
+            packageId = "lexical";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "std" "parse-integers" ];
+          }
+          {
+            name = "lexical-core";
+            packageId = "lexical-core";
+            optional = true;
+          }
+          {
+            name = "memchr";
+            packageId = "memchr";
+          }
+          {
+            name = "memmap2";
+            packageId = "memmap2";
+            rename = "memmap";
+            optional = true;
+          }
+          {
+            name = "num-traits";
+            packageId = "num-traits";
+          }
+          {
+            name = "once_cell";
+            packageId = "once_cell";
+          }
+          {
+            name = "polars-arrow";
+            packageId = "polars-arrow";
+          }
+          {
+            name = "polars-core";
+            packageId = "polars-core";
+            usesDefaultFeatures = false;
+            features = [ "private" ];
+          }
+          {
+            name = "polars-error";
+            packageId = "polars-error";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "polars-time";
+            packageId = "polars-time";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "private" ];
+          }
+          {
+            name = "polars-utils";
+            packageId = "polars-utils";
+          }
+          {
+            name = "rayon";
+            packageId = "rayon";
+          }
+          {
+            name = "regex";
+            packageId = "regex";
+          }
+          {
+            name = "simdutf8";
+            packageId = "simdutf8";
+            optional = true;
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            optional = true;
+            features = [ "net" ];
+          }
+        ];
+        features = {
+          "async" = [ "async-trait" "futures" "tokio" "arrow/io_ipc_write_async" "polars-error/regex" ];
+          "async-trait" = [ "dep:async-trait" ];
+          "avro" = [ "arrow/io_avro" "arrow/io_avro_compression" ];
+          "aws" = [ "object_store/aws" "cloud" "polars-core/aws" ];
+          "azure" = [ "object_store/azure" "cloud" "polars-core/azure" ];
+          "chrono" = [ "dep:chrono" ];
+          "chrono-tz" = [ "dep:chrono-tz" ];
+          "cloud" = [ "object_store" "async" "url" ];
+          "csv" = [ "memmap" "lexical" "polars-core/rows" "lexical-core" "fast-float" "simdutf8" ];
+          "decompress" = [ "flate2/miniz_oxide" ];
+          "decompress-fast" = [ "flate2/zlib-ng" ];
+          "dtype-categorical" = [ "polars-core/dtype-categorical" ];
+          "dtype-date" = [ "polars-core/dtype-date" "polars-time/dtype-date" ];
+          "dtype-datetime" = [ "polars-core/dtype-datetime" "polars-core/temporal" "polars-time/dtype-datetime" "chrono" ];
+          "dtype-struct" = [ "polars-core/dtype-struct" ];
+          "dtype-time" = [ "polars-core/dtype-time" "polars-core/temporal" "polars-time/dtype-time" ];
+          "fast-float" = [ "dep:fast-float" ];
+          "flate2" = [ "dep:flate2" ];
+          "fmt" = [ "polars-core/fmt" ];
+          "futures" = [ "dep:futures" ];
+          "gcp" = [ "object_store/gcp" "cloud" "polars-core/gcp" ];
+          "ipc" = [ "arrow/io_ipc" "arrow/io_ipc_compression" "memmap" ];
+          "ipc_streaming" = [ "arrow/io_ipc" "arrow/io_ipc_compression" ];
+          "json" = [ "arrow/io_json_write" "polars-json" "simd-json" "memmap" "lexical" "lexical-core" "serde_json" ];
+          "lexical" = [ "dep:lexical" ];
+          "lexical-core" = [ "dep:lexical-core" ];
+          "memmap" = [ "dep:memmap" ];
+          "object_store" = [ "dep:object_store" ];
+          "parquet" = [ "polars-core/parquet" "arrow/io_parquet" "arrow/io_parquet_compression" "memmap" ];
+          "partition" = [ "polars-core/partition_by" ];
+          "polars-json" = [ "dep:polars-json" ];
+          "polars-time" = [ "dep:polars-time" ];
+          "private" = [ "polars-time/private" ];
+          "serde" = [ "dep:serde" ];
+          "serde_json" = [ "dep:serde_json" ];
+          "simd-json" = [ "dep:simd-json" ];
+          "simdutf8" = [ "dep:simdutf8" ];
+          "temporal" = [ "dtype-datetime" "dtype-date" "dtype-time" ];
+          "timezones" = [ "chrono-tz" "dtype-datetime" ];
+          "tokio" = [ "dep:tokio" ];
+          "url" = [ "dep:url" ];
+        };
+        resolvedDefaultFeatures = [ "async" "async-trait" "chrono" "csv" "dtype-date" "dtype-datetime" "dtype-time" "fast-float" "futures" "ipc" "lazy" "lexical" "lexical-core" "memmap" "polars-time" "private" "simdutf8" "temporal" "tokio" ];
+      };
+      "polars-lazy" = rec {
+        crateName = "polars-lazy";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "1qq78kdqy2ihrv90jylmf5fgf4fwvl69vwcq40hvb5il4r0zxa7j";
+        authors = [
+          "ritchie46 <ritchie46@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "ahash";
+            packageId = "ahash";
+          }
+          {
+            name = "bitflags";
+            packageId = "bitflags";
+          }
+          {
+            name = "glob";
+            packageId = "glob";
+          }
+          {
+            name = "once_cell";
+            packageId = "once_cell";
+          }
+          {
+            name = "polars-arrow";
+            packageId = "polars-arrow";
+          }
+          {
+            name = "polars-core";
+            packageId = "polars-core";
+            usesDefaultFeatures = false;
+            features = [ "lazy" "private" "zip_with" "random" ];
+          }
+          {
+            name = "polars-io";
+            packageId = "polars-io";
+            usesDefaultFeatures = false;
+            features = [ "lazy" "csv" "private" ];
+          }
+          {
+            name = "polars-ops";
+            packageId = "polars-ops";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "polars-pipe";
+            packageId = "polars-pipe";
+            optional = true;
+          }
+          {
+            name = "polars-plan";
+            packageId = "polars-plan";
+          }
+          {
+            name = "polars-time";
+            packageId = "polars-time";
+            optional = true;
+          }
+          {
+            name = "polars-utils";
+            packageId = "polars-utils";
+          }
+          {
+            name = "rayon";
+            packageId = "rayon";
+          }
+          {
+            name = "smartstring";
+            packageId = "smartstring";
+          }
+        ];
+        features = {
+          "abs" = [ "polars-plan/abs" ];
+          "approx_unique" = [ "polars-plan/approx_unique" ];
+          "arange" = [ "polars-plan/arange" ];
+          "arg_where" = [ "polars-plan/arg_where" ];
+          "asof_join" = [ "polars-plan/asof_join" "polars-time" ];
+          "async" = [ "polars-plan/async" "polars-io/cloud" "polars-pipe/async" "streaming" ];
+          "bigidx" = [ "polars-plan/bigidx" ];
+          "binary_encoding" = [ "polars-plan/binary_encoding" ];
+          "chunked_ids" = [ "polars-plan/chunked_ids" "polars-core/chunked_ids" ];
+          "coalesce" = [ "polars-plan/coalesce" ];
+          "compile" = [ "polars-plan/compile" ];
+          "concat_str" = [ "polars-plan/concat_str" ];
+          "cross_join" = [ "polars-plan/cross_join" "polars-pipe/cross_join" "polars-ops/cross_join" ];
+          "cse" = [ "polars-plan/cse" ];
+          "csv" = [ "polars-io/csv" "polars-plan/csv" "polars-pipe/csv" ];
+          "cum_agg" = [ "polars-plan/cum_agg" ];
+          "date_offset" = [ "polars-plan/date_offset" ];
+          "default" = [ "compile" "private" ];
+          "diff" = [ "polars-plan/diff" "polars-plan/diff" ];
+          "dot_diagram" = [ "polars-plan/dot_diagram" ];
+          "dtype-array" = [ "polars-plan/dtype-array" "polars-pipe/dtype-array" ];
+          "dtype-categorical" = [ "polars-plan/dtype-categorical" "polars-pipe/dtype-categorical" ];
+          "dtype-date" = [ "polars-plan/dtype-date" "polars-time/dtype-date" "temporal" ];
+          "dtype-datetime" = [ "polars-plan/dtype-datetime" "polars-time/dtype-datetime" "temporal" ];
+          "dtype-decimal" = [ "polars-plan/dtype-decimal" "polars-pipe/dtype-decimal" ];
+          "dtype-duration" = [ "polars-plan/dtype-duration" "polars-time/dtype-duration" "temporal" ];
+          "dtype-i16" = [ "polars-plan/dtype-i16" "polars-pipe/dtype-i16" ];
+          "dtype-i8" = [ "polars-plan/dtype-i8" "polars-pipe/dtype-i8" ];
+          "dtype-struct" = [ "polars-plan/dtype-struct" ];
+          "dtype-time" = [ "polars-core/dtype-time" "temporal" ];
+          "dtype-u16" = [ "polars-plan/dtype-u16" "polars-pipe/dtype-u16" ];
+          "dtype-u8" = [ "polars-plan/dtype-u8" "polars-pipe/dtype-u8" ];
+          "dynamic_groupby" = [ "polars-plan/dynamic_groupby" "polars-time" "temporal" ];
+          "ewma" = [ "polars-plan/ewma" ];
+          "fmt" = [ "polars-core/fmt" "polars-plan/fmt" ];
+          "fused" = [ "polars-plan/fused" "polars-ops/fused" ];
+          "interpolate" = [ "polars-plan/interpolate" ];
+          "ipc" = [ "polars-io/ipc" "polars-plan/ipc" "polars-pipe/ipc" ];
+          "is_first" = [ "polars-plan/is_first" ];
+          "is_in" = [ "polars-plan/is_in" ];
+          "is_unique" = [ "polars-plan/is_unique" ];
+          "json" = [ "polars-io/json" "polars-plan/json" "polars-json" ];
+          "list_count" = [ "polars-ops/list_count" "polars-plan/list_count" ];
+          "list_take" = [ "polars-ops/list_take" "polars-plan/list_take" ];
+          "list_to_struct" = [ "polars-plan/list_to_struct" ];
+          "log" = [ "polars-plan/log" ];
+          "merge_sorted" = [ "polars-plan/merge_sorted" ];
+          "meta" = [ "polars-plan/meta" ];
+          "mode" = [ "polars-plan/mode" ];
+          "moment" = [ "polars-plan/moment" "polars-ops/moment" ];
+          "nightly" = [ "polars-core/nightly" "polars-pipe/nightly" ];
+          "object" = [ "polars-plan/object" ];
+          "panic_on_schema" = [ "polars-plan/panic_on_schema" ];
+          "parquet" = [ "polars-core/parquet" "polars-io/parquet" "polars-plan/parquet" "polars-pipe/parquet" ];
+          "pct_change" = [ "polars-plan/pct_change" ];
+          "pivot" = [ "polars-core/rows" "polars-ops/pivot" ];
+          "polars-json" = [ "dep:polars-json" ];
+          "polars-pipe" = [ "dep:polars-pipe" ];
+          "polars-time" = [ "dep:polars-time" ];
+          "private" = [ "polars-plan/private" ];
+          "propagate_nans" = [ "polars-plan/propagate_nans" ];
+          "pyo3" = [ "dep:pyo3" ];
+          "python" = [ "pyo3" "polars-plan/python" ];
+          "random" = [ "polars-plan/random" ];
+          "rank" = [ "polars-plan/rank" ];
+          "regex" = [ "polars-plan/regex" ];
+          "repeat_by" = [ "polars-plan/repeat_by" ];
+          "rolling_window" = [ "polars-plan/rolling_window" "polars-time/rolling_window" ];
+          "round_series" = [ "polars-plan/round_series" "polars-ops/round_series" ];
+          "row_hash" = [ "polars-plan/row_hash" ];
+          "search_sorted" = [ "polars-plan/search_sorted" ];
+          "semi_anti_join" = [ "polars-plan/semi_anti_join" ];
+          "serde" = [ "polars-plan/serde" "polars-arrow/serde" "polars-core/serde-lazy" "polars-time/serde" "polars-io/serde" "polars-ops/serde" ];
+          "sign" = [ "polars-plan/sign" ];
+          "streaming" = [ "chunked_ids" "polars-pipe/compile" "polars-plan/streaming" ];
+          "string_from_radix" = [ "polars-plan/string_from_radix" ];
+          "string_justify" = [ "polars-plan/string_justify" ];
+          "strings" = [ "polars-plan/strings" ];
+          "temporal" = [ "dtype-datetime" "dtype-date" "dtype-time" "dtype-duration" "polars-plan/temporal" ];
+          "test" = [ "polars-plan/debugging" "panic_on_schema" "private" "rolling_window" "rank" "round_series" "csv" "dtype-categorical" "cum_agg" "regex" "polars-core/fmt" "diff" "abs" "parquet" "ipc" "dtype-date" ];
+          "test_all" = [ "test" "strings" "regex" "ipc" "row_hash" "string_justify" "string_from_radix" "search_sorted" "top_k" "pivot" "semi_anti_join" "cse" ];
+          "timezones" = [ "polars-plan/timezones" ];
+          "top_k" = [ "polars-plan/top_k" ];
+          "trigonometry" = [ "polars-plan/trigonometry" ];
+          "true_div" = [ "polars-plan/true_div" ];
+          "unique_counts" = [ "polars-plan/unique_counts" ];
+        };
+        resolvedDefaultFeatures = [ "abs" "compile" "cross_join" "csv" "cum_agg" "default" "diagonal_concat" "dtype-date" "dtype-datetime" "dtype-duration" "dtype-time" "is_in" "log" "meta" "polars-pipe" "polars-time" "private" "regex" "round_series" "strings" "temporal" "trigonometry" ];
+      };
+      "polars-ops" = rec {
+        crateName = "polars-ops";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "0hlr304ircsjbh64yhal56zj826wdwb29cmgmdbi9ww8bdb32g6n";
+        authors = [
+          "ritchie46 <ritchie46@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "argminmax";
+            packageId = "argminmax";
+            usesDefaultFeatures = false;
+            features = [ "float" ];
+          }
+          {
+            name = "arrow2";
+            packageId = "arrow2";
+            rename = "arrow";
+            usesDefaultFeatures = false;
+            features = [ "compute_aggregate" "compute_arithmetics" "compute_boolean" "compute_boolean_kleene" "compute_cast" "compute_comparison" "compute_concatenate" "compute_filter" "compute_if_then_else" ];
+          }
+          {
+            name = "either";
+            packageId = "either";
+          }
+          {
+            name = "memchr";
+            packageId = "memchr";
+          }
+          {
+            name = "polars-arrow";
+            packageId = "polars-arrow";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "polars-core";
+            packageId = "polars-core";
+            usesDefaultFeatures = false;
+            features = [ "private" ];
+          }
+          {
+            name = "polars-utils";
+            packageId = "polars-utils";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "smartstring";
+            packageId = "smartstring";
+          }
+        ];
+        features = {
+          "asof_join" = [ "polars-core/asof_join" ];
+          "base64" = [ "dep:base64" ];
+          "big_idx" = [ "polars-core/bigidx" ];
+          "binary_encoding" = [ "base64" "hex" ];
+          "chunked_ids" = [ "polars-core/chunked_ids" ];
+          "cross_join" = [ "polars-core/cross_join" ];
+          "diff" = [ "polars-core/diff" ];
+          "dtype-array" = [ "polars-core/dtype-array" ];
+          "dtype-categorical" = [ "polars-core/dtype-categorical" ];
+          "dtype-date" = [ "polars-core/dtype-date" "polars-core/temporal" ];
+          "dtype-datetime" = [ "polars-core/dtype-datetime" "polars-core/temporal" ];
+          "dtype-decimal" = [ "polars-core/dtype-decimal" ];
+          "dtype-duration" = [ "polars-core/dtype-duration" "polars-core/temporal" ];
+          "dtype-i16" = [ "polars-core/dtype-i16" ];
+          "dtype-i8" = [ "polars-core/dtype-i8" ];
+          "dtype-struct" = [ "polars-core/dtype-struct" "polars-core/temporal" ];
+          "dtype-time" = [ "polars-core/dtype-time" "polars-core/temporal" ];
+          "dtype-u16" = [ "polars-core/dtype-u16" ];
+          "dtype-u8" = [ "polars-core/dtype-u8" ];
+          "extract_jsonpath" = [ "serde_json" "jsonpath_lib" "polars-json" ];
+          "hex" = [ "dep:hex" ];
+          "jsonpath_lib" = [ "dep:jsonpath_lib" ];
+          "list_to_struct" = [ "polars-core/dtype-struct" ];
+          "moment" = [ "polars-core/moment" ];
+          "nightly" = [ "polars-utils/nightly" ];
+          "object" = [ "polars-core/object" ];
+          "performant" = [ "polars-core/performant" "fused" ];
+          "pivot" = [ "polars-core/reinterpret" ];
+          "polars-json" = [ "dep:polars-json" ];
+          "rolling_window" = [ "polars-core/rolling_window" ];
+          "semi_anti_join" = [ "polars-core/semi_anti_join" ];
+          "serde" = [ "dep:serde" ];
+          "serde_json" = [ "dep:serde_json" ];
+          "simd" = [ "argminmax/nightly_simd" ];
+          "string_encoding" = [ "base64" "hex" ];
+          "string_from_radix" = [ "polars-core/strings" ];
+          "string_justify" = [ "polars-core/strings" ];
+          "strings" = [ "polars-core/strings" ];
+        };
+        resolvedDefaultFeatures = [ "cross_join" "dtype-date" "dtype-datetime" "dtype-duration" "log" "round_series" "search_sorted" "strings" ];
+      };
+      "polars-pipe" = rec {
+        crateName = "polars-pipe";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "0sn44fx211s2jdxr5kdiznwylf0f0kdn61q85xm56pz4wxjnc1si";
+        dependencies = [
+          {
+            name = "enum_dispatch";
+            packageId = "enum_dispatch";
+          }
+          {
+            name = "hashbrown";
+            packageId = "hashbrown 0.13.2";
+            features = [ "rayon" "ahash" ];
+          }
+          {
+            name = "num-traits";
+            packageId = "num-traits";
+          }
+          {
+            name = "polars-arrow";
+            packageId = "polars-arrow";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "polars-core";
+            packageId = "polars-core";
+            usesDefaultFeatures = false;
+            features = [ "lazy" "private" "zip_with" "random" ];
+          }
+          {
+            name = "polars-io";
+            packageId = "polars-io";
+            usesDefaultFeatures = false;
+            features = [ "ipc" "async" ];
+          }
+          {
+            name = "polars-ops";
+            packageId = "polars-ops";
+            features = [ "search_sorted" ];
+          }
+          {
+            name = "polars-plan";
+            packageId = "polars-plan";
+            usesDefaultFeatures = false;
+            features = [ "compile" ];
+          }
+          {
+            name = "polars-row";
+            packageId = "polars-row";
+          }
+          {
+            name = "polars-utils";
+            packageId = "polars-utils";
+            features = [ "sysinfo" ];
+          }
+          {
+            name = "rayon";
+            packageId = "rayon";
+          }
+          {
+            name = "smartstring";
+            packageId = "smartstring";
+          }
+        ];
+        features = {
+          "async" = [ "polars-plan/async" "polars-io/async" ];
+          "compile" = [ "crossbeam-channel" "crossbeam-queue" ];
+          "cross_join" = [ "polars-core/cross_join" ];
+          "crossbeam-channel" = [ "dep:crossbeam-channel" ];
+          "crossbeam-queue" = [ "dep:crossbeam-queue" ];
+          "csv" = [ "polars-plan/csv" "polars-io/csv" ];
+          "dtype-array" = [ "polars-core/dtype-array" ];
+          "dtype-categorical" = [ "polars-core/dtype-categorical" ];
+          "dtype-decimal" = [ "polars-core/dtype-decimal" ];
+          "dtype-i16" = [ "polars-core/dtype-i16" ];
+          "dtype-i8" = [ "polars-core/dtype-i8" ];
+          "dtype-u16" = [ "polars-core/dtype-u16" ];
+          "dtype-u8" = [ "polars-core/dtype-u8" ];
+          "ipc" = [ "polars-plan/ipc" "polars-io/ipc" ];
+          "nightly" = [ "polars-core/nightly" "polars-utils/nightly" "hashbrown/nightly" ];
+          "parquet" = [ "polars-plan/parquet" "polars-io/parquet" ];
+        };
+        resolvedDefaultFeatures = [ "cross_join" "csv" ];
+      };
+      "polars-plan" = rec {
+        crateName = "polars-plan";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "14gj61msj3dv96i92w3h6ccng5rdq6gvkv0qyxs99ynppm40yzca";
+        dependencies = [
+          {
+            name = "ahash";
+            packageId = "ahash";
+          }
+          {
+            name = "arrow2";
+            packageId = "arrow2";
+            rename = "arrow";
+            usesDefaultFeatures = false;
+            features = [ "compute_aggregate" "compute_arithmetics" "compute_boolean" "compute_boolean_kleene" "compute_cast" "compute_comparison" "compute_concatenate" "compute_filter" "compute_if_then_else" ];
+          }
+          {
+            name = "once_cell";
+            packageId = "once_cell";
+          }
+          {
+            name = "polars-arrow";
+            packageId = "polars-arrow";
+          }
+          {
+            name = "polars-core";
+            packageId = "polars-core";
+            usesDefaultFeatures = false;
+            features = [ "lazy" "private" "zip_with" "random" ];
+          }
+          {
+            name = "polars-io";
+            packageId = "polars-io";
+            usesDefaultFeatures = false;
+            features = [ "lazy" "csv" "private" ];
+          }
+          {
+            name = "polars-ops";
+            packageId = "polars-ops";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "polars-time";
+            packageId = "polars-time";
+            optional = true;
+          }
+          {
+            name = "polars-utils";
+            packageId = "polars-utils";
+          }
+          {
+            name = "rayon";
+            packageId = "rayon";
+          }
+          {
+            name = "regex";
+            packageId = "regex";
+            optional = true;
+          }
+          {
+            name = "smartstring";
+            packageId = "smartstring";
+          }
+        ];
+        features = {
+          "abs" = [ "polars-core/abs" ];
+          "approx_unique" = [ "polars-ops/approx_unique" ];
+          "asof_join" = [ "polars-core/asof_join" "polars-time" "polars-ops/asof_join" ];
+          "bigidx" = [ "polars-arrow/bigidx" "polars-core/bigidx" "polars-utils/bigidx" ];
+          "binary_encoding" = [ "polars-ops/binary_encoding" ];
+          "chrono" = [ "dep:chrono" ];
+          "chrono-tz" = [ "dep:chrono-tz" ];
+          "chunked_ids" = [ "polars-core/chunked_ids" ];
+          "concat_str" = [ "polars-core/concat_str" ];
+          "cross_join" = [ "polars-core/cross_join" ];
+          "csv" = [ "polars-io/csv" ];
+          "cum_agg" = [ "polars-core/cum_agg" ];
+          "date_offset" = [ "polars-time" "chrono" ];
+          "default" = [ "compile" "private" ];
+          "diff" = [ "polars-core/diff" "polars-ops/diff" ];
+          "dtype-array" = [ "polars-core/dtype-array" ];
+          "dtype-categorical" = [ "polars-core/dtype-categorical" ];
+          "dtype-date" = [ "polars-core/dtype-date" "polars-time/dtype-date" "temporal" ];
+          "dtype-datetime" = [ "polars-core/dtype-datetime" "polars-time/dtype-datetime" "temporal" ];
+          "dtype-decimal" = [ "polars-core/dtype-decimal" ];
+          "dtype-duration" = [ "polars-core/dtype-duration" "polars-time/dtype-duration" "temporal" ];
+          "dtype-i16" = [ "polars-core/dtype-i16" ];
+          "dtype-i8" = [ "polars-core/dtype-i8" ];
+          "dtype-struct" = [ "polars-core/dtype-struct" ];
+          "dtype-time" = [ "polars-core/dtype-time" "polars-time/dtype-time" ];
+          "dtype-u16" = [ "polars-core/dtype-u16" ];
+          "dtype-u8" = [ "polars-core/dtype-u8" ];
+          "dynamic_groupby" = [ "polars-core/dynamic_groupby" ];
+          "ewma" = [ "polars-core/ewma" ];
+          "fmt" = [ "polars-core/fmt" ];
+          "futures" = [ "dep:futures" ];
+          "interpolate" = [ "polars-ops/interpolate" ];
+          "ipc" = [ "polars-io/ipc" ];
+          "is_first" = [ "polars-core/is_first" "polars-ops/is_first" ];
+          "is_in" = [ "polars-core/is_in" ];
+          "is_unique" = [ "polars-ops/is_unique" ];
+          "json" = [ "polars-io/json" ];
+          "list_count" = [ "polars-ops/list_count" ];
+          "list_take" = [ "polars-ops/list_take" ];
+          "list_to_struct" = [ "polars-ops/list_to_struct" ];
+          "log" = [ "polars-ops/log" ];
+          "merge_sorted" = [ "polars-ops/merge_sorted" ];
+          "mode" = [ "polars-core/mode" ];
+          "moment" = [ "polars-core/moment" ];
+          "object" = [ "polars-core/object" ];
+          "parquet" = [ "polars-core/parquet" "polars-io/parquet" ];
+          "pct_change" = [ "polars-core/pct_change" ];
+          "pivot" = [ "polars-core/rows" "polars-ops/pivot" ];
+          "polars-time" = [ "dep:polars-time" ];
+          "private" = [ "polars-time/private" ];
+          "propagate_nans" = [ "polars-ops/propagate_nans" ];
+          "pyo3" = [ "dep:pyo3" ];
+          "python" = [ "pyo3" ];
+          "random" = [ "polars-core/random" ];
+          "rank" = [ "polars-core/rank" ];
+          "regex" = [ "dep:regex" ];
+          "repeat_by" = [ "polars-core/repeat_by" ];
+          "rolling_window" = [ "polars-core/rolling_window" "polars-time/rolling_window" "polars-ops/rolling_window" "polars-time/rolling_window" ];
+          "round_series" = [ "polars-core/round_series" ];
+          "row_hash" = [ "polars-core/row_hash" "polars-ops/hash" ];
+          "search_sorted" = [ "polars-ops/search_sorted" ];
+          "semi_anti_join" = [ "polars-core/semi_anti_join" "polars-ops/semi_anti_join" ];
+          "serde" = [ "dep:serde" ];
+          "string_from_radix" = [ "polars-ops/string_from_radix" ];
+          "string_justify" = [ "polars-ops/string_justify" ];
+          "strings" = [ "polars-core/strings" "polars-ops/strings" ];
+          "temporal" = [ "polars-core/temporal" "dtype-date" "dtype-datetime" "dtype-time" ];
+          "timezones" = [ "chrono-tz" "polars-time/timezones" "polars-core/timezones" "regex" ];
+          "top_k" = [ "polars-ops/top_k" ];
+          "unique_counts" = [ "polars-core/unique_counts" ];
+        };
+        resolvedDefaultFeatures = [ "abs" "compile" "cross_join" "csv" "cum_agg" "default" "dtype-date" "dtype-datetime" "dtype-duration" "dtype-time" "is_in" "log" "meta" "polars-time" "private" "regex" "round_series" "strings" "temporal" "trigonometry" ];
+      };
+      "polars-row" = rec {
+        crateName = "polars-row";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "1lg4s0j46m06gmg9g31avmn10jq2ykpwnqc5r4rdv3xqjn0sb3xi";
+        dependencies = [
+          {
+            name = "arrow2";
+            packageId = "arrow2";
+            rename = "arrow";
+            usesDefaultFeatures = false;
+            features = [ "compute_aggregate" "compute_arithmetics" "compute_boolean" "compute_boolean_kleene" "compute_cast" "compute_comparison" "compute_concatenate" "compute_filter" "compute_if_then_else" ];
+          }
+          {
+            name = "polars-error";
+            packageId = "polars-error";
+          }
+          {
+            name = "polars-utils";
+            packageId = "polars-utils";
+          }
+        ];
+
+      };
+      "polars-sql" = rec {
+        crateName = "polars-sql";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "1rf70ng1qys4vvf4rhh55hcv0r81daa7r2jw0qxi4rsfcv4x11c4";
+        dependencies = [
+          {
+            name = "polars-arrow";
+            packageId = "polars-arrow";
+            features = [ "like" ];
+          }
+          {
+            name = "polars-core";
+            packageId = "polars-core";
+          }
+          {
+            name = "polars-lazy";
+            packageId = "polars-lazy";
+            features = [ "compile" "strings" "cross_join" "trigonometry" "abs" "round_series" "log" "regex" "is_in" "meta" "cum_agg" ];
+          }
+          {
+            name = "polars-plan";
+            packageId = "polars-plan";
+            features = [ "compile" ];
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "sqlparser";
+            packageId = "sqlparser";
+          }
+        ];
+        features = {
+          "csv" = [ "polars-lazy/csv" ];
+          "ipc" = [ "polars-lazy/ipc" ];
+          "json" = [ "polars-lazy/json" ];
+          "parquet" = [ "polars-lazy/parquet" ];
+        };
+        resolvedDefaultFeatures = [ "csv" ];
+      };
+      "polars-time" = rec {
+        crateName = "polars-time";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "1qa5ncqxyfda9np24l6r0jnf23y422ahk9qdlq2d5clkibpi23aw";
+        authors = [
+          "ritchie46 <ritchie46@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "arrow2";
+            packageId = "arrow2";
+            rename = "arrow";
+            usesDefaultFeatures = false;
+            features = [ "compute_aggregate" "compute_arithmetics" "compute_boolean" "compute_boolean_kleene" "compute_cast" "compute_comparison" "compute_concatenate" "compute_filter" "compute_if_then_else" ];
+          }
+          {
+            name = "atoi";
+            packageId = "atoi";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "now";
+            packageId = "now";
+          }
+          {
+            name = "once_cell";
+            packageId = "once_cell";
+          }
+          {
+            name = "polars-arrow";
+            packageId = "polars-arrow";
+            features = [ "compute" "temporal" ];
+          }
+          {
+            name = "polars-core";
+            packageId = "polars-core";
+            usesDefaultFeatures = false;
+            features = [ "private" "dtype-datetime" "dtype-duration" "dtype-time" "dtype-date" ];
+          }
+          {
+            name = "polars-ops";
+            packageId = "polars-ops";
+          }
+          {
+            name = "polars-utils";
+            packageId = "polars-utils";
+          }
+          {
+            name = "regex";
+            packageId = "regex";
+          }
+          {
+            name = "smartstring";
+            packageId = "smartstring";
+          }
+        ];
+        features = {
+          "chrono-tz" = [ "dep:chrono-tz" ];
+          "default" = [ "private" ];
+          "dtype-date" = [ "polars-core/dtype-date" "polars-core/temporal" ];
+          "dtype-datetime" = [ "polars-core/dtype-date" "polars-core/temporal" ];
+          "dtype-duration" = [ "polars-core/dtype-duration" "polars-core/temporal" ];
+          "dtype-time" = [ "polars-core/dtype-time" "polars-core/temporal" ];
+          "fmt" = [ "polars-core/fmt" ];
+          "rolling_window" = [ "polars-core/rolling_window" "dtype-duration" ];
+          "serde" = [ "dep:serde" ];
+          "test" = [ "dtype-date" "dtype-datetime" "polars-core/fmt" ];
+          "timezones" = [ "chrono-tz" "dtype-datetime" "polars-core/timezones" "polars-arrow/timezones" ];
+        };
+        resolvedDefaultFeatures = [ "default" "dtype-date" "dtype-datetime" "dtype-duration" "dtype-time" "private" ];
+      };
+      "polars-utils" = rec {
+        crateName = "polars-utils";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "0siqhkngqqj18k32ypp0ca2489z8hcdyy1rlak7pycgq53wmjnhl";
+        authors = [
+          "ritchie46 <ritchie46@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "ahash";
+            packageId = "ahash";
+          }
+          {
+            name = "hashbrown";
+            packageId = "hashbrown 0.13.2";
+            features = [ "rayon" "ahash" ];
+          }
+          {
+            name = "once_cell";
+            packageId = "once_cell";
+          }
+          {
+            name = "rayon";
+            packageId = "rayon";
+          }
+          {
+            name = "smartstring";
+            packageId = "smartstring";
+          }
+          {
+            name = "sysinfo";
+            packageId = "sysinfo 0.29.2";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "sysinfo" = [ "dep:sysinfo" ];
+        };
+        resolvedDefaultFeatures = [ "sysinfo" ];
+      };
       "ppv-lite86" = rec {
         crateName = "ppv-lite86";
         version = "0.2.17";
@@ -5755,9 +8318,9 @@ rec {
       };
       "proc-macro2" = rec {
         crateName = "proc-macro2";
-        version = "1.0.59";
+        version = "1.0.60";
         edition = "2018";
-        sha256 = "06s5yglnz3h3x53rpp7az7ka6j169sg33al1nxhcc4xlhs5s3v3a";
+        sha256 = "01jl37rkmnxscz0k0arbjb7l80w7z8a64281w96wyqm8ny3b1hny";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
           "Alex Crichton <alex@alexcrichton.com>"
@@ -6428,6 +8991,16 @@ rec {
         ];
         dependencies = [
           {
+            name = "aho-corasick";
+            packageId = "aho-corasick";
+            optional = true;
+          }
+          {
+            name = "memchr";
+            packageId = "memchr";
+            optional = true;
+          }
+          {
             name = "regex-syntax";
             packageId = "regex-syntax 0.7.2";
             usesDefaultFeatures = false;
@@ -6450,7 +9023,7 @@ rec {
           "unstable" = [ "pattern" ];
           "use_std" = [ "std" ];
         };
-        resolvedDefaultFeatures = [ "std" "unicode-bool" "unicode-case" "unicode-perl" ];
+        resolvedDefaultFeatures = [ "aho-corasick" "default" "memchr" "perf" "perf-cache" "perf-dfa" "perf-inline" "perf-literal" "std" "unicode" "unicode-age" "unicode-bool" "unicode-case" "unicode-gencat" "unicode-perl" "unicode-script" "unicode-segment" ];
       };
       "regex-automata" = rec {
         crateName = "regex-automata";
@@ -6502,7 +9075,7 @@ rec {
           "default" = [ "std" "unicode" ];
           "unicode" = [ "unicode-age" "unicode-bool" "unicode-case" "unicode-gencat" "unicode-perl" "unicode-script" "unicode-segment" ];
         };
-        resolvedDefaultFeatures = [ "unicode-bool" "unicode-case" "unicode-perl" ];
+        resolvedDefaultFeatures = [ "default" "std" "unicode" "unicode-age" "unicode-bool" "unicode-case" "unicode-gencat" "unicode-perl" "unicode-script" "unicode-segment" ];
       };
       "remove_dir_all" = rec {
         crateName = "remove_dir_all";
@@ -6837,11 +9410,28 @@ rec {
         };
         resolvedDefaultFeatures = [ "alloc" "default" "dev_urandom_fallback" "once_cell" ];
       };
+      "rustc_version" = rec {
+        crateName = "rustc_version";
+        version = "0.4.0";
+        edition = "2018";
+        sha256 = "0rpk9rcdk405xhbmgclsh4pai0svn49x35aggl4nhbkd4a2zb85z";
+        authors = [
+          "Dirkjan Ochtman <dirkjan@ochtman.nl>"
+          "Marvin Löbel <loebel.marvin@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "semver";
+            packageId = "semver";
+          }
+        ];
+
+      };
       "rustix" = rec {
         crateName = "rustix";
-        version = "0.37.19";
+        version = "0.37.20";
         edition = "2018";
-        sha256 = "0gb12rp992bh2h5msqcbpdsx6h1gslsb0zpp5hdnyxj2hnfp5y5c";
+        sha256 = "1h5j9d3rnz06rq56c9p1hkddzixipiqjg39i3xnnll5a0hfqjvmr";
         authors = [
           "Dan Gohman <dev@sunfishcode.online>"
           "Jakub Konka <kubkon@jakubkonka.com>"
@@ -6933,7 +9523,7 @@ rec {
           }
         ];
         features = {
-          "all-apis" = [ "fs" "io_uring" "mm" "net" "param" "process" "procfs" "rand" "runtime" "termios" "thread" "time" ];
+          "all-apis" = [ "fs" "io_uring" "mm" "net" "param" "process" "procfs" "pty" "rand" "runtime" "termios" "thread" "time" ];
           "all-impls" = [ "os_pipe" "fs-err" ];
           "alloc" = [ "dep:alloc" ];
           "cc" = [ "dep:cc" ];
@@ -6951,6 +9541,7 @@ rec {
           "os_pipe" = [ "io-lifetimes/os_pipe" ];
           "param" = [ "fs" ];
           "procfs" = [ "once_cell" "itoa" "fs" ];
+          "pty" = [ "itoa" "fs" ];
           "rustc-dep-of-std" = [ "core" "alloc" "compiler_builtins" "linux-raw-sys/rustc-dep-of-std" "bitflags/rustc-dep-of-std" ];
           "std" = [ "io-lifetimes" ];
           "use-libc" = [ "libc_errno" "libc" ];
@@ -6960,9 +9551,9 @@ rec {
       };
       "rustls" = rec {
         crateName = "rustls";
-        version = "0.21.1";
+        version = "0.21.2";
         edition = "2021";
-        sha256 = "07krf6vabib8ki71kq5hr8km2bzkrhqf3zanrq8yhcw4ph8vl4f9";
+        sha256 = "0pvz4ji4m0sgq8mkrcla1c4r076zvcbaacww76zipg4lys5a4b73";
         dependencies = [
           {
             name = "log";
@@ -7193,11 +9784,25 @@ rec {
         };
         resolvedDefaultFeatures = [ "OSX_10_9" "default" ];
       };
+      "semver" = rec {
+        crateName = "semver";
+        version = "1.0.17";
+        edition = "2018";
+        sha256 = "1vf03d99sikkradjj33q1l9h4fqgd1h7darjypic6pnh4qrkdgdy";
+        authors = [
+          "David Tolnay <dtolnay@gmail.com>"
+        ];
+        features = {
+          "default" = [ "std" ];
+          "serde" = [ "dep:serde" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
       "serde" = rec {
         crateName = "serde";
-        version = "1.0.163";
+        version = "1.0.164";
         edition = "2015";
-        sha256 = "1hmyrqi2gszlngycz0rdznda7zr0q0nw1imm13h9llvsp18sn4r1";
+        sha256 = "0z82r42ayqb48vw4cbsja4byl779vh33p4k4q6dpd3z973wqr34y";
         authors = [
           "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
           "David Tolnay <dtolnay@gmail.com>"
@@ -7224,9 +9829,9 @@ rec {
       };
       "serde_derive" = rec {
         crateName = "serde_derive";
-        version = "1.0.163";
+        version = "1.0.164";
         edition = "2015";
-        sha256 = "0gm97qsj056dhzphafdn733vq922l8aj6q4w721qh34kwdvmg04c";
+        sha256 = "0s0xccdxvz8ilr4jqqgw8iqkfnvjx6i90kciys5w4lfciiimnwyr";
         procMacro = true;
         authors = [
           "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
@@ -7462,6 +10067,71 @@ rec {
           "loom" = [ "dep:loom" ];
         };
       };
+      "signal-hook" = rec {
+        crateName = "signal-hook";
+        version = "0.3.15";
+        edition = "2018";
+        sha256 = "1fc2wvl8sp6l6kd5hh0csn9bl2yl4cqsj8vc0ygd08bd2zqnh9vk";
+        authors = [
+          "Michal 'vorner' Vaner <vorner@vorner.cz>"
+          "Thomas Himmelstoss <thimm@posteo.de>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+          {
+            name = "signal-hook-registry";
+            packageId = "signal-hook-registry";
+          }
+        ];
+        features = {
+          "cc" = [ "dep:cc" ];
+          "default" = [ "channel" "iterator" ];
+          "extended-siginfo" = [ "channel" "iterator" "extended-siginfo-raw" ];
+          "extended-siginfo-raw" = [ "cc" ];
+          "iterator" = [ "channel" ];
+        };
+        resolvedDefaultFeatures = [ "channel" "default" "iterator" ];
+      };
+      "signal-hook-mio" = rec {
+        crateName = "signal-hook-mio";
+        version = "0.2.3";
+        edition = "2018";
+        sha256 = "1bwrrbd0lhwzlf63708vyzlh20693s5bg5s0ak6adjbyycajxb99";
+        authors = [
+          "Michal 'vorner' Vaner <vorner@vorner.cz>"
+          "Thomas Himmelstoss <thimm@posteo.de>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+          {
+            name = "mio";
+            packageId = "mio";
+            rename = "mio-0_8";
+            optional = true;
+            features = [ "net" "os-ext" ];
+          }
+          {
+            name = "signal-hook";
+            packageId = "signal-hook";
+          }
+        ];
+        features = {
+          "mio-0_6" = [ "dep:mio-0_6" ];
+          "mio-0_7" = [ "dep:mio-0_7" ];
+          "mio-0_8" = [ "dep:mio-0_8" ];
+          "mio-uds" = [ "dep:mio-uds" ];
+          "support-v0_6" = [ "mio-0_6" "mio-uds" ];
+          "support-v0_7" = [ "mio-0_7" ];
+          "support-v0_8" = [ "mio-0_8" ];
+        };
+        resolvedDefaultFeatures = [ "mio-0_8" "support-v0_8" ];
+      };
       "signal-hook-registry" = rec {
         crateName = "signal-hook-registry";
         version = "1.4.1";
@@ -7478,6 +10148,19 @@ rec {
           }
         ];
 
+      };
+      "simdutf8" = rec {
+        crateName = "simdutf8";
+        version = "0.1.4";
+        edition = "2018";
+        sha256 = "0fi6zvnldaw7g726wnm9vvpv4s89s5jsk7fgp3rg2l99amw64zzj";
+        authors = [
+          "Hans Kratz <hans@appfour.com>"
+        ];
+        features = {
+          "default" = [ "std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "similar" = rec {
         crateName = "similar";
@@ -7597,6 +10280,39 @@ rec {
           "serde" = [ "dep:serde" ];
         };
       };
+      "smartstring" = rec {
+        crateName = "smartstring";
+        version = "1.0.1";
+        edition = "2021";
+        sha256 = "0agf4x0jz79r30aqibyfjm1h9hrjdh0harcqcvb2vapv7rijrdrz";
+        authors = [
+          "Bodil Stokke <bodil@bodil.org>"
+        ];
+        dependencies = [
+          {
+            name = "static_assertions";
+            packageId = "static_assertions";
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "autocfg";
+            packageId = "autocfg";
+          }
+          {
+            name = "version_check";
+            packageId = "version_check";
+          }
+        ];
+        features = {
+          "arbitrary" = [ "dep:arbitrary" ];
+          "default" = [ "std" ];
+          "proptest" = [ "dep:proptest" ];
+          "serde" = [ "dep:serde" ];
+          "test" = [ "std" "arbitrary" "arbitrary/derive" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
       "smol_str" = rec {
         crateName = "smol_str";
         version = "0.1.24";
@@ -7665,6 +10381,52 @@ rec {
         ];
 
       };
+      "sqlparser" = rec {
+        crateName = "sqlparser";
+        version = "0.34.0";
+        edition = "2021";
+        sha256 = "0nbg16w5ajik11hnbwk7z01z6500ddb6pprlc82kjw5ixxp71lrp";
+        authors = [
+          "Andy Grove <andygrove73@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "log";
+            packageId = "log";
+          }
+        ];
+        features = {
+          "bigdecimal" = [ "dep:bigdecimal" ];
+          "default" = [ "std" ];
+          "json_example" = [ "serde_json" "serde" ];
+          "serde" = [ "dep:serde" ];
+          "serde_json" = [ "dep:serde_json" ];
+          "sqlparser_derive" = [ "dep:sqlparser_derive" ];
+          "visitor" = [ "sqlparser_derive" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "static_assertions" = rec {
+        crateName = "static_assertions";
+        version = "1.1.0";
+        edition = "2015";
+        sha256 = "0gsl6xmw10gvn3zs1rv99laj5ig7ylffnh71f9l34js4nr4r7sx2";
+        authors = [
+          "Nikolai Vazquez"
+        ];
+        features = {
+        };
+      };
+      "strength_reduce" = rec {
+        crateName = "strength_reduce";
+        version = "0.2.4";
+        edition = "2015";
+        sha256 = "10jdq9dijjdkb20wg1dmwg447rnj37jbq0mwvbadvqi2gys5x2gy";
+        authors = [
+          "Elliott Mahler <join.together@gmail.com>"
+        ];
+
+      };
       "strsim" = rec {
         crateName = "strsim";
         version = "0.10.0";
@@ -7672,6 +10434,56 @@ rec {
         sha256 = "08s69r4rcrahwnickvi0kq49z524ci50capybln83mg6b473qivk";
         authors = [
           "Danny Guo <danny@dannyguo.com>"
+        ];
+
+      };
+      "strum" = rec {
+        crateName = "strum";
+        version = "0.24.1";
+        edition = "2018";
+        sha256 = "0gz6cjhlps5idwasznklxdh2zsas6mxf99vr0n27j876q12n0gh6";
+        authors = [
+          "Peter Glotfelty <peter.glotfelty@microsoft.com>"
+        ];
+        features = {
+          "default" = [ "std" ];
+          "derive" = [ "strum_macros" ];
+          "phf" = [ "dep:phf" ];
+          "strum_macros" = [ "dep:strum_macros" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "strum_macros" = rec {
+        crateName = "strum_macros";
+        version = "0.24.3";
+        edition = "2018";
+        sha256 = "0naxz2y38kwq5wgirmia64vvf6qhwy8j367rw966n62gsbh5nf0y";
+        procMacro = true;
+        authors = [
+          "Peter Glotfelty <peter.glotfelty@microsoft.com>"
+        ];
+        dependencies = [
+          {
+            name = "heck";
+            packageId = "heck";
+          }
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "rustversion";
+            packageId = "rustversion";
+          }
+          {
+            name = "syn";
+            packageId = "syn 1.0.109";
+            features = [ "parsing" "extra-traits" ];
+          }
         ];
 
       };
@@ -7720,7 +10532,7 @@ rec {
           "quote" = [ "dep:quote" ];
           "test" = [ "syn-test-suite/all-features" ];
         };
-        resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "full" "parsing" "printing" "proc-macro" "quote" ];
+        resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "full" "parsing" "printing" "proc-macro" "quote" "visit-mut" ];
       };
       "syn 2.0.18" = rec {
         crateName = "syn";
@@ -7769,7 +10581,7 @@ rec {
           "futures-core" = [ "dep:futures-core" ];
         };
       };
-      "sysinfo" = rec {
+      "sysinfo 0.28.4" = rec {
         crateName = "sysinfo";
         version = "0.28.4";
         edition = "2018";
@@ -7824,6 +10636,65 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "multithread" "rayon" ];
       };
+      "sysinfo 0.29.2" = rec {
+        crateName = "sysinfo";
+        version = "0.29.2";
+        edition = "2018";
+        sha256 = "15c6ld3fa53pj7sbcdyrkz6vckr143qxy43v5wcaivl6bf2d0mwm";
+        authors = [
+          "Guillaume Gomez <guillaume1.gomez@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "cfg-if";
+            packageId = "cfg-if";
+          }
+          {
+            name = "core-foundation-sys";
+            packageId = "core-foundation-sys";
+            target = { target, features }: (("macos" == target."os") || ("ios" == target."os"));
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+            target = { target, features }: (!(("unknown" == target."os") || ("wasm32" == target."arch")));
+          }
+          {
+            name = "ntapi";
+            packageId = "ntapi";
+            target = { target, features }: (target."windows" or false);
+          }
+          {
+            name = "once_cell";
+            packageId = "once_cell";
+            target = { target, features }: ((target."windows" or false) || ("linux" == target."os") || ("android" == target."os"));
+          }
+          {
+            name = "winapi";
+            packageId = "winapi";
+            target = { target, features }: (target."windows" or false);
+            features = [ "errhandlingapi" "fileapi" "handleapi" "heapapi" "ifdef" "ioapiset" "minwindef" "pdh" "psapi" "synchapi" "sysinfoapi" "winbase" "winerror" "winioctl" "winnt" "oleauto" "wbemcli" "rpcdce" "combaseapi" "objidl" "powerbase" "netioapi" "lmcons" "lmaccess" "lmapibuf" "memoryapi" "ntlsa" "securitybaseapi" "shellapi" "std" "iphlpapi" "winsock2" "sddl" ];
+          }
+        ];
+        features = {
+          "apple-app-store" = [ "apple-sandbox" ];
+          "debug" = [ "libc/extra_traits" ];
+          "default" = [ "multithread" ];
+          "multithread" = [ "rayon" ];
+          "rayon" = [ "dep:rayon" ];
+          "serde" = [ "dep:serde" ];
+        };
+      };
+      "target-features" = rec {
+        crateName = "target-features";
+        version = "0.1.4";
+        edition = "2021";
+        sha256 = "03hl609f5wwwjhzkn6jzi5nann7gm1k4snyzy56dv6kzqdrv9xh6";
+        authors = [
+          "Caleb Zulawski <caleb.zulawski@gmail.com>"
+        ];
+
+      };
       "taskwait" = rec {
         crateName = "taskwait";
         version = "0.4.1";
@@ -7863,9 +10734,9 @@ rec {
       };
       "tempfile" = rec {
         crateName = "tempfile";
-        version = "3.5.0";
+        version = "3.6.0";
         edition = "2018";
-        sha256 = "163rp254r3x7i5hisagrpxid2166pq94jvk511dpkmc1yf2fryxr";
+        sha256 = "1mm6n3ijfsnk7grbbws3fc9qy4y5n3pshixa19wmhzimfqj47h1i";
         authors = [
           "Steven Allen <steven@stebalien.com>"
           "The Rust Project Developers"
@@ -7894,9 +10765,15 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.45.0";
+            packageId = "windows-sys 0.48.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Storage_FileSystem" "Win32_Foundation" ];
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "autocfg";
+            packageId = "autocfg";
           }
         ];
         features = {
@@ -8291,12 +11168,9 @@ rec {
       };
       "tokio-rustls" = rec {
         crateName = "tokio-rustls";
-        version = "0.24.0";
+        version = "0.24.1";
         edition = "2018";
-        sha256 = "1dcxcs9gmpihr124w9gcpwsc2h3xxg0qdaipck5f7cgmgwvhkm70";
-        authors = [
-          "quininer kel <quininer@live.com>"
-        ];
+        sha256 = "10bhibg57mqir7xjhb2xmf24xgfpx6fzpyw720a4ih8a737jg0y2";
         dependencies = [
           {
             name = "rustls";
@@ -8319,6 +11193,7 @@ rec {
           "dangerous_configuration" = [ "rustls/dangerous_configuration" ];
           "default" = [ "logging" "tls12" ];
           "logging" = [ "rustls/logging" ];
+          "secret_extraction" = [ "rustls/secret_extraction" ];
           "tls12" = [ "rustls/tls12" ];
         };
         resolvedDefaultFeatures = [ "default" "logging" "tls12" ];
@@ -9086,6 +11961,23 @@ rec {
         };
         resolvedDefaultFeatures = [ "std" ];
       };
+      "unicode-width" = rec {
+        crateName = "unicode-width";
+        version = "0.1.10";
+        edition = "2015";
+        sha256 = "12vc3wv0qwg8rzcgb9bhaf5119dlmd6lmkhbfy1zfls6n7jx3vf0";
+        authors = [
+          "kwantam <kwantam@gmail.com>"
+          "Manish Goregaokar <manishsmail@gmail.com>"
+        ];
+        features = {
+          "compiler_builtins" = [ "dep:compiler_builtins" ];
+          "core" = [ "dep:core" ];
+          "rustc-dep-of-std" = [ "std" "core" "compiler_builtins" ];
+          "std" = [ "dep:std" ];
+        };
+        resolvedDefaultFeatures = [ "default" ];
+      };
       "untrusted" = rec {
         crateName = "untrusted";
         version = "0.7.1";
@@ -9139,9 +12031,9 @@ rec {
       };
       "uuid" = rec {
         crateName = "uuid";
-        version = "1.3.3";
+        version = "1.3.4";
         edition = "2018";
-        sha256 = "1lpcqp1z0zy3l00yd418dpjlpih9la2swm62gwk1nia24kil8m1l";
+        sha256 = "10cb4i2qzshgrr00w9gpclyl4zzzg1sh4z0h0vipvhpfy8m9i8hg";
         authors = [
           "Ashley Mannix<ashleymannix@live.com.au>"
           "Christopher Armstrong"
@@ -9279,9 +12171,9 @@ rec {
       };
       "wasm-bindgen" = rec {
         crateName = "wasm-bindgen";
-        version = "0.2.86";
+        version = "0.2.87";
         edition = "2018";
-        sha256 = "0wyzgp1fycww1ihl38xk3jdbw6qr5br9yi99wbs9z91bp260xfjv";
+        sha256 = "0hm3k42gcnrps2jh339h186scx1radqy1w7v1zwb333dncmaf1kp";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -9310,9 +12202,9 @@ rec {
       };
       "wasm-bindgen-backend" = rec {
         crateName = "wasm-bindgen-backend";
-        version = "0.2.86";
+        version = "0.2.87";
         edition = "2018";
-        sha256 = "1yyqcq6sp8zwcks1lshpy6f6gmkxylc23ggn17kxwswx7z4lpc0r";
+        sha256 = "1gcsh3bjxhw3cirmin45107pcsnn0ymhkxg6bxg65s8hqp9vdwjy";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -9354,9 +12246,9 @@ rec {
       };
       "wasm-bindgen-futures" = rec {
         crateName = "wasm-bindgen-futures";
-        version = "0.4.36";
+        version = "0.4.37";
         edition = "2018";
-        sha256 = "0zi9nsn7viaxbhln29z1nhna4siiynag6zwhrrkk3i896z88a69d";
+        sha256 = "00zagjk39g4jjjnvfh35s7w6s0p6sy88i5c7y421z7vga4hvqbf0";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -9387,9 +12279,9 @@ rec {
       };
       "wasm-bindgen-macro" = rec {
         crateName = "wasm-bindgen-macro";
-        version = "0.2.86";
+        version = "0.2.87";
         edition = "2018";
-        sha256 = "0n62z5fkr875c09hh406czmpn997k4w40a7m6h1bn9m5y4jb1mhl";
+        sha256 = "07cg0b6zkcxa1yg1n10h62paid59s9zr8yss214bv8w2b7jrbr6y";
         procMacro = true;
         authors = [
           "The wasm-bindgen Developers"
@@ -9412,9 +12304,9 @@ rec {
       };
       "wasm-bindgen-macro-support" = rec {
         crateName = "wasm-bindgen-macro-support";
-        version = "0.2.86";
+        version = "0.2.87";
         edition = "2018";
-        sha256 = "1y1rzig9wxrml0f23fx738qs9fjxdjp95p7101ifpl9di2xbwa71";
+        sha256 = "0yqc46pr6mlgb9bsnfdnd50qvsqnrz8g5243fnaz0rb7lhc1ns2l";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -9449,19 +12341,64 @@ rec {
       };
       "wasm-bindgen-shared" = rec {
         crateName = "wasm-bindgen-shared";
-        version = "0.2.86";
+        version = "0.2.87";
         edition = "2018";
-        sha256 = "14ra4j13kqjpyxz82ndzf8wlpwnbkdzjvvig934iz7a00m1mp7gd";
+        sha256 = "18bmjwvfyhvlq49nzw6mgiyx4ys350vps4cmx5gvzckh91dd0sna";
         authors = [
           "The wasm-bindgen Developers"
         ];
 
       };
+      "wasm-timer" = rec {
+        crateName = "wasm-timer";
+        version = "0.2.5";
+        edition = "2018";
+        sha256 = "0zsyijv3wgj9p4q47a4awla8j4kw33jd7da2fsd1wml0nh6wn3my";
+        authors = [
+          "Pierre Krieger <pierre.krieger1708@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "futures";
+            packageId = "futures";
+          }
+          {
+            name = "js-sys";
+            packageId = "js-sys";
+            target = { target, features }: (("wasm32" == target."arch") && ("unknown" == target."os"));
+          }
+          {
+            name = "parking_lot";
+            packageId = "parking_lot 0.11.2";
+          }
+          {
+            name = "pin-utils";
+            packageId = "pin-utils";
+          }
+          {
+            name = "wasm-bindgen";
+            packageId = "wasm-bindgen";
+            target = { target, features }: (("wasm32" == target."arch") && ("unknown" == target."os"));
+          }
+          {
+            name = "wasm-bindgen-futures";
+            packageId = "wasm-bindgen-futures";
+            target = { target, features }: (("wasm32" == target."arch") && ("unknown" == target."os"));
+          }
+          {
+            name = "web-sys";
+            packageId = "web-sys";
+            target = { target, features }: (("wasm32" == target."arch") && ("unknown" == target."os"));
+            features = [ "Performance" "Window" ];
+          }
+        ];
+
+      };
       "web-sys" = rec {
         crateName = "web-sys";
-        version = "0.3.63";
+        version = "0.3.64";
         edition = "2018";
-        sha256 = "1hm7sgy7csiq2bwws0inla3vqpw4bg7wa441py3i3nl4x7s9xp9v";
+        sha256 = "16r4fww3l99kxhb66hka3kxkmhhgzhnqkzdf0ay6l2i2ikpwp1cv";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -9920,7 +12857,7 @@ rec {
           "XrViewerPose" = [ "XrPose" ];
           "XrWebGlLayer" = [ "EventTarget" "XrLayer" ];
         };
-        resolvedDefaultFeatures = [ "AbortController" "AbortSignal" "Blob" "BlobPropertyBag" "Crypto" "Event" "EventTarget" "File" "FormData" "Headers" "MessageEvent" "ReadableStream" "Request" "RequestCredentials" "RequestInit" "RequestMode" "Response" "ServiceWorkerGlobalScope" "Window" "Worker" "WorkerGlobalScope" ];
+        resolvedDefaultFeatures = [ "AbortController" "AbortSignal" "Blob" "BlobPropertyBag" "Crypto" "Event" "EventTarget" "File" "FormData" "Headers" "MessageEvent" "Performance" "ReadableStream" "Request" "RequestCredentials" "RequestInit" "RequestMode" "Response" "ServiceWorkerGlobalScope" "Window" "Worker" "WorkerGlobalScope" ];
       };
       "which" = rec {
         crateName = "which";
@@ -11645,7 +14582,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Security_Authorization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Console" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_Pipes" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Security_Authorization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Console" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_Pipes" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-targets 0.42.2" = rec {
         crateName = "windows-targets";
@@ -11928,6 +14865,18 @@ rec {
           "transactions" = [ "winapi/ktmw32" ];
         };
       };
+      "xxhash-rust" = rec {
+        crateName = "xxhash-rust";
+        version = "0.8.6";
+        edition = "2018";
+        sha256 = "0w0dx17w0ydp3n09a1bkh7m8rqwq5gf3zl149cfxfs2ddka72nkk";
+        authors = [
+          "Douman <douman@gmx.se>"
+        ];
+        features = {
+        };
+        resolvedDefaultFeatures = [ "xxh3" ];
+      };
       "yaml-rust" = rec {
         crateName = "yaml-rust";
         version = "0.4.5";
@@ -11953,6 +14902,106 @@ rec {
           "Sergio Benitez <sb@sergio.bz>"
         ];
 
+      };
+      "zstd" = rec {
+        crateName = "zstd";
+        version = "0.12.3+zstd.1.5.2";
+        edition = "2018";
+        sha256 = "01h8zmdckz1rklpsr0i3lxx9d2jxb5fmsbwwzl9hwkh2zcra3vkn";
+        authors = [
+          "Alexandre Bury <alexandre.bury@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "zstd-safe";
+            packageId = "zstd-safe";
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+        ];
+        features = {
+          "arrays" = [ "zstd-safe/arrays" ];
+          "bindgen" = [ "zstd-safe/bindgen" ];
+          "debug" = [ "zstd-safe/debug" ];
+          "default" = [ "legacy" "arrays" "zdict_builder" ];
+          "experimental" = [ "zstd-safe/experimental" ];
+          "fat-lto" = [ "zstd-safe/fat-lto" ];
+          "legacy" = [ "zstd-safe/legacy" ];
+          "no_asm" = [ "zstd-safe/no_asm" ];
+          "pkg-config" = [ "zstd-safe/pkg-config" ];
+          "thin" = [ "zstd-safe/thin" ];
+          "thin-lto" = [ "zstd-safe/thin-lto" ];
+          "zdict_builder" = [ "zstd-safe/zdict_builder" ];
+          "zstdmt" = [ "zstd-safe/zstdmt" ];
+        };
+        resolvedDefaultFeatures = [ "arrays" "default" "legacy" "zdict_builder" ];
+      };
+      "zstd-safe" = rec {
+        crateName = "zstd-safe";
+        version = "6.0.5+zstd.1.5.4";
+        edition = "2018";
+        sha256 = "0fyj55jkyik3qjaf6i0pn0vwmqyazdjh389qq8384xdinih9wvfm";
+        authors = [
+          "Alexandre Bury <alexandre.bury@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+          {
+            name = "zstd-sys";
+            packageId = "zstd-sys";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "bindgen" = [ "zstd-sys/bindgen" ];
+          "debug" = [ "zstd-sys/debug" ];
+          "default" = [ "legacy" "arrays" "zdict_builder" ];
+          "experimental" = [ "zstd-sys/experimental" ];
+          "fat-lto" = [ "zstd-sys/fat-lto" ];
+          "legacy" = [ "zstd-sys/legacy" ];
+          "no_asm" = [ "zstd-sys/no_asm" ];
+          "pkg-config" = [ "zstd-sys/pkg-config" ];
+          "std" = [ "zstd-sys/std" ];
+          "thin" = [ "zstd-sys/thin" ];
+          "thin-lto" = [ "zstd-sys/thin-lto" ];
+          "zdict_builder" = [ "zstd-sys/zdict_builder" ];
+          "zstdmt" = [ "zstd-sys/zstdmt" ];
+        };
+        resolvedDefaultFeatures = [ "arrays" "legacy" "std" "zdict_builder" ];
+      };
+      "zstd-sys" = rec {
+        crateName = "zstd-sys";
+        version = "2.0.8+zstd.1.5.5";
+        edition = "2018";
+        sha256 = "137c0wkxb04l0ig5df8a1ni94dl0g2ibz2q9dicg4bfk4ppfcmjm";
+        authors = [
+          "Alexandre Bury <alexandre.bury@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "cc";
+            packageId = "cc";
+            features = [ "parallel" ];
+          }
+          {
+            name = "pkg-config";
+            packageId = "pkg-config";
+          }
+        ];
+        features = {
+          "bindgen" = [ "dep:bindgen" ];
+          "default" = [ "legacy" "zdict_builder" ];
+        };
+        resolvedDefaultFeatures = [ "legacy" "std" "zdict_builder" ];
       };
     };
 
