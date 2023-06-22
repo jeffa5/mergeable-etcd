@@ -998,7 +998,7 @@ enum PartitionTarget {
 #[derive(Parser, Debug)]
 struct CliOptions {
     /// Directory to store results in.
-    #[clap(long, default_value = "./results")]
+    #[clap(long, default_value = "results")]
     results_dir: PathBuf,
 
     /// Whether to run the benchmarks.

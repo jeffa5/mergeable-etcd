@@ -168,7 +168,7 @@ async fn main() -> Result<(), anyhow::Error> {
         anyhow::bail!("Neither run nor analyse specified");
     }
 
-    const RESULTS_DIR: &str = "experiments/automerge-diff/results";
+    const RESULTS_DIR: &str = "results";
 
     if opts.run {
         let conf = exp::RunConfig {
