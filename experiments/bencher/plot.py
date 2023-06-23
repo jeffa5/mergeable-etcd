@@ -216,14 +216,16 @@ def plot_latency_scatter_clustered_delayed_partition_etcd(
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["partition_after_s"] == 5]
     data = data[data["unpartition_after_s"] == 5]
+    data["success"] = data["success"].replace({True: "success", False: "failure"})
     data["start_s"] = data["start_ns"] / 1_000_000_000
     print(data.groupby(group_cols, dropna=False).count())
+    data = data.rename(columns={"success":"status"})
     plt.figure()
     plot = sns.scatterplot(
         data=data,
         x="start_s",
         y="latency_ms",
-        hue="success",
+        hue="status",
     )
     plt.yscale("log")
     plot.set(xlabel="Time (s)", ylabel="Latency (ms)", alpha=0.5)
