@@ -278,7 +278,7 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
             }
         }
         let duration = start.elapsed();
-        if duration > Duration::from_millis(1000) {
+        if duration > Duration::from_millis(10) {
             warn!(
                 ?duration,
                 "Generating sync message (document changed) took too long"
@@ -489,7 +489,7 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
                 .unwrap();
             debug!("Finished receiving sync message");
             let duration = start.elapsed();
-            if duration > Duration::from_millis(1000) {
+            if duration > Duration::from_millis(10) {
                 warn!(
                     ?duration,
                     "Receiving sync message (application to document) took too long"
@@ -540,7 +540,7 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
             doc.receive_sync_changes(from, changes).await.unwrap();
             debug!("Finished receiving sync message");
             let duration = start.elapsed();
-            if duration > Duration::from_millis(1000) {
+            if duration > Duration::from_millis(10) {
                 warn!(
                     ?duration,
                     "Receiving sync changes (application to document) took too long"
