@@ -895,8 +895,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/jeffa5/automerge";
-          rev = "06d0b211c740bd72bbd83c21644b507850db2cd8";
-          sha256 = "04qiiw9zfsadknw0s7m9gnvma1hfw9hfgm7a43gpm23ljfp7hkia";
+          rev = "7062171129347ddf6d099edbe9afdf4cd7716cd1";
+          sha256 = "0i6qfs3kmr3bjhwi8rkmkcvi64bjqj598chciarx62zkn3yj7v7d";
         };
         dependencies = [
           {
