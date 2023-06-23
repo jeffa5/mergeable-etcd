@@ -185,7 +185,6 @@ impl PeerSyncer {
 
     pub async fn send_message(&mut self, from: u64, to: u64, name: String, msg: Vec<u8>) {
         let sender = self.sender.clone();
-        // spawn a task so that we don't block loops with the document
         debug!(?from, ?to, ?name, "Sending message to peer");
 
         let _: Result<_, _> = sender
@@ -210,7 +209,6 @@ impl PeerSyncer {
         changes: Vec<Vec<u8>>,
     ) {
         let sender = self.sender.clone();
-        // spawn a task so that we don't block loops with the document
         debug!(?from, ?to, ?name, "Sending message to peer");
 
         let _: Result<_, _> = sender
