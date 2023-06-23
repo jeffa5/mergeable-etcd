@@ -183,38 +183,42 @@ impl PeerSyncer {
         )
     }
 
-    pub fn send(&mut self, from: u64, to: u64, name: String, msg: Vec<u8>) {
-        let sender = self.sender.clone();
-        // spawn a task so that we don't block loops with the document
-        tokio::spawn(async move {
-            debug!(?from, ?to, ?name, "Sending message to peer");
+    pub async fn send_message(&mut self, from: u64, to: u64, name: String, msg: Vec<u8>) {
+        debug!(?from, ?to, ?name, "Sending message to peer");
 
-            let _: Result<_, _> = sender
-                .send(Message::SyncMessage(SyncMessage {
-                    from,
-                    to,
-                    name,
-                    data: msg,
-                }))
-                .await;
-        });
+        let _: Result<_, _> = self
+            .sender
+            .send(Message::SyncMessage(SyncMessage {
+                from,
+                to,
+                name,
+                data: msg,
+            }))
+            .await;
     }
 
-    pub fn send_local_changes(&mut self, from: u64, to: u64, name: String, changes: Vec<Vec<u8>>) {
-        let sender = self.sender.clone();
-        // spawn a task so that we don't block loops with the document
-        tokio::spawn(async move {
-            debug!(?from, ?to, ?name, "Sending message to peer");
+    pub fn can_send(&self) -> bool {
+        self.sender.capacity() > 0
+    }
 
-            let _: Result<_, _> = sender
-                .send(Message::SyncChanges(SyncChanges {
-                    from,
-                    to,
-                    name,
-                    changes,
-                }))
-                .await;
-        });
+    pub async fn send_local_changes(
+        &mut self,
+        from: u64,
+        to: u64,
+        name: String,
+        changes: Vec<Vec<u8>>,
+    ) {
+        debug!(?from, ?to, ?name, "Sending changes to peer");
+
+        let _: Result<_, _> = self
+            .sender
+            .send(Message::SyncChanges(SyncChanges {
+                from,
+                to,
+                name,
+                changes,
+            }))
+            .await;
     }
 }
 
@@ -237,7 +241,7 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn send_local_changes_to_peer(
+    async fn try_send_local_changes_to_peer(
         &mut self,
         from_name: &str,
         from_id: u64,
@@ -246,25 +250,33 @@ impl<P: DocPersister, V: Value> PeerServerInner<P, V> {
     ) {
         debug!(?to_id, "attempting to send changes");
         let syncer = self.connections.get_mut(&to_id).unwrap();
-        syncer.send_local_changes(from_id, to_id, from_name.to_owned(), changes);
+        if syncer.can_send() {
+            syncer
+                .send_local_changes(from_id, to_id, from_name.to_owned(), changes)
+                .await;
+        }
     }
 
     #[tracing::instrument(skip(self))]
-    async fn sync_with_peer(&mut self, from_name: &str, from_id: u64, to_id: u64) {
-        debug!(?to_id, "attempting to send change");
+    async fn try_sync_with_peer(&mut self, from_name: &str, from_id: u64, to_id: u64) {
+        debug!(?to_id, "attempting to send message");
         let start = Instant::now();
         debug!("Started generating sync message");
         let syncer = self.connections.get_mut(&to_id).unwrap();
-        let message = self
-            .document
-            .lock()
-            .await
-            .generate_sync_message(to_id)
-            .map(|m| m.encode());
-        if let Some(msg) = message {
-            syncer.send(from_id, to_id, from_name.to_owned(), msg);
+        if syncer.can_send() {
+            let message = self
+                .document
+                .lock()
+                .await
+                .generate_sync_message(to_id)
+                .map(|m| m.encode());
+            debug!("Finished generating sync message");
+            if let Some(msg) = message {
+                syncer
+                    .send_message(from_id, to_id, from_name.to_owned(), msg)
+                    .await;
+            }
         }
-        debug!("Finished generating sync message");
         let duration = start.elapsed();
         if duration > Duration::from_millis(1000) {
             warn!(
@@ -314,7 +326,11 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
             tokio::spawn(async move {
                 let name = name;
                 let id = s.add_connection(&name, address, None).await;
-                s.inner.lock().await.sync_with_peer(&name, our_id, id).await;
+                s.inner
+                    .lock()
+                    .await
+                    .try_sync_with_peer(&name, our_id, id)
+                    .await;
             });
         }
 
@@ -367,13 +383,11 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
             let name = name.clone();
             let s = self.clone();
             let changes = changes.clone();
-            tokio::spawn(async move {
-                s.inner
-                    .lock()
-                    .await
-                    .send_local_changes_to_peer(&name, member_id, id, changes)
-                    .await
-            });
+            s.inner
+                .lock()
+                .await
+                .try_send_local_changes_to_peer(&name, member_id, id, changes)
+                .await;
         }
     }
 
@@ -427,13 +441,11 @@ impl<P: DocPersister, V: Value> PeerServer<P, V> {
             }
             let name = name.clone();
             let s = self.clone();
-            tokio::spawn(async move {
-                s.inner
-                    .lock()
-                    .await
-                    .sync_with_peer(&name, member_id, id)
-                    .await
-            });
+            s.inner
+                .lock()
+                .await
+                .try_sync_with_peer(&name, member_id, id)
+                .await;
         }
     }
 
