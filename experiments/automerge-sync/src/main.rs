@@ -62,13 +62,13 @@ impl exp::Experiment for Experiment {
                 let mut synced1 = true;
                 let mut synced2 = true;
                 while synced1 && synced2 {
-                    if let Some(msg) = doc1.generate_sync_message(state2) {
+                    if let Some(msg) = doc1.generate_sync_message(state2, 100) {
                         doc2.receive_sync_message(state1, msg).unwrap();
                         synced1 = true;
                     } else {
                         synced1 = false;
                     }
-                    if let Some(msg) = doc2.generate_sync_message(state1) {
+                    if let Some(msg) = doc2.generate_sync_message(state1, 100) {
                         doc1.receive_sync_message(state2, msg).unwrap();
                         synced2 = true;
                     } else {

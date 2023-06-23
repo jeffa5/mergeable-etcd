@@ -404,7 +404,7 @@ where
     pub fn generate_sync_message(&mut self, peer_id: u64) -> Option<automerge::sync::Message<'_>> {
         debug!(?peer_id, "generating sync message");
         self.am
-            .generate_sync_message(peer_id.to_be_bytes().to_vec())
+            .generate_sync_message(peer_id.to_be_bytes().to_vec(), 100)
             .unwrap()
     }
 
