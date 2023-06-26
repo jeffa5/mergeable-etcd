@@ -45,16 +45,6 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
-    "bencher-experiment" = rec {
-      packageId = "bencher-experiment";
-      build = internal.buildRustCrateWithFeatures {
-        packageId = "bencher-experiment";
-      };
-
-      # Debug support which might change between releases.
-      # File a bug if you depend on any for non-debug work!
-      debug = internal.debugCrate { inherit packageId; };
-    };
     "dismerge" = rec {
       packageId = "dismerge";
       build = internal.buildRustCrateWithFeatures {
@@ -119,6 +109,16 @@ rec {
       packageId = "exp-automerge-sync";
       build = internal.buildRustCrateWithFeatures {
         packageId = "exp-automerge-sync";
+      };
+
+      # Debug support which might change between releases.
+      # File a bug if you depend on any for non-debug work!
+      debug = internal.debugCrate { inherit packageId; };
+    };
+    "exp-bencher" = rec {
+      packageId = "exp-bencher";
+      build = internal.buildRustCrateWithFeatures {
+        packageId = "exp-bencher";
       };
 
       # Debug support which might change between releases.
@@ -1496,98 +1496,6 @@ rec {
           {
             name = "url";
             packageId = "url";
-          }
-        ];
-
-      };
-      "bencher-experiment" = rec {
-        crateName = "bencher-experiment";
-        version = "0.1.0";
-        edition = "2021";
-        crateBin = [
-          {
-            name = "bencher-experiment";
-            path = "src/main.rs";
-            requiredFeatures = [ ];
-          }
-        ];
-        # We can't filter paths with references in Nix 2.4
-        # See https://github.com/NixOS/nix/issues/5410
-        src = if ((lib.versionOlder builtins.nixVersion "2.4pre20211007") || (lib.versionOlder "2.5" builtins.nixVersion ))
-          then lib.cleanSourceWith { filter = sourceFilter;  src = ./experiments/bencher; }
-          else ./experiments/bencher;
-        dependencies = [
-          {
-            name = "anyhow";
-            packageId = "anyhow";
-          }
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "bencher";
-            packageId = "bencher";
-          }
-          {
-            name = "bollard";
-            packageId = "bollard";
-          }
-          {
-            name = "chrono";
-            packageId = "chrono";
-          }
-          {
-            name = "clap";
-            packageId = "clap 3.2.25";
-            features = [ "derive" ];
-          }
-          {
-            name = "csv";
-            packageId = "csv";
-          }
-          {
-            name = "etcd-proto";
-            packageId = "etcd-proto";
-          }
-          {
-            name = "exp";
-            packageId = "exp";
-          }
-          {
-            name = "futures";
-            packageId = "futures";
-          }
-          {
-            name = "mergeable-proto";
-            packageId = "mergeable-proto";
-          }
-          {
-            name = "polars";
-            packageId = "polars";
-            features = [ "lazy" "diagonal_concat" ];
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-          {
-            name = "tracing-subscriber";
-            packageId = "tracing-subscriber";
           }
         ];
 
@@ -3694,6 +3602,98 @@ rec {
             name = "tracing-subscriber";
             packageId = "tracing-subscriber";
             features = [ "env-filter" ];
+          }
+        ];
+
+      };
+      "exp-bencher" = rec {
+        crateName = "exp-bencher";
+        version = "0.1.0";
+        edition = "2021";
+        crateBin = [
+          {
+            name = "exp-bencher";
+            path = "src/main.rs";
+            requiredFeatures = [ ];
+          }
+        ];
+        # We can't filter paths with references in Nix 2.4
+        # See https://github.com/NixOS/nix/issues/5410
+        src = if ((lib.versionOlder builtins.nixVersion "2.4pre20211007") || (lib.versionOlder "2.5" builtins.nixVersion ))
+          then lib.cleanSourceWith { filter = sourceFilter;  src = ./experiments/bencher; }
+          else ./experiments/bencher;
+        dependencies = [
+          {
+            name = "anyhow";
+            packageId = "anyhow";
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "bencher";
+            packageId = "bencher";
+          }
+          {
+            name = "bollard";
+            packageId = "bollard";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+          }
+          {
+            name = "clap";
+            packageId = "clap 3.2.25";
+            features = [ "derive" ];
+          }
+          {
+            name = "csv";
+            packageId = "csv";
+          }
+          {
+            name = "etcd-proto";
+            packageId = "etcd-proto";
+          }
+          {
+            name = "exp";
+            packageId = "exp";
+          }
+          {
+            name = "futures";
+            packageId = "futures";
+          }
+          {
+            name = "mergeable-proto";
+            packageId = "mergeable-proto";
+          }
+          {
+            name = "polars";
+            packageId = "polars";
+            features = [ "lazy" "diagonal_concat" ];
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "macros" "rt" "rt-multi-thread" "fs" "signal" "sync" ];
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+          {
+            name = "tracing-subscriber";
+            packageId = "tracing-subscriber";
           }
         ];
 

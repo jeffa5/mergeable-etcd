@@ -47,59 +47,70 @@
     };
     workspacePackages = lib.attrsets.mapAttrs (name: value: value.build) cargoNix.workspaceMembers;
     container-registry = "jeffas";
+    python = pkgs.python3.withPackages (ps: with ps; [numpy pandas matplotlib seaborn]);
   in {
-    packages.${system} =
-      workspacePackages
-      // {
-        bencher-docker = pkgs.dockerTools.buildLayeredImage {
-          name = "${container-registry}/bencher";
-          tag = "latest";
-          contents = [
-            pkgs.iptables
-            pkgs.iproute2 # for tc
-            pkgs.busybox
-            self.packages.${system}.bencher
-          ];
+    packages.${system} = {
+      inherit python;
+      inherit
+        (workspacePackages)
+        bencher
+        dismerge
+        dismerge-client
+        mergeable-etcd
+        exp-bencher
+        exp-automerge-changes
+        exp-automerge-diff
+        exp-automerge-sync
+        ;
+      docker-bencher = pkgs.dockerTools.buildLayeredImage {
+        name = "${container-registry}/bencher";
+        tag = "latest";
+        contents = [
+          pkgs.iptables
+          pkgs.iproute2 # for tc
+          pkgs.busybox
+          self.packages.${system}.bencher
+        ];
 
-          config.Cmd = ["/bin/bencher"];
-        };
-
-        mergeable-etcd-docker = pkgs.dockerTools.buildLayeredImage {
-          name = "${container-registry}/mergeable-etcd";
-          tag = "latest";
-          contents = [
-            pkgs.iptables
-            pkgs.iproute2 # for tc
-            pkgs.busybox
-            self.packages.${system}.mergeable-etcd
-          ];
-          config.Cmd = ["/bin/mergeable-etcd-bytes"];
-        };
-
-        dismerge-docker = pkgs.dockerTools.buildLayeredImage {
-          name = "${container-registry}/dismerge";
-          tag = "latest";
-          contents = [
-            pkgs.iptables
-            pkgs.iproute2 # for tc
-            pkgs.busybox
-            self.packages.${system}.dismerge
-          ];
-          config.Cmd = ["/bin/dismerge-bytes"];
-        };
-
-        etcd-docker = pkgs.dockerTools.buildLayeredImage {
-          name = "${container-registry}/etcd";
-          tag = "v${pkgs.etcd_3_5.version}";
-          contents = [
-            pkgs.iptables
-            pkgs.iproute2 # for tc
-            pkgs.busybox
-            pkgs.etcd_3_5
-          ];
-          config.Cmd = ["/bin/etcd"];
-        };
+        config.Cmd = ["/bin/bencher"];
       };
+
+      docker-mergeable-etcd = pkgs.dockerTools.buildLayeredImage {
+        name = "${container-registry}/mergeable-etcd";
+        tag = "latest";
+        contents = [
+          pkgs.iptables
+          pkgs.iproute2 # for tc
+          pkgs.busybox
+          self.packages.${system}.mergeable-etcd
+        ];
+        config.Cmd = ["/bin/mergeable-etcd-bytes"];
+      };
+
+      docker-dismerge = pkgs.dockerTools.buildLayeredImage {
+        name = "${container-registry}/dismerge";
+        tag = "latest";
+        contents = [
+          pkgs.iptables
+          pkgs.iproute2 # for tc
+          pkgs.busybox
+          self.packages.${system}.dismerge
+        ];
+        config.Cmd = ["/bin/dismerge-bytes"];
+      };
+
+      docker-etcd = pkgs.dockerTools.buildLayeredImage {
+        name = "${container-registry}/etcd";
+        tag = "v${pkgs.etcd_3_5.version}";
+        contents = [
+          pkgs.iptables
+          pkgs.iproute2 # for tc
+          pkgs.busybox
+          pkgs.etcd_3_5
+        ];
+        config.Cmd = ["/bin/etcd"];
+      };
+    };
 
     apps.${system} = {
       mergeable-etcd-bytes = flake-utils.lib.mkApp {
@@ -127,14 +138,19 @@
         drv = self.packages.${system}.experiments;
       };
 
-      etcd-benchmark = flake-utils.lib.mkApp {
-        name = "benchmark";
-        drv = self.packages.${system}.etcd;
-      };
-
       bencher = flake-utils.lib.mkApp {
         name = "bencher";
         drv = self.packages.${system}.bencher;
+      };
+
+      etcd = flake-utils.lib.mkApp {
+        name = "etcd";
+        drv = pkgs.etcd_3_5;
+      };
+
+      etcdctl = flake-utils.lib.mkApp {
+        name = "etcdctl";
+        drv = pkgs.etcd_3_5;
       };
     };
 
@@ -162,11 +178,7 @@
           rust-analyzer
 
           jupyter
-          python3Packages.numpy
-          python3Packages.pandas
-          python3Packages.matplotlib
-          python3Packages.seaborn
-          python3Packages.isort
+
           black
 
           linuxPackages.perf
@@ -180,12 +192,8 @@
 
           cfssl
           etcd
-
-          graphviz
-
-          ansible_2_13
-          python3Packages.ruamel-yaml
         ]
+        ++ [python]
         ++ [crate2nix.packages.${system}.crate2nix];
 
       ETCDCTL_API = 3;

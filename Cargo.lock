@@ -409,29 +409,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bencher-experiment"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "bencher",
- "bollard",
- "chrono",
- "clap 3.2.25",
- "csv",
- "etcd-proto",
- "exp",
- "futures",
- "mergeable-proto",
- "polars",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1116,6 +1093,29 @@ dependencies = [
  "exp",
  "serde",
  "tokio",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "exp-bencher"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bencher",
+ "bollard",
+ "chrono",
+ "clap 3.2.25",
+ "csv",
+ "etcd-proto",
+ "exp",
+ "futures",
+ "mergeable-proto",
+ "polars",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
  "tracing-subscriber",
 ]
 
