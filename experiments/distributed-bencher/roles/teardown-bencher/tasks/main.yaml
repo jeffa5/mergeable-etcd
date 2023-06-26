@@ -1,8 +1,0 @@
-- name: Stop bencher docker containers
-  docker_container:
-    state: absent
-    name: "{{ bencher_name_prefix }}{{ item | int + 1 }}"
-    force_kill: true
-  with_sequence: start=0 count={{ bencher_count }}
-  when:
-    - (item|int % (ansible_play_hosts | length)) == ansible_play_hosts.index(inventory_hostname)

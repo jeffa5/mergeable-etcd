@@ -1,9 +1,0 @@
----
-- name: Set up
-  hosts: all
-  gather_facts: false
-  become: true
-  tags: setup
-  any_errors_fatal: true
-  roles:
-    - role: roles/setup
