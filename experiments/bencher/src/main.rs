@@ -850,7 +850,7 @@ impl exp::Experiment for Experiment {
     ) {
         let all_file = exp_dir.join(BENCHER_RESULTS_FILE);
         println!("Merging results to {:?}", all_file);
-        let mut all_data = LazyFrame::default();
+        let mut all_data_opt = None;
         for (config, config_dir) in &configurations {
             let mut dummy_writer = Vec::new();
             {
@@ -877,12 +877,22 @@ impl exp::Experiment for Experiment {
                 let config_and_timings_data =
                     config_data.cross_join(&timings_data, None, None).unwrap();
 
-                all_data =
-                    diag_concat_lf([all_data, config_and_timings_data.lazy()], true, true).unwrap();
+                if let Some(all_data) = all_data_opt {
+                    all_data_opt = Some(
+                        diag_concat_lf([all_data, config_and_timings_data.lazy()], true, true)
+                            .unwrap(),
+                    );
+                } else {
+                    all_data_opt = Some(config_and_timings_data.lazy());
+                }
             }
         }
         let mut csv_file = File::create(all_file).unwrap();
-        CsvWriter::new(&mut csv_file).finish(&mut all_data.collect().unwrap()).unwrap();
+        if let Some(all_data) = all_data_opt {
+            CsvWriter::new(&mut csv_file)
+                .finish(&mut all_data.collect().unwrap())
+                .unwrap();
+        }
 
         let filename = "docker-apj39-bencher-exp-node1-stat.csv";
         let all_file = exp_dir.join(filename);
