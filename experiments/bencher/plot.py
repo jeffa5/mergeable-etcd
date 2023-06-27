@@ -308,13 +308,14 @@ def plot_latency_scatter_clustered_delayed_partition(
     plt.figure(figsize=half_height_fig_size)
     data = data[data["target_throughput"] == clustered_throughput]
     data = data[data["cluster_size"] == 3]
-    data = data[data["success"] == True]
     data = data[data["tmpfs"] == True]
     data = data[data["delay_ms"] == 10]
     data = data[data["bench_target"] == "Leader"]
     data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
     data = data[data["partition_after_s"] == 5]
     data = data[data["unpartition_after_s"] == 5]
+    ymax = data["latency_ms"].max()
+    data = data[data["success"] == True]
     data["start_s"] = data["start_ns"] / 1_000_000_000
     print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
@@ -326,6 +327,7 @@ def plot_latency_scatter_clustered_delayed_partition(
         hue_order=stores,
     )
     plt.yscale("log")
+    plot.set_ylim(0, ymax + 0.2 * ymax)
     plot.set(xlabel="Time (s)", ylabel="Latency (ms)", alpha=0.5)
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
@@ -349,6 +351,7 @@ def plot_latency_scatter_clustered_delayed_partition_error(
     data = data[data["partition_after_s"] == 5]
     data = data[data["unpartition_after_s"] == 5]
     data["start_s"] = data["start_ns"] / 1_000_000_000
+    ymax = data["latency_ms"].max()
     end = data["start_s"].max()
     data = data[data["success"] == False]
     print(data.groupby(group_cols, dropna=False).count())
@@ -361,6 +364,7 @@ def plot_latency_scatter_clustered_delayed_partition_error(
     )
     plt.yscale("log")
     plot.set_xlim(-1, end + 1)
+    plot.set_ylim(0, ymax + 0.2 * ymax)
     plot.set(xlabel="Time (s)", ylabel="Latency (ms)", alpha=0.5)
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
@@ -599,6 +603,7 @@ def plot_throughput_latency_box_clustered_delay_etcd(
         whis=(1, 99),  # cover most data
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
+    plt.yscale("log")
     plt.tight_layout()
     plot.get_figure().savefig("plots/throughput-latency-box-clustered-delayed-etcd.png")
     if pdf_output:
@@ -699,6 +704,7 @@ def plot_throughput_latency_box_clustered_delay_final(
         whis=(1, 99),  # cover most data
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
+    plt.yscale("log")
     plt.tight_layout()
     plot.get_figure().savefig("plots/throughput-latency-box-clustered-delay-final.png")
     if pdf_output:
@@ -1071,7 +1077,6 @@ def main():
     plot_throughput_goodput_clustered_node_delay_final(data, group_cols)
     plot_latency_comparison_clustered_delayed_final(data, group_cols)
     plot_throughput_errors_box_clustered_delay_final(data, group_cols)
-
 
 
 def plot_throughput_memory_single_node(data: pd.DataFrame, group_cols: List[str]):
