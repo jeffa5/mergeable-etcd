@@ -542,7 +542,7 @@ impl exp::Experiment for Experiment {
                 unpartition_after_s: 0,
                 partition_type: PartitionTarget::Connected,
             };
-            for throughput in (30_000..=40_000).step_by(5_000) {
+            for throughput in (30_000..=60_000).step_by(5_000) {
                 config.target_throughput = throughput;
                 confs.push(config.clone());
             }
@@ -566,7 +566,7 @@ impl exp::Experiment for Experiment {
                 unpartition_after_s: 0,
                 partition_type: PartitionTarget::Connected,
             };
-            for throughput in (30_000..=40_000).step_by(5_000) {
+            for throughput in (30_000..=60_000).step_by(5_000) {
                 config.target_throughput = throughput;
                 confs.push(config.clone());
             }
@@ -590,7 +590,7 @@ impl exp::Experiment for Experiment {
                 unpartition_after_s: 0,
                 partition_type: PartitionTarget::Connected,
             };
-            for throughput in (30_000..=40_000).step_by(5_000) {
+            for throughput in (30_000..=60_000).step_by(5_000) {
                 config.target_throughput = throughput;
                 confs.push(config.clone());
             }
