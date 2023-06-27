@@ -879,6 +879,54 @@ def plot_throughput_goodput_single_node_final(
     if pdf_output:
         plot.get_figure().savefig("plots/throughput_goodput-single-final.pdf")
 
+def plot_throughput_goodput_clustered_all_final(
+    data: pd.DataFrame, group_cols: List[str]
+):
+    print_header("plot throughput goodput target all")
+    plt.figure(figsize=half_height_fig_size)
+    data = data[data["cluster_size"] == 5]
+    data = data[data["success"] == True]
+    data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 10]
+    data = data[data["bench_target"] == "All"]
+    data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    # data = data[
+    #     data["target_throughput"].isin(
+    #         [5_000, 10_000, 15_000, 20_000, 25_000, 30_000, 35_000, 40_000]
+    #     )
+    # ]
+    data = data[data["partition_after_s"] == 0]
+    grouped = data.groupby(group_cols, dropna=False)
+    mins = grouped["start_ns"].min()
+    maxs = grouped["end_ns"].max()
+    counts = grouped["start_ns"].count()
+    durations_ns = maxs - mins
+    durations_s = durations_ns / 1_000_000_000
+    throughputs = counts / durations_s
+    throughputs = throughputs.reset_index(name="goodput")
+    verbose_print(data.groupby(group_cols, dropna=False).count())
+    throughputs = throughputs.rename(columns={"bin_name": "datastore"})
+    throughputs["target_throughput"] /= 1_000
+    throughputs["goodput"] /= 1_000
+    if len(data.index) == 0:
+        return
+    plot = sns.lineplot(
+        data=throughputs,
+        x="target_throughput",
+        y="goodput",
+        hue="datastore",
+        hue_order=stores,
+    )
+    plot.set(
+        xlabel="Target rate (kreq/s)",
+        ylabel="Achieved rate (kreq/s)",
+    )
+    # plot.set_ylim(0, throughputs["goodput"].max())
+    plt.tight_layout()
+    plot.get_figure().savefig("plots/throughput_goodput-all-final.png")
+    if pdf_output:
+        plot.get_figure().savefig("plots/throughput_goodput-all-final.pdf")
+
 
 def plot_throughput_goodput_clustered_node_final(
     data: pd.DataFrame, group_cols: List[str]
@@ -1106,6 +1154,8 @@ def main():
     plot_latency_comparison_clustered_delayed_final(data, group_cols)
     plot_throughput_errors_box_clustered_delay_final(data, group_cols)
 
+    max_throughput_all_stats(data, group_cols)
+    plot_throughput_goodput_clustered_all_final(data, group_cols)
 
 def plot_throughput_memory_single_node(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["cluster_size"] == 1]
