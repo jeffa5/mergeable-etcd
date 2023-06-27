@@ -995,6 +995,29 @@ def plot_throughput_errorcount_single_node(data: pd.DataFrame, group_cols: List[
         plot.savefig("plots/throughput_errorcount.pdf")
 
 
+def max_throughput_all_stats(data: pd.DataFrame, group_cols: List[str]):
+    print_header("stats max throughput")
+    data = data[data["bench_target"] == "All"]
+    data = data[data["target_throughput"] == 40_000]
+    grouped = data.groupby(group_cols, dropna=False)
+    mins = grouped["start_ns"].min()
+    maxs = grouped["end_ns"].max()
+    counts = grouped["start_ns"].count()
+    durations_ns = maxs - mins
+    durations_s = durations_ns / 1_000_000_000
+    throughputs = counts / durations_s
+    throughputs = throughputs.reset_index(name="goodput")
+    print(throughputs[["bin_name", "goodput"]])
+    print(throughputs.columns)
+    group_cols = [g for g in group_cols if g != "repeat"]
+    print(group_cols)
+    throughputs = throughputs.groupby(group_cols)
+    throughputs = throughputs.max()
+    print(throughputs)
+    throughputs = throughputs.reset_index()
+    print(throughputs[["bin_name", "goodput"]])
+
+
 def main():
     data = pd.read_csv("results/bencher-results.csv")
     print(data.describe())
