@@ -521,6 +521,79 @@ impl exp::Experiment for Experiment {
             confs.push(config);
 
             // TODO: add some configs for connecting to the non-leader
+
+            // test scalabilty connecting to all nodes
+            let mut config = Config {
+                repeat,
+                cluster_size: 5,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::All,
+                target_throughput: 10_000,
+                target_duration_s,
+                image_name: ETCD_IMAGE.to_owned(),
+                image_tag: ETCD_TAG.to_owned(),
+                bin_name: ETCD_BIN.to_owned(),
+                delay_ms: 10,
+                delay_variation: F64(0.1),
+                extra_args: String::new(),
+                tmpfs,
+                cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::Connected,
+            };
+            for throughput in (30_000..=40_000).step_by(5_000) {
+                config.target_throughput = throughput;
+                confs.push(config.clone());
+            }
+            // test scalabilty connecting to all nodes
+            let mut config = Config {
+                repeat,
+                cluster_size: 5,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::All,
+                target_throughput: 10_000,
+                target_duration_s,
+                image_name: MERGEABLE_ETCD_IMAGE.to_owned(),
+                image_tag: MERGEABLE_ETCD_TAG.to_owned(),
+                bin_name: MERGEABLE_ETCD_BIN.to_owned(),
+                delay_ms: 10,
+                delay_variation: F64(0.1),
+                extra_args: String::new(),
+                tmpfs,
+                cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::Connected,
+            };
+            for throughput in (30_000..=40_000).step_by(5_000) {
+                config.target_throughput = throughput;
+                confs.push(config.clone());
+            }
+            // test scalabilty connecting to all nodes
+            let mut config = Config {
+                repeat,
+                cluster_size: 5,
+                bench_args: ycsb_a.clone(),
+                bench_target: BenchTarget::All,
+                target_throughput: 10_000,
+                target_duration_s,
+                image_name: DISMERGE_IMAGE.to_owned(),
+                image_tag: DISMERGE_TAG.to_owned(),
+                bin_name: DISMERGE_BIN.to_owned(),
+                delay_ms: 10,
+                delay_variation: F64(0.1),
+                extra_args: String::new(),
+                tmpfs,
+                cpus,
+                partition_after_s: 0,
+                unpartition_after_s: 0,
+                partition_type: PartitionTarget::Connected,
+            };
+            for throughput in (30_000..=40_000).step_by(5_000) {
+                config.target_throughput = throughput;
+                confs.push(config.clone());
+            }
         }
 
         info!(num_configurations = confs.len(), "Created configurations");
@@ -675,15 +748,22 @@ impl exp::Experiment for Experiment {
         fs::File::create(&out_file).unwrap();
         let out_file = fs::canonicalize(out_file).unwrap();
 
-        let bench_target = match configuration.bench_target {
-            BenchTarget::NonLeader => find_non_leader_node(&configuration.bin_name, &nodes).await,
-            BenchTarget::Leader => find_leader_node(&configuration.bin_name, &nodes).await,
+        let bench_targets = match configuration.bench_target {
+            BenchTarget::NonLeader => {
+                vec![find_non_leader_node(&configuration.bin_name, &nodes).await]
+            }
+            BenchTarget::Leader => vec![find_leader_node(&configuration.bin_name, &nodes).await],
+            BenchTarget::All => nodes.iter().collect(),
         };
 
         let mut bench_cmd = vec![
             "bencher".to_owned(),
             "--endpoints".to_owned(),
-            bench_target.client_url.clone(),
+            bench_targets
+                .iter()
+                .map(|t| t.client_url.clone())
+                .collect::<Vec<_>>()
+                .join(","),
             "--metrics-endpoints".to_owned(),
             metrics_urls,
             "--out-file".to_owned(),
@@ -771,6 +851,8 @@ impl exp::Experiment for Experiment {
             let partition_after_s = configuration.partition_after_s;
             let unpartition_after_s = configuration.unpartition_after_s;
             let partition_type = configuration.partition_type;
+            assert_ne!(configuration.bench_target, BenchTarget::All);
+            let bench_target = bench_targets.first().unwrap();
             let partitioned_node = match partition_type {
                 PartitionTarget::Connected => bench_target,
                 PartitionTarget::Other => nodes
@@ -990,6 +1072,8 @@ enum BenchTarget {
     Leader,
     /// Another, non-leader, node, pretending we are at a site without the leader.
     NonLeader,
+    /// All nodes in the cluster, imagining we are emulating a client at each site.
+    All,
 }
 
 /// Which node to partition off.
