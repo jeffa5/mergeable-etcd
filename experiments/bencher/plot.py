@@ -8,13 +8,19 @@ import seaborn as sns
 
 pd.set_option("display.max_rows", 500)
 
-pdf_output = False
 verbose = False
 
 default_fig_size = plt.rcParams["figure.figsize"]
 half_height_fig_size = [default_fig_size[0], default_fig_size[1] / 2.0]
 
 stores = ["etcd", "mergeable-etcd-bytes", "dismerge-bytes"]
+
+
+def save(figure, name):
+    figure.savefig(f"plots/{name}.png")
+    figure.savefig(f"plots/{name}.pdf")
+    figure.savefig(f"plots/{name}.svg")
+
 
 def verbose_print(data):
     if verbose:
@@ -49,9 +55,7 @@ def plot_etcd_clustered(data: pd.DataFrame, group_cols: List[str]):
     plot = sns.lineplot(data=data, x="cluster_size", y="latency_ms")
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/etcd_clustered.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/etcd_clustered.pdf")
+    save(plot.get_figure(), "etcd_clustered")
 
 
 def plot_comparison_clustered(data: pd.DataFrame, group_cols: List[str]):
@@ -70,9 +74,7 @@ def plot_comparison_clustered(data: pd.DataFrame, group_cols: List[str]):
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/comparison_clustered.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/comparison_clustered.pdf")
+    save(plot.get_figure(), "comparison_clustered")
 
 
 def plot_latency_comparison_clustered_final(data: pd.DataFrame, group_cols: List[str]):
@@ -98,9 +100,7 @@ def plot_latency_comparison_clustered_final(data: pd.DataFrame, group_cols: List
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/cluster-latency.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/cluster-latency.pdf")
+    save(plot.get_figure(), "cluster-latency")
 
 
 def plot_comparison_clustered_delayed(data: pd.DataFrame, group_cols: List[str]):
@@ -123,9 +123,7 @@ def plot_comparison_clustered_delayed(data: pd.DataFrame, group_cols: List[str])
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/comparison_clustered_delayed.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/comparison_clustered_delayed.pdf")
+    save(plot.get_figure(), "comparison_clustered_delayed")
 
 
 def plot_latency_comparison_clustered_delayed_final(
@@ -153,9 +151,7 @@ def plot_latency_comparison_clustered_delayed_final(
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/cluster-latency-delayed.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/cluster-latency-delayed.pdf")
+    save(plot.get_figure(), "cluster-latency-delayed")
 
 
 def plot_latency_scatter_single_node(data: pd.DataFrame, group_cols: List[str]):
@@ -179,9 +175,7 @@ def plot_latency_scatter_single_node(data: pd.DataFrame, group_cols: List[str]):
         col="target_throughput",
     )
     plt.tight_layout()
-    plot.savefig("plots/scatter-single.png")
-    if pdf_output:
-        plot.savefig("plots/scatter-single.pdf")
+    save(plot, "scatter-single")
 
 
 def plot_latency_scatter_clustered(data: pd.DataFrame, group_cols: List[str]):
@@ -205,9 +199,7 @@ def plot_latency_scatter_clustered(data: pd.DataFrame, group_cols: List[str]):
         col="cluster_size",
     )
     plt.tight_layout()
-    plot.savefig("plots/scatter-clustered.png")
-    if pdf_output:
-        plot.savefig("plots/scatter-clustered.pdf")
+    save(plot,"scatter-clustered")
 
 
 def plot_latency_scatter_clustered_delayed(data: pd.DataFrame, group_cols: List[str]):
@@ -231,9 +223,7 @@ def plot_latency_scatter_clustered_delayed(data: pd.DataFrame, group_cols: List[
         col="cluster_size",
     )
     plt.tight_layout()
-    plot.savefig("plots/scatter-clustered-delayed.png")
-    if pdf_output:
-        plot.savefig("plots/scatter-clustered-delayed.pdf")
+    save(plot,"scatter-clustered-delayed")
 
 
 def plot_latency_scatter_clustered_delayed_partition_etcd(
@@ -265,9 +255,8 @@ def plot_latency_scatter_clustered_delayed_partition_etcd(
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
     plt.tight_layout()
-    plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-etcd.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-etcd.pdf")
+    save(plot.get_figure(), "scatter-clustered-delayed-partition-etcd")
+
 
 def plot_latency_scatter_clustered_delayed_partition_etcd_successful(
     data: pd.DataFrame, group_cols: List[str]
@@ -296,10 +285,9 @@ def plot_latency_scatter_clustered_delayed_partition_etcd_successful(
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
     plt.tight_layout()
-    plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-etcd-successful.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-etcd-successful.pdf")
-
+    save(plot.get_figure(),
+        "scatter-clustered-delayed-partition-etcd-successful"
+    )
 
 
 def plot_latency_scatter_clustered_delayed_partition_etcd_reqtype(
@@ -329,13 +317,9 @@ def plot_latency_scatter_clustered_delayed_partition_etcd_reqtype(
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
     plt.tight_layout()
-    plot.get_figure().savefig(
-        "plots/scatter-clustered-delayed-partition-etcd-reqtype.png"
+    save(plot.get_figure(),
+        "scatter-clustered-delayed-partition-etcd-reqtype"
     )
-    if pdf_output:
-        plot.get_figure().savefig(
-            "plots/scatter-clustered-delayed-partition-etcd-reqtype.pdf"
-        )
 
 
 def plot_latency_scatter_clustered_delayed_partition(
@@ -369,9 +353,7 @@ def plot_latency_scatter_clustered_delayed_partition(
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
     plt.tight_layout()
-    plot.get_figure().savefig("plots/scatter-clustered-delayed-partition.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/scatter-clustered-delayed-partition.pdf")
+    save(plot.get_figure(), "scatter-clustered-delayed-partition")
 
 
 def plot_latency_scatter_clustered_delayed_partition_error(
@@ -406,9 +388,7 @@ def plot_latency_scatter_clustered_delayed_partition_error(
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
     plt.tight_layout()
-    plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-error.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/scatter-clustered-delayed-partition-error.pdf")
+    save(plot.get_figure(), "scatter-clustered-delayed-partition-error")
 
 
 def plot_latency_cdf_single_node(data: pd.DataFrame, group_cols: List[str]):
@@ -431,9 +411,7 @@ def plot_latency_cdf_single_node(data: pd.DataFrame, group_cols: List[str]):
         col="target_throughput",
     )
     plt.tight_layout()
-    plot.savefig("plots/latency-cdf-single.png")
-    if pdf_output:
-        plot.savefig("plots/latency-cdf-single.pdf")
+    save(plot, "latency-cdf-single")
 
 
 def plot_latency_cdf_single_node_final(data: pd.DataFrame, group_cols: List[str]):
@@ -457,9 +435,7 @@ def plot_latency_cdf_single_node_final(data: pd.DataFrame, group_cols: List[str]
     )
     plot.set(xlabel="Latency (ms)")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/latency-cdf-single-final.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/latency-cdf-single-final.pdf")
+    save(plot.get_figure(), "latency-cdf-single-final")
 
 
 def plot_throughput_errors_box_single_final(data: pd.DataFrame, group_cols: List[str]):
@@ -498,9 +474,7 @@ def plot_throughput_errors_box_single_final(data: pd.DataFrame, group_cols: List
     )
     plot.set(xlabel="Target rate (req/s)", ylabel="Error count")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput-errors-box-single-final.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/throughput-errors-box-single-final.pdf")
+    save(plot.get_figure(), "throughput-errors-box-single-final")
 
 
 def plot_throughput_errors_box_clustered_final(
@@ -536,9 +510,7 @@ def plot_throughput_errors_box_clustered_final(
     )
     plot.set(xlabel="Target rate (req/s)", ylabel="Error count")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput-errors-box-clustered-final.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/throughput-errors-box-clustered-final.pdf")
+    save(plot.get_figure(), "throughput-errors-box-clustered-final")
 
 
 def plot_throughput_errors_box_clustered_delay_final(
@@ -574,11 +546,7 @@ def plot_throughput_errors_box_clustered_delay_final(
     )
     plot.set(xlabel="Target rate (req/s)", ylabel="Error count")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput-errors-box-clustered-delay-final.png")
-    if pdf_output:
-        plot.get_figure().savefig(
-            "plots/throughput-errors-box-clustered-delay-final.pdf"
-        )
+    save(plot.get_figure(), "throughput-errors-box-clustered-delay-final")
 
 
 def plot_throughput_latency_box_single_final(data: pd.DataFrame, group_cols: List[str]):
@@ -611,9 +579,7 @@ def plot_throughput_latency_box_single_final(data: pd.DataFrame, group_cols: Lis
     )
     plot.set(xlabel="Target rate (kreq/s)", ylabel="Latency (ms)")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput-latency-box-single-final.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/throughput-latency-box-single-final.pdf")
+    save(plot.get_figure(), "throughput-latency-box-single-final")
 
 
 def plot_throughput_latency_box_clustered_delay_etcd(
@@ -642,11 +608,7 @@ def plot_throughput_latency_box_clustered_delay_etcd(
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.yscale("log")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput-latency-box-clustered-delayed-etcd.png")
-    if pdf_output:
-        plot.get_figure().savefig(
-            "plots/throughput-latency-box-clustered-delayed-etcd.pdf"
-        )
+    save(plot.get_figure(), "throughput-latency-box-clustered-delayed-etcd")
 
 
 def plot_throughput_latency_box_clustered_final(
@@ -675,9 +637,7 @@ def plot_throughput_latency_box_clustered_final(
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput-latency-box-clustered-final.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/throughput-latency-box-clustered-final.pdf")
+    save(plot.get_figure(), "throughput-latency-box-clustered-final")
 
 
 def plot_throughput_latency_box_clustered_all_nodes_final(
@@ -706,13 +666,9 @@ def plot_throughput_latency_box_clustered_all_nodes_final(
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.tight_layout()
-    plot.get_figure().savefig(
-        "plots/throughput-latency-box-clustered-allnodes-final.png"
+    save(plot.get_figure(),
+        "throughput-latency-box-clustered-allnodes-final"
     )
-    if pdf_output:
-        plot.get_figure().savefig(
-            "plots/throughput-latency-box-clustered-allnodes-final.pdf"
-        )
 
 
 def plot_throughput_latency_box_clustered_delay_final(
@@ -743,11 +699,7 @@ def plot_throughput_latency_box_clustered_delay_final(
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.yscale("log")
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput-latency-box-clustered-delay-final.png")
-    if pdf_output:
-        plot.get_figure().savefig(
-            "plots/throughput-latency-box-clustered-delay-final.pdf"
-        )
+    save(plot.get_figure(), "throughput-latency-box-clustered-delay-final")
 
 
 def plot_latency_cdf_clustered(data: pd.DataFrame, group_cols: List[str]):
@@ -769,9 +721,7 @@ def plot_latency_cdf_clustered(data: pd.DataFrame, group_cols: List[str]):
         col="cluster_size",
     )
     plt.tight_layout()
-    plot.savefig("plots/latency-cdf-clustered.png")
-    if pdf_output:
-        plot.savefig("plots/latency-cdf-clustered.pdf")
+    save(plot, "latency-cdf-clustered")
 
 
 def plot_latency_cdf_clustered_delayed(data: pd.DataFrame, group_cols: List[str]):
@@ -793,9 +743,7 @@ def plot_latency_cdf_clustered_delayed(data: pd.DataFrame, group_cols: List[str]
         col="cluster_size",
     )
     plt.tight_layout()
-    plot.savefig("plots/latency-cdf-clustered-delayed.png")
-    if pdf_output:
-        plot.savefig("plots/latency-cdf-clustered-delayed.pdf")
+    save(plot, "latency-cdf-clustered-delayed")
 
 
 def plot_throughput_latency_single_node(data: pd.DataFrame, group_cols: List[str]):
@@ -825,9 +773,7 @@ def plot_throughput_latency_single_node(data: pd.DataFrame, group_cols: List[str
         hue_order=stores,
     )
     plt.tight_layout()
-    plot.savefig("plots/throughput_latency.png")
-    if pdf_output:
-        plot.savefig("plots/throughput_latency.pdf")
+    save(plot, "throughput_latency")
 
 
 def plot_throughput_goodput_single_node(data: pd.DataFrame, group_cols: List[str]):
@@ -858,9 +804,7 @@ def plot_throughput_goodput_single_node(data: pd.DataFrame, group_cols: List[str
         hue_order=stores,
     )
     plt.tight_layout()
-    plot.savefig("plots/throughput_goodput.png")
-    if pdf_output:
-        plot.savefig("plots/throughput_goodput.pdf")
+    save(plot, "throughput_goodput")
 
 
 def plot_throughput_goodput_single_node_final(
@@ -907,9 +851,8 @@ def plot_throughput_goodput_single_node_final(
     )
     # plot.set_ylim(0, throughputs["goodput"].max())
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput_goodput-single-final.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/throughput_goodput-single-final.pdf")
+    save(plot.get_figure(), "throughput_goodput-single-final")
+
 
 def plot_throughput_goodput_clustered_all_final(
     data: pd.DataFrame, group_cols: List[str]
@@ -955,9 +898,7 @@ def plot_throughput_goodput_clustered_all_final(
     )
     # plot.set_ylim(0, throughputs["goodput"].max())
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput_goodput-all-final.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/throughput_goodput-all-final.pdf")
+    save(plot.get_figure(), "throughput_goodput-all-final")
 
 
 def plot_throughput_goodput_clustered_node_final(
@@ -998,9 +939,7 @@ def plot_throughput_goodput_clustered_node_final(
     )
     # plot.set_ylim(0, throughputs["goodput"].max() + 1000)
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput_goodput-clustered-final.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/throughput_goodput-clustered-final.pdf")
+    save(plot.get_figure(), "throughput_goodput-clustered-final")
 
 
 def plot_throughput_goodput_clustered_node_delay_final(
@@ -1041,9 +980,7 @@ def plot_throughput_goodput_clustered_node_delay_final(
     )
     # plot.set_ylim(0, throughputs["goodput"].max() + 1000)
     plt.tight_layout()
-    plot.get_figure().savefig("plots/throughput_goodput-clustered-delay-final.png")
-    if pdf_output:
-        plot.get_figure().savefig("plots/throughput_goodput-clustered-delay-final.pdf")
+    save(plot.get_figure(), "throughput_goodput-clustered-delay-final")
 
 
 def plot_throughput_errorcount_single_node(data: pd.DataFrame, group_cols: List[str]):
@@ -1070,9 +1007,7 @@ def plot_throughput_errorcount_single_node(data: pd.DataFrame, group_cols: List[
         hue_order=stores,
     )
     plt.tight_layout()
-    plot.savefig("plots/throughput_errorcount.png")
-    if pdf_output:
-        plot.savefig("plots/throughput_errorcount.pdf")
+    save(plot, "throughput_errorcount")
 
 
 def max_throughput_all_stats(data: pd.DataFrame, group_cols: List[str]):
@@ -1190,6 +1125,7 @@ def main():
     max_throughput_all_stats(data, group_cols)
     plot_throughput_goodput_clustered_all_final(data, group_cols)
 
+
 def plot_throughput_memory_single_node(data: pd.DataFrame, group_cols: List[str]):
     data = data[data["cluster_size"] == 1]
     grouped = data.groupby(group_cols, dropna=False)
@@ -1205,9 +1141,7 @@ def plot_throughput_memory_single_node(data: pd.DataFrame, group_cols: List[str]
         hue_order=stores,
     )
     plt.tight_layout()
-    plot.savefig("plots/throughput_memory_line.png")
-    if pdf_output:
-        plot.savefig("plots/throughput_memory_line.pdf")
+    save(plot, "throughput_memory_line")
 
 
 def plot_throughput_memory_clustered(data: pd.DataFrame, group_cols: List[str]):
@@ -1225,9 +1159,7 @@ def plot_throughput_memory_clustered(data: pd.DataFrame, group_cols: List[str]):
         hue_order=stores,
     )
     plt.tight_layout()
-    plot.savefig("plots/throughput_memory_line_clustered.png")
-    if pdf_output:
-        plot.savefig("plots/throughput_memory_line_clustered.pdf")
+    save(plot, "throughput_memory_line_clustered")
 
 
 def plot_throughput_cpu_single_node(data: pd.DataFrame, group_cols: List[str]):
@@ -1248,9 +1180,7 @@ def plot_throughput_cpu_single_node(data: pd.DataFrame, group_cols: List[str]):
         hue_order=stores,
     )
     plt.tight_layout()
-    plot.savefig("plots/throughput_cpu_line.png")
-    if pdf_output:
-        plot.savefig("plots/throughput_cpu_line.pdf")
+    save(plot, "throughput_cpu_line")
 
 
 def plot_throughput_cpu_clustered(data: pd.DataFrame, group_cols: List[str]):
@@ -1270,9 +1200,7 @@ def plot_throughput_cpu_clustered(data: pd.DataFrame, group_cols: List[str]):
         hue_order=stores,
     )
     plt.tight_layout()
-    plot.savefig("plots/throughput_cpu_line_clustered.png")
-    if pdf_output:
-        plot.savefig("plots/throughput_cpu_line_clustered.pdf")
+    save(plot, "throughput_cpu_line_clustered")
 
 
 def main_stats():
