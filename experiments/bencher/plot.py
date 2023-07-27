@@ -199,7 +199,7 @@ def plot_latency_scatter_clustered(data: pd.DataFrame, group_cols: List[str]):
         col="cluster_size",
     )
     plt.tight_layout()
-    save(plot,"scatter-clustered")
+    save(plot, "scatter-clustered")
 
 
 def plot_latency_scatter_clustered_delayed(data: pd.DataFrame, group_cols: List[str]):
@@ -223,7 +223,7 @@ def plot_latency_scatter_clustered_delayed(data: pd.DataFrame, group_cols: List[
         col="cluster_size",
     )
     plt.tight_layout()
-    save(plot,"scatter-clustered-delayed")
+    save(plot, "scatter-clustered-delayed")
 
 
 def plot_latency_scatter_clustered_delayed_partition_etcd(
@@ -285,8 +285,76 @@ def plot_latency_scatter_clustered_delayed_partition_etcd_successful(
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
     plt.tight_layout()
-    save(plot.get_figure(),
-        "scatter-clustered-delayed-partition-etcd-successful"
+    save(plot.get_figure(), "scatter-clustered-delayed-partition-etcd-successful")
+
+
+def plot_latency_scatter_clustered_delayed_partition_etcd_successful_endtime(
+    data: pd.DataFrame, group_cols: List[str]
+):
+    print_header("plot latency scatter")
+    plt.figure(figsize=half_height_fig_size)
+    data = data[data["target_throughput"] == clustered_throughput]
+    data = data[data["bin_name"] == "etcd"]
+    data = data[data["cluster_size"] == 3]
+    data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 10]
+    data = data[data["bench_target"] == "Leader"]
+    data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 5]
+    data = data[data["unpartition_after_s"] == 5]
+    data = data[data["success"] == True]
+    data["start_s"] = data["start_ns"] / 1_000_000_000
+    data["end_s"] = data["end_ns"] / 1_000_000_000
+    verbose_print(data.groupby(group_cols, dropna=False).count())
+    plot = sns.scatterplot(
+        data=data,
+        x="end_s",
+        y="latency_ms",
+    )
+    plt.yscale("log")
+    plot.set(xlabel="Receive time (s)", ylabel="Latency (ms)", alpha=0.5)
+    plot.axvline(x=5, linestyle="--", color="black", zorder=0)
+    plot.axvline(x=10, linestyle="--", color="black", zorder=0)
+    plt.tight_layout()
+    save(
+        plot.get_figure(), "scatter-clustered-delayed-partition-etcd-successful-endtime"
+    )
+
+
+def plot_latency_scatter_clustered_delayed_partition_etcd_dismerge_successful_endtime(
+    data: pd.DataFrame, group_cols: List[str]
+):
+    print_header("plot latency scatter")
+    plt.figure(figsize=half_height_fig_size)
+    data = data[data["target_throughput"] == clustered_throughput]
+    data = data[data["bin_name"].isin(["etcd", "dismerge-bytes"])]
+    data = data[data["cluster_size"] == 3]
+    data = data[data["tmpfs"] == True]
+    data = data[data["delay_ms"] == 10]
+    data = data[data["bench_target"] == "Leader"]
+    data = data[data["bench_args"] == "ycsb --read-weight 1 --update-weight 1"]
+    data = data[data["partition_after_s"] == 5]
+    data = data[data["unpartition_after_s"] == 5]
+    data = data[data["success"] == True]
+    data["start_s"] = data["start_ns"] / 1_000_000_000
+    data["end_s"] = data["end_ns"] / 1_000_000_000
+    verbose_print(data.groupby(group_cols, dropna=False).count())
+    data = data.rename(columns={"bin_name": "datastore"})
+    plot = sns.scatterplot(
+        data=data,
+        x="end_s",
+        y="latency_ms",
+        hue="datastore",
+        hue_order=["etcd", "dismerge-bytes"],
+    )
+    plt.yscale("log")
+    plot.set(xlabel="Receive time (s)", ylabel="Latency (ms)", alpha=0.5)
+    plot.axvline(x=5, linestyle="--", color="black", zorder=0)
+    plot.axvline(x=10, linestyle="--", color="black", zorder=0)
+    plt.tight_layout()
+    save(
+        plot.get_figure(),
+        "scatter-clustered-delayed-partition-etcd-dismerge-successful-endtime",
     )
 
 
@@ -317,9 +385,7 @@ def plot_latency_scatter_clustered_delayed_partition_etcd_reqtype(
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
     plt.tight_layout()
-    save(plot.get_figure(),
-        "scatter-clustered-delayed-partition-etcd-reqtype"
-    )
+    save(plot.get_figure(), "scatter-clustered-delayed-partition-etcd-reqtype")
 
 
 def plot_latency_scatter_clustered_delayed_partition(
@@ -666,9 +732,7 @@ def plot_throughput_latency_box_clustered_all_nodes_final(
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.tight_layout()
-    save(plot.get_figure(),
-        "throughput-latency-box-clustered-allnodes-final"
-    )
+    save(plot.get_figure(), "throughput-latency-box-clustered-allnodes-final")
 
 
 def plot_throughput_latency_box_clustered_delay_final(
@@ -1034,6 +1098,7 @@ def max_throughput_all_stats(data: pd.DataFrame, group_cols: List[str]):
 
 
 def main():
+    print("reading csv")
     data = pd.read_csv("results/bencher-results.csv")
     print(data.describe())
     print(data.info())
@@ -1088,6 +1153,12 @@ def main():
     plot_throughput_latency_box_clustered_delay_etcd(data, group_cols)
     plot_latency_scatter_clustered_delayed_partition_etcd(data, group_cols)
     plot_latency_scatter_clustered_delayed_partition_etcd_successful(data, group_cols)
+    plot_latency_scatter_clustered_delayed_partition_etcd_successful_endtime(
+        data, group_cols
+    )
+    plot_latency_scatter_clustered_delayed_partition_etcd_dismerge_successful_endtime(
+        data, group_cols
+    )
     plot_latency_scatter_clustered_delayed_partition_etcd_reqtype(data, group_cols)
     # plot_comparison_clustered(data, group_cols)
     # plot_latency_scatter_clustered(data, group_cols)
