@@ -244,6 +244,7 @@ def plot_latency_scatter_clustered_delayed_partition_etcd(
     data["start_s"] = data["start_ns"] / 1_000_000_000
     verbose_print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"success": "status"})
+    data = data.sample(frac=0.01, random_state=1)
     plot = sns.scatterplot(
         data=data,
         x="start_s",
@@ -275,6 +276,7 @@ def plot_latency_scatter_clustered_delayed_partition_etcd_successful(
     data = data[data["success"] == True]
     data["start_s"] = data["start_ns"] / 1_000_000_000
     verbose_print(data.groupby(group_cols, dropna=False).count())
+    data = data.sample(frac=0.01, random_state=1)
     plot = sns.scatterplot(
         data=data,
         x="start_s",
@@ -306,6 +308,7 @@ def plot_latency_scatter_clustered_delayed_partition_etcd_successful_endtime(
     data["start_s"] = data["start_ns"] / 1_000_000_000
     data["end_s"] = data["end_ns"] / 1_000_000_000
     verbose_print(data.groupby(group_cols, dropna=False).count())
+    data = data.sample(frac=0.01, random_state=1)
     plot = sns.scatterplot(
         data=data,
         x="end_s",
@@ -340,6 +343,7 @@ def plot_latency_scatter_clustered_delayed_partition_etcd_dismerge_successful_en
     data["end_s"] = data["end_ns"] / 1_000_000_000
     verbose_print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
+    data = data.sample(frac=0.01, random_state=1)
     plot = sns.scatterplot(
         data=data,
         x="end_s",
@@ -374,6 +378,7 @@ def plot_latency_scatter_clustered_delayed_partition_etcd_reqtype(
     data = data[data["unpartition_after_s"] == 5]
     data["start_s"] = data["start_ns"] / 1_000_000_000
     verbose_print(data.groupby(group_cols, dropna=False).count())
+    data = data.sample(frac=0.01, random_state=1)
     plot = sns.scatterplot(
         data=data,
         x="start_s",
@@ -406,6 +411,7 @@ def plot_latency_scatter_clustered_delayed_partition(
     data["start_s"] = data["start_ns"] / 1_000_000_000
     verbose_print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
+    data = data.sample(frac=0.01, random_state=1)
     plot = sns.scatterplot(
         data=data,
         x="start_s",
@@ -441,6 +447,7 @@ def plot_latency_scatter_clustered_delayed_partition_error(
     data = data[data["success"] == False]
     verbose_print(data.groupby(group_cols, dropna=False).count())
     data = data.rename(columns={"bin_name": "datastore"})
+    data = data.sample(frac=0.01, random_state=1)
     plot = sns.scatterplot(
         data=data,
         x="start_s",
