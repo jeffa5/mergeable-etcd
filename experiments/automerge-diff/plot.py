@@ -26,6 +26,7 @@ def plot_sizes_by_value(data: pd.DataFrame):
     name = "change_size_by_value_size"
     figure = plot.get_figure()
     figure.savefig(f"{plot_dir}/{name}.png")
+    figure.savefig(f"{plot_dir}/{name}.svg")
     figure.savefig(f"{plot_dir}/{name}.pdf")
 
 
@@ -46,6 +47,7 @@ def plot_by_num_keys(data: pd.DataFrame):
     name = "change_size_by_num_keys"
     figure = plot.get_figure()
     figure.savefig(f"{plot_dir}/{name}.png")
+    figure.savefig(f"{plot_dir}/{name}.svg")
     figure.savefig(f"{plot_dir}/{name}.pdf")
 
 

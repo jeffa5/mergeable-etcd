@@ -34,6 +34,7 @@ def plot_latency(data: pd.DataFrame):
     name = "change_latency"
     figure = plot.get_figure()
     figure.savefig(f"{plot_dir}/{name}.png")
+    figure.savefig(f"{plot_dir}/{name}.svg")
     figure.savefig(f"{plot_dir}/{name}.pdf")
 
 
