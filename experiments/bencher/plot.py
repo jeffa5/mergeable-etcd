@@ -506,6 +506,7 @@ def plot_latency_cdf_single_node_final(data: pd.DataFrame, group_cols: List[str]
         hue="datastore",
         hue_order=stores,
     )
+    plt.xscale("log")
     plot.set(xlabel="Latency (ms)")
     plt.tight_layout()
     save(plot.get_figure(), "latency-cdf-single-final")
@@ -649,6 +650,7 @@ def plot_throughput_latency_box_single_final(data: pd.DataFrame, group_cols: Lis
         hue_order=stores,
         showfliers=False,
         whis=(1, 99),  # cover most data
+        gap=0.1,
     )
     plot.set(xlabel="Target rate (kreq/s)", ylabel="Latency (ms)")
     plt.tight_layout()
@@ -679,7 +681,7 @@ def plot_throughput_latency_box_clustered_delay_etcd(
         whis=(1, 99),  # cover most data
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
-    plt.yscale("log")
+    # plt.yscale("log")
     plt.tight_layout()
     save(plot.get_figure(), "throughput-latency-box-clustered-delayed-etcd")
 
@@ -707,6 +709,7 @@ def plot_throughput_latency_box_clustered_final(
         hue_order=stores,
         showfliers=False,
         whis=(1, 99),  # cover most data
+        gap=0.1,
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     plt.tight_layout()
@@ -766,9 +769,10 @@ def plot_throughput_latency_box_clustered_delay_final(
         hue_order=stores,
         showfliers=False,
         whis=(1, 99),  # cover most data
+        gap=0.1,
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
-    plt.yscale("log")
+    # plt.yscale("log")
     plt.tight_layout()
     save(plot.get_figure(), "throughput-latency-box-clustered-delay-final")
 
