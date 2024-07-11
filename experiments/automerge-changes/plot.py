@@ -20,15 +20,13 @@ def min_max(data: List[int]) -> Tuple[int, int]:
 
 def plot_latency(data: pd.DataFrame):
     plt.figure(figsize=half_height_fig_size)
-    plot = sns.barplot(
+    plot = sns.stripplot(
         data=data,
         x="ops_per_change",
         y="time_ms",
         hue="time_for",
-        estimator=np.median,
-        errorbar=min_max,
     )
-    plot.set(xlabel="Operations per commit", ylabel="Duration (ms)")
+    plot.set(xlabel="Operations per commit", ylabel="Duration (ms)", ylim=(0, None))
     plt.legend(title="Processing time")
     plt.tight_layout()
     name = "change_latency"

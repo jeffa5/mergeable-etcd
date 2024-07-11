@@ -19,8 +19,8 @@ def min_max(data: List[int]) -> Tuple[int, int]:
 
 def plot_sizes_by_value(data: pd.DataFrame):
     plt.figure(figsize=half_height_fig_size)
-    plot = sns.barplot(data=data, x="value_length", y="size_bytes", hue="size_type")
-    plot.set(xlabel="Size of values (bytes)", ylabel="Size of diff (bytes)")
+    plot = sns.stripplot(data=data, x="value_length", y="size_bytes", hue="size_type")
+    plot.set(xlabel="Size of values (bytes)", ylabel="Size of diff (bytes)", ylim=(0, None))
     plt.legend(title="Type of diff")
     plt.tight_layout()
     name = "change_size_by_value_size"
@@ -33,15 +33,13 @@ def plot_sizes_by_value(data: pd.DataFrame):
 def plot_by_num_keys(data: pd.DataFrame):
     data = data[data["value_length"] == 500]
     plt.figure(figsize=half_height_fig_size)
-    plot = sns.barplot(
+    plot = sns.stripplot(
         data=data,
         x="num_keys_to_change",
         y="size_bytes",
         hue="size_type",
-        estimator=np.median,
-        errorbar=min_max,
     )
-    plot.set(xlabel="Number of keys changed", ylabel="Size (bytes)")
+    plot.set(xlabel="Number of keys changed", ylabel="Size (bytes)", ylim=(0, None))
     plt.legend(title="Type of diff")
     plt.tight_layout()
     name = "change_size_by_num_keys"
