@@ -27,6 +27,8 @@ def plot_latency(data: pd.DataFrame):
         hue="time_for",
         # estimator=np.median,
         # errorbar=min_max,
+        linewidth=1,
+        alpha=0.7,
     )
     plot.set(xlabel="Changes per sync", ylabel="Duration (ms)", ylim=(0, None))
     plt.legend(title="Processing time")

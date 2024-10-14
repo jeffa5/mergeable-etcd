@@ -9,7 +9,8 @@ import seaborn as sns
 plot_dir = "plots"
 
 default_fig_size = plt.rcParams["figure.figsize"]
-half_height_fig_size = [default_fig_size[0], default_fig_size[1]/2.]
+half_height_fig_size = [default_fig_size[0], default_fig_size[1] / 2.0]
+
 
 def min_max(data: List[int]) -> Tuple[int, int]:
     minimum = np.min(data)
@@ -19,8 +20,17 @@ def min_max(data: List[int]) -> Tuple[int, int]:
 
 def plot_sizes_by_value(data: pd.DataFrame):
     plt.figure(figsize=half_height_fig_size)
-    plot = sns.stripplot(data=data, x="value_length", y="size_bytes", hue="size_type")
-    plot.set(xlabel="Size of values (bytes)", ylabel="Size of diff (bytes)", ylim=(0, None))
+    plot = sns.stripplot(
+        data=data,
+        x="value_length",
+        y="size_bytes",
+        hue="size_type",
+        linewidth=1,
+        alpha=0.7,
+    )
+    plot.set(
+        xlabel="Size of values (bytes)", ylabel="Size of diff (bytes)", ylim=(0, None)
+    )
     plt.legend(title="Type of diff")
     plt.tight_layout()
     name = "change_size_by_value_size"
@@ -38,6 +48,8 @@ def plot_by_num_keys(data: pd.DataFrame):
         x="num_keys_to_change",
         y="size_bytes",
         hue="size_type",
+        linewidth=1,
+        alpha=0.7,
     )
     plot.set(xlabel="Number of keys changed", ylabel="Size (bytes)", ylim=(0, None))
     plt.legend(title="Type of diff")

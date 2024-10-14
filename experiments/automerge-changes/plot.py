@@ -25,6 +25,8 @@ def plot_latency(data: pd.DataFrame):
         x="ops_per_change",
         y="time_ms",
         hue="time_for",
+        linewidth=1,
+        alpha=0.7,
     )
     plot.set(xlabel="Operations per commit", ylabel="Duration (ms)", ylim=(0, None))
     plt.legend(title="Processing time")
