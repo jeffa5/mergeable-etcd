@@ -424,6 +424,7 @@ def plot_latency_scatter_clustered_delayed_partition(
     plot.set(xlabel="Time (s)", ylabel="Latency (ms)", alpha=0.5)
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
+    sns.move_legend(plot, "lower center", bbox_to_anchor=(0.5, 1), title=None, frameon=False, ncols=3)
     plt.tight_layout()
     save(plot.get_figure(), "scatter-clustered-delayed-partition")
 
@@ -460,6 +461,7 @@ def plot_latency_scatter_clustered_delayed_partition_error(
     plot.set(xlabel="Time (s)", ylabel="Latency (ms)", alpha=0.5)
     plot.axvline(x=5, linestyle="--", color="black", zorder=0)
     plot.axvline(x=10, linestyle="--", color="black", zorder=0)
+    sns.move_legend(plot, "lower center", bbox_to_anchor=(0.5, 1), title=None, frameon=False, ncols=3)
     plt.tight_layout()
     save(plot.get_figure(), "scatter-clustered-delayed-partition-error")
 
@@ -508,6 +510,7 @@ def plot_latency_cdf_single_node_final(data: pd.DataFrame, group_cols: List[str]
     )
     plt.xscale("log")
     plot.set(xlabel="Latency (ms)")
+    sns.move_legend(plot, "lower center", bbox_to_anchor=(0.5, 1), title=None, frameon=False, ncols=3)
     plt.tight_layout()
     save(plot.get_figure(), "latency-cdf-single-final")
 
@@ -653,6 +656,8 @@ def plot_throughput_latency_box_single_final(data: pd.DataFrame, group_cols: Lis
         gap=0.1,
     )
     plot.set(xlabel="Target rate (kreq/s)", ylabel="Latency (ms)")
+    sns.move_legend(plot, "lower center", bbox_to_anchor=(0.5, 1), title=None, frameon=False, ncols=3)
+    plot.set_yscale("log")
     plt.tight_layout()
     save(plot.get_figure(), "throughput-latency-box-single-final")
 
@@ -712,6 +717,7 @@ def plot_throughput_latency_box_clustered_final(
         gap=0.1,
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
+    sns.move_legend(plot, "lower center", bbox_to_anchor=(0.5, 1), title=None, frameon=False, ncols=3)
     plt.tight_layout()
     save(plot.get_figure(), "throughput-latency-box-clustered-final")
 
@@ -773,6 +779,8 @@ def plot_throughput_latency_box_clustered_delay_final(
     )
     plot.set(xlabel="Cluster size", ylabel="Latency (ms)")
     # plt.yscale("log")
+    plot.set_ylim(bottom=0)
+    sns.move_legend(plot, "lower center", bbox_to_anchor=(0.5, 1), title=None, frameon=False, ncols=3)
     plt.tight_layout()
     save(plot.get_figure(), "throughput-latency-box-clustered-delay-final")
 
@@ -924,7 +932,8 @@ def plot_throughput_goodput_single_node_final(
         xlabel="Target rate (kreq/s)",
         ylabel="Achieved rate (kreq/s)",
     )
-    # plot.set_ylim(0, throughputs["goodput"].max())
+    plot.set_ylim(bottom=0)
+    sns.move_legend(plot, "lower center", bbox_to_anchor=(0.5, 1), title=None, frameon=False, ncols=3)
     plt.tight_layout()
     save(plot.get_figure(), "throughput_goodput-single-final")
 
